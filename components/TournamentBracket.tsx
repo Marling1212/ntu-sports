@@ -93,11 +93,16 @@ export default function TournamentBracket({
     // Only apply this if we're showing the actual final round of the entire tournament
     if (round === actualTotalRounds) {
       const prevRoundMatches = getMatchesForRound(round - 1);
+      
+      // For the final round, we want to align with the previous round directly
       // Match 1 (Final) aligns with SF Match 1
       // Match 2 (3rd Place, if exists) aligns with SF Match 2
-      const prevMatch = prevRoundMatches.find(m => m.matchNumber === matchNumber);
-      if (prevMatch) {
-        return calculateMatchPosition(round - 1, prevMatch.matchNumber);
+      if (prevRoundMatches.length >= matchNumber) {
+        // Get the corresponding match from the previous round
+        const prevMatch = prevRoundMatches.sort((a, b) => a.matchNumber - b.matchNumber)[matchNumber - 1];
+        if (prevMatch) {
+          return calculateMatchPosition(round - 1, prevMatch.matchNumber);
+        }
       }
     }
     
