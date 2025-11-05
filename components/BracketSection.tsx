@@ -262,106 +262,22 @@ function FinalsStage({
   totalRounds: number;
   compactLayout?: boolean;
 }) {
-  const maxRound = Math.max(...matches.map(m => m.round));
-  
-  // Check for 3rd place match specifically in the FINAL round
-  const has3rdPlace = matches.some(m => m.round === maxRound && m.matchNumber === 2);
-  
-  // Filter out ONLY the 3rd place match (final round, matchNumber 2) for main bracket
-  const mainMatches = matches.filter(m => !(m.round === maxRound && m.matchNumber === 2));
-  const thirdPlaceMatch = matches.find(m => m.round === maxRound && m.matchNumber === 2);
-  
-  // Re-number matches to start from 1 for each round
-  const remappedMatches = mainMatches.map(match => {
-    const roundMatches = mainMatches.filter(m => m.round === match.round).sort((a, b) => a.matchNumber - b.matchNumber);
+  // Re-number matches to start from 1 for each round (keep 3rd place match in main bracket)
+  const remappedMatches = matches.map(match => {
+    const roundMatches = matches.filter(m => m.round === match.round).sort((a, b) => a.matchNumber - b.matchNumber);
     const newMatchNumber = roundMatches.findIndex(m => m.matchNumber === match.matchNumber) + 1;
     return { ...match, matchNumber: newMatchNumber };
   });
 
   return (
-    <div className="space-y-8">
-      {/* Main Finals Bracket */}
-      <TournamentBracket
-        matches={remappedMatches}
-        players={players}
-        sportName={sportName}
-        totalRounds={totalRounds}
-        compactLayout={compactLayout}
-      />
-      
-      {/* 3rd Place Match - Separate Display */}
-      {has3rdPlace && thirdPlaceMatch && (
-        <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-6">
-          <h3 className="text-2xl font-bold text-amber-600 mb-4 flex items-center gap-2">
-            <span>🥉</span>
-            <span>季軍賽 (3rd Place Match)</span>
-          </h3>
-          
-          <div className="flex items-center justify-center gap-4 max-w-2xl mx-auto">
-            {/* Player 1 */}
-            <div className={`flex-1 rounded-lg border-2 shadow-md p-4 ${
-              thirdPlaceMatch.winner?.id === thirdPlaceMatch.player1?.id
-                ? "border-amber-500 bg-amber-50"
-                : "border-gray-300 bg-white"
-            }`}>
-              <div className="text-center">
-                <div className="text-lg font-semibold text-gray-900">
-                  {thirdPlaceMatch.player1?.name || "TBD"}
-                </div>
-                {thirdPlaceMatch.player1?.school && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    {thirdPlaceMatch.player1.school}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* VS or Score */}
-            <div className="flex-shrink-0">
-              {thirdPlaceMatch.status === "completed" && thirdPlaceMatch.score ? (
-                <div className="bg-white border-2 border-amber-500 rounded-lg px-4 py-3">
-                  <div className="text-lg font-bold text-amber-600 whitespace-nowrap">
-                    {thirdPlaceMatch.score}
-                  </div>
-                </div>
-              ) : (
-                <div className="w-16 h-16 bg-amber-500 rounded-full flex items-center justify-center text-2xl">
-                  🥉
-                </div>
-              )}
-            </div>
-            
-            {/* Player 2 */}
-            <div className={`flex-1 rounded-lg border-2 shadow-md p-4 ${
-              thirdPlaceMatch.winner?.id === thirdPlaceMatch.player2?.id
-                ? "border-amber-500 bg-amber-50"
-                : "border-gray-300 bg-white"
-            }`}>
-              <div className="text-center">
-                <div className="text-lg font-semibold text-gray-900">
-                  {thirdPlaceMatch.player2?.name || "TBD"}
-                </div>
-                {thirdPlaceMatch.player2?.school && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    {thirdPlaceMatch.player2.school}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Winner Badge */}
-          {thirdPlaceMatch.winner && (
-            <div className="text-center mt-4">
-              <span className="inline-flex items-center gap-2 bg-amber-500 text-white px-6 py-2 rounded-full font-bold">
-                <span>🥉</span>
-                <span>第三名：{thirdPlaceMatch.winner.name}</span>
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <TournamentBracket
+      matches={remappedMatches}
+      players={players}
+      sportName={sportName}
+      totalRounds={totalRounds}
+      compactLayout={compactLayout}
+      hideThirdPlace={false}
+    />
   );
 }
 
