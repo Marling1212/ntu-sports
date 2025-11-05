@@ -213,7 +213,11 @@ export default function TournamentBracket({
                   <div 
                     className="relative pt-4"
                     style={{ 
-                      minHeight: `${roundMatches.length * (matchHeight + spacing) + 100}px`
+                      minHeight: roundMatches.length > 0 
+                        ? `${Math.max(...roundMatches.map(m => 
+                            calculateMatchPosition(round, m.matchNumber) + matchHeight
+                          )) + 100}px`
+                        : '200px'
                     }}
                   >
                     {roundMatches.map((match) => {
