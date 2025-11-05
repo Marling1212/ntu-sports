@@ -7,6 +7,7 @@ interface TournamentBracketProps {
   players: Player[];
   sportName?: string;
   totalRounds?: number; // Total rounds in the entire tournament (not just this section)
+  hideThirdPlace?: boolean; // Hide the 3rd place match display
 }
 
 export default function TournamentBracket({
@@ -14,6 +15,7 @@ export default function TournamentBracket({
   players,
   sportName = "Tennis",
   totalRounds: propTotalRounds,
+  hideThirdPlace = false,
 }: TournamentBracketProps) {
   // Calculate dynamic values based on actual data
   const maxRound = Math.max(...matches.map(m => m.round), 1);
@@ -284,8 +286,8 @@ export default function TournamentBracket({
               );
             })}
             
-            {/* 3rd Place Match (if exists) */}
-            {has3rdPlaceMatch && (() => {
+            {/* 3rd Place Match (if exists and not hidden) */}
+            {!hideThirdPlace && has3rdPlaceMatch && (() => {
               const thirdPlaceMatch = getThirdPlaceMatch();
               if (!thirdPlaceMatch) return null;
 

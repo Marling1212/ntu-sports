@@ -226,12 +226,14 @@ function SectionBracket({
   });
   
   // Use original TournamentBracket with re-mapped matches
+  // Hide 3rd place match in section brackets (it will be shown separately in finals)
   return (
     <TournamentBracket
       matches={remappedMatches}
       players={players}
       sportName={sportName}
       totalRounds={totalRounds}
+      hideThirdPlace={true}
     />
   );
 }
