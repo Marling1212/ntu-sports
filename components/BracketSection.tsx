@@ -193,6 +193,7 @@ export default function BracketSection({
           players={players}
           sportName={sportName}
           totalRounds={maxRound}
+          compactLayout={true}
         />
       ) : (
         <SectionBracket
@@ -252,12 +253,14 @@ function FinalsStage({
   matches, 
   players, 
   sportName,
-  totalRounds 
+  totalRounds,
+  compactLayout = false
 }: { 
   matches: Match[]; 
   players: Player[]; 
   sportName: string;
   totalRounds: number;
+  compactLayout?: boolean;
 }) {
   const has3rdPlace = matches.some(m => m.matchNumber === 2);
   const maxRound = Math.max(...matches.map(m => m.round));
@@ -281,6 +284,7 @@ function FinalsStage({
         players={players}
         sportName={sportName}
         totalRounds={totalRounds}
+        compactLayout={compactLayout}
       />
       
       {/* 3rd Place Match - Separate Display */}

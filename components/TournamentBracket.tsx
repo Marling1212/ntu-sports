@@ -8,6 +8,7 @@ interface TournamentBracketProps {
   sportName?: string;
   totalRounds?: number; // Total rounds in the entire tournament (not just this section)
   hideThirdPlace?: boolean; // Hide the 3rd place match display
+  compactLayout?: boolean; // Use compact sequential layout instead of centered positioning
 }
 
 export default function TournamentBracket({
@@ -16,6 +17,7 @@ export default function TournamentBracket({
   sportName = "Tennis",
   totalRounds: propTotalRounds,
   hideThirdPlace = false,
+  compactLayout = false,
 }: TournamentBracketProps) {
   // Calculate dynamic values based on actual data
   const maxRound = Math.max(...matches.map(m => m.round), 1);
@@ -80,6 +82,12 @@ export default function TournamentBracket({
   // Calculate vertical position for matches
   // Each match should be centered between the two feeding matches from previous round
   const calculateMatchPosition = (round: number, matchNumber: number): number => {
+    // For compact layout, use simple sequential positioning
+    if (compactLayout) {
+      return (matchNumber - 1) * (matchHeight + spacing);
+    }
+    
+    // For standard layout, use centered positioning
     if (round === 1) {
       return (matchNumber - 1) * (matchHeight + spacing);
     } else {
