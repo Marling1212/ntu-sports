@@ -243,6 +243,7 @@ function SectionBracket({
       sportName={sportName}
       totalRounds={totalRounds}
       hideThirdPlace={true}
+      isSection={true}
     />
   );
 }
