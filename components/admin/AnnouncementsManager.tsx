@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Announcement } from "@/types/database";
+import MarkdownText from "@/components/MarkdownText";
 
 interface AnnouncementsManagerProps {
   eventId: string;
@@ -89,9 +90,12 @@ export default function AnnouncementsManager({ eventId, initialAnnouncements }: 
                 onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                placeholder="Announcement content..."
+                placeholder="公告內容... (支援 Markdown 連結：[文字](網址))"
                 required
               />
+              <p className="mt-1 text-sm text-gray-500">
+                💡 支援 Markdown 語法：連結 [文字](網址)、粗體 **文字**
+              </p>
             </div>
             <button
               type="submit"
@@ -119,7 +123,9 @@ export default function AnnouncementsManager({ eventId, initialAnnouncements }: 
                     Delete
                   </button>
                 </div>
-                <p className="text-gray-700 mb-3 whitespace-pre-wrap">{announcement.content}</p>
+                <div className="text-gray-700 mb-3">
+                  <MarkdownText content={announcement.content} />
+                </div>
                 <p className="text-xs text-gray-500">
                   {new Date(announcement.created_at).toLocaleString()}
                 </p>

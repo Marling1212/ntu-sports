@@ -1,4 +1,5 @@
 import { getTennisEvent, getTennisAnnouncements } from "@/lib/utils/getTennisEvent";
+import MarkdownText from "@/components/MarkdownText";
 
 export default async function TennisAnnouncementsPage() {
   const event = await getTennisEvent();
@@ -24,9 +25,9 @@ export default async function TennisAnnouncementsPage() {
               <h2 className="text-2xl font-semibold text-ntu-green mb-3">
                 {announcement.title}
               </h2>
-              <p className="text-gray-700 mb-4 whitespace-pre-wrap leading-relaxed">
-                {announcement.content}
-              </p>
+              <div className="text-gray-700 mb-4 leading-relaxed">
+                <MarkdownText content={announcement.content} />
+              </div>
               <p className="text-sm text-gray-500">
                 Posted: {new Date(announcement.created_at).toLocaleString()}
               </p>
