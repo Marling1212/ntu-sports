@@ -35,7 +35,7 @@ export default async function TennisSchedulePage() {
 
   return (
     <>
-      <TennisNavbarClient />
+      <TennisNavbarClient eventName={event?.name} />
       <div className="container mx-auto px-4 py-12">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-ntu-green mb-4">

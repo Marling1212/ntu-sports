@@ -1,46 +1,121 @@
 import Link from "next/link";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
+import { createClient } from "@/lib/supabase/server";
 
-export default function TennisPage() {
+export default async function TennisPage() {
+  const supabase = await createClient();
+  
+  // Get all active Tennis events
+  const { data: events } = await supabase
+    .from("events")
+    .select("*")
+    .eq("sport", "Tennis")
+    .order("start_date", { ascending: false });
+
+  const activeEvents = events || [];
+
+  // If only one event, show it directly
+  // If multiple events, show event list
+  const singleEvent = activeEvents.length === 1 ? activeEvents[0] : null;
+
   // Tournament start date: November 8, 2025 at 08:00 AM Taiwan time (114 academic year)
   // Format: YYYY-MM-DDTHH:MM:SS with explicit timezone (+08:00 for Taiwan)
-  const tournamentStartDate = new Date("2025-11-08T08:00:00+08:00");
+  const tournamentStartDate = singleEvent?.start_date 
+    ? new Date(singleEvent.start_date) 
+    : new Date("2025-11-08T08:00:00+08:00");
 
+  // Multiple events - show event list
+  if (activeEvents.length > 1) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="mb-8">
+          <h1 className="text-5xl font-bold text-ntu-green mb-4 text-center">
+            🎾 NTU Tennis Events
+          </h1>
+          <p className="text-lg text-gray-600 text-center">
+            選擇一個賽事查看詳情
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {activeEvents.map((event) => (
+            <Link
+              key={event.id}
+              href={`/sports/tennis/events/${event.id}`}
+              className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border border-gray-100"
+            >
+              <h2 className="text-2xl font-bold text-ntu-green mb-3">
+                {event.name}
+              </h2>
+              <div className="space-y-2 text-sm text-gray-700">
+                <p>
+                  <span className="font-semibold">日期：</span>
+                  {new Date(event.start_date).toLocaleDateString('zh-TW')} - {new Date(event.end_date).toLocaleDateString('zh-TW')}
+                </p>
+                <p>
+                  <span className="font-semibold">地點：</span>
+                  {event.venue}
+                </p>
+                {event.description && (
+                  <p className="text-gray-600 mt-3 line-clamp-2">
+                    {event.description}
+                  </p>
+                )}
+              </div>
+              <div className="mt-4 text-ntu-green font-medium">
+                查看賽事 →
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Single event - show event intro page
   return (
     <div className="container mx-auto px-4 py-12">
       {/* Header Section */}
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-ntu-green mb-4">
-          NTU Tennis – 114 Freshman Cup
+          {singleEvent?.name || "NTU Tennis – 114 Freshman Cup"}
         </h1>
       </div>
 
       {/* Tournament Overview */}
-      <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">Tournament Overview</h2>
-        <div className="space-y-3 text-gray-700">
-          <div className="flex items-start">
-            <span className="font-semibold text-gray-800 min-w-[100px]">Dates:</span>
-            <span>November 8–9, 2025</span>
-          </div>
-          <div className="flex items-start">
-            <span className="font-semibold text-gray-800 min-w-[100px]">Venue:</span>
-            <span>新生網球場 5–8 場地</span>
+      {singleEvent && (
+        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
+          <h2 className="text-2xl font-semibold text-ntu-green mb-4">Tournament Overview</h2>
+          <div className="space-y-3 text-gray-700">
+            <div className="flex items-start">
+              <span className="font-semibold text-gray-800 min-w-[100px]">Dates:</span>
+              <span>
+                {new Date(singleEvent.start_date).toLocaleDateString('zh-TW')} - {new Date(singleEvent.end_date).toLocaleDateString('zh-TW')}
+              </span>
+            </div>
+            <div className="flex items-start">
+              <span className="font-semibold text-gray-800 min-w-[100px]">Venue:</span>
+              <span>{singleEvent.venue}</span>
+            </div>
+            {singleEvent.description && (
+              <div className="flex items-start">
+                <span className="font-semibold text-gray-800 min-w-[100px]">Description:</span>
+                <span>{singleEvent.description}</span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Purpose Statement */}
-      <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">Purpose</h2>
-        <p className="text-gray-700 leading-relaxed">
-          The NTU Tennis 114 Freshman Cup is designed to welcome new students to the NTU tennis community, 
-          providing a platform for freshmen to showcase their skills, connect with fellow tennis enthusiasts, 
-          and celebrate the spirit of competition and camaraderie. This tournament serves as an introduction 
-          to competitive tennis at National Taiwan University, fostering friendships and promoting active 
-          participation in campus sports activities.
-        </p>
-      </div>
+      {singleEvent?.description && (
+        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
+          <h2 className="text-2xl font-semibold text-ntu-green mb-4">賽事說明</h2>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+            {singleEvent.description}
+          </p>
+        </div>
+      )}
 
       {/* Countdown Timer */}
       <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
