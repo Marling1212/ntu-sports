@@ -89,20 +89,13 @@ export default function TournamentBracket({
       return (matchNumber - 1) * (matchHeight + spacing);
     }
     
-    // Special case: ACTUAL Final round (not just last round in bracket) should align with previous round
-    // Only apply this if we're showing the actual final round of the entire tournament
-    if (round === actualTotalRounds) {
-      const prevRoundMatches = getMatchesForRound(round - 1);
-      
-      // For the final round, we want to align with the previous round directly
-      // Match 1 (Final) aligns with SF Match 1
-      // Match 2 (3rd Place, if exists) aligns with SF Match 2
-      if (prevRoundMatches.length >= matchNumber) {
-        // Get the corresponding match from the previous round
-        const prevMatch = prevRoundMatches.sort((a, b) => a.matchNumber - b.matchNumber)[matchNumber - 1];
-        if (prevMatch) {
-          return calculateMatchPosition(round - 1, prevMatch.matchNumber);
-        }
+    // Special case: 3rd Place match should align with Final match
+    // Only apply this if we're showing the actual final round and this is the 3rd place match
+    if (round === actualTotalRounds && matchNumber === 2 && has3rdPlaceMatch) {
+      // 3rd Place (matchNumber 2) aligns with Final (matchNumber 1)
+      const finalMatches = getMatchesForRound(round).filter(m => m.matchNumber === 1);
+      if (finalMatches.length > 0) {
+        return calculateMatchPosition(round, 1);
       }
     }
     
@@ -348,7 +341,7 @@ export default function TournamentBracket({
               const player2IsLoser = thirdPlaceMatch.winner && thirdPlaceMatch.winner.id !== thirdPlaceMatch.player2?.id;
 
               return (
-                <div className="flex flex-col relative border-l-2 border-dashed border-amber-400 pl-12">
+                <div className="flex flex-col relative pl-12">
                   {/* 3rd Place Header */}
                   <div className="mb-4 text-center sticky top-0 bg-white z-10 pb-2 border-b border-gray-200 w-[200px]">
                     <h3 className="text-base font-semibold text-amber-600">
