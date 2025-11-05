@@ -308,6 +308,17 @@ export default function TournamentBracket({
                       
                       // Check if this is the 3rd place match
                       const isThirdPlaceMatch = match.round === actualTotalRounds && match.matchNumber === 2;
+                      
+                      // Debug for final round matches
+                      if (typeof window !== 'undefined' && round === actualTotalRounds) {
+                        console.log(`Match rendering in Final Round:`, {
+                          matchNumber: match.matchNumber,
+                          isThirdPlace: isThirdPlaceMatch,
+                          matchPosition,
+                          player1: match.player1?.name,
+                          player2: match.player2?.name
+                        });
+                      }
 
                       // Determine winner/loser status
                       const player1IsWinner = match.winner?.id === match.player1?.id;
