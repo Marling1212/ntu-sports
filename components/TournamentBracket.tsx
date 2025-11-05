@@ -102,7 +102,24 @@ export default function TournamentBracket({
           const center1 = pos1 + matchHeight / 2;
           const center2 = pos2 + matchHeight / 2;
           const middlePoint = (center1 + center2) / 2;
-          return middlePoint - matchHeight / 2;
+          const finalPosition = middlePoint - matchHeight / 2;
+          
+          if (typeof window !== 'undefined') {
+            console.log('3rd Place alignment:', {
+              round,
+              matchNumber,
+              actualTotalRounds,
+              has3rdPlaceMatch,
+              pos1,
+              pos2,
+              center1,
+              center2,
+              middlePoint,
+              finalPosition
+            });
+          }
+          
+          return finalPosition;
         }
       }
     }
