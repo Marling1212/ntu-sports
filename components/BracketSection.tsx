@@ -262,8 +262,10 @@ function FinalsStage({
   totalRounds: number;
   compactLayout?: boolean;
 }) {
-  const has3rdPlace = matches.some(m => m.matchNumber === 2);
   const maxRound = Math.max(...matches.map(m => m.round));
+  
+  // Check for 3rd place match specifically in the FINAL round
+  const has3rdPlace = matches.some(m => m.round === maxRound && m.matchNumber === 2);
   
   // Filter out 3rd place for main bracket, handle separately
   const mainMatches = matches.filter(m => m.matchNumber !== 2);

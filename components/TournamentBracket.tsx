@@ -82,13 +82,15 @@ export default function TournamentBracket({
   // Calculate vertical position for matches
   // Each match should be centered between the two feeding matches from previous round
   const calculateMatchPosition = (round: number, matchNumber: number): number => {
-    // For compact layout, use simple sequential positioning
-    if (compactLayout) {
+    // For compact layout: first round uses sequential positioning, later rounds use centered positioning
+    const firstRoundInBracket = Math.min(...rounds);
+    
+    if (compactLayout && round === firstRoundInBracket) {
       return (matchNumber - 1) * (matchHeight + spacing);
     }
     
-    // For standard layout, use centered positioning
-    if (round === 1) {
+    // For standard layout or later rounds in compact mode, use centered positioning
+    if (round === firstRoundInBracket && !compactLayout) {
       return (matchNumber - 1) * (matchHeight + spacing);
     } else {
       // Find actual previous round matches that exist
