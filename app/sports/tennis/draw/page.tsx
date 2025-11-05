@@ -1,5 +1,6 @@
 import TournamentBracket from "@/components/TournamentBracket";
 import ExportBracket from "@/components/ExportBracket";
+import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getTennisEvent, getTennisMatches, getTennisPlayers } from "@/lib/utils/getTennisEvent";
 import { generateTennisPlayers, seedPlayers, generateMatches } from "@/data/tennisDraw";
 import { Toaster } from "react-hot-toast";
@@ -55,6 +56,7 @@ export default async function TennisDrawPage() {
 
   return (
     <>
+      <TennisNavbarClient />
       <Toaster position="top-right" />
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8 flex justify-between items-start">

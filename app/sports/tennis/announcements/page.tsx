@@ -1,12 +1,15 @@
 import { getTennisEvent, getTennisAnnouncements } from "@/lib/utils/getTennisEvent";
 import MarkdownText from "@/components/MarkdownText";
+import TennisNavbarClient from "@/components/TennisNavbarClient";
 
 export default async function TennisAnnouncementsPage() {
   const event = await getTennisEvent();
   const announcements = event ? await getTennisAnnouncements(event.id) : [];
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <>
+      <TennisNavbarClient />
+      <div className="container mx-auto px-4 py-12">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-ntu-green mb-4">Tennis Announcements</h1>
         <p className="text-lg text-gray-600">
@@ -36,6 +39,7 @@ export default async function TennisAnnouncementsPage() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

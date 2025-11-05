@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getTennisEvent } from "@/lib/utils/getTennisEvent";
 import MarkdownText from "@/components/MarkdownText";
+import TennisNavbarClient from "@/components/TennisNavbarClient";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -33,7 +34,9 @@ export default async function TennisSchedulePage() {
   }));
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <>
+      <TennisNavbarClient />
+      <div className="container mx-auto px-4 py-12">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-ntu-green mb-4">
           NTU Tennis – 114 Freshman Cup Schedule
@@ -168,6 +171,7 @@ export default async function TennisSchedulePage() {
         </div>
       )}
     </div>
+    </>
   );
 }
 
