@@ -1,4 +1,4 @@
-import TournamentBracket from "@/components/TournamentBracket";
+import BracketSection from "@/components/BracketSection";
 import ExportBracket from "@/components/ExportBracket";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getTennisEvent, getTennisMatches, getTennisPlayers } from "@/lib/utils/getTennisEvent";
@@ -69,20 +69,20 @@ export default async function TennisDrawPage() {
             </p>
           </div>
           
-          <ExportBracket 
-            matches={matches}
-            players={players}
-            eventName={event?.name || "NTU Tennis Tournament"}
-            eventDate={eventDate}
-            eventVenue={eventVenue}
-          />
-        </div>
-
-        <TournamentBracket
+        <ExportBracket 
           matches={matches}
           players={players}
-          sportName="Tennis"
+          eventName={event?.name || "NTU Tennis Tournament"}
+          eventDate={eventDate}
+          eventVenue={eventVenue}
         />
+      </div>
+
+      <BracketSection
+        matches={matches}
+        players={players}
+        sportName="Tennis"
+      />
       </div>
     </>
   );
