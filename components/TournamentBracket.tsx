@@ -36,15 +36,6 @@ export default function TournamentBracket({
   // Only check for 3rd place if we're showing the actual final round
   const has3rdPlaceMatch = matches.some(m => m.round === actualTotalRounds && m.matchNumber === 2);
 
-  // Debug logging
-  if (typeof window !== 'undefined') {
-    console.log('TournamentBracket props:', {
-      propTotalRounds,
-      maxRound,
-      actualTotalRounds,
-      hideThirdPlace
-    });
-  }
 
   // Generate round names dynamically
   const generateRoundName = (round: number): string => {
@@ -68,24 +59,9 @@ export default function TournamentBracket({
         .filter((m) => m.round === round && m.matchNumber === 1)
         .sort((a, b) => a.matchNumber - b.matchNumber);
     }
-    const roundMatches = matches
+    return matches
       .filter((m) => m.round === round)
       .sort((a, b) => a.matchNumber - b.matchNumber);
-    
-    // Debug logging for all rounds
-    if (typeof window !== 'undefined' && roundMatches.length > 0) {
-      const roundName = generateRoundName(round);
-      console.log(`TournamentBracket - Round ${round} (${roundName}):`, {
-        matchCount: roundMatches.length,
-        matchNumbers: roundMatches.map(m => m.matchNumber),
-        positions: roundMatches.map(m => ({
-          matchNum: m.matchNumber,
-          position: calculateMatchPosition(round, m.matchNumber)
-        }))
-      });
-    }
-    
-    return roundMatches;
   };
   
   const getThirdPlaceMatch = () => {

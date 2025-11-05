@@ -122,19 +122,6 @@ export default function BracketSection({
 
   const sectionMatches = getMatchesForSection();
   
-  // Debug: Log matches for this section
-  if (typeof window !== 'undefined') {
-    console.log(`Section ${currentSection}:`, {
-      totalMatches: matches.length,
-      filteredMatches: sectionMatches.length,
-      byRound: sectionMatches.reduce((acc, m) => {
-        acc[m.round] = (acc[m.round] || 0) + 1;
-        return acc;
-      }, {} as Record<number, number>),
-      matchNumbers: sectionMatches.map(m => `R${m.round}-M${m.matchNumber}`).join(', ')
-    });
-  }
-  
   // Get section-specific players (only players that appear in this section's Round 1)
   const getSectionPlayers = (): Player[] => {
     if (sections.length === 1) return players;
