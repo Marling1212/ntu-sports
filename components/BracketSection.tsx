@@ -174,12 +174,169 @@ export default function BracketSection({
         </div>
       )}
 
-      {/* Bracket Display using existing TournamentBracket component */}
-      <TournamentBracket
-        matches={sectionMatches}
-        players={sectionPlayers}
-        sportName={sportName}
-      />
+      {/* Bracket Display */}
+      {currentSection === sections.length ? (
+        <FinalsStage 
+          matches={sectionMatches}
+          players={players}
+          sportName={sportName}
+          totalRounds={maxRound}
+        />
+      ) : (
+        <SectionBracket
+          matches={sectionMatches}
+          players={sectionPlayers}
+          sportName={sportName}
+          sectionNumber={currentSection}
+          totalRounds={maxRound}
+        />
+      )}
     </div>
   );
 }
+
+// Component for displaying early round sections (quarters)
+function SectionBracket({ 
+  matches, 
+  players, 
+  sportName,
+  sectionNumber,
+  totalRounds 
+}: { 
+  matches: Match[]; 
+  players: Player[]; 
+  sportName: string;
+  sectionNumber: number;
+  totalRounds: number;
+}) {
+  // Re-map match numbers to start from 1 for display purposes
+  const remappedMatches = matches.map((match, idx) => {
+    if (match.round === 1) {
+      const round1Matches = matches.filter(m => m.round === 1).sort((a, b) => a.matchNumber - b.matchNumber);
+      const newMatchNumber = round1Matches.findIndex(m => m.matchNumber === match.matchNumber) + 1;
+      return { ...match, matchNumber: newMatchNumber };
+    }
+    return match;
+  });
+  
+  // Use original TournamentBracket with re-mapped matches
+  return (
+    <TournamentBracket
+      matches={remappedMatches}
+      players={players}
+      sportName={sportName}
+    />
+  );
+}
+
+// Component for displaying finals stage (compact layout)
+function FinalsStage({ 
+  matches, 
+  players, 
+  sportName,
+  totalRounds 
+}: { 
+  matches: Match[]; 
+  players: Player[]; 
+  sportName: string;
+  totalRounds: number;
+}) {
+  const has3rdPlace = matches.some(m => m.matchNumber === 2);
+  const maxRound = Math.max(...matches.map(m => m.round));
+  
+  // Filter out 3rd place for main bracket, handle separately
+  const mainMatches = matches.filter(m => m.matchNumber !== 2);
+  const thirdPlaceMatch = matches.find(m => m.matchNumber === 2);
+  
+  // Re-number matches to start from 1 for each round
+  const remappedMatches = mainMatches.map(match => {
+    const roundMatches = mainMatches.filter(m => m.round === match.round).sort((a, b) => a.matchNumber - b.matchNumber);
+    const newMatchNumber = roundMatches.findIndex(m => m.matchNumber === match.matchNumber) + 1;
+    return { ...match, matchNumber: newMatchNumber };
+  });
+
+  return (
+    <div className="space-y-8">
+      {/* Main Finals Bracket */}
+      <TournamentBracket
+        matches={remappedMatches}
+        players={players}
+        sportName={sportName}
+      />
+      
+      {/* 3rd Place Match - Separate Display */}
+      {has3rdPlace && thirdPlaceMatch && (
+        <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-6">
+          <h3 className="text-2xl font-bold text-amber-600 mb-4 flex items-center gap-2">
+            <span>🥉</span>
+            <span>季軍賽 (3rd Place Match)</span>
+          </h3>
+          
+          <div className="flex items-center justify-center gap-4 max-w-2xl mx-auto">
+            {/* Player 1 */}
+            <div className={`flex-1 rounded-lg border-2 shadow-md p-4 ${
+              thirdPlaceMatch.winner?.id === thirdPlaceMatch.player1?.id
+                ? "border-amber-500 bg-amber-50"
+                : "border-gray-300 bg-white"
+            }`}>
+              <div className="text-center">
+                <div className="text-lg font-semibold text-gray-900">
+                  {thirdPlaceMatch.player1?.name || "TBD"}
+                </div>
+                {thirdPlaceMatch.player1?.school && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    {thirdPlaceMatch.player1.school}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* VS or Score */}
+            <div className="flex-shrink-0">
+              {thirdPlaceMatch.status === "completed" && thirdPlaceMatch.score ? (
+                <div className="bg-white border-2 border-amber-500 rounded-lg px-4 py-3">
+                  <div className="text-lg font-bold text-amber-600 whitespace-nowrap">
+                    {thirdPlaceMatch.score}
+                  </div>
+                </div>
+              ) : (
+                <div className="w-16 h-16 bg-amber-500 rounded-full flex items-center justify-center text-2xl">
+                  🥉
+                </div>
+              )}
+            </div>
+            
+            {/* Player 2 */}
+            <div className={`flex-1 rounded-lg border-2 shadow-md p-4 ${
+              thirdPlaceMatch.winner?.id === thirdPlaceMatch.player2?.id
+                ? "border-amber-500 bg-amber-50"
+                : "border-gray-300 bg-white"
+            }`}>
+              <div className="text-center">
+                <div className="text-lg font-semibold text-gray-900">
+                  {thirdPlaceMatch.player2?.name || "TBD"}
+                </div>
+                {thirdPlaceMatch.player2?.school && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    {thirdPlaceMatch.player2.school}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Winner Badge */}
+          {thirdPlaceMatch.winner && (
+            <div className="text-center mt-4">
+              <span className="inline-flex items-center gap-2 bg-amber-500 text-white px-6 py-2 rounded-full font-bold">
+                <span>🥉</span>
+                <span>第三名：{thirdPlaceMatch.winner.name}</span>
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
