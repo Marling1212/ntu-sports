@@ -27,8 +27,8 @@ export default function TournamentBracket({
   const numSeeds = players.filter(p => p.seed).length;
 
   // Check if there's a 3rd place match (match_number = 2 in final round)
-  const finalRoundMatches = matches.filter(m => m.round === maxRound);
-  const has3rdPlaceMatch = finalRoundMatches.length > 1;
+  // The 3rd place match is specifically matchNumber === 2 in the final round
+  const has3rdPlaceMatch = matches.some(m => m.round === maxRound && m.matchNumber === 2);
 
   // Use propTotalRounds if provided, otherwise calculate from matches
   const actualTotalRounds = propTotalRounds || maxRound;
