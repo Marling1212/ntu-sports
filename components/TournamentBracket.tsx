@@ -68,9 +68,10 @@ export default function TournamentBracket({
       .filter((m) => m.round === round)
       .sort((a, b) => a.matchNumber - b.matchNumber);
     
-    // Debug logging
-    if (typeof window !== 'undefined' && round === maxRound - 3) {
-      console.log(`TournamentBracket - Round ${round} (Round of 16):`, {
+    // Debug logging for all rounds
+    if (typeof window !== 'undefined' && roundMatches.length > 0) {
+      const roundName = generateRoundName(round);
+      console.log(`TournamentBracket - Round ${round} (${roundName}):`, {
         matchCount: roundMatches.length,
         matchNumbers: roundMatches.map(m => m.matchNumber),
         positions: roundMatches.map(m => ({
