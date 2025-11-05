@@ -348,10 +348,10 @@ export default function TournamentBracket({
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
                               {match.status === "completed" && match.score ? (
                                 <div className={`bg-white border-2 rounded-lg px-3 py-2 shadow-lg ${
-                                  isThirdPlaceMatch ? 'border-amber-500' : isActualFinalRound && matchNumber === 1 ? 'border-yellow-500' : 'border-ntu-green'
+                                  isThirdPlaceMatch ? 'border-amber-500' : isActualFinalRound && match.matchNumber === 1 ? 'border-yellow-500' : 'border-ntu-green'
                                 }`}>
                                   <div className={`text-sm font-bold whitespace-nowrap ${
-                                    isThirdPlaceMatch ? 'text-amber-600' : isActualFinalRound && matchNumber === 1 ? 'text-yellow-600' : 'text-ntu-green'
+                                    isThirdPlaceMatch ? 'text-amber-600' : isActualFinalRound && match.matchNumber === 1 ? 'text-yellow-600' : 'text-ntu-green'
                                   }`}>
                                     {match.score}
                                   </div>
@@ -360,16 +360,16 @@ export default function TournamentBracket({
                                 <div className={`rounded-full w-12 h-12 flex items-center justify-center shadow-md transition-all duration-300 ${
                                   isThirdPlaceMatch
                                     ? 'bg-amber-500 border-2 border-amber-600'
-                                    : isActualFinalRound && matchNumber === 1
+                                    : isActualFinalRound && match.matchNumber === 1
                                       ? 'bg-yellow-500 border-2 border-yellow-600'
                                       : match.status === 'live' 
                                         ? 'bg-red-500 border-2 border-red-600 animate-pulse' 
                                         : 'bg-white border-2 border-gray-300'
                                 }`}>
                                   <span className={`text-lg font-bold ${
-                                    isThirdPlaceMatch || (isActualFinalRound && matchNumber === 1) ? 'text-white' : match.status === 'live' ? 'text-white' : 'text-gray-600'
+                                    isThirdPlaceMatch || (isActualFinalRound && match.matchNumber === 1) ? 'text-white' : match.status === 'live' ? 'text-white' : 'text-gray-600'
                                   }`}>
-                                    {isThirdPlaceMatch ? '🥉' : isActualFinalRound && matchNumber === 1 ? '🏆' : 'VS'}
+                                    {isThirdPlaceMatch ? '🥉' : isActualFinalRound && match.matchNumber === 1 ? '🏆' : 'VS'}
                                   </span>
                                 </div>
                               )}
