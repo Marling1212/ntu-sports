@@ -83,45 +83,26 @@ export default function TournamentBracket({
       return (matchNumber - 1) * (matchHeight + spacing);
     }
     
-    // Special case: 3rd Place match should align with Final match
+    // Special case: 3rd Place match should be below Final match (with some spacing)
     // Only apply this if we're showing the actual final round and this is the 3rd place match
     if (round === actualTotalRounds && matchNumber === 2 && has3rdPlaceMatch) {
-      // 3rd Place (matchNumber 2) aligns with Final (matchNumber 1)
-      // Calculate Final's position directly (it will be centered between the two SF matches)
-      const prevRoundMatches = getMatchesForRound(round - 1);
+      // First calculate the Final's position (matchNumber 1)
+      const finalPosition = calculateMatchPosition(round, 1);
       
-      if (prevRoundMatches.length >= 2) {
-        // Final is centered between SF Match 1 and SF Match 2
-        const sfMatch1 = prevRoundMatches.find(m => m.matchNumber === 1);
-        const sfMatch2 = prevRoundMatches.find(m => m.matchNumber === 2);
-        
-        if (sfMatch1 && sfMatch2) {
-          const pos1 = calculateMatchPosition(round - 1, 1);
-          const pos2 = calculateMatchPosition(round - 1, 2);
-          
-          const center1 = pos1 + matchHeight / 2;
-          const center2 = pos2 + matchHeight / 2;
-          const middlePoint = (center1 + center2) / 2;
-          const finalPosition = middlePoint - matchHeight / 2;
-          
-          if (typeof window !== 'undefined') {
-            console.log('3rd Place alignment:', {
-              round,
-              matchNumber,
-              actualTotalRounds,
-              has3rdPlaceMatch,
-              pos1,
-              pos2,
-              center1,
-              center2,
-              middlePoint,
-              finalPosition
-            });
-          }
-          
-          return finalPosition;
-        }
+      // Place 3rd place below the Final with appropriate spacing
+      const thirdPlacePosition = finalPosition + matchHeight + spacing * 4;
+      
+      if (typeof window !== 'undefined') {
+        console.log('3rd Place alignment:', {
+          round,
+          matchNumber,
+          finalPosition,
+          thirdPlacePosition,
+          spacing: spacing * 4
+        });
       }
+      
+      return thirdPlacePosition;
     }
     
     // For standard layout or later rounds in compact mode, use centered positioning
