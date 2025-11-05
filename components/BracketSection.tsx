@@ -209,14 +209,17 @@ function SectionBracket({
   sectionNumber: number;
   totalRounds: number;
 }) {
-  // Re-map match numbers to start from 1 for display purposes
-  const remappedMatches = matches.map((match, idx) => {
-    if (match.round === 1) {
-      const round1Matches = matches.filter(m => m.round === 1).sort((a, b) => a.matchNumber - b.matchNumber);
-      const newMatchNumber = round1Matches.findIndex(m => m.matchNumber === match.matchNumber) + 1;
-      return { ...match, matchNumber: newMatchNumber };
-    }
-    return match;
+  // Re-map match numbers for ALL rounds to start from 1
+  const remappedMatches = matches.map((match) => {
+    // Get all matches in the same round, sorted by matchNumber
+    const roundMatches = matches
+      .filter(m => m.round === match.round)
+      .sort((a, b) => a.matchNumber - b.matchNumber);
+    
+    // Find the index of current match in this round and add 1 (to start from 1, not 0)
+    const newMatchNumber = roundMatches.findIndex(m => m.matchNumber === match.matchNumber) + 1;
+    
+    return { ...match, matchNumber: newMatchNumber };
   });
   
   // Use original TournamentBracket with re-mapped matches
