@@ -80,19 +80,26 @@ export default function BracketSection({
   
   const getMatchesForSection = (): Match[] => {
     const { startPos, endPos, rounds } = currentSectionConfig;
+    const isFinalsSection = currentSection === sections.length;
     
     return matches.filter(match => {
       // FIRST: Check if this is the 3rd place match (matchNumber === 2 in final round)
       const isThirdPlaceMatch = match.round === maxRound && match.matchNumber === 2;
       
-      // 3rd place match should ONLY appear in the last section (finals)
+      // 3rd place match should ONLY appear in the finals section
       if (isThirdPlaceMatch) {
-        return currentSection === sections.length;
+        return isFinalsSection;
       }
       
       // Include if round is in the section's rounds
       if (!rounds.includes(match.round)) return false;
       
+      // For finals section, include ALL matches in the specified rounds (no position filtering)
+      if (isFinalsSection) {
+        return true;
+      }
+      
+      // For early sections, apply position filtering
       // For Round 1, check position range directly
       if (match.round === 1) {
         const position1 = (match.matchNumber - 1) * 2 + 1;
