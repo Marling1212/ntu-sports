@@ -32,6 +32,16 @@ export default function TournamentBracket({
 
   // Use propTotalRounds if provided, otherwise calculate from matches
   const actualTotalRounds = propTotalRounds || maxRound;
+  
+  // Debug logging
+  if (typeof window !== 'undefined') {
+    console.log('TournamentBracket props:', {
+      propTotalRounds,
+      maxRound,
+      actualTotalRounds,
+      hideThirdPlace
+    });
+  }
 
   // Generate round names dynamically
   const generateRoundName = (round: number): string => {
