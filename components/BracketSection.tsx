@@ -225,6 +225,7 @@ function SectionBracket({
       matches={remappedMatches}
       players={players}
       sportName={sportName}
+      totalRounds={totalRounds}
     />
   );
 }
@@ -262,6 +263,7 @@ function FinalsStage({
         matches={remappedMatches}
         players={players}
         sportName={sportName}
+        totalRounds={totalRounds}
       />
       
       {/* 3rd Place Match - Separate Display */}

@@ -6,12 +6,14 @@ interface TournamentBracketProps {
   matches: Match[];
   players: Player[];
   sportName?: string;
+  totalRounds?: number; // Total rounds in the entire tournament (not just this section)
 }
 
 export default function TournamentBracket({
   matches,
   players,
   sportName = "Tennis",
+  totalRounds: propTotalRounds,
 }: TournamentBracketProps) {
   // Calculate dynamic values based on actual data
   const maxRound = Math.max(...matches.map(m => m.round), 1);
@@ -26,19 +28,22 @@ export default function TournamentBracket({
   const finalRoundMatches = matches.filter(m => m.round === maxRound);
   const has3rdPlaceMatch = finalRoundMatches.length > 1;
 
+  // Use propTotalRounds if provided, otherwise calculate from matches
+  const actualTotalRounds = propTotalRounds || maxRound;
+
   // Generate round names dynamically
-  const generateRoundName = (round: number, totalRounds: number): string => {
-    if (round === totalRounds) return "Final";
-    if (round === totalRounds - 1) return "Semifinals";
-    if (round === totalRounds - 2) return "Quarterfinals";
+  const generateRoundName = (round: number): string => {
+    if (round === actualTotalRounds) return "Final";
+    if (round === actualTotalRounds - 1) return "Semifinals";
+    if (round === actualTotalRounds - 2) return "Quarterfinals";
     
     // Calculate number of players in this round
-    // Round 1 has 2^totalRounds players, Round 2 has 2^(totalRounds-1) players, etc.
-    const playersInRound = Math.pow(2, totalRounds - round + 1);
+    // Round 1 has 2^actualTotalRounds players, Round 2 has 2^(actualTotalRounds-1) players, etc.
+    const playersInRound = Math.pow(2, actualTotalRounds - round + 1);
     return `Round of ${playersInRound}`;
   };
 
-  const roundNames = rounds.map(r => generateRoundName(r, maxRound));
+  const roundNames = rounds.map(r => generateRoundName(r));
 
   const getMatchesForRound = (round: number) => {
     // For final round with 3rd place match, only show match #1 (the final)
