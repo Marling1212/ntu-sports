@@ -8,7 +8,6 @@ interface TournamentBracketProps {
   sportName?: string;
   totalRounds?: number; // Total rounds in the entire tournament (not just this section)
   hideThirdPlace?: boolean; // Hide the 3rd place match display
-  isSection?: boolean; // Is this a section (use simple sequential layout)
 }
 
 export default function TournamentBracket({
@@ -17,7 +16,6 @@ export default function TournamentBracket({
   sportName = "Tennis",
   totalRounds: propTotalRounds,
   hideThirdPlace = false,
-  isSection = false,
 }: TournamentBracketProps) {
   // Calculate dynamic values based on actual data
   const maxRound = Math.max(...matches.map(m => m.round), 1);
@@ -77,28 +75,37 @@ export default function TournamentBracket({
   // Calculate vertical position for matches
   // Each match should be centered between the two feeding matches from previous round
   const calculateMatchPosition = (round: number, matchNumber: number): number => {
-    // For section views, use simple sequential positioning
-    if (isSection) {
-      return (matchNumber - 1) * (matchHeight + spacing);
-    }
-    
-    // For complete bracket, use centered positioning
     if (round === 1) {
       return (matchNumber - 1) * (matchHeight + spacing);
     } else {
-      const prevMatch1 = (matchNumber - 1) * 2;
-      const prevMatch2 = prevMatch1 + 1;
-      const pos1 = calculateMatchPosition(round - 1, prevMatch1 + 1);
-      const pos2 = calculateMatchPosition(round - 1, prevMatch2 + 1);
+      // Find actual previous round matches that exist
+      const prevRoundMatches = getMatchesForRound(round - 1);
       
-      // Center of previous match 1
-      const center1 = pos1 + matchHeight / 2;
-      // Center of previous match 2
-      const center2 = pos2 + matchHeight / 2;
-      // Middle point between the two centers
-      const middlePoint = (center1 + center2) / 2;
-      // Top position of this match (centered at middle point)
-      return middlePoint - matchHeight / 2;
+      // For this match, we need to find the two previous matches that feed into it
+      const prevMatch1Num = (matchNumber - 1) * 2 + 1;
+      const prevMatch2Num = (matchNumber - 1) * 2 + 2;
+      
+      const prevMatch1 = prevRoundMatches.find(m => m.matchNumber === prevMatch1Num);
+      const prevMatch2 = prevRoundMatches.find(m => m.matchNumber === prevMatch2Num);
+      
+      if (prevMatch1 && prevMatch2) {
+        const pos1 = calculateMatchPosition(round - 1, prevMatch1.matchNumber);
+        const pos2 = calculateMatchPosition(round - 1, prevMatch2.matchNumber);
+        
+        const center1 = pos1 + matchHeight / 2;
+        const center2 = pos2 + matchHeight / 2;
+        const middlePoint = (center1 + center2) / 2;
+        return middlePoint - matchHeight / 2;
+      } else if (prevMatch1) {
+        const pos1 = calculateMatchPosition(round - 1, prevMatch1.matchNumber);
+        return pos1 + (matchHeight + spacing);
+      } else if (prevMatch2) {
+        const pos2 = calculateMatchPosition(round - 1, prevMatch2.matchNumber);
+        return pos2 + (matchHeight + spacing);
+      } else {
+        // If no previous matches found, use sequential positioning
+        return (matchNumber - 1) * (matchHeight + spacing) * Math.pow(2, round - 1);
+      }
     }
   };
 
