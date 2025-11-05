@@ -26,13 +26,13 @@ export default function TournamentBracket({
   const totalPlayers = players.length;
   const numSeeds = players.filter(p => p.seed).length;
 
-  // Check if there's a 3rd place match (match_number = 2 in final round)
-  // The 3rd place match is specifically matchNumber === 2 in the final round
-  const has3rdPlaceMatch = matches.some(m => m.round === maxRound && m.matchNumber === 2);
-
   // Use propTotalRounds if provided, otherwise calculate from matches
   const actualTotalRounds = propTotalRounds || maxRound;
   
+  // Check if there's a 3rd place match (match_number = 2 in the ACTUAL final round of the entire tournament)
+  // Only check for 3rd place if we're showing the actual final round
+  const has3rdPlaceMatch = matches.some(m => m.round === actualTotalRounds && m.matchNumber === 2);
+
   // Debug logging
   if (typeof window !== 'undefined') {
     console.log('TournamentBracket props:', {
@@ -58,8 +58,9 @@ export default function TournamentBracket({
   const roundNames = rounds.map(r => generateRoundName(r));
 
   const getMatchesForRound = (round: number) => {
-    // For final round with 3rd place match, only show match #1 (the final)
-    if (round === maxRound && has3rdPlaceMatch) {
+    // For ACTUAL final round with 3rd place match, only show match #1 (the final)
+    // Only apply this filter if we're looking at the actual final round of the entire tournament
+    if (round === actualTotalRounds && has3rdPlaceMatch) {
       return matches
         .filter((m) => m.round === round && m.matchNumber === 1)
         .sort((a, b) => a.matchNumber - b.matchNumber);
