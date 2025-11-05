@@ -261,6 +261,10 @@ export default function TournamentBracket({
           <div className="flex gap-12 min-w-max px-4 relative">
             {rounds.map((round, roundIndex) => {
               const roundMatches = getMatchesForRound(round);
+              
+              // For the final round, check if we should include 3rd place match
+              const isActualFinalRound = round === actualTotalRounds;
+              const displayMatches = roundMatches;
 
               return (
                 <div key={round} className="flex flex-col relative">
@@ -270,7 +274,7 @@ export default function TournamentBracket({
                       {roundNames[roundIndex]}
                     </h3>
                     <p className="text-xs text-gray-500 mt-1">
-                      {roundMatches.length} {roundMatches.length === 1 ? "match" : "matches"}
+                      {displayMatches.length} {displayMatches.length === 1 ? "match" : "matches"}
                     </p>
                   </div>
 
@@ -278,15 +282,18 @@ export default function TournamentBracket({
                   <div 
                     className="relative pt-4"
                     style={{ 
-                      minHeight: roundMatches.length > 0 
-                        ? `${Math.max(...roundMatches.map(m => 
+                      minHeight: displayMatches.length > 0 
+                        ? `${Math.max(...displayMatches.map(m => 
                             calculateMatchPosition(round, m.matchNumber) + matchHeight
                           )) + 100}px`
                         : '200px'
                     }}
                   >
-                    {roundMatches.map((match) => {
+                    {displayMatches.map((match) => {
                       const matchPosition = calculateMatchPosition(round, match.matchNumber);
+                      
+                      // Check if this is the 3rd place match
+                      const isThirdPlaceMatch = match.round === actualTotalRounds && match.matchNumber === 2;
 
                       // Determine winner/loser status
                       const player1IsWinner = match.winner?.id === match.player1?.id;
@@ -309,6 +316,7 @@ export default function TournamentBracket({
                               position="top"
                               matchId={match.id}
                               round={round}
+                              isThirdPlace={isThirdPlaceMatch}
                             />
                             
                             {/* Spacing */}
@@ -322,26 +330,33 @@ export default function TournamentBracket({
                               position="bottom"
                               matchId={match.id}
                               round={round}
+                              isThirdPlace={isThirdPlaceMatch}
                             />
                             
                             {/* VS Label / Score Display - Overlapping */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
                               {match.status === "completed" && match.score ? (
-                                <div className="bg-white border-2 border-ntu-green rounded-lg px-3 py-2 shadow-lg">
-                                  <div className="text-sm font-bold text-ntu-green whitespace-nowrap">
+                                <div className={`bg-white border-2 rounded-lg px-3 py-2 shadow-lg ${
+                                  isThirdPlaceMatch ? 'border-amber-500' : 'border-ntu-green'
+                                }`}>
+                                  <div className={`text-sm font-bold whitespace-nowrap ${
+                                    isThirdPlaceMatch ? 'text-amber-600' : 'text-ntu-green'
+                                  }`}>
                                     {match.score}
                                   </div>
                                 </div>
                               ) : (
                                 <div className={`rounded-full w-12 h-12 flex items-center justify-center shadow-md transition-all duration-300 ${
-                                  match.status === 'live' 
-                                    ? 'bg-red-500 border-2 border-red-600 animate-pulse' 
-                                    : 'bg-white border-2 border-gray-300'
+                                  isThirdPlaceMatch
+                                    ? 'bg-amber-500 border-2 border-amber-600'
+                                    : match.status === 'live' 
+                                      ? 'bg-red-500 border-2 border-red-600 animate-pulse' 
+                                      : 'bg-white border-2 border-gray-300'
                                 }`}>
                                   <span className={`text-lg font-bold ${
-                                    match.status === 'live' ? 'text-white' : 'text-gray-600'
+                                    isThirdPlaceMatch ? 'text-white' : match.status === 'live' ? 'text-white' : 'text-gray-600'
                                   }`}>
-                                    VS
+                                    {isThirdPlaceMatch ? '🥉' : 'VS'}
                                   </span>
                                 </div>
                               )}
@@ -354,76 +369,6 @@ export default function TournamentBracket({
                 </div>
               );
             })}
-            
-            {/* 3rd Place Match (if exists and not hidden) */}
-            {!hideThirdPlace && has3rdPlaceMatch && (() => {
-              const thirdPlaceMatch = getThirdPlaceMatch();
-              if (!thirdPlaceMatch) return null;
-
-              const player1IsWinner = thirdPlaceMatch.winner?.id === thirdPlaceMatch.player1?.id;
-              const player1IsLoser = thirdPlaceMatch.winner && thirdPlaceMatch.winner.id !== thirdPlaceMatch.player1?.id;
-              const player2IsWinner = thirdPlaceMatch.winner?.id === thirdPlaceMatch.player2?.id;
-              const player2IsLoser = thirdPlaceMatch.winner && thirdPlaceMatch.winner.id !== thirdPlaceMatch.player2?.id;
-
-              return (
-                <div className="flex flex-col relative pl-12">
-                  {/* 3rd Place Header */}
-                  <div className="mb-4 text-center sticky top-0 bg-white z-10 pb-2 border-b border-gray-200 w-[200px]">
-                    <h3 className="text-base font-semibold text-amber-600">
-                      🥉 3rd Place
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Bronze Medal Match
-                    </p>
-                  </div>
-
-                  {/* 3rd Place Match */}
-                  <div className="relative pt-4">
-                    <div className="relative flex flex-col gap-1">
-                      {/* Player 1 Block */}
-                      <PlayerBlock
-                        player={thirdPlaceMatch.player1 || null}
-                        isWinner={player1IsWinner || undefined}
-                        isLoser={player1IsLoser || undefined}
-                        position="top"
-                        matchId={thirdPlaceMatch.id}
-                        round={thirdPlaceMatch.round}
-                      />
-                      
-                      {/* Spacing */}
-                      <div className="h-1"></div>
-                      
-                      {/* Player 2 Block */}
-                      <PlayerBlock
-                        player={thirdPlaceMatch.player2 || null}
-                        isWinner={player2IsWinner || undefined}
-                        isLoser={player2IsLoser || undefined}
-                        position="bottom"
-                        matchId={thirdPlaceMatch.id}
-                        round={thirdPlaceMatch.round}
-                      />
-                      
-                      {/* VS Label / Score Display - Overlapping */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-                        {thirdPlaceMatch.status === "completed" && thirdPlaceMatch.score ? (
-                          <div className="bg-white border-2 border-amber-500 rounded-lg px-3 py-2 shadow-lg">
-                            <div className="text-sm font-bold text-amber-600 whitespace-nowrap">
-                              {thirdPlaceMatch.score}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="rounded-full w-12 h-12 flex items-center justify-center shadow-md bg-amber-500 border-2 border-amber-600">
-                            <span className="text-lg font-bold text-white">
-                              🥉
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         </div>
 
