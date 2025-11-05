@@ -83,26 +83,31 @@ export default function TournamentBracket({
       return (matchNumber - 1) * (matchHeight + spacing);
     }
     
-    // Special case: 3rd Place match should be below Final match (with some spacing)
-    // Only apply this if we're showing the actual final round and this is the 3rd place match
-    if (round === actualTotalRounds && matchNumber === 2 && has3rdPlaceMatch) {
-      // First calculate the Final's position (matchNumber 1)
-      const finalPosition = calculateMatchPosition(round, 1);
+    // Special case: Final round matches align with corresponding SF matches
+    // Only apply this if we're showing the actual final round
+    if (round === actualTotalRounds) {
+      const prevRoundMatches = getMatchesForRound(round - 1);
       
-      // Place 3rd place below the Final with appropriate spacing
-      const thirdPlacePosition = finalPosition + matchHeight + spacing * 4;
-      
-      if (typeof window !== 'undefined') {
-        console.log('3rd Place alignment:', {
-          round,
-          matchNumber,
-          finalPosition,
-          thirdPlacePosition,
-          spacing: spacing * 4
-        });
+      if (prevRoundMatches.length >= 2) {
+        // Final (matchNumber 1) aligns with SF Match 1
+        // 3rd Place (matchNumber 2) aligns with SF Match 2
+        const correspondingSF = prevRoundMatches.find(m => m.matchNumber === matchNumber);
+        
+        if (correspondingSF) {
+          const position = calculateMatchPosition(round - 1, correspondingSF.matchNumber);
+          
+          if (typeof window !== 'undefined') {
+            console.log(`Final round match ${matchNumber} alignment:`, {
+              round,
+              matchNumber,
+              alignsWithSF: correspondingSF.matchNumber,
+              position
+            });
+          }
+          
+          return position;
+        }
       }
-      
-      return thirdPlacePosition;
     }
     
     // For standard layout or later rounds in compact mode, use centered positioning
