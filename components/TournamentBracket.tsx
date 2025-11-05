@@ -54,13 +54,7 @@ export default function TournamentBracket({
   const roundNames = rounds.map(r => generateRoundName(r));
 
   const getMatchesForRound = (round: number) => {
-    // For ACTUAL final round with 3rd place match, only show match #1 (the final)
-    // Only apply this filter if we're looking at the actual final round of the entire tournament
-    if (round === actualTotalRounds && has3rdPlaceMatch) {
-      return matches
-        .filter((m) => m.round === round && m.matchNumber === 1)
-        .sort((a, b) => a.matchNumber - b.matchNumber);
-    }
+    // Return all matches for the round (including 3rd place)
     return matches
       .filter((m) => m.round === round)
       .sort((a, b) => a.matchNumber - b.matchNumber);
@@ -93,9 +87,23 @@ export default function TournamentBracket({
     // Only apply this if we're showing the actual final round and this is the 3rd place match
     if (round === actualTotalRounds && matchNumber === 2 && has3rdPlaceMatch) {
       // 3rd Place (matchNumber 2) aligns with Final (matchNumber 1)
-      const finalMatches = getMatchesForRound(round).filter(m => m.matchNumber === 1);
-      if (finalMatches.length > 0) {
-        return calculateMatchPosition(round, 1);
+      // Calculate Final's position directly (it will be centered between the two SF matches)
+      const prevRoundMatches = getMatchesForRound(round - 1);
+      
+      if (prevRoundMatches.length >= 2) {
+        // Final is centered between SF Match 1 and SF Match 2
+        const sfMatch1 = prevRoundMatches.find(m => m.matchNumber === 1);
+        const sfMatch2 = prevRoundMatches.find(m => m.matchNumber === 2);
+        
+        if (sfMatch1 && sfMatch2) {
+          const pos1 = calculateMatchPosition(round - 1, 1);
+          const pos2 = calculateMatchPosition(round - 1, 2);
+          
+          const center1 = pos1 + matchHeight / 2;
+          const center2 = pos2 + matchHeight / 2;
+          const middlePoint = (center1 + center2) / 2;
+          return middlePoint - matchHeight / 2;
+        }
       }
     }
     
