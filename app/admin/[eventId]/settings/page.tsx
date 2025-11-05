@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import AdminNavbar from "@/components/admin/Navbar";
 import SettingsContent from "@/components/admin/SettingsContent";
 
-export default async function SettingsPage({ params }: { params: { eventId: string } }) {
+export default async function SettingsPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
   const { eventId } = await params;
 

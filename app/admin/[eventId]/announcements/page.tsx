@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import AdminNavbar from "@/components/admin/Navbar";
 import AnnouncementsManager from "@/components/admin/AnnouncementsManager";
 
-export default async function AnnouncementsPage({ params }: { params: { eventId: string } }) {
+export default async function AnnouncementsPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
   const { eventId } = await params;
 

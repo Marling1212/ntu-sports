@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import AdminNavbar from "@/components/admin/Navbar";
 import MatchesTable from "@/components/admin/MatchesTable";
 
-export default async function MatchesPage({ params }: { params: { eventId: string } }) {
+export default async function MatchesPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
   const { eventId } = await params;
 

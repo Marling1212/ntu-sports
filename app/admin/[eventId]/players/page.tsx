@@ -4,7 +4,7 @@ import AdminNavbar from "@/components/admin/Navbar";
 import PlayersTable from "@/components/admin/PlayersTable";
 import GenerateBracket from "@/components/admin/GenerateBracket";
 
-export default async function PlayersPage({ params }: { params: { eventId: string } }) {
+export default async function PlayersPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
   const { eventId } = await params;
 
