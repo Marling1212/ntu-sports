@@ -26,28 +26,52 @@ export default function BracketSection({
   // Determine sections based on bracket size
   let sections: { name: string; startPos: number; endPos: number; rounds: number[] }[] = [];
   
-  if (bracketSize >= 64) {
-    // 64+ players: 5 sections (4 quarters to R4 + finals)
+  if (bracketSize > 32) {
+    // 64+ players: 5 sections (4 quarters to Round of 16 + finals)
     const quarter = bracketSize / 4;
+    const round16 = maxRound - 3; // Round of 16 is 4 rounds before final
+    
     sections = [
-      { name: "第1區 (1-16)", startPos: 1, endPos: quarter, rounds: [1, 2, 3, 4] },
-      { name: "第2區 (17-32)", startPos: quarter + 1, endPos: quarter * 2, rounds: [1, 2, 3, 4] },
-      { name: "第3區 (33-48)", startPos: quarter * 2 + 1, endPos: quarter * 3, rounds: [1, 2, 3, 4] },
-      { name: "第4區 (49-64)", startPos: quarter * 3 + 1, endPos: quarter * 4, rounds: [1, 2, 3, 4] },
-      { name: "決賽階段", startPos: 1, endPos: bracketSize, rounds: [5, 6] },
-    ];
-  } else if (bracketSize >= 32) {
-    // 32 players: 3 sections (2 halves to R3 + finals)
-    const half = bracketSize / 2;
-    sections = [
-      { name: "上半區 (1-16)", startPos: 1, endPos: half, rounds: [1, 2, 3] },
-      { name: "下半區 (17-32)", startPos: half + 1, endPos: bracketSize, rounds: [1, 2, 3] },
-      { name: "決賽階段", startPos: 1, endPos: bracketSize, rounds: [4, 5] },
+      { 
+        name: `第1區 (1-${quarter})`, 
+        startPos: 1, 
+        endPos: quarter, 
+        rounds: Array.from({ length: round16 }, (_, i) => i + 1) 
+      },
+      { 
+        name: `第2區 (${quarter + 1}-${quarter * 2})`, 
+        startPos: quarter + 1, 
+        endPos: quarter * 2, 
+        rounds: Array.from({ length: round16 }, (_, i) => i + 1) 
+      },
+      { 
+        name: `第3區 (${quarter * 2 + 1}-${quarter * 3})`, 
+        startPos: quarter * 2 + 1, 
+        endPos: quarter * 3, 
+        rounds: Array.from({ length: round16 }, (_, i) => i + 1) 
+      },
+      { 
+        name: `第4區 (${quarter * 3 + 1}-${bracketSize})`, 
+        startPos: quarter * 3 + 1, 
+        endPos: quarter * 4, 
+        rounds: Array.from({ length: round16 }, (_, i) => i + 1) 
+      },
+      { 
+        name: "決賽階段", 
+        startPos: 1, 
+        endPos: bracketSize, 
+        rounds: Array.from({ length: maxRound - round16 }, (_, i) => round16 + i + 1)
+      },
     ];
   } else {
-    // Small bracket: single section
+    // 32 players or less: show complete bracket
     sections = [
-      { name: "完整籤表", startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound }, (_, i) => i + 1) },
+      { 
+        name: "完整籤表", 
+        startPos: 1, 
+        endPos: bracketSize, 
+        rounds: Array.from({ length: maxRound }, (_, i) => i + 1) 
+      },
     ];
   }
 
@@ -58,6 +82,11 @@ export default function BracketSection({
     const { startPos, endPos, rounds } = currentSectionConfig;
     
     return matches.filter(match => {
+      // Exclude 3rd place match from non-finals sections
+      if (match.round === maxRound && match.matchNumber === 2 && currentSection !== sections.length) {
+        return false;
+      }
+      
       // Include if round is in the section's rounds
       if (!rounds.includes(match.round)) return false;
       
@@ -80,6 +109,29 @@ export default function BracketSection({
   };
 
   const sectionMatches = getMatchesForSection();
+  
+  // Get section-specific players (only players that appear in this section's Round 1)
+  const getSectionPlayers = (): Player[] => {
+    if (sections.length === 1) return players;
+    
+    if (currentSection === sections.length) {
+      // Finals: return all players (they might be referenced)
+      return players;
+    }
+    
+    // Get players from Round 1 matches in this section
+    const round1InSection = sectionMatches.filter(m => m.round === 1);
+    const playerIds = new Set<string>();
+    
+    round1InSection.forEach(match => {
+      if (match.player1?.id) playerIds.add(match.player1.id);
+      if (match.player2?.id) playerIds.add(match.player2.id);
+    });
+    
+    return players.filter(p => playerIds.has(p.id));
+  };
+  
+  const sectionPlayers = getSectionPlayers();
 
   return (
     <div>
@@ -125,7 +177,7 @@ export default function BracketSection({
       {/* Bracket Display using existing TournamentBracket component */}
       <TournamentBracket
         matches={sectionMatches}
-        players={players}
+        players={sectionPlayers}
         sportName={sportName}
       />
     </div>
