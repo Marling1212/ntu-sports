@@ -105,7 +105,7 @@ export default function AnnouncementsManager({ eventId, initialAnnouncements }: 
         <div className="divide-y divide-gray-200">
           {announcements.length === 0 ? (
             <div className="px-6 py-12 text-center text-gray-500">
-              No announcements yet. Click "New Announcement" to create one.
+              No announcements yet. Click &quot;New Announcement&quot; to create one.
             </div>
           ) : (
             announcements.map((announcement) => (

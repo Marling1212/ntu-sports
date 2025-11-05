@@ -218,7 +218,7 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
               {players.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    No players added yet. Click "Add Player" to get started.
+                    No players added yet. Click &quot;Add Player&quot; to get started.
                   </td>
                 </tr>
               ) : (

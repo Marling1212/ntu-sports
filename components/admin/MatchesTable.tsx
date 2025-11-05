@@ -303,7 +303,7 @@ export default function MatchesTable({ eventId, initialMatches, players }: Match
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-2xl font-semibold text-ntu-green mb-2">Matches & Results</h2>
           <p className="text-sm text-gray-600">
-            💡 Click the <span className="font-semibold text-ntu-green">"Edit"</span> button on any match to update scores, winner, and court.
+            💡 Click the <span className="font-semibold text-ntu-green">&quot;Edit&quot;</span> button on any match to update scores, winner, and court.
           </p>
         </div>
 

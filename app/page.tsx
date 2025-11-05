@@ -14,7 +14,7 @@ export default function Home() {
           NTU Sports
         </h1>
         <p className="text-2xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-          Connecting NTU's athletes, events, and results in one platform.
+          Connecting NTU&apos;s athletes, events, and results in one platform.
         </p>
       </div>
 
