@@ -19,7 +19,10 @@ export default function TournamentBracket({
 }: TournamentBracketProps) {
   // Calculate dynamic values based on actual data
   const maxRound = Math.max(...matches.map(m => m.round), 1);
-  const rounds = Array.from({ length: maxRound }, (_, i) => i + 1);
+  
+  // Get unique rounds that actually have matches (instead of showing all rounds from 1 to maxRound)
+  const uniqueRounds = [...new Set(matches.map(m => m.round))].sort((a, b) => a - b);
+  const rounds = uniqueRounds.length > 0 ? uniqueRounds : Array.from({ length: maxRound }, (_, i) => i + 1);
   
   const firstRoundMatches = matches.filter(m => m.round === 1).length;
   const bracketSize = firstRoundMatches * 2;
