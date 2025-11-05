@@ -113,8 +113,10 @@ export default function BracketSection({
       const matchStartPos = (match.matchNumber - 1) * playersPerMatch + 1;
       const matchEndPos = match.matchNumber * playersPerMatch;
       
-      // Check if match range overlaps with section range
-      return matchStartPos <= endPos && matchEndPos >= startPos;
+      // Check if match range overlaps with section range (any overlap counts)
+      const hasOverlap = matchStartPos <= endPos && matchEndPos >= startPos;
+      
+      return hasOverlap;
     });
   };
 
