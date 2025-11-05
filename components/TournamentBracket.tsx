@@ -84,9 +84,21 @@ export default function TournamentBracket({
   const calculateMatchPosition = (round: number, matchNumber: number): number => {
     // For compact layout: first round uses sequential positioning, later rounds use centered positioning
     const firstRoundInBracket = Math.min(...rounds);
+    const lastRoundInBracket = Math.max(...rounds);
     
     if (compactLayout && round === firstRoundInBracket) {
       return (matchNumber - 1) * (matchHeight + spacing);
+    }
+    
+    // Special case: Final round matches should align with previous round, not center
+    if (round === lastRoundInBracket) {
+      const prevRoundMatches = getMatchesForRound(round - 1);
+      // Match 1 (Final) aligns with SF Match 1
+      // Match 2 (3rd Place, if exists) aligns with SF Match 2
+      const prevMatch = prevRoundMatches.find(m => m.matchNumber === matchNumber);
+      if (prevMatch) {
+        return calculateMatchPosition(round - 1, prevMatch.matchNumber);
+      }
     }
     
     // For standard layout or later rounds in compact mode, use centered positioning
