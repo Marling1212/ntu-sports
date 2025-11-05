@@ -271,6 +271,14 @@ export default function TournamentBracket({
               // For the final round, check if we should include 3rd place match
               const isActualFinalRound = round === actualTotalRounds;
               const displayMatches = roundMatches;
+              
+              // Debug for final round
+              if (typeof window !== 'undefined' && isActualFinalRound) {
+                console.log(`Final Round ${round}:`, {
+                  roundMatches: roundMatches.map(m => ({ id: m.id, matchNumber: m.matchNumber, p1: m.player1?.name, p2: m.player2?.name })),
+                  displayMatches: displayMatches.map(m => ({ id: m.id, matchNumber: m.matchNumber, p1: m.player1?.name, p2: m.player2?.name }))
+                });
+              }
 
               return (
                 <div key={round} className="flex flex-col relative">
