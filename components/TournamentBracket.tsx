@@ -168,6 +168,7 @@ export default function TournamentBracket({
     position,
     matchId,
     round,
+    isThirdPlace = false,
   }: { 
     player: Player | null; 
     isWinner?: boolean;
@@ -175,6 +176,7 @@ export default function TournamentBracket({
     position: "top" | "bottom";
     matchId: string;
     round: number;
+    isThirdPlace?: boolean;
   }) => {
     // Determine display text
     const displayText = player?.name || (round === 1 ? "BYE" : "TBD");
@@ -186,9 +188,13 @@ export default function TournamentBracket({
           isBye
             ? "border-gray-200 bg-gray-50"
             : isWinner
-            ? "border-ntu-green bg-ntu-green bg-opacity-10 scale-105"
+            ? isThirdPlace
+              ? "border-amber-500 bg-amber-50 scale-105"
+              : "border-ntu-green bg-ntu-green bg-opacity-10 scale-105"
             : isLoser
             ? "border-gray-300 bg-gray-100 opacity-50 scale-95"
+            : isThirdPlace
+            ? "border-amber-400 bg-amber-50"
             : "border-gray-300 bg-white"
         } ${isWinner ? "animate-pulse" : ""}`}
         style={{
