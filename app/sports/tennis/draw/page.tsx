@@ -1,4 +1,5 @@
 import BracketSection from "@/components/BracketSection";
+import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import ExportBracket from "@/components/ExportBracket";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getTennisEvent, getTennisMatches, getTennisPlayers } from "@/lib/utils/getTennisEvent";
@@ -65,7 +66,9 @@ export default async function TennisDrawPage() {
               {event?.name || "NTU Tennis – 114 Freshman Cup Draw"}
             </h1>
             <p className="text-lg text-gray-600">
-              Single-elimination tournament bracket
+              {event?.tournament_type === 'season_play' 
+                ? 'Season Play: Regular Season + Playoffs' 
+                : 'Single-elimination tournament bracket'}
             </p>
           </div>
           
@@ -78,11 +81,19 @@ export default async function TennisDrawPage() {
         />
       </div>
 
-      <BracketSection
-        matches={matches}
-        players={players}
-        sportName="Tennis"
-      />
+      {event?.tournament_type === 'season_play' ? (
+        <SeasonPlayDisplay
+          matches={matches}
+          players={players}
+          sportName="Tennis"
+        />
+      ) : (
+        <BracketSection
+          matches={matches}
+          players={players}
+          sportName="Tennis"
+        />
+      )}
       </div>
     </>
   );

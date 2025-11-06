@@ -18,6 +18,7 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
     endDate: "",
     venue: "",
     description: "",
+    tournamentType: "single_elimination", // Default to single elimination
   });
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
@@ -38,6 +39,7 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
           venue: formData.venue,
           description: formData.description || null,
           owner_id: userId,
+          tournament_type: formData.tournamentType,
         })
         .select()
         .single();
@@ -113,6 +115,24 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
               <option value="soccer">Soccer</option>
               <option value="other">Other</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tournament Type *
+            </label>
+            <select
+              value={formData.tournamentType}
+              onChange={(e) => setFormData({ ...formData, tournamentType: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              required
+            >
+              <option value="single_elimination">Single Elimination (Knockout Bracket)</option>
+              <option value="season_play">Season Play (Regular Season + Playoffs)</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Single Elimination: Traditional bracket tournament. Season Play: Round-robin regular season followed by playoff bracket.
+            </p>
           </div>
 
           <div>
