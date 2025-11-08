@@ -4,6 +4,7 @@ import AdminNavbar from "@/components/admin/Navbar";
 import PlayersTable from "@/components/admin/PlayersTable";
 import GenerateBracket from "@/components/admin/GenerateBracket";
 import GenerateSeasonPlay from "@/components/admin/GenerateSeasonPlay";
+import ImportBracket from "@/components/admin/ImportBracket";
 
 export default async function PlayersPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
@@ -64,10 +65,16 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
             players={players || []}
           />
         ) : (
-          <GenerateBracket 
-            eventId={eventId}
-            players={players || []}
-          />
+          <div className="space-y-6">
+            <GenerateBracket 
+              eventId={eventId}
+              players={players || []}
+            />
+            <ImportBracket 
+              eventId={eventId}
+              players={players || []}
+            />
+          </div>
         )}
 
         <PlayersTable eventId={eventId} initialPlayers={players || []} />
