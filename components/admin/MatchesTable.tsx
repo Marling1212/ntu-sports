@@ -28,9 +28,10 @@ interface MatchesTableProps {
   eventId: string;
   initialMatches: Match[];
   players: Player[];
+  tournamentType?: "single_elimination" | "season_play" | null;
 }
 
-export default function MatchesTable({ eventId, initialMatches, players }: MatchesTableProps) {
+export default function MatchesTable({ eventId, initialMatches, players, tournamentType }: MatchesTableProps) {
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
@@ -272,19 +273,34 @@ export default function MatchesTable({ eventId, initialMatches, players }: Match
 
   // Calculate dynamic round names based on actual bracket
   const maxRound = matches.length > 0 ? Math.max(...matches.map(m => m.round)) : 0;
-  
-  const getRoundName = (round: number): string => {
-    if (round === maxRound) return "Final";
-    if (round === maxRound - 1) return "Semifinals";
-    if (round === maxRound - 2) return "Quarterfinals";
-    
-    // Calculate number of players in this round
-    const playersInRound = Math.pow(2, maxRound - round + 1);
+  const playoffMatches = matches.filter(match => match.round > 0);
+  const maxPlayoffRound = playoffMatches.length > 0 ? Math.max(...playoffMatches.map(match => match.round)) : 0;
+
+  const describeEliminationRound = (round: number, referenceMaxRound: number): string => {
+    if (referenceMaxRound === 0) {
+      return `Round ${round}`;
+    }
+    if (round === referenceMaxRound) return "Final";
+    if (round === referenceMaxRound - 1) return "Semifinals";
+    if (round === referenceMaxRound - 2) return "Quarterfinals";
+
+    const playersInRound = Math.pow(2, referenceMaxRound - round + 1);
     return `Round of ${playersInRound}`;
+  };
+
+  const getRoundName = (round: number): string => {
+    if (tournamentType === "season_play") {
+      if (round === 0) return "Regular Season";
+      return describeEliminationRound(round, maxPlayoffRound);
+    }
+    return describeEliminationRound(round, maxRound);
   };
   
   // Check if a match is the 3rd place match
   const isThirdPlaceMatch = (match: Match): boolean => {
+    if (tournamentType === "season_play") {
+      return maxPlayoffRound > 0 && match.round > 0 && match.round === maxPlayoffRound && match.match_number === 2;
+    }
     return match.round === maxRound && match.match_number === 2;
   };
   
@@ -292,6 +308,9 @@ export default function MatchesTable({ eventId, initialMatches, players }: Match
   const formatMatchNumber = (match: Match): string => {
     if (isThirdPlaceMatch(match)) {
       return "3rd";
+    }
+    if (tournamentType === "season_play" && match.round === 0) {
+      return `RS-${match.match_number}`;
     }
     return `R${match.round}-${match.match_number}`;
   };

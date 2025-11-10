@@ -74,6 +74,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           eventId={eventId} 
           initialMatches={matches || []} 
           players={players || []}
+          tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
         />
       </div>
     </>

@@ -7,6 +7,7 @@ export interface Event {
   venue: string;
   owner_id: string;
   description?: string;
+  tournament_type?: 'single_elimination' | 'season_play';
   created_at: string;
   updated_at: string;
 }
