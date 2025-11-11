@@ -93,3 +93,28 @@ export interface TeamBlackout {
   updated_at: string;
 }
 
+export interface EventSlotTemplate {
+  id: string;
+  event_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  court_id?: string;
+  capacity?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TeamBlackoutTemplate {
+  id: string;
+  event_id: string;
+  player_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  reason?: string;
+  created_at: string;
+  updated_at: string;
+}
+

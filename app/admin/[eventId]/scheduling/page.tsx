@@ -60,6 +60,21 @@ export default async function SchedulingPage({
     .eq("event_id", eventId)
     .order("start_time", { ascending: true });
 
+  const { data: slotTemplates } = await supabase
+    .from("event_slot_templates")
+    .select("*, court:event_courts(*)")
+    .eq("event_id", eventId)
+    .order("day_of_week", { ascending: true })
+    .order("start_time", { ascending: true });
+
+  const { data: blackoutTemplates } = await supabase
+    .from("team_blackout_templates")
+    .select("*, player:players(id, name, department, seed)")
+    .eq("event_id", eventId)
+    .order("player_id", { ascending: true })
+    .order("day_of_week", { ascending: true })
+    .order("start_time", { ascending: true });
+
   const { data: players } = await supabase
     .from("players")
     .select("*")
@@ -82,6 +97,8 @@ export default async function SchedulingPage({
           initialCourts={courts || []}
           initialSlots={slots || []}
           initialBlackouts={blackouts || []}
+          initialSlotTemplates={slotTemplates || []}
+          initialBlackoutTemplates={blackoutTemplates || []}
           players={players || []}
           initialBlackoutLimit={event?.blackout_limit ?? null}
         />
