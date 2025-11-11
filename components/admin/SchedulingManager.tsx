@@ -1241,7 +1241,7 @@ export default function SchedulingManager({
 
       const nowIso = new Date().toISOString();
       const errors: string[] = [];
-      const rows: Array<{
+      const rowsByCode = new Map<string, {
         code: string;
         day_of_week: number;
         start_time: string;
@@ -1249,7 +1249,8 @@ export default function SchedulingManager({
         court_id: string | null;
         capacity: number | null;
         notes: string | null;
-      }> = [];
+      }>();
+      const duplicateCodes: string[] = [];
 
       dataLines.forEach((line, index) => {
         const parts = splitCsvLine(line);
@@ -1309,7 +1310,11 @@ export default function SchedulingManager({
 
         const notes = notesRaw.trim() ? notesRaw.trim() : null;
 
-        rows.push({
+        if (rowsByCode.has(code)) {
+          duplicateCodes.push(code);
+        }
+
+        rowsByCode.set(code, {
           code,
           day_of_week: dayValue,
           start_time: startTime,
@@ -1319,6 +1324,8 @@ export default function SchedulingManager({
           notes,
         });
       });
+
+      const rows = Array.from(rowsByCode.values());
 
       if (rows.length === 0) {
         toast.error("沒有可匯入的模板資料");
@@ -1366,8 +1373,11 @@ export default function SchedulingManager({
       if (refreshError) throw refreshError;
 
       setSlotTemplates((refreshed as SlotTemplateRecord[]) || []);
+      const duplicateMessage = duplicateCodes.length
+        ? `；偵測到重複代號 ${Array.from(new Set(duplicateCodes)).join(", ")}，以最後一筆覆蓋`
+        : "";
       setSlotTemplateImportSummary(
-        `成功匯入 ${rows.length} 筆模板${errors.length ? `，另有 ${errors.length} 筆失敗` : ""}`,
+        `成功匯入 ${rows.length} 筆模板${errors.length ? `，另有 ${errors.length} 筆失敗` : ""}${duplicateMessage}`,
       );
       if (errors.length) {
         console.warn("Slot template import skipped:", errors);
@@ -1375,7 +1385,9 @@ export default function SchedulingManager({
       toast.success(`已匯入 ${rows.length} 筆每週時段模板`);
     } catch (error: any) {
       console.error("Slot template import error", error);
-      toast.error(error?.message || "匯入失敗");
+      const friendlyMessage =
+        error?.message || error?.details || error?.hint || JSON.stringify(error);
+      toast.error(`匯入失敗：${friendlyMessage}`);
     } finally {
       setSlotTemplateImporting(false);
       if (slotTemplateFileRef.current) slotTemplateFileRef.current.value = "";
