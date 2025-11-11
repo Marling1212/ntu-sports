@@ -329,6 +329,7 @@ export default function SchedulingManager({
   const [submittingCourt, setSubmittingCourt] = useState(false);
   const [submittingBlackout, setSubmittingBlackout] = useState(false);
   const [submittingSlotTemplate, setSubmittingSlotTemplate] = useState(false);
+  const [submittingBlackoutTemplate, setSubmittingBlackoutTemplate] = useState(false);
   const [generatingSlots, setGeneratingSlots] = useState(false);
   const [generatingBlackouts, setGeneratingBlackouts] = useState(false);
   const [bulkImporting, setBulkImporting] = useState(false);
