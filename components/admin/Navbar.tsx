@@ -30,6 +30,9 @@ export default function AdminNavbar({ eventId, eventName }: AdminNavbarProps) {
               <Link href={`/admin/${eventId}/matches`} className="hover:opacity-80 transition-opacity">
                 Matches
               </Link>
+              <Link href={`/admin/${eventId}/scheduling`} className="hover:opacity-80 transition-opacity">
+                Scheduling
+              </Link>
               <Link href={`/admin/${eventId}/announcements`} className="hover:opacity-80 transition-opacity">
                 Announcements
               </Link>

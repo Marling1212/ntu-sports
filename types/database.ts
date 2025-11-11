@@ -8,6 +8,7 @@ export interface Event {
   owner_id: string;
   description?: string;
   tournament_type?: 'single_elimination' | 'season_play';
+  blackout_limit?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +44,7 @@ export interface Match {
   winner_id?: string;
   court?: string;
   scheduled_time?: string;
+  slot_id?: string;
   status: 'upcoming' | 'live' | 'completed';
   created_at: string;
   updated_at: string;
@@ -53,6 +55,40 @@ export interface Announcement {
   event_id: string;
   title: string;
   content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventCourt {
+  id: string;
+  event_id: string;
+  name: string;
+  surface?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventSlot {
+  id: string;
+  event_id: string;
+  court_id?: string;
+  slot_date: string; // YYYY-MM-DD
+  start_time: string; // HH:MM:SS
+  end_time: string; // HH:MM:SS
+  capacity?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TeamBlackout {
+  id: string;
+  event_id: string;
+  player_id?: string;
+  start_time: string;
+  end_time: string;
+  reason?: string;
   created_at: string;
   updated_at: string;
 }
