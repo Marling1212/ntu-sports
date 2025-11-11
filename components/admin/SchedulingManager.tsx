@@ -35,6 +35,7 @@ interface SlotFormState {
   courtId: string;
   capacity: string;
   notes: string;
+  code: string;
 }
 
 interface CourtFormState {
@@ -50,6 +51,7 @@ interface SlotTemplateFormState {
   courtId: string;
   capacity: string;
   notes: string;
+  code: string;
 }
 
 interface SlotTemplateGenerateFormState {
@@ -89,6 +91,7 @@ const emptySlotForm: SlotFormState = {
   courtId: "",
   capacity: "",
   notes: "",
+  code: "",
 };
 
 const emptyCourtForm: CourtFormState = {
@@ -104,6 +107,7 @@ const emptySlotTemplateForm: SlotTemplateFormState = {
   courtId: "",
   capacity: "",
   notes: "",
+  code: "",
 };
 
 const emptySlotTemplateGenerateForm: SlotTemplateGenerateFormState = {
@@ -227,6 +231,10 @@ export default function SchedulingManager({
   const [generatingBlackouts, setGeneratingBlackouts] = useState(false);
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkImportSummary, setBulkImportSummary] = useState<string | null>(null);
+  const [slotCodePrefix, setSlotCodePrefix] = useState("S");
+  const [slotCodeDigits, setSlotCodeDigits] = useState("3");
+  const [slotCodeStart, setSlotCodeStart] = useState("1");
+  const [assigningSlotCodes, setAssigningSlotCodes] = useState(false);
 
   const bulkFileRef = useRef<HTMLInputElement | null>(null);
 
@@ -443,6 +451,7 @@ export default function SchedulingManager({
         end_time: end,
         capacity: slotForm.capacity ? Number(slotForm.capacity) : null,
         notes: slotForm.notes.trim() || null,
+        code: slotForm.code.trim() || null,
         created_at: now,
         updated_at: now,
       };
@@ -512,6 +521,7 @@ export default function SchedulingManager({
         court_id: slotTemplateForm.courtId || null,
         capacity: slotTemplateForm.capacity ? Number(slotTemplateForm.capacity) : null,
         notes: slotTemplateForm.notes.trim() || null,
+        code: slotTemplateForm.code.trim() || null,
         created_at: now,
         updated_at: now,
       };
@@ -606,6 +616,7 @@ export default function SchedulingManager({
           end_time: template.end_time,
           capacity: template.capacity ?? null,
           notes: template.notes ?? null,
+          code: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
@@ -910,7 +921,7 @@ export default function SchedulingManager({
       const errors: string[] = [];
 
       const limit = blackoutLimit.trim() ? Number(blackoutLimit.trim()) : null;
-      const weekCounts = new Map(buildExistingWeekCounts(blackouts));
+      const weekCounts = buildExistingWeekCounts(blackouts);
       const duplicateCheck = new Set(
         blackouts.map((item) => `${item.player_id || ""}#${item.start_time}#${item.end_time}`),
       );
@@ -997,6 +1008,62 @@ export default function SchedulingManager({
     } finally {
       setBulkImporting(false);
       if (bulkFileRef.current) bulkFileRef.current.value = "";
+    }
+  };
+
+  const handleAutoAssignSlotCodes = async () => {
+    if (slots.length === 0) {
+      toast("目前沒有任何時段可以編號。", { icon: "ℹ️" });
+      return;
+    }
+
+    const prefix = slotCodePrefix.trim();
+    const digitsValue = Number(slotCodeDigits);
+    const digits = Number.isFinite(digitsValue) && digitsValue >= 0 ? Math.floor(digitsValue) : 0;
+    const startValue = Number(slotCodeStart);
+    const start = Number.isFinite(startValue) ? Math.floor(startValue) : 1;
+
+    if (!prefix && digits <= 0) {
+      toast.error("請設定代號前綴或有效的位數。至少需要其中一項。");
+      return;
+    }
+
+    const sortedSlots = [...slots].sort((a, b) =>
+      a.slot_date === b.slot_date
+        ? a.start_time.localeCompare(b.start_time)
+        : a.slot_date.localeCompare(b.slot_date),
+    );
+
+    const codes = sortedSlots.map((_, index) => {
+      const serial = start + index;
+      const padded = digits > 0 ? String(serial).padStart(digits, "0") : String(serial);
+      return `${prefix}${digits > 0 ? padded : String(serial)}`;
+    });
+
+    const uniqueCount = new Set(codes).size;
+    if (uniqueCount !== codes.length) {
+      toast.error("產生的代號有重複，請調整前綴或位數。");
+      return;
+    }
+
+    setAssigningSlotCodes(true);
+    try {
+      const updates = sortedSlots.map((slot, index) => ({ id: slot.id, code: codes[index] }));
+      const chunkSize = 100;
+      for (let i = 0; i < updates.length; i += chunkSize) {
+        const chunk = updates.slice(i, i + chunkSize).map(({ id, code }) => ({ id, code }));
+        const { error } = await supabase.from("event_slots").upsert(chunk, { onConflict: "id" });
+        if (error) throw error;
+      }
+
+      const codeMap = new Map(updates.map(({ id, code }) => [id, code] as const));
+      setSlots(slots.map((slot) => ({ ...slot, code: codeMap.get(slot.id) || slot.code })));
+      toast.success(`已為 ${updates.length} 筆時段設定代號`);
+    } catch (error: any) {
+      console.error("Auto assign slot codes error", error);
+      toast.error(error?.message || "設定代號失敗");
+    } finally {
+      setAssigningSlotCodes(false);
     }
   };
 
@@ -1124,7 +1191,18 @@ export default function SchedulingManager({
           </div>
         </div>
 
-        <form onSubmit={handleAddSlotTemplate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <form onSubmit={handleAddSlotTemplate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">代號</label>
+            <input
+              type="text"
+              value={slotTemplateForm.code}
+              onChange={(e) => setSlotTemplateForm({ ...slotTemplateForm, code: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              placeholder="例如：SLOT-A"
+              maxLength={20}
+            />
+          </div>
           <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">星期 *</label>
             <select
@@ -1220,6 +1298,11 @@ export default function SchedulingManager({
                   {templates.map((template) => (
                     <div key={template.id} className="px-4 py-3 flex items-center justify-between text-sm">
                       <div className="flex flex-col">
+                        {template.code && (
+                          <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
+                            代號：{template.code}
+                          </span>
+                        )}
                         <span className="font-semibold text-gray-700">
                           {template.start_time.slice(0, 5)} - {template.end_time.slice(0, 5)}
                         </span>
@@ -1281,6 +1364,59 @@ export default function SchedulingManager({
             {generatingSlots ? "產生中..." : "依模板生成時段"}
           </button>
         </form>
+
+        <div className="mt-4 border border-dashed border-gray-300 rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700">自動產生時段代號</h3>
+              <p className="text-sm text-gray-600">
+                依日期順序自動分配代號，方便後續排程以編號為主。已有代號的時段也會被新設定覆蓋。
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">前綴</label>
+                <input
+                  type="text"
+                  value={slotCodePrefix}
+                  onChange={(e) => setSlotCodePrefix(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                  maxLength={10}
+                  placeholder="例如：S"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">流水號位數</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={slotCodeDigits}
+                  onChange={(e) => setSlotCodeDigits(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                  placeholder="3"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">起始號碼</label>
+                <input
+                  type="number"
+                  value={slotCodeStart}
+                  onChange={(e) => setSlotCodeStart(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                  placeholder="1"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleAutoAssignSlotCodes}
+                disabled={assigningSlotCodes}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
+              >
+                {assigningSlotCodes ? "產生中..." : "自動產生代號"}
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
@@ -1293,7 +1429,18 @@ export default function SchedulingManager({
           </div>
         </div>
 
-        <form onSubmit={handleAddSlot} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+        <form onSubmit={handleAddSlot} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">代號</label>
+            <input
+              type="text"
+              value={slotForm.code}
+              onChange={(e) => setSlotForm({ ...slotForm, code: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              placeholder="例如：S001"
+              maxLength={20}
+            />
+          </div>
           <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">日期 *</label>
             <input
@@ -1384,6 +1531,11 @@ export default function SchedulingManager({
                   {items.map((slot) => (
                     <div key={slot.id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div className="flex flex-col text-sm">
+                        {slot.code && (
+                          <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
+                            代號：{slot.code}
+                          </span>
+                        )}
                         <span className="font-semibold text-gray-700">
                           {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                         </span>
@@ -1505,9 +1657,17 @@ export default function SchedulingManager({
                   {templates.map((template) => (
                     <div key={template.id} className="px-4 py-3 flex items-center justify-between text-sm">
                       <div className="flex flex-col">
+                        {template.code && (
+                          <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
+                            代號：{template.code}
+                          </span>
+                        )}
                         <span className="font-semibold text-gray-700">
-                          {WEEKDAY_LABELS[template.day_of_week]}｜
                           {template.start_time.slice(0, 5)} - {template.end_time.slice(0, 5)}
+                        </span>
+                        <span className="text-gray-600">
+                          場地：{template.court?.name || "—"}
+                          {template.capacity ? `｜可同時 ${template.capacity} 場` : ""}
                         </span>
                         {template.reason && <span className="text-gray-500">{template.reason}</span>}
                       </div>

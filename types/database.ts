@@ -78,6 +78,7 @@ export interface EventSlot {
   end_time: string; // HH:MM:SS
   capacity?: number;
   notes?: string;
+  code?: string;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +103,7 @@ export interface EventSlotTemplate {
   court_id?: string;
   capacity?: number;
   notes?: string;
+  code?: string;
   created_at: string;
   updated_at: string;
 }
