@@ -341,6 +341,8 @@ export default function SchedulingManager({
   const [slotTemplateImporting, setSlotTemplateImporting] = useState(false);
   const [slotTemplateImportSummary, setSlotTemplateImportSummary] = useState<string | null>(null);
   const [slotTemplateImportReplace, setSlotTemplateImportReplace] = useState(false);
+  const [bulkImportReplaceTemplates, setBulkImportReplaceTemplates] = useState(false);
+  const [bulkImportGenerateAfter, setBulkImportGenerateAfter] = useState(true);
 
   const bulkFileRef = useRef<HTMLInputElement | null>(null);
   const slotTemplateFileRef = useRef<HTMLInputElement | null>(null);
@@ -1040,12 +1042,15 @@ export default function SchedulingManager({
     }
   };
 
-  const handleBulkImportBlackouts = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBulkImportBlackouts = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setBulkImporting(true);
     setBulkImportSummary(null);
+
     try {
       const text = await file.text();
       const lines = text
@@ -1058,92 +1063,187 @@ export default function SchedulingManager({
         return;
       }
 
-      const rows = lines[0].toLowerCase().includes("player") ? lines.slice(1) : lines;
-      const records: any[] = [];
-      const errors: string[] = [];
-
-      const limit = blackoutLimit.trim() ? Number(blackoutLimit.trim()) : null;
-      const weekCounts = buildExistingWeekCounts(blackouts);
-      const duplicateCheck = new Set(
-        blackouts.map((item) => `${item.player_id || ""}#${item.start_time}#${item.end_time}`),
-      );
-
-      rows.forEach((line, index) => {
-        const parts = line.split(",").map((part) => part.trim());
-        if (parts.length < 3) {
-          errors.push(`第 ${index + 1} 行欄位不足`);
-          return;
-        }
-
-        const [playerName, startRaw, endRaw, reasonRaw] = parts;
-        const player = playersByName.get(playerName.toLowerCase());
-        if (!player) {
-          errors.push(`第 ${index + 1} 行：找不到選手 ${playerName}`);
-          return;
-        }
-
-        const startDate = new Date(startRaw);
-        const endDate = new Date(endRaw);
-        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-          errors.push(`第 ${index + 1} 行：時間格式錯誤`);
-          return;
-        }
-        if (startDate >= endDate) {
-          errors.push(`第 ${index + 1} 行：結束時間需晚於開始時間`);
-          return;
-        }
-
-        const weekKey = getWeekKey(startDate);
-        if (!weekCounts.has(player.id)) weekCounts.set(player.id, new Map());
-        const playerMap = weekCounts.get(player.id)!;
-        const currentCount = playerMap.get(weekKey) || 0;
-        if (limit !== null && currentCount >= limit) {
-          errors.push(`第 ${index + 1} 行：${player.name} 在 ${weekKey} 已達上限`);
-          return;
-        }
-        playerMap.set(weekKey, currentCount + 1);
-
-        const isoStart = startDate.toISOString();
-        const isoEnd = endDate.toISOString();
-        const uniqKey = `${player.id}#${isoStart}#${isoEnd}`;
-        if (duplicateCheck.has(uniqKey)) {
-          errors.push(`第 ${index + 1} 行：與現有資料重複`);
-          return;
-        }
-        duplicateCheck.add(uniqKey);
-
-        records.push({
-          event_id: eventId,
-          player_id: player.id,
-          start_time: isoStart,
-          end_time: isoEnd,
-          reason: reasonRaw || null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-      });
-
-      if (records.length === 0) {
-        toast.error("匯入失敗，沒有可新增的資料");
-        if (errors.length) {
-          setBulkImportSummary(errors.slice(0, 10).join("\n"));
-        }
+      const dataLines = lines[0].toLowerCase().includes("player") ? lines.slice(1) : lines;
+      if (dataLines.length === 0) {
+        toast.error("沒有資料列");
         return;
       }
 
-      const { data, error } = await supabase
-        .from("team_blackouts")
-        .insert(records)
-        .select("*, player:players(id, name, department, seed)");
-
-      if (error) throw error;
-
-      setBlackouts([...blackouts, ...((data as BlackoutRecord[]) || [])]);
-      setBulkImportSummary(`成功新增 ${records.length} 筆。${errors.length ? `另有 ${errors.length} 筆失敗。` : ""}`);
-      if (errors.length) {
-        console.warn("Bulk import skipped", errors);
+      if (bulkImportReplaceTemplates) {
+        const { error: deleteError } = await supabase
+          .from("team_blackout_templates")
+          .delete()
+          .eq("event_id", eventId);
+        if (deleteError) throw deleteError;
+        setBlackoutTemplates([]);
       }
-      toast.success(`已匯入 ${records.length} 筆不可出賽時段`);
+
+      const rowsByPlayer = new Map<string, Set<string>>();
+      const errors: string[] = [];
+
+      dataLines.forEach((line, index) => {
+        const parts = splitCsvLine(line);
+        const rowIndex = lines[0].toLowerCase().includes("player") ? index + 2 : index + 1;
+
+        if (parts.length < 2) {
+          errors.push(`第 ${rowIndex} 行欄位不足（需要選手姓名與代號）`);
+          return;
+        }
+
+        const [playerRaw, codeRaw] = parts;
+        const playerName = playerRaw.trim();
+        const slotCode = codeRaw.trim();
+
+        if (!playerName) {
+          errors.push(`第 ${rowIndex} 行缺少選手姓名`);
+          return;
+        }
+        if (!slotCode) {
+          errors.push(`第 ${rowIndex} 行缺少時段代號`);
+          return;
+        }
+
+        const player = playersByName.get(playerName.toLowerCase());
+        if (!player) {
+          errors.push(`第 ${rowIndex} 行找不到選手：${playerName}`);
+          return;
+        }
+
+        const template = slotTemplates.find((item) => item.code?.toLowerCase() === slotCode.toLowerCase());
+        if (!template) {
+          errors.push(`第 ${rowIndex} 行找不到時段代號：${slotCode}`);
+          return;
+        }
+
+        if (!rowsByPlayer.has(player.id)) {
+          rowsByPlayer.set(player.id, new Set());
+        }
+        rowsByPlayer.get(player.id)!.add(template.id);
+      });
+
+      if (rowsByPlayer.size === 0) {
+        toast.error("匯入失敗：沒有有效的代號資料。");
+        if (errors.length) setBulkImportSummary(errors.slice(0, 10).join("\n"));
+        return;
+      }
+
+      const nowIso = new Date().toISOString();
+      const templatePayload: any[] = [];
+
+      rowsByPlayer.forEach((templateIds, playerId) => {
+        templateIds.forEach((templateId) => {
+          const template = slotTemplatesById.get(templateId);
+          if (!template) return;
+          templatePayload.push({
+            event_id: eventId,
+            player_id: playerId,
+            day_of_week: template.day_of_week,
+            start_time: template.start_time,
+            end_time: template.end_time,
+            reason: null,
+            created_at: nowIso,
+            updated_at: nowIso,
+            code: template.code ?? null,
+          });
+        });
+      });
+
+      if (templatePayload.length === 0) {
+        toast.error("匯入失敗：選手代號皆無對應的模板。");
+        if (errors.length) setBulkImportSummary(errors.slice(0, 10).join("\n"));
+        return;
+      }
+
+      const chunkSize = 100;
+      for (let i = 0; i < templatePayload.length; i += chunkSize) {
+        const chunk = templatePayload.slice(i, i + chunkSize);
+        const { error } = await supabase
+          .from("team_blackout_templates")
+          .upsert(chunk, { onConflict: "event_id, player_id, day_of_week, start_time, end_time" });
+        if (error) throw error;
+      }
+
+      const { data: refreshedTemplates, error: refreshTemplatesError } = await supabase
+        .from("team_blackout_templates")
+        .select("*, player:players(id, name, department, seed)")
+        .eq("event_id", eventId)
+        .order("player_id", { ascending: true })
+        .order("day_of_week", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      if (refreshTemplatesError) throw refreshTemplatesError;
+
+      setBlackoutTemplates((refreshedTemplates as BlackoutTemplateRecord[]) || []);
+
+      if (bulkImportGenerateAfter) {
+        const generatePayload = [];
+        const limit = blackoutLimit.trim() ? Number(blackoutLimit.trim()) : null;
+        const weekCounts = buildExistingWeekCounts(blackouts);
+        const skipped: string[] = [];
+        const inserted: BlackoutRecord[] = [];
+
+        const startDate = parseDateOnly(slotTemplateGenerateForm.startDate || formatDateKey(new Date()));
+        const endDate = parseDateOnly(slotTemplateGenerateForm.endDate || formatDateKey(new Date(new Date().setMonth(new Date().getMonth() + 3))));
+
+        for (let cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
+          const day = cursor.getDay();
+          blackoutTemplates
+            .concat((refreshedTemplates as BlackoutTemplateRecord[]) || [])
+            .filter((template) => template.day_of_week === day)
+            .forEach((template) => {
+              const playerId = template.player_id;
+              if (!rowsByPlayer.has(playerId)) return;
+              const weekKey = getWeekKey(cursor);
+              if (limit !== null) {
+                if (!weekCounts.has(playerId)) weekCounts.set(playerId, new Map());
+                const playerMap = weekCounts.get(playerId)!;
+                const count = playerMap.get(weekKey) || 0;
+                if (count >= limit) {
+                  skipped.push(`${playersById.get(playerId)?.name || "選手"} @ ${weekKey}`);
+                  return;
+                }
+                playerMap.set(weekKey, count + 1);
+              }
+
+              const startIso = toISODateTime(cursor, template.start_time);
+              const endIso = toISODateTime(cursor, template.end_time);
+
+              generatePayload.push({
+                event_id: eventId,
+                player_id: playerId,
+                start_time: startIso,
+                end_time: endIso,
+                reason: template.reason ?? null,
+                created_at: nowIso,
+                updated_at: nowIso,
+              });
+            });
+        }
+
+        for (let i = 0; i < generatePayload.length; i += chunkSize) {
+          const chunk = generatePayload.slice(i, i + chunkSize);
+          const { data, error } = await supabase
+            .from("team_blackouts")
+            .insert(chunk)
+            .select("*, player:players(id, name, department, seed)");
+
+          if (error) throw error;
+          inserted.push(...((data as BlackoutRecord[]) || []));
+        }
+
+        if (inserted.length > 0) {
+          setBlackouts([...blackouts, ...inserted]);
+        }
+
+        if (skipped.length > 0) {
+          console.warn("自動生成黑名單因每週上限略過：", skipped);
+        }
+      }
+
+      const summaryMessage = `已匯入 ${templatePayload.length} 筆黑名單模板`;
+      const errorMessage = errors.length ? `，另有 ${errors.length} 筆失敗` : "";
+      setBulkImportSummary(summaryMessage + errorMessage);
+      toast.success(summaryMessage);
     } catch (error: any) {
       console.error("Bulk import error", error);
       toast.error(error?.message || "匯入失敗");
@@ -2170,9 +2270,9 @@ export default function SchedulingManager({
         <div className="rounded-lg border border-dashed border-gray-300 p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-700">大量匯入不可出賽時段</h3>
+              <h3 className="text-lg font-semibold text-gray-700">大量匯入不可出賽代號</h3>
               <p className="text-sm text-gray-600">
-                CSV 欄位順序：<span className="font-mono">player_name,start_datetime,end_datetime,reason</span>。時間請使用 ISO 格式，例如 <span className="font-mono">2025-01-15T18:00</span>。
+                CSV 欄位順序：<span className="font-mono">player_name,slot_code</span>。每一列代表該選手每週同時段皆不可比賽，slot code 需對應到「每週時段模板」中的代號。
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -2185,6 +2285,26 @@ export default function SchedulingManager({
                 className="text-sm"
               />
             </div>
+          </div>
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-600">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={bulkImportReplaceTemplates}
+                onChange={(e) => setBulkImportReplaceTemplates(e.target.checked)}
+                className="h-4 w-4"
+              />
+              匯入前清空現有的黑名單模板
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={bulkImportGenerateAfter}
+                onChange={(e) => setBulkImportGenerateAfter(e.target.checked)}
+                className="h-4 w-4"
+              />
+              匯入後立即套用至整個賽季
+            </label>
           </div>
           {bulkImportSummary && (
             <div className="mt-3 text-sm text-gray-600 whitespace-pre-wrap">
