@@ -65,6 +65,7 @@ interface BlackoutFormState {
   start: string;
   end: string;
   reason: string;
+  slotTemplateId: string;
 }
 
 interface BlackoutTemplateFormState {
@@ -73,6 +74,7 @@ interface BlackoutTemplateFormState {
   start: string;
   end: string;
   reason: string;
+  slotTemplateId: string;
 }
 
 interface BlackoutTemplateGenerateFormState {
@@ -121,6 +123,7 @@ const emptyBlackoutForm: BlackoutFormState = {
   start: "",
   end: "",
   reason: "",
+  slotTemplateId: "",
 };
 
 const emptyBlackoutTemplateForm: BlackoutTemplateFormState = {
@@ -129,6 +132,7 @@ const emptyBlackoutTemplateForm: BlackoutTemplateFormState = {
   start: "",
   end: "",
   reason: "",
+  slotTemplateId: "",
 };
 
 const emptyBlackoutTemplateGenerateForm: BlackoutTemplateGenerateFormState = {
@@ -190,6 +194,105 @@ const buildExistingWeekCounts = (items: BlackoutRecord[]) => {
   return counts;
 };
 
+const normalizeTimeInput = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+    return null;
+  }
+  const [hRaw, mRaw, sRaw = "00"] = trimmed.split(":");
+  const hh = Number(hRaw);
+  const mm = Number(mRaw);
+  const ss = Number(sRaw);
+  if ([hh, mm, ss].some(Number.isNaN) || hh > 23 || mm > 59 || ss > 59) {
+    return null;
+  }
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+};
+
+const WEEKDAY_ALIAS: Record<string, number> = {
+  "0": 0,
+  "7": 0,
+  "sun": 0,
+  "sunday": 0,
+  "日": 0,
+  "週日": 0,
+  "星期日": 0,
+  "天": 0,
+  "1": 1,
+  "mon": 1,
+  "monday": 1,
+  "一": 1,
+  "週一": 1,
+  "星期一": 1,
+  "2": 2,
+  "tue": 2,
+  "tuesday": 2,
+  "二": 2,
+  "週二": 2,
+  "星期二": 2,
+  "3": 3,
+  "wed": 3,
+  "wednesday": 3,
+  "三": 3,
+  "週三": 3,
+  "星期三": 3,
+  "4": 4,
+  "thu": 4,
+  "thur": 4,
+  "thursday": 4,
+  "四": 4,
+  "週四": 4,
+  "星期四": 4,
+  "5": 5,
+  "fri": 5,
+  "friday": 5,
+  "五": 5,
+  "週五": 5,
+  "星期五": 5,
+  "6": 6,
+  "sat": 6,
+  "saturday": 6,
+  "六": 6,
+  "週六": 6,
+  "星期六": 6,
+};
+
+const parseWeekdayValue = (value: string): number | null => {
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  const lower = trimmed.toLowerCase();
+  if (WEEKDAY_ALIAS[lower] !== undefined) return WEEKDAY_ALIAS[lower];
+  const lastChar = trimmed[trimmed.length - 1];
+  if (WEEKDAY_ALIAS[lastChar] !== undefined) return WEEKDAY_ALIAS[lastChar];
+  const numeric = Number(trimmed);
+  if (!Number.isNaN(numeric) && numeric >= 0 && numeric <= 6) return numeric;
+  return null;
+};
+
+const splitCsvLine = (line: string): string[] => {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result.map((value) => value.trim());
+};
+
 export default function SchedulingManager({
   eventId,
   initialCourts,
@@ -227,7 +330,6 @@ export default function SchedulingManager({
   const [submittingBlackout, setSubmittingBlackout] = useState(false);
   const [submittingSlotTemplate, setSubmittingSlotTemplate] = useState(false);
   const [generatingSlots, setGeneratingSlots] = useState(false);
-  const [submittingBlackoutTemplate, setSubmittingBlackoutTemplate] = useState(false);
   const [generatingBlackouts, setGeneratingBlackouts] = useState(false);
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkImportSummary, setBulkImportSummary] = useState<string | null>(null);
@@ -235,8 +337,12 @@ export default function SchedulingManager({
   const [slotCodeDigits, setSlotCodeDigits] = useState("3");
   const [slotCodeStart, setSlotCodeStart] = useState("1");
   const [assigningSlotCodes, setAssigningSlotCodes] = useState(false);
+  const [slotTemplateImporting, setSlotTemplateImporting] = useState(false);
+  const [slotTemplateImportSummary, setSlotTemplateImportSummary] = useState<string | null>(null);
+  const [slotTemplateImportReplace, setSlotTemplateImportReplace] = useState(false);
 
   const bulkFileRef = useRef<HTMLInputElement | null>(null);
+  const slotTemplateFileRef = useRef<HTMLInputElement | null>(null);
 
   const playersById = useMemo(() => {
     const map = new Map<string, Player>();
@@ -249,6 +355,22 @@ export default function SchedulingManager({
     players.forEach((player) => map.set(player.name.trim().toLowerCase(), player));
     return map;
   }, [players]);
+
+  const courtsByName = useMemo(() => {
+    const map = new Map<string, EventCourt>();
+    courts.forEach((court) => {
+      if (court.name) {
+        map.set(court.name.trim().toLowerCase(), court);
+      }
+    });
+    return map;
+  }, [courts]);
+
+  const slotTemplatesById = useMemo(() => {
+    const map = new Map<string, SlotTemplateRecord>();
+    slotTemplates.forEach((template) => map.set(template.id, template));
+    return map;
+  }, [slotTemplates]);
 
   const slotsGroupedByDate = useMemo(() => {
     const groups: Record<string, SlotRecord[]> = {};
@@ -668,11 +790,24 @@ export default function SchedulingManager({
     setSubmittingBlackout(true);
     try {
       const now = new Date().toISOString();
+      const startDate = new Date(blackoutForm.start);
+      const endDate = new Date(blackoutForm.end);
+      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        toast.error("時間格式不正確，請重新選擇");
+        setSubmittingBlackout(false);
+        return;
+      }
+      if (startDate >= endDate) {
+        toast.error("結束時間必須晚於開始時間");
+        setSubmittingBlackout(false);
+        return;
+      }
+
       const payload = {
         event_id: eventId,
         player_id: blackoutForm.playerId,
-        start_time: new Date(blackoutForm.start).toISOString(),
-        end_time: new Date(blackoutForm.end).toISOString(),
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
         reason: blackoutForm.reason.trim() || null,
         created_at: now,
         updated_at: now,
@@ -722,22 +857,28 @@ export default function SchedulingManager({
       return;
     }
 
-    const start = parseTime(blackoutTemplateForm.start);
-    const end = parseTime(blackoutTemplateForm.end);
-    if (start >= end) {
+    const now = new Date().toISOString();
+    const startTime = normalizeTimeInput(blackoutTemplateForm.start);
+    const endTime = normalizeTimeInput(blackoutTemplateForm.end);
+
+    if (!startTime || !endTime) {
+      toast.error("請輸入正確的時間格式 (HH:MM)");
+      return;
+    }
+
+    if (startTime >= endTime) {
       toast.error("結束時間必須晚於開始時間");
       return;
     }
 
     setSubmittingBlackoutTemplate(true);
     try {
-      const now = new Date().toISOString();
       const payload = {
         event_id: eventId,
         player_id: blackoutTemplateForm.playerId,
         day_of_week: Number(blackoutTemplateForm.dayOfWeek),
-        start_time: start,
-        end_time: end,
+        start_time: startTime,
+        end_time: endTime,
         reason: blackoutTemplateForm.reason.trim() || null,
         created_at: now,
         updated_at: now,
@@ -1067,6 +1208,231 @@ export default function SchedulingManager({
     }
   };
 
+  const handleSlotTemplateImport = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setSlotTemplateImporting(true);
+    setSlotTemplateImportSummary(null);
+
+    try {
+      const text = await file.text();
+      const lines = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
+      if (lines.length === 0) {
+        toast.error("檔案內容為空");
+        return;
+      }
+
+      const [firstLine, ...rest] = lines;
+      const hasHeader = firstLine.toLowerCase().includes("code");
+      const dataLines = hasHeader ? rest : lines;
+
+      if (dataLines.length === 0) {
+        toast.error("找不到資料列");
+        return;
+      }
+
+      const nowIso = new Date().toISOString();
+      const errors: string[] = [];
+      const rows: Array<{
+        code: string;
+        day_of_week: number;
+        start_time: string;
+        end_time: string;
+        court_id: string | null;
+        capacity: number | null;
+        notes: string | null;
+      }> = [];
+
+      dataLines.forEach((line, index) => {
+        const parts = splitCsvLine(line);
+        const rowNumber = hasHeader ? index + 2 : index + 1;
+
+        if (parts.length < 4) {
+          errors.push(`第 ${rowNumber} 行欄位不足（至少需要代號、星期、開始、結束）`);
+          return;
+        }
+
+        const [codeRaw, dayRaw, startRaw, endRaw, courtRaw = "", capacityRaw = "", notesRaw = ""] = parts;
+
+        const code = codeRaw.trim();
+        if (!code) {
+          errors.push(`第 ${rowNumber} 行缺少代號`);
+          return;
+        }
+
+        const dayValue = parseWeekdayValue(dayRaw);
+        if (dayValue === null) {
+          errors.push(`第 ${rowNumber} 行的星期值無法解析：${dayRaw}`);
+          return;
+        }
+
+        const startTime = normalizeTimeInput(startRaw);
+        const endTime = normalizeTimeInput(endRaw);
+        if (!startTime || !endTime) {
+          errors.push(`第 ${rowNumber} 行時間格式錯誤（需 HH:MM 或 HH:MM:SS）`);
+          return;
+        }
+        if (startTime >= endTime) {
+          errors.push(`第 ${rowNumber} 行結束時間需晚於開始時間`);
+          return;
+        }
+
+        const courtName = courtRaw.trim();
+        let courtId: string | null = null;
+        if (courtName) {
+          const court = courtsByName.get(courtName.toLowerCase());
+          if (!court) {
+            errors.push(`第 ${rowNumber} 行找不到場地名稱：${courtName}`);
+            return;
+          }
+          courtId = court.id;
+        }
+
+        const capacityTrimmed = capacityRaw.trim();
+        let capacity: number | null = null;
+        if (capacityTrimmed) {
+          const value = Number(capacityTrimmed);
+          if (Number.isNaN(value) || value < 1) {
+            errors.push(`第 ${rowNumber} 行場數需為正整數`);
+            return;
+          }
+          capacity = Math.floor(value);
+        }
+
+        const notes = notesRaw.trim() ? notesRaw.trim() : null;
+
+        rows.push({
+          code,
+          day_of_week: dayValue,
+          start_time: startTime,
+          end_time: endTime,
+          court_id: courtId,
+          capacity,
+          notes,
+        });
+      });
+
+      if (rows.length === 0) {
+        toast.error("沒有可匯入的模板資料");
+        if (errors.length) setSlotTemplateImportSummary(errors.slice(0, 10).join("\n"));
+        return;
+      }
+
+      if (slotTemplateImportReplace) {
+        const { error: deleteError } = await supabase
+          .from("event_slot_templates")
+          .delete()
+          .eq("event_id", eventId);
+        if (deleteError) throw deleteError;
+      }
+
+      const payload = rows.map((row) => ({
+        event_id: eventId,
+        code: row.code,
+        day_of_week: row.day_of_week,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        court_id: row.court_id,
+        capacity: row.capacity,
+        notes: row.notes,
+        created_at: nowIso,
+        updated_at: nowIso,
+      }));
+
+      const chunkSize = 100;
+      for (let i = 0; i < payload.length; i += chunkSize) {
+        const chunk = payload.slice(i, i + chunkSize);
+        const { error } = await supabase
+          .from("event_slot_templates")
+          .upsert(chunk, { onConflict: "event_id,code" });
+        if (error) throw error;
+      }
+
+      const { data: refreshed, error: refreshError } = await supabase
+        .from("event_slot_templates")
+        .select("*, court:event_courts(*)")
+        .eq("event_id", eventId)
+        .order("day_of_week", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      if (refreshError) throw refreshError;
+
+      setSlotTemplates((refreshed as SlotTemplateRecord[]) || []);
+      setSlotTemplateImportSummary(
+        `成功匯入 ${rows.length} 筆模板${errors.length ? `，另有 ${errors.length} 筆失敗` : ""}`,
+      );
+      if (errors.length) {
+        console.warn("Slot template import skipped:", errors);
+      }
+      toast.success(`已匯入 ${rows.length} 筆每週時段模板`);
+    } catch (error: any) {
+      console.error("Slot template import error", error);
+      toast.error(error?.message || "匯入失敗");
+    } finally {
+      setSlotTemplateImporting(false);
+      if (slotTemplateFileRef.current) slotTemplateFileRef.current.value = "";
+    }
+  };
+
+  const applySlotTemplateToBlackoutTemplateForm = (templateId: string) => {
+    if (!templateId) {
+      setBlackoutTemplateForm((prev) => ({
+        ...prev,
+        slotTemplateId: "",
+      }));
+      return;
+    }
+
+    const template = slotTemplatesById.get(templateId);
+    if (!template) return;
+
+    setBlackoutTemplateForm((prev) => ({
+      ...prev,
+      slotTemplateId: templateId,
+      dayOfWeek: String(template.day_of_week),
+      start: template.start_time.slice(0, 5),
+      end: template.end_time.slice(0, 5),
+    }));
+  };
+
+  const applySlotTemplateToBlackoutForm = (templateId: string, dateOverride?: string) => {
+    if (!templateId) {
+      setBlackoutForm((prev) => ({
+        ...prev,
+        slotTemplateId: "",
+      }));
+      return;
+    }
+
+    const template = slotTemplatesById.get(templateId);
+    if (!template) return;
+
+    setBlackoutForm((prev) => {
+      const currentDate =
+        dateOverride ||
+        (prev.start ? prev.start.slice(0, 10) : "") ||
+        (prev.end ? prev.end.slice(0, 10) : "");
+      const fallbackDate = formatDateKey(new Date());
+      const dateForUse = (currentDate || fallbackDate).slice(0, 10);
+      const startValue = `${dateForUse}T${template.start_time.slice(0, 5)}`;
+      const endValue = `${dateForUse}T${template.end_time.slice(0, 5)}`;
+
+      return {
+        ...prev,
+        slotTemplateId: templateId,
+        start: startValue,
+        end: endValue,
+      };
+    });
+  };
+
   return (
     <div className="space-y-8">
       <section className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
@@ -1189,6 +1555,42 @@ export default function SchedulingManager({
               設定每週固定的可用時段後，就能一次生成整個賽季的時段，僅需針對少數例外手動調整。
             </p>
           </div>
+        </div>
+
+        <div className="border border-dashed border-gray-300 rounded-lg p-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700">匯入每週模板（含代號）</h3>
+              <p className="text-sm text-gray-600">
+                CSV 欄位順序：<span className="font-mono">code,weekday,start_time,end_time,court,capacity,notes</span>。
+                星期可使用 0-6、Mon、週一 等表示。時間採 <span className="font-mono">HH:MM</span> 格式。
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={slotTemplateImportReplace}
+                  onChange={(e) => setSlotTemplateImportReplace(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                匯入前清空既有模板
+              </label>
+              <input
+                ref={slotTemplateFileRef}
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleSlotTemplateImport}
+                disabled={slotTemplateImporting}
+                className="text-sm"
+              />
+            </div>
+          </div>
+          {slotTemplateImportSummary && (
+            <div className="mt-3 text-sm text-gray-600 whitespace-pre-wrap">
+              {slotTemplateImportSummary}
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleAddSlotTemplate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -1589,10 +1991,30 @@ export default function SchedulingManager({
             </select>
           </div>
           <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">套用時段代號</label>
+            <select
+              value={blackoutTemplateForm.slotTemplateId}
+              onChange={(e) => applySlotTemplateToBlackoutTemplateForm(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+            >
+              <option value="">自訂時間</option>
+              {slotTemplates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.code ? `${template.code}｜` : ""}
+                  {WEEKDAY_LABELS[template.day_of_week]} {template.start_time.slice(0, 5)}-{template.end_time.slice(0, 5)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">星期 *</label>
             <select
               value={blackoutTemplateForm.dayOfWeek}
-              onChange={(e) => setBlackoutTemplateForm({ ...blackoutTemplateForm, dayOfWeek: e.target.value })}
+              onChange={(e) => setBlackoutTemplateForm({
+                ...blackoutTemplateForm,
+                slotTemplateId: "",
+                dayOfWeek: e.target.value,
+              })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               required
             >
@@ -1608,7 +2030,11 @@ export default function SchedulingManager({
             <input
               type="time"
               value={blackoutTemplateForm.start}
-              onChange={(e) => setBlackoutTemplateForm({ ...blackoutTemplateForm, start: e.target.value })}
+              onChange={(e) => setBlackoutTemplateForm({
+                ...blackoutTemplateForm,
+                slotTemplateId: "",
+                start: e.target.value,
+              })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               required
             />
@@ -1618,7 +2044,11 @@ export default function SchedulingManager({
             <input
               type="time"
               value={blackoutTemplateForm.end}
-              onChange={(e) => setBlackoutTemplateForm({ ...blackoutTemplateForm, end: e.target.value })}
+              onChange={(e) => setBlackoutTemplateForm({
+                ...blackoutTemplateForm,
+                slotTemplateId: "",
+                end: e.target.value,
+              })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               required
             />
@@ -1769,11 +2199,31 @@ export default function SchedulingManager({
             </select>
           </div>
           <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">套用時段代號</label>
+            <select
+              value={blackoutForm.slotTemplateId}
+              onChange={(e) => applySlotTemplateToBlackoutForm(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+            >
+              <option value="">自訂時間</option>
+              {slotTemplates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.code ? `${template.code}｜` : ""}
+                  {WEEKDAY_LABELS[template.day_of_week]} {template.start_time.slice(0, 5)}-{template.end_time.slice(0, 5)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">開始時間 *</label>
             <input
               type="datetime-local"
               value={blackoutForm.start}
-              onChange={(e) => setBlackoutForm({ ...blackoutForm, start: e.target.value })}
+              onChange={(e) => setBlackoutForm({
+                ...blackoutForm,
+                slotTemplateId: "",
+                start: e.target.value,
+              })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               required
             />
@@ -1783,7 +2233,11 @@ export default function SchedulingManager({
             <input
               type="datetime-local"
               value={blackoutForm.end}
-              onChange={(e) => setBlackoutForm({ ...blackoutForm, end: e.target.value })}
+              onChange={(e) => setBlackoutForm({
+                ...blackoutForm,
+                slotTemplateId: "",
+                end: e.target.value,
+              })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               required
             />
