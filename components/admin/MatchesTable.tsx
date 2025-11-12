@@ -413,7 +413,11 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
                           >
                             <option value="upcoming">Upcoming</option>
                             <option value="live">Live</option>
+                            <option value="delayed">Delayed</option>
                             <option value="completed">Completed</option>
+                            <option value="bye" disabled>
+                              BYE (auto)
+                            </option>
                           </select>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -468,11 +472,17 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">{match.court || "—"}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            match.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            match.status === 'live' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              match.status === 'completed'
+                                ? 'bg-green-100 text-green-800'
+                                : match.status === 'live'
+                                ? 'bg-red-100 text-red-800'
+                                : match.status === 'delayed'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
                             {match.status}
                           </span>
                         </td>

@@ -45,7 +45,7 @@ export interface Match {
   court?: string;
   scheduled_time?: string;
   slot_id?: string;
-  status: 'upcoming' | 'live' | 'completed';
+  status: 'upcoming' | 'live' | 'completed' | 'bye' | 'delayed';
   created_at: string;
   updated_at: string;
 }

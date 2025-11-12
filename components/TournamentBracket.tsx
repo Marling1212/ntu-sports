@@ -364,10 +364,18 @@ export default function TournamentBracket({
                                       ? 'bg-yellow-500 border-2 border-yellow-600'
                                       : match.status === 'live' 
                                         ? 'bg-red-500 border-2 border-red-600 animate-pulse' 
-                                        : 'bg-white border-2 border-gray-300'
+                                        : match.status === 'delayed'
+                                          ? 'bg-amber-100 border-2 border-amber-400 animate-pulse'
+                                          : 'bg-white border-2 border-gray-300'
                                 }`}>
                                   <span className={`text-lg font-bold ${
-                                    isThirdPlaceMatch || (isActualFinalRound && match.matchNumber === 1) ? 'text-white' : match.status === 'live' ? 'text-white' : 'text-gray-600'
+                                    isThirdPlaceMatch || (isActualFinalRound && match.matchNumber === 1)
+                                      ? 'text-white'
+                                      : match.status === 'live'
+                                        ? 'text-white'
+                                        : match.status === 'delayed'
+                                          ? 'text-amber-700'
+                                          : 'text-gray-600'
                                   }`}>
                                     {isThirdPlaceMatch ? '🥉' : isActualFinalRound && match.matchNumber === 1 ? '🏆' : 'VS'}
                                   </span>
@@ -396,6 +404,10 @@ export default function TournamentBracket({
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-gray-300 rounded bg-gray-100 opacity-50"></div>
               <span className="text-gray-600">Loser (Eliminated)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-amber-100 border-2 border-amber-400 rounded-full"></div>
+              <span className="text-gray-600">Delayed Match</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded">

@@ -159,6 +159,11 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             Upcoming
                           </span>
                         )}
+                        {match.status === 'delayed' && (
+                          <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">
+                            Delayed
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

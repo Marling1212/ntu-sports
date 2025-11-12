@@ -13,7 +13,7 @@ export interface Match {
   player2?: Player | null;
   winner?: Player | null;
   score?: string;
-  status: "upcoming" | "live" | "completed" | "bye";
+  status: "upcoming" | "live" | "completed" | "bye" | "delayed";
 }
 
 export interface TournamentBracketProps {
