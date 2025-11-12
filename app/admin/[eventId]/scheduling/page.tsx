@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AdminNavbar from "@/components/admin/Navbar";
 import SchedulingManager from "@/components/admin/SchedulingManager";
+import ImportMatchSchedule from "@/components/admin/ImportMatchSchedule";
 
 export default async function SchedulingPage({
   params,
@@ -91,6 +92,8 @@ export default async function SchedulingPage({
             {event?.name}
           </p>
         </div>
+
+        <ImportMatchSchedule eventId={eventId} players={players || []} />
 
         <SchedulingManager
           eventId={eventId}
