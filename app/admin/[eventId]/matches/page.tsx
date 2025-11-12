@@ -61,6 +61,13 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
     .eq("event_id", eventId)
     .order("name", { ascending: true });
 
+  const { data: slots } = await supabase
+    .from("event_slots")
+    .select("id, slot_date, start_time, end_time, code, court_id")
+    .eq("event_id", eventId)
+    .order("slot_date", { ascending: true })
+    .order("start_time", { ascending: true });
+
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
@@ -74,6 +81,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           eventId={eventId} 
           initialMatches={matches || []} 
           players={players || []}
+          slots={slots || []}
           tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
         />
       </div>

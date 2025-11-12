@@ -1,10 +1,79 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player } from "@/types/database";
 import { checkAndAnnounceRoundCompletion } from "@/lib/utils/checkRoundCompletion";
+
+interface SlotOption {
+  id: string;
+  slot_date: string;
+  start_time: string;
+  end_time: string;
+  code?: string | null;
+  court_id?: string | null;
+}
+
+const taipeiFormatter = new Intl.DateTimeFormat("zh-TW", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Asia/Taipei",
+});
+
+const normalizeTime = (time?: string | null): string => {
+  if (!time) return "";
+  const [hour = "00", minute = "00"] = time.split(":");
+  return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+};
+
+const normalizeTimeWithSeconds = (time?: string | null): string => {
+  if (!time) return "00:00:00";
+  const [hour = "00", minute = "00", second = "00"] = time.split(":");
+  return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:${second.padStart(2, "0")}`;
+};
+
+const formatSlotScheduleRange = (slot: SlotOption): string => {
+  const start = normalizeTime(slot.start_time);
+  const end = normalizeTime(slot.end_time);
+  const range = end ? `${start}-${end}` : start;
+  return `${slot.slot_date} ${range}`;
+};
+
+const formatSlotLabel = (slot: SlotOption): string => {
+  const base = formatSlotScheduleRange(slot);
+  return slot.code ? `${slot.code} · ${base}` : base;
+};
+
+const formatDateTimeDisplay = (iso?: string | null): string => {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return taipeiFormatter.format(date);
+};
+
+const toLocalInputValue = (iso?: string | null): string => {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+};
+
+const toIsoString = (value?: string | null): string | null => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+};
+
+const deriveIsoFromSlot = (slot?: SlotOption | null): string | null => {
+  if (!slot) return null;
+  const base = `${slot.slot_date}T${normalizeTimeWithSeconds(slot.start_time)}`;
+  if (base.includes("Z") || base.includes("+")) return base;
+  return `${base}+08:00`;
+};
 
 interface Match {
   id: string;
@@ -17,7 +86,9 @@ interface Match {
   score2?: string;
   winner_id?: string;
   court?: string;
-  scheduled_time?: string;
+  scheduled_time?: string | null;
+  slot_id?: string | null;
+  slot?: SlotOption | null;
   status: string;
   player1?: Player;
   player2?: Player;
@@ -28,16 +99,31 @@ interface MatchesTableProps {
   eventId: string;
   initialMatches: Match[];
   players: Player[];
+  slots?: SlotOption[];
   tournamentType?: "single_elimination" | "season_play" | null;
 }
 
-export default function MatchesTable({ eventId, initialMatches, players, tournamentType }: MatchesTableProps) {
+export default function MatchesTable({
+  eventId,
+  initialMatches,
+  players,
+  slots = [],
+  tournamentType,
+}: MatchesTableProps) {
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const supabase = createClient();
 
+  const slotMap = useMemo(() => {
+    const map = new Map<string, SlotOption>();
+    slots.forEach((slot) => map.set(slot.id, slot));
+    return map;
+  }, [slots]);
+
   const handleEdit = (match: Match) => {
+    const slotCandidate = match.slot_id ? slotMap.get(match.slot_id) || match.slot || null : match.slot || null;
+    const scheduledSource = match.scheduled_time || deriveIsoFromSlot(slotCandidate);
     setEditingMatch(match.id);
     setEditForm({
       score1: match.score1 || "",
@@ -45,6 +131,8 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
       winner_id: match.winner_id || "",
       court: match.court || "",
       status: match.status || "upcoming",
+      scheduled_time: toLocalInputValue(scheduledSource),
+      slot_id: match.slot_id || "",
     });
   };
 
@@ -55,6 +143,13 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
     // Check if status changed to "live"
     const isNowLive = editForm.status === "live" && currentMatch.status !== "live";
 
+    const slotIdValue: string | null = editForm.slot_id ? editForm.slot_id : null;
+    const selectedSlot = slotIdValue ? slotMap.get(slotIdValue) || null : null;
+    let scheduledIso = toIsoString(editForm.scheduled_time);
+    if (!scheduledIso && selectedSlot) {
+      scheduledIso = deriveIsoFromSlot(selectedSlot);
+    }
+
     // Update current match
     const { data, error } = await supabase
       .from("matches")
@@ -63,6 +158,8 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
         score2: editForm.score2 || null,
         winner_id: editForm.winner_id || null,
         court: editForm.court || null,
+        scheduled_time: scheduledIso,
+        slot_id: slotIdValue,
         status: editForm.status,
         updated_at: new Date().toISOString(),
       })
@@ -71,7 +168,8 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
         *,
         player1:players!matches_player1_id_fkey(id, name, seed),
         player2:players!matches_player2_id_fkey(id, name, seed),
-        winner:players!matches_winner_id_fkey(id, name, seed)
+        winner:players!matches_winner_id_fkey(id, name, seed),
+        slot:event_slots(id, slot_date, start_time, end_time, code, court_id)
       `)
       .single();
 
@@ -336,6 +434,7 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player 2</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Winner</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Court</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -344,7 +443,7 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
             <tbody className="bg-white divide-y divide-gray-200">
               {matches.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                     No matches created yet.
                   </td>
                 </tr>
@@ -395,6 +494,51 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
                             {match.player1_id && <option value={match.player1_id}>{match.player1?.name}</option>}
                             {match.player2_id && <option value={match.player2_id}>{match.player2?.name}</option>}
                           </select>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col gap-2">
+                            <input
+                              type="datetime-local"
+                              value={editForm.scheduled_time || ""}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  scheduled_time: e.target.value,
+                                  slot_id: "",
+                                })
+                              }
+                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            />
+                            {slots.length > 0 && (
+                              <select
+                                value={editForm.slot_id || ""}
+                                onChange={(e) => {
+                                  const newSlotId = e.target.value;
+                                  if (!newSlotId) {
+                                    setEditForm({
+                                      ...editForm,
+                                      slot_id: "",
+                                    });
+                                    return;
+                                  }
+                                  const slot = slotMap.get(newSlotId) || null;
+                                  setEditForm({
+                                    ...editForm,
+                                    slot_id: newSlotId,
+                                    scheduled_time: toLocalInputValue(deriveIsoFromSlot(slot)),
+                                  });
+                                }}
+                                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                              >
+                                <option value="">選擇時段代號</option>
+                                {slots.map((slot) => (
+                                  <option key={slot.id} value={slot.id}>
+                                    {formatSlotLabel(slot)}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <input
@@ -469,6 +613,26 @@ export default function MatchesTable({ eventId, initialMatches, players, tournam
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {match.winner?.name || "—"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {match.slot ? (
+                            <div className="flex flex-col">
+                              {match.slot.code && (
+                                <span className="text-sm font-semibold text-ntu-green">
+                                  {match.slot.code}
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-500">
+                                {formatSlotScheduleRange(match.slot)}
+                              </span>
+                            </div>
+                          ) : match.scheduled_time ? (
+                            <span className="text-sm text-gray-700">
+                              {formatDateTimeDisplay(match.scheduled_time)}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">未排定</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">{match.court || "—"}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
