@@ -37,6 +37,7 @@ export interface Match {
   event_id: string;
   round: number;
   match_number: number;
+  group_number?: number | null;
   player1_id?: string;
   player2_id?: string;
   score1?: string;

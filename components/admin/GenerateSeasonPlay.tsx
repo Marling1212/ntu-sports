@@ -12,12 +12,28 @@ interface GenerateSeasonPlayProps {
 
 export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonPlayProps) {
   const [loading, setLoading] = useState(false);
+  const [numGroups, setNumGroups] = useState(1); // Default: 1 group (single round-robin)
   const [playoffTeams, setPlayoffTeams] = useState(4); // Default: top 4 teams go to playoffs
   const supabase = createClient();
+
+  // Helper function to shuffle array randomly
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
 
   const generateSeasonMatches = async () => {
     if (players.length < 3) {
       toast.error(`Season play requires at least 3 players. Currently have ${players.length} players.`);
+      return;
+    }
+
+    if (numGroups < 1 || numGroups > players.length) {
+      toast.error(`Number of groups must be between 1 and ${players.length}`);
       return;
     }
 
@@ -26,8 +42,17 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
       return;
     }
 
-    const totalRegularSeasonMatches = (players.length * (players.length - 1)) / 2; // Round robin
-    const confirmText = `確定要生成季賽賽程嗎？\n\n選手數: ${players.length}\n\n常規賽:\n- 採用單循環制 (每人對每人一次)\n- 總比賽數: ${totalRegularSeasonMatches} 場\n\n季後賽:\n- 前 ${playoffTeams} 名進入季後賽\n- 採用單淘汰制\n\n確定生成？`;
+    // Calculate matches per group
+    const playersPerGroup = Math.floor(players.length / numGroups);
+    const remainder = players.length % numGroups;
+    let totalMatches = 0;
+    
+    for (let g = 0; g < numGroups; g++) {
+      const groupSize = playersPerGroup + (g < remainder ? 1 : 0);
+      totalMatches += (groupSize * (groupSize - 1)) / 2;
+    }
+
+    const confirmText = `確定要生成季賽賽程嗎？\n\n選手數: ${players.length}\n分組數: ${numGroups}\n\n常規賽:\n- 隨機分組後，每組內採用單循環制\n- 總比賽數: ${totalMatches} 場\n\n季後賽:\n- 前 ${playoffTeams} 名進入季後賽\n- 採用單淘汰制\n\n確定生成？`;
     
     if (!confirm(confirmText)) return;
 
@@ -46,20 +71,40 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
         return;
       }
 
-      // Generate round-robin regular season matches (Round 0)
-      const regularSeasonMatches = [];
-      let matchNumber = 1;
+      // Randomly shuffle players
+      const shuffledPlayers = shuffleArray(players);
 
-      for (let i = 0; i < players.length; i++) {
-        for (let j = i + 1; j < players.length; j++) {
-          regularSeasonMatches.push({
-            event_id: eventId,
-            round: 0, // Round 0 = Regular Season
-            match_number: matchNumber++,
-            player1_id: players[i].id,
-            player2_id: players[j].id,
-            status: "upcoming",
-          });
+      // Divide players into groups
+      const groups: Player[][] = [];
+      let playerIndex = 0;
+      
+      for (let g = 0; g < numGroups; g++) {
+        const groupSize = playersPerGroup + (g < remainder ? 1 : 0);
+        groups.push(shuffledPlayers.slice(playerIndex, playerIndex + groupSize));
+        playerIndex += groupSize;
+      }
+
+      // Generate round-robin matches within each group (Round 0)
+      const regularSeasonMatches = [];
+      let globalMatchNumber = 1;
+
+      for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+        const group = groups[groupIndex];
+
+        // Round-robin within this group
+        for (let i = 0; i < group.length; i++) {
+          for (let j = i + 1; j < group.length; j++) {
+            regularSeasonMatches.push({
+              event_id: eventId,
+              round: 0, // Round 0 = Regular Season
+              match_number: globalMatchNumber++,
+              group_number: groupIndex + 1, // Group numbers start from 1
+              player1_id: group[i].id,
+              player2_id: group[j].id,
+              status: "upcoming",
+              // No scheduled_time - all matches start as TBD
+            });
+          }
         }
       }
 
@@ -74,11 +119,16 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
         return;
       }
 
-      toast.success(`✅ 已生成 ${regularSeasonMatches.length} 場常規賽！\n\n⚠️ 常規賽結束後，請手動點擊「生成季後賽」按鈕`);
+      // Show group assignment in success message
+      const groupInfo = groups.map((g, idx) => 
+        `Group ${idx + 1}: ${g.map(p => p.name).join(', ')}`
+      ).join('\n');
+
+      toast.success(`✅ 已生成 ${regularSeasonMatches.length} 場常規賽！\n\n分組結果:\n${groupInfo}\n\n⚠️ 所有比賽日期為 TBD，請手動排程或匯入 CSV\n⚠️ 常規賽結束後，請手動點擊「生成季後賽」按鈕`);
       
       setTimeout(() => {
         window.location.reload();
-      }, 2000);
+      }, 3000);
     } catch (err) {
       console.error("Error:", err);
       toast.error("An unexpected error occurred");
@@ -247,10 +297,31 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-semibold text-blue-900 mb-2">📋 Season Play Format:</h3>
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li><strong>Regular Season</strong>: Round-robin (every player plays every other player once)</li>
+            <li><strong>Regular Season</strong>: Teams are randomly split into groups, then round-robin within each group</li>
             <li><strong>Playoffs</strong>: Top teams enter single-elimination bracket</li>
             <li><strong>Standings</strong>: Calculated by wins in regular season</li>
+            <li><strong>Scheduling</strong>: All matches start with TBD dates - you can manually schedule or import from CSV</li>
           </ul>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Number of Groups
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={players.length}
+            value={numGroups}
+            onChange={(e) => {
+              const val = parseInt(e.target.value) || 1;
+              setNumGroups(Math.max(1, Math.min(val, players.length)));
+            }}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Teams will be randomly split into {numGroups} group{numGroups !== 1 ? 's' : ''}. Each group plays round-robin within the group.
+          </p>
         </div>
 
         <div>
