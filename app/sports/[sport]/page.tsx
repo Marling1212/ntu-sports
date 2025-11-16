@@ -67,6 +67,7 @@ export default async function SportPage(context: any) {
   const tournamentStartDate = singleEvent?.start_date 
     ? new Date(singleEvent.start_date) 
     : new Date("2025-11-08T08:00:00+08:00");
+  const hasStarted = new Date() >= tournamentStartDate;
 
   // Multiple events - show event list
   if (activeEvents.length > 1) {
@@ -165,13 +166,15 @@ export default async function SportPage(context: any) {
         </div>
       )}
 
-      {/* Countdown Timer */}
-      <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-6 text-center">
-          Time Until Tournament Starts
-        </h2>
-        <CountdownTimerWrapper targetDate={tournamentStartDate} />
-      </div>
+      {/* Countdown Timer (only show before start) */}
+      {!hasStarted && (
+        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
+          <h2 className="text-2xl font-semibold text-ntu-green mb-6 text-center">
+            Time Until Tournament Starts
+          </h2>
+          <CountdownTimerWrapper targetDate={tournamentStartDate} />
+        </div>
+      )}
 
       {/* Navigation Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
