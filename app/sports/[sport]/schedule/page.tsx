@@ -100,7 +100,7 @@ export default async function SportSchedulePage(context: any) {
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-800 mb-1">{item.title}</h3>
                     {item.description && (
-                      <MarkdownText text={item.description} />
+                      <MarkdownText content={item.description} />
                     )}
                   </div>
                 </div>
