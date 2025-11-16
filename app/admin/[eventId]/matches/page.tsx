@@ -51,6 +51,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
     `)
     .eq("event_id", eventId)
     .neq("status", "bye") // Don't show BYE matches in management view
+    .order("scheduled_time", { ascending: true, nullsFirst: false }) // Scheduled matches first, sorted by time
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });
 
@@ -68,6 +69,13 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
     .order("slot_date", { ascending: true })
     .order("start_time", { ascending: true });
 
+  // Get courts for Court select
+  const { data: courts } = await supabase
+    .from("event_courts")
+    .select("id, name")
+    .eq("event_id", eventId)
+    .order("name", { ascending: true });
+
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
@@ -82,6 +90,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           initialMatches={matches || []} 
           players={players || []}
           slots={slots || []}
+          courts={courts || []}
           tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
         />
       </div>

@@ -28,12 +28,46 @@ export default function BulkPlayerImport({ eventId, onImportComplete }: BulkPlay
         // Support both comma and tab separators
         const separator = line.includes('\t') ? '\t' : ',';
         const parts = line.split(separator).map(p => p.trim());
-        
+
+        // Detect email pattern
+        const isEmail = (v?: string) => !!v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+        // Flexible mapping supports (examples):
+        // - [name]
+        // - [name, email]
+        // - [name, department]
+        // - [name, department, seed]
+        // - [name, department, email]
+        // - [name, department, email, seed] or [name, department, seed, email]
+        const name = parts[0];
+        let department: string | null = null;
+        let email: string | null = null;
+        let seed: number | null = null;
+
+        for (let i = 1; i < parts.length; i++) {
+          const token = parts[i];
+          if (!token) continue;
+          if (email === null && isEmail(token)) {
+            email = token;
+            continue;
+          }
+          if (seed === null && !isNaN(Number(token))) {
+            seed = parseInt(token);
+            continue;
+          }
+          if (department === null) {
+            department = token;
+            continue;
+          }
+        }
+
         const player = {
           event_id: eventId,
-          name: parts[0],
-          department: parts[1] || null,
-          seed: parts[2] ? parseInt(parts[2]) : null,
+          name,
+          department,
+          seed,
+          email,
+          email_opt_in: true,
         };
 
         if (player.name) {
@@ -83,16 +117,25 @@ export default function BulkPlayerImport({ eventId, onImportComplete }: BulkPlay
           <strong>從 Excel 直接複製貼上即可！</strong> 或手動輸入：
         </p>
         <ul className="text-sm text-gray-600 list-disc list-inside space-y-1 mb-3">
-          <li><strong>格式 1:</strong> 姓名 [Tab] 科系 [Tab] 種子序號</li>
+          <li><strong>格式 0:</strong> 姓名</li>
+          <li><strong>格式 1:</strong> 姓名 [Tab] Email</li>
           <li><strong>格式 2:</strong> 姓名 [Tab] 科系</li>
-          <li><strong>格式 3:</strong> 姓名, 科系, 種子序號 (逗號分隔)</li>
+          <li><strong>格式 3:</strong> 姓名 [Tab] 科系 [Tab] 種子序號</li>
+          <li><strong>格式 4:</strong> 姓名 [Tab] 科系 [Tab] Email</li>
+          <li><strong>格式 5:</strong> 姓名 [Tab] 科系 [Tab] Email [Tab] 種子序號</li>
+          <li><strong>格式 6:</strong> 姓名, 科系, 種子序號（逗號分隔）</li>
+          <li className="text-xs text-gray-500">Email 自動辨識（包含 @ 即視為 Email）。未提供則可稍後於管理介面補上。</li>
         </ul>
         <details className="text-xs text-gray-500">
           <summary className="cursor-pointer hover:text-ntu-green">顯示範例</summary>
           <pre className="bg-white p-2 rounded border border-gray-200 mt-2">
-楊子頤	生醫電資所碩一
-陳柏禎	資訊碩二
-張一鳴	資訊系	1
+FC KimchiSushi	B09701140@ntu.edu.tw
+管院聯隊	B12702080@ntu.edu.tw
+凌晨前早去滾死蛋	r13525101@ntu.edu.tw
+文學院足球隊	R14124002@ntu.edu.tw
+工海	B13505021@ntu.edu.tw
+電機一隊	B12901094@ntu.edu.tw
+電機二隊	B12901088@ntu.edu.tw
           </pre>
         </details>
       </div>
@@ -102,7 +145,7 @@ export default function BulkPlayerImport({ eventId, onImportComplete }: BulkPlay
         onChange={(e) => setTextInput(e.target.value)}
         rows={10}
         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green font-mono text-sm"
-        placeholder={`直接從 Excel 複製貼上，或輸入：\n張一鳴	資訊系	1\n李二虎	電機系	2\n王三強	機械系\n...`}
+        placeholder={`直接從 Excel 複製貼上，或輸入：\n張一鳴\t資訊系\tzhangyi@example.com\t1\n李二虎\t電機系\tli2@example.com\n王三強\t機械系\t3\n...`}
       />
 
       <div className="mt-4 flex gap-3">

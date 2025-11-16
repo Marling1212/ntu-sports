@@ -100,6 +100,7 @@ interface MatchesTableProps {
   initialMatches: Match[];
   players: Player[];
   slots?: SlotOption[];
+  courts?: Array<{ id: string; name: string }>;
   tournamentType?: "single_elimination" | "season_play" | null;
 }
 
@@ -108,6 +109,7 @@ export default function MatchesTable({
   initialMatches,
   players,
   slots = [],
+  courts = [],
   tournamentType,
 }: MatchesTableProps) {
   const [matches, setMatches] = useState<Match[]>(initialMatches);
@@ -541,13 +543,41 @@ export default function MatchesTable({
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <input
-                            type="text"
-                            value={editForm.court}
-                            onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
-                            placeholder="Court"
-                          />
+                          <div className="flex flex-col gap-2">
+                            <select
+                              value={
+                                editForm.court && courts.find((c: any) => c.name === editForm.court)
+                                  ? courts.find((c: any) => c.name === editForm.court)!.id
+                                  : editForm.court === "" ? "" : "OTHER"
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "") {
+                                  setEditForm({ ...editForm, court: "" });
+                                } else if (val === "OTHER") {
+                                  // leave court as-is for manual input
+                                  if (!editForm.court) setEditForm({ ...editForm, court: "" });
+                                } else {
+                                  const selected = courts.find((c: any) => c.id === val);
+                                  setEditForm({ ...editForm, court: selected?.name || "" });
+                                }
+                              }}
+                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            >
+                              <option value="">選擇場地</option>
+                              {courts.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                              <option value="OTHER">其他（手動輸入）</option>
+                            </select>
+                            <input
+                              type="text"
+                              value={editForm.court}
+                              onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
+                              className="w-40 px-2 py-1 border border-gray-300 rounded text-sm"
+                              placeholder="Court"
+                            />
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <select

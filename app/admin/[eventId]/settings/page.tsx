@@ -65,6 +65,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
 
         <SettingsContent 
           eventId={eventId}
+          eventName={event?.name || ""}
           initialRules={rules || []}
           initialScheduleItems={scheduleItems || []}
           scheduleNotes={event?.schedule_notes || ""}

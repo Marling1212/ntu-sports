@@ -1417,12 +1417,54 @@ export default function SchedulingManager({
   };
 
   return (
-    <div className="space-y-8">
-      <section className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">不可出賽時段上限</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          主辦方可以限制每個隊伍可提交的不可出賽時段數量（每週）。若留空則不限制。
-        </p>
+    <div className="space-y-10">
+      {/* Navigation Menu */}
+      <nav className="sticky top-4 z-10 bg-white rounded-xl shadow-lg p-4 border-2 border-gray-200">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4">
+          <span className="text-sm font-semibold text-gray-700 mr-2">快速導航：</span>
+          <a
+            href="#blackout-limit"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-ntu-green rounded-lg hover:opacity-90 transition-opacity"
+          >
+            上限設定
+          </a>
+          <a
+            href="#courts"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-blue-500 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            場地管理
+          </a>
+          <a
+            href="#slot-templates"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-purple-500 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            時段模板
+          </a>
+          <a
+            href="#available-slots"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-500 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            可用時段
+          </a>
+          <a
+            href="#team-blackouts"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            不可出賽
+          </a>
+        </div>
+      </nav>
+
+      <section id="blackout-limit" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
+        <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-gray-200">
+          <div className="w-1 h-8 bg-ntu-green rounded"></div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-semibold text-ntu-green">不可出賽時段上限</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              主辦方可以限制每個隊伍可提交的不可出賽時段數量（每週）。若留空則不限制。
+            </p>
+          </div>
+        </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <input
             type="number"
@@ -1442,11 +1484,12 @@ export default function SchedulingManager({
         </div>
       </section>
 
-      <section className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
+      <section id="courts" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
+        <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-gray-200">
+          <div className="w-1 h-8 bg-blue-500 rounded"></div>
+          <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">場地管理</h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 mt-1">
               若賽事有多個場地，可在這裡建立並標註資訊。下方所有設定都可引用這些場地。
             </p>
           </div>
@@ -1530,20 +1573,21 @@ export default function SchedulingManager({
         )}
       </section>
 
-      <section className="bg-white rounded-xl shadow-md p-6 border border-gray-100 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
+      <section id="slot-templates" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 space-y-8 scroll-mt-24">
+        <div className="flex items-center gap-3 pb-3 border-b-2 border-gray-200">
+          <div className="w-1 h-8 bg-purple-500 rounded"></div>
+          <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">每週比賽時段模板</h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 mt-1">
               設定每週固定的可用時段後，就能一次生成整個賽季的時段，僅需針對少數例外手動調整。
             </p>
           </div>
         </div>
 
-        <div className="border border-dashed border-gray-300 rounded-lg p-4 mb-6">
+        <div className="border-2 border-dashed border-purple-300 rounded-lg p-4 mb-6 bg-purple-50/30">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-700">匯入每週模板（含代號）</h3>
+              <h3 className="text-lg font-semibold text-gray-800">📥 匯入每週模板（含代號）</h3>
               <p className="text-sm text-gray-600">
                 CSV 欄位順序：<span className="font-mono">code,weekday,start_time,end_time,court,capacity,notes</span>。
                 星期可使用 0-6、Mon、週一 等表示。時間採 <span className="font-mono">HH:MM</span> 格式。
@@ -1740,10 +1784,10 @@ export default function SchedulingManager({
           </button>
         </form>
 
-        <div className="mt-4 border border-dashed border-gray-300 rounded-lg p-4">
+        <div className="mt-4 border-2 border-dashed border-purple-300 rounded-lg p-4 bg-purple-50/30">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-gray-700">自動產生時段代號</h3>
+              <h3 className="text-lg font-semibold text-gray-800">🔢 自動產生時段代號</h3>
               <p className="text-sm text-gray-600">
                 依日期順序自動分配代號，方便後續排程以編號為主。已有代號的時段也會被新設定覆蓋。
               </p>
@@ -1794,11 +1838,12 @@ export default function SchedulingManager({
         </div>
       </section>
 
-      <section className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
+      <section id="available-slots" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
+        <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-gray-200">
+          <div className="w-1 h-8 bg-indigo-500 rounded"></div>
+          <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">所有可用時段</h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 mt-1">
               自動生成後仍可針對個別時段調整或刪除，確保最終排程精準。
             </p>
           </div>
@@ -1935,14 +1980,61 @@ export default function SchedulingManager({
         )}
       </section>
 
-      <section className="bg-white rounded-xl shadow-md p-6 border border-gray-100 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
+      <section id="team-blackouts" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 space-y-8 scroll-mt-24">
+        <div className="flex items-center gap-3 pb-3 border-b-2 border-gray-200">
+          <div className="w-1 h-8 bg-orange-500 rounded"></div>
+          <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">隊伍不可出賽時段</h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 mt-1">
               每週模板 + 大量匯入，快速蒐集各隊的不能出賽時間，排程器會自動避開。
             </p>
           </div>
+        </div>
+
+        <div className="rounded-lg border-2 border-dashed border-orange-300 p-4 bg-orange-50/30">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">📥 大量匯入不可出賽代號</h3>
+              <p className="text-sm text-gray-600">
+                CSV 欄位順序：<span className="font-mono">player_name,slot_code</span>。每一列代表該選手每週同時段皆不可比賽，slot code 需對應到「每週時段模板」中的代號。
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                ref={bulkFileRef}
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleBulkImportBlackouts}
+                disabled={bulkImporting}
+                className="text-sm"
+              />
+            </div>
+          </div>
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-600">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={bulkImportReplaceTemplates}
+                onChange={(e) => setBulkImportReplaceTemplates(e.target.checked)}
+                className="h-4 w-4"
+              />
+              匯入前清空現有的黑名單模板
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={bulkImportGenerateAfter}
+                onChange={(e) => setBulkImportGenerateAfter(e.target.checked)}
+                className="h-4 w-4"
+              />
+              匯入後立即套用至整個賽季
+            </label>
+          </div>
+          {bulkImportSummary && (
+            <div className="mt-3 text-sm text-gray-600 whitespace-pre-wrap">
+              {bulkImportSummary}
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleAddBlackoutTemplate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -2059,52 +2151,6 @@ export default function SchedulingManager({
             {generatingBlackouts ? "產生中..." : "依模板生成黑名單"}
           </button>
         </form>
-
-        <div className="rounded-lg border border-dashed border-gray-300 p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700">大量匯入不可出賽代號</h3>
-              <p className="text-sm text-gray-600">
-                CSV 欄位順序：<span className="font-mono">player_name,slot_code</span>。每一列代表該選手每週同時段皆不可比賽，slot code 需對應到「每週時段模板」中的代號。
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <input
-                ref={bulkFileRef}
-                type="file"
-                accept=".csv,.txt"
-                onChange={handleBulkImportBlackouts}
-                disabled={bulkImporting}
-                className="text-sm"
-              />
-            </div>
-          </div>
-          <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-600">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={bulkImportReplaceTemplates}
-                onChange={(e) => setBulkImportReplaceTemplates(e.target.checked)}
-                className="h-4 w-4"
-              />
-              匯入前清空現有的黑名單模板
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={bulkImportGenerateAfter}
-                onChange={(e) => setBulkImportGenerateAfter(e.target.checked)}
-                className="h-4 w-4"
-              />
-              匯入後立即套用至整個賽季
-            </label>
-          </div>
-          {bulkImportSummary && (
-            <div className="mt-3 text-sm text-gray-600 whitespace-pre-wrap">
-              {bulkImportSummary}
-            </div>
-          )}
-        </div>
 
         <form onSubmit={handleAddBlackoutTemplate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-8">
           <div className="flex flex-col">

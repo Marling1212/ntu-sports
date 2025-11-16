@@ -17,41 +17,30 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({
+
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/admin/dashboard`,
+      },
     });
+
     if (error) {
       setError(error.message || "Sign in failed");
+      setTimeout(() => setError(""), 5000);
       setLoading(false);
       return;
     }
+
     router.push("/admin/dashboard");
     router.refresh();
-  };
-
-  const handleSendMagicLink = async () => {
-    if (!email) return;
-    setLoading(true);
-    setError(null);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/alumni/dashboard` },
-    });
-    if (error) {
-      setError(error.message || "Failed to send sign‑in link");
-    } else {
-      alert("We’ve sent a one‑time sign‑in link to your email.");
-    }
-    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-ntu-gray">
       <div className="bg-white rounded-xl shadow-md p-8 max-w-md w-full border border-gray-100">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-ntu-green mb-2">Admin Login</h2>
-          <p className="text-gray-600">Tournament Organizer Portal</p>
+          <h1 className="text-3xl font-bold text-ntu-green mb-4">Admin Login</h1>
         </div>
 
         <form onSubmit={handleSignIn} className="space-y-4">
@@ -80,7 +69,7 @@ export default function LoginPage() {
 
           <div>
             <label htmlFor="password" className="block text-sm text-gray-700 mb-2">
-              Password
+              Password (for admin accounts)
             </label>
             <input
               id="password"
@@ -100,7 +89,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-ntu-green text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Sending…" : "Send Login Link"}
           </button>
 
           <div className="relative my-6">
@@ -115,9 +104,21 @@ export default function LoginPage() {
           <div className="space-y-2">
             <button
               type="button"
-              onClick={handleSendMagicLink}
+              onClick={async () => {
+                setLoading(true);
+                const { error: err } = await supabase.auth.signInWithOtp({
+                  email,
+                  options: { emailRedirectTo: `${window.location.origin}/admin/dashboard` },
+                });
+                if (err) {
+                  setError(err.message);
+                } else {
+                  alert("We’ve sent a one‑time sign‑in link to your email.");
+                }
+                setLoading(false);
+              }}
               disabled={loading || !email}
-              className="w-full bg-white text-ntu-green py-3 rounded-lg font-semibold border-2 border-ntu-green hover:bg-ntu-green hover:text-white transition-colors"
+              className="w-full bg-white text-ntu-green py-3 rounded-lg font-semibold border-2 border-gray-300 hover:bg-ntu-green hover:text-white transition-colors"
             >
               {loading ? "Sending…" : "Send sign‑in link to my email"}
             </button>
@@ -140,4 +141,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

@@ -137,7 +137,7 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
   };
 
   const generatePlayoffs = async () => {
-    // Get regular season standings (by wins)
+    // Get regular season matches with group_number
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
       .select("*, player1:player1_id(id, name), player2:player2_id(id, name), winner:winner_id(id, name)")
@@ -155,36 +155,92 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
       return;
     }
 
-    // Calculate standings
-    const standings: { [playerId: string]: { player: Player; wins: number; losses: number } } = {};
+    // Get distinct group numbers
+    const groupNumbers = [...new Set(matches.map((m: any) => m.group_number).filter((g: any) => g !== null))].sort((a, b) => a - b);
     
-    players.forEach(player => {
-      standings[player.id] = { player, wins: 0, losses: 0 };
+    if (groupNumbers.length === 0) {
+      toast.error("No groups found in regular season matches! Please regenerate season matches first.");
+      return;
+    }
+
+    // Calculate standings per group
+    const groupStandings: { [groupNumber: number]: { [playerId: string]: { player: Player; wins: number; losses: number } } } = {};
+    
+    // Initialize group standings maps
+    groupNumbers.forEach(groupNum => {
+      groupStandings[groupNum] = {};
     });
 
+    // Calculate wins/losses per group
     matches.forEach((match: any) => {
-      if (match.winner_id) {
-        standings[match.winner_id].wins++;
+      const groupNum = match.group_number;
+      if (!groupNum || !groupStandings[groupNum]) return;
+
+      // Initialize players in this group if not already present
+      if (match.player1_id && !groupStandings[groupNum][match.player1_id]) {
+        const player1 = players.find(p => p.id === match.player1_id);
+        if (player1) {
+          groupStandings[groupNum][match.player1_id] = { player: player1, wins: 0, losses: 0 };
+        }
+      }
+      if (match.player2_id && !groupStandings[groupNum][match.player2_id]) {
+        const player2 = players.find(p => p.id === match.player2_id);
+        if (player2) {
+          groupStandings[groupNum][match.player2_id] = { player: player2, wins: 0, losses: 0 };
+        }
+      }
+
+      if (match.winner_id && groupStandings[groupNum][match.winner_id]) {
+        groupStandings[groupNum][match.winner_id].wins++;
+        
         const loserId = match.winner_id === match.player1_id ? match.player2_id : match.player1_id;
-        if (loserId && standings[loserId]) {
-          standings[loserId].losses++;
+        if (loserId && groupStandings[groupNum][loserId]) {
+          groupStandings[groupNum][loserId].losses++;
         }
       }
     });
 
-    // Sort by wins (descending)
-    const sortedPlayers = Object.values(standings).sort((a, b) => b.wins - a.wins);
+    // Sort each group by wins (descending) and take top X from each
+    const playoffPlayers: Player[] = [];
+    const playoffStandings: Array<{ player: Player; wins: number; losses: number; group: number }> = [];
 
-    if (sortedPlayers.length < playoffTeams) {
-      toast.error(`Not enough players for playoffs! Need ${playoffTeams}, have ${sortedPlayers.length}`);
+    groupNumbers.forEach(groupNum => {
+      const groupStandingsArray = Object.values(groupStandings[groupNum]);
+      const sorted = groupStandingsArray.sort((a, b) => b.wins - a.wins);
+      const topX = sorted.slice(0, playoffTeams);
+      
+      if (topX.length < playoffTeams) {
+        toast.error(`Group ${groupNum} doesn't have enough players! Need ${playoffTeams}, have ${topX.length}`);
+        return;
+      }
+
+      topX.forEach(standing => {
+        playoffPlayers.push(standing.player);
+        playoffStandings.push({ ...standing, group: groupNum });
+      });
+    });
+
+    if (playoffPlayers.length === 0) {
+      toast.error("No players qualified for playoffs!");
       return;
     }
 
-    // Get top N players
-    const playoffPlayers = sortedPlayers.slice(0, playoffTeams).map(s => s.player);
+    // Sort playoff players by wins (descending) for seeding
+    playoffStandings.sort((a, b) => b.wins - a.wins);
+    const sortedPlayoffPlayers = playoffStandings.map(s => s.player);
 
-    // Confirm
-    const confirmText = `確定要生成季後賽籤表嗎？\n\n進入季後賽的選手（前 ${playoffTeams} 名）:\n${playoffPlayers.map((p, i) => `${i + 1}. ${p.name} (${sortedPlayers[i].wins}勝 ${sortedPlayers[i].losses}敗)`).join('\n')}\n\n確定生成？`;
+    // Confirm with group breakdown
+    const confirmLines = [`確定要生成季後賽籤表嗎？\n\n每組前 ${playoffTeams} 名進入季後賽：\n`];
+    groupNumbers.forEach(groupNum => {
+      const groupTop = playoffStandings.filter(s => s.group === groupNum);
+      confirmLines.push(`\n第 ${groupNum} 組：`);
+      groupTop.forEach((standing, idx) => {
+        const player = standing.player;
+        confirmLines.push(`  ${idx + 1}. ${player.name} (${standing.wins}勝 ${standing.losses}敗)`);
+      });
+    });
+    confirmLines.push(`\n\n總共 ${playoffPlayers.length} 名選手進入季後賽\n\n確定生成？`);
+    const confirmText = confirmLines.join('\n');
     
     if (!confirm(confirmText)) return;
 
@@ -206,15 +262,16 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
 
       // Generate single elimination playoff bracket
       // Calculate bracket size (next power of 2)
-      const bracketSize = Math.pow(2, Math.ceil(Math.log2(playoffTeams)));
+      const totalPlayoffPlayers = sortedPlayoffPlayers.length;
+      const bracketSize = Math.pow(2, Math.ceil(Math.log2(totalPlayoffPlayers)));
       const numRounds = Math.log2(bracketSize);
 
       // Seed players (top seed gets best position)
       const positions: (Player | null)[] = new Array(bracketSize).fill(null);
       
       // Standard seeding (1 vs lowest, 2 vs 2nd lowest, etc.)
-      for (let i = 0; i < playoffPlayers.length; i++) {
-        positions[i] = playoffPlayers[i];
+      for (let i = 0; i < sortedPlayoffPlayers.length; i++) {
+        positions[i] = sortedPlayoffPlayers[i];
       }
 
       // Generate first round matches
@@ -275,7 +332,7 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
         return;
       }
 
-      toast.success(`✅ 季後賽籤表已生成！\n共 ${playoffMatches.filter(m => m.status !== 'bye').length} 場比賽`);
+      toast.success(`✅ 季後賽籤表已生成！\n共 ${playoffMatches.filter(m => m.status !== 'bye').length} 場比賽\n${groupNumbers.length} 組，每組前 ${playoffTeams} 名，共 ${totalPlayoffPlayers} 名選手`);
       
       setTimeout(() => {
         window.location.reload();
@@ -338,7 +395,7 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
             <option value={8}>Top 8</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">
-            How many top teams will advance to the playoff bracket
+            How many top teams from each group will advance to the playoff bracket
           </p>
         </div>
       </div>

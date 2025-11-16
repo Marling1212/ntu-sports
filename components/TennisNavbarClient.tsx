@@ -10,6 +10,23 @@ interface TennisNavbarClientProps {
 export default function TennisNavbarClient({ eventName }: TennisNavbarClientProps) {
   const pathname = usePathname();
 
+  // Derive current sport from the URL: /sports/[sport]/...
+  const segments = pathname.split("/").filter(Boolean);
+  const sport = segments[1] || "tennis";
+  const sportName = sport.charAt(0).toUpperCase() + sport.slice(1);
+  const sportIcons: { [key: string]: string } = {
+    tennis: "🎾",
+    soccer: "⚽",
+    basketball: "🏀",
+    volleyball: "🏐",
+    badminton: "🏸",
+    tabletennis: "🏓",
+    baseball: "⚾",
+    softball: "🥎",
+  };
+  const sportIcon = sportIcons[sport.toLowerCase()] || "🏆";
+  const basePath = `/sports/${sport}`;
+
   const isActive = (path: string) => pathname === path;
 
   return (
@@ -22,8 +39,8 @@ export default function TennisNavbarClient({ eventName }: TennisNavbarClientProp
               NTU Sports
             </Link>
             <span className="text-gray-400">/</span>
-            <Link href="/sports/tennis" className="text-gray-700 hover:text-ntu-green transition-colors font-medium">
-              🎾 Tennis
+            <Link href={basePath} className="text-gray-700 hover:text-ntu-green transition-colors font-medium">
+              {sportIcon} {sportName}
             </Link>
             {eventName && (
               <>
@@ -36,9 +53,9 @@ export default function TennisNavbarClient({ eventName }: TennisNavbarClientProp
           {/* Navigation Links */}
           <div className="flex gap-1">
             <Link
-              href="/sports/tennis/draw"
+              href={`${basePath}/draw`}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive("/sports/tennis/draw")
+                isActive(`${basePath}/draw`)
                   ? "bg-ntu-green text-white"
                   : "text-gray-700 hover:bg-ntu-green hover:text-white"
               }`}
@@ -46,9 +63,9 @@ export default function TennisNavbarClient({ eventName }: TennisNavbarClientProp
               籤表
             </Link>
             <Link
-              href="/sports/tennis/schedule"
+              href={`${basePath}/schedule`}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive("/sports/tennis/schedule")
+                isActive(`${basePath}/schedule`)
                   ? "bg-ntu-green text-white"
                   : "text-gray-700 hover:bg-ntu-green hover:text-white"
               }`}
@@ -56,9 +73,9 @@ export default function TennisNavbarClient({ eventName }: TennisNavbarClientProp
               賽程
             </Link>
             <Link
-              href="/sports/tennis/announcements"
+              href={`${basePath}/announcements`}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive("/sports/tennis/announcements")
+                isActive(`${basePath}/announcements`)
                   ? "bg-ntu-green text-white"
                   : "text-gray-700 hover:bg-ntu-green hover:text-white"
               }`}
@@ -69,11 +86,11 @@ export default function TennisNavbarClient({ eventName }: TennisNavbarClientProp
 
           {/* Back to Tennis Home */}
           <Link 
-            href="/sports/tennis" 
+            href={basePath} 
             className="text-sm text-gray-600 hover:text-ntu-green transition-colors flex items-center gap-1"
           >
             <span>←</span>
-            <span className="hidden sm:inline">Tennis 首頁</span>
+            <span className="hidden sm:inline">{sportName} 首頁</span>
             <span className="sm:hidden">返回</span>
           </Link>
         </div>

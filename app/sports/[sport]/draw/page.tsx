@@ -2,7 +2,7 @@ import BracketSection from "@/components/BracketSection";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import ExportBracket from "@/components/ExportBracket";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
-import { getTennisEvent, getTennisMatches, getTennisPlayers } from "@/lib/utils/getTennisEvent";
+import { getSportEvent, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { generateTennisPlayers, seedPlayers, generateMatches } from "@/data/tennisDraw";
 import { Toaster } from "react-hot-toast";
 
@@ -10,17 +10,20 @@ import { Toaster } from "react-hot-toast";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function TennisDrawPage() {
-  // Try to get data from Supabase
-  const event = await getTennisEvent();
+export default async function SportDrawPage({ params }: { params: { sport: string } }) {
+  // Capitalize first letter of sport name
+  const sportName = params.sport.charAt(0).toUpperCase() + params.sport.slice(1);
+  
+  // Try to get data from Supabase (case-insensitive)
+  const event = await getSportEvent(params.sport); // Pass lowercase version for case-insensitive lookup
   
   let matches;
   let players;
   
   if (event) {
     // Fetch from Supabase
-    const dbMatches = await getTennisMatches(event.id);
-    const dbPlayers = await getTennisPlayers(event.id);
+    const dbMatches = await getSportMatches(event.id);
+    const dbPlayers = await getSportPlayers(event.id);
     
     // Convert to tournament format
     matches = dbMatches.map((m: any) => ({
@@ -45,11 +48,16 @@ export default async function TennisDrawPage() {
       school: p.department,
     }));
   } else {
-    // Fallback to static data
-    const allPlayers = generateTennisPlayers();
-    const seededPlayers = seedPlayers(allPlayers);
-    matches = generateMatches(seededPlayers);
-    players = seededPlayers;
+    // Fallback to static data (only for tennis)
+    if (sportName === "Tennis") {
+      const allPlayers = generateTennisPlayers();
+      const seededPlayers = seedPlayers(allPlayers);
+      matches = generateMatches(seededPlayers);
+      players = seededPlayers;
+    } else {
+      matches = [];
+      players = [];
+    }
   }
 
   // Format event dates for Excel export
@@ -67,7 +75,7 @@ export default async function TennisDrawPage() {
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold text-ntu-green mb-4">
-              {event?.name || "NTU Tennis – 114 Freshman Cup Draw"}
+              {event?.name || `NTU ${sportName} Tournament Draw`}
             </h1>
             <p className="text-lg text-gray-600">
               {event?.tournament_type === 'season_play' 
@@ -75,11 +83,10 @@ export default async function TennisDrawPage() {
                 : 'Single-elimination tournament bracket'}
             </p>
           </div>
-          
         <ExportBracket 
           matches={matches}
           players={players}
-          eventName={event?.name || "NTU Tennis Tournament"}
+          eventName={event?.name || `NTU ${sportName} Tournament`}
           eventDate={eventDate}
           eventVenue={eventVenue}
           tournamentType={event?.tournament_type || "single_elimination"}
@@ -90,18 +97,19 @@ export default async function TennisDrawPage() {
         <SeasonPlayDisplay
           matches={matches}
           players={players}
-          sportName="Tennis"
+          sportName={sportName}
+          visibleTabs={{ regular: false, standings: true, playoffs: true }}
+          defaultView="standings"
         />
       ) : (
         <BracketSection
           matches={matches}
           players={players}
-          sportName="Tennis"
+          sportName={sportName}
         />
       )}
       </div>
     </>
   );
 }
-
 

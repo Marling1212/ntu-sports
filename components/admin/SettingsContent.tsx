@@ -26,6 +26,7 @@ interface ScheduleItem {
 
 interface SettingsContentProps {
   eventId: string;
+  eventName: string;
   initialRules: TournamentRule[];
   initialScheduleItems: ScheduleItem[];
   scheduleNotes: string;
@@ -35,6 +36,7 @@ interface SettingsContentProps {
 
 export default function SettingsContent({ 
   eventId, 
+  eventName,
   initialRules, 
   initialScheduleItems,
   scheduleNotes: initialScheduleNotes,
@@ -260,6 +262,46 @@ export default function SettingsContent({
       setTimeout(() => window.location.reload(), 1000);
     } catch (error: any) {
       toast.error(`Error: ${error.message}`);
+    }
+  };
+
+  // Danger zone state for deleting event
+  const [showDanger, setShowDanger] = useState(false);
+  const [confirmAck, setConfirmAck] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
+  const [confirmId, setConfirmId] = useState(""); // will be used as 'DELETE' keyword
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteEvent = async () => {
+    if (!confirmAck || confirmName !== eventName || confirmId !== "DELETE") {
+      toast.error("請完成三項確認後再嘗試刪除");
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/events/${eventId}/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmAck: true, confirmName, confirmPhrase: confirmId }),
+      });
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const text = await res.text().catch(() => "");
+        if (res.status === 401 || res.redirected) {
+          throw new Error("未授權或登入已過期，請重新登入後再嘗試刪除。");
+        }
+        throw new Error(text || `刪除失敗（狀態碼 ${res.status}）`);
+      }
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "刪除失敗");
+      }
+      toast.success("賽事已刪除，將返回控制台…");
+      setTimeout(() => { window.location.href = "/admin/dashboard"; }, 1200);
+    } catch (e: any) {
+      toast.error(e?.message || "刪除失敗");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -548,6 +590,67 @@ export default function SettingsContent({
           </div>
         </div>
       )}
+
+      {/* Danger Zone */}
+      <div className="mt-10">
+        <div className="bg-white rounded-xl border-2 border-red-300 p-6">
+          <h3 className="text-xl font-semibold text-red-600 mb-2">Danger Zone</h3>
+          <p className="text-sm text-red-600 mb-4">
+            刪除此賽事將永久移除所有相關資料（選手、比賽、時段、場地、公告、賽程、黑名單等），且無法復原。請謹慎操作。
+          </p>
+          {!showDanger ? (
+            <button
+              onClick={() => setShowDanger(true)}
+              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+            >
+              🗑️ 刪除整個賽事
+            </button>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-sm text-gray-700">
+                <p className="mb-2 font-medium">請完成以下 3 項確認：</p>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={confirmAck} onChange={(e) => setConfirmAck(e.target.checked)} />
+                  <span>我已了解此操作不可逆，且會永久刪除所有與本賽事相關的資料。</span>
+                </label>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">輸入賽事名稱以確認（{eventName}）</label>
+                <input
+                  className="w-full max-w-[28rem] border rounded px-3 py-2"
+                  value={confirmName}
+                  onChange={(e) => setConfirmName(e.target.value)}
+                  placeholder="請輸入完整賽事名稱"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">請輸入大寫 <strong>DELETE</strong> 以確認</label>
+                <input
+                  className="w-full max-w-[28rem] border rounded px-3 py-2 font-mono"
+                  value={confirmId}
+                  onChange={(e) => setConfirmId(e.target.value)}
+                  placeholder="輸入 DELETE"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteEvent}
+                  disabled={!confirmAck || deleting || confirmName !== eventName || confirmId !== "DELETE"}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md disabled:opacity-50"
+                >
+                  {deleting ? "刪除中…" : "永久刪除此賽事"}
+                </button>
+                <button
+                  onClick={() => { setShowDanger(false); setConfirmAck(false); setConfirmName(""); setConfirmId(""); }}
+                  className="px-4 py-2 border rounded-md"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 }

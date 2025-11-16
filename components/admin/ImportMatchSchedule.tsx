@@ -11,7 +11,7 @@ interface ImportMatchScheduleProps {
 }
 
 interface ParsedRow {
-  date: string;
+  date: string | null; // null means TBD or not specified
   teamA: string;
   teamB: string;
   scoreA?: string;
@@ -145,18 +145,30 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
       if (!firstCell) return;
       if (/^week/i.test(firstCell)) return;
 
+      // Try to parse date, but allow empty/TBD values
       const date = parseDateValue(firstCell);
-      if (!date) return;
-
-      const teamA = parts[1]?.trim() || "";
-      const teamB = parts[2]?.trim() || "";
+      // If first cell is not a date, treat it as teamA (date column is optional)
+      let teamA: string;
+      let teamB: string;
+      
+      if (date) {
+        // Format: Date, TeamA, TeamB, ...
+        teamA = parts[1]?.trim() || "";
+        teamB = parts[2]?.trim() || "";
+      } else {
+        // Format: TeamA, TeamB, ... (no date column)
+        teamA = firstCell;
+        teamB = parts[1]?.trim() || "";
+      }
 
       // Require both teams to proceed
       if (!teamA || !teamB) return;
 
-      const scoreA = parts[3]?.trim() || undefined;
-      const scoreB = parts[4]?.trim() || undefined;
-      const additional = parts.slice(5);
+      // Adjust score column indices based on whether date was present
+      const scoreIndex = date ? 3 : 2;
+      const scoreA = parts[scoreIndex]?.trim() || undefined;
+      const scoreB = parts[scoreIndex + 1]?.trim() || undefined;
+      const additional = parts.slice(scoreIndex + 2);
 
       parsedRows.push({
         date,
@@ -194,10 +206,74 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
         return;
       }
 
-      const warnings: string[] = [];
-      const records: any[] = [];
+      // Fetch existing time slots for this event to match dates
+      const { data: slots, error: slotsError } = await supabase
+        .from("event_slots")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("slot_date", { ascending: true })
+        .order("start_time", { ascending: true });
 
-      let matchNumber = 1;
+      if (slotsError) {
+        console.warn("Could not fetch slots:", slotsError);
+      }
+
+      // Create a map of slots by date (YYYY-MM-DD format)
+      const slotsByDate = new Map<string, any[]>();
+      slots?.forEach((slot) => {
+        const dateStr = slot.slot_date; // Already in YYYY-MM-DD format
+        if (!slotsByDate.has(dateStr)) {
+          slotsByDate.set(dateStr, []);
+        }
+        slotsByDate.get(dateStr)!.push(slot);
+      });
+
+      // Helper function to match date to a slot
+      const matchDateToSlot = (dateStr: string): { scheduledTime: string; slotId: string } | null => {
+        // Extract date part (YYYY-MM-DD) from ISO string if needed
+        const dateOnly = dateStr.split("T")[0];
+        const slotsForDate = slotsByDate.get(dateOnly);
+        
+        if (slotsForDate && slotsForDate.length > 0) {
+          // Use the first available slot for that date
+          const slot = slotsForDate[0];
+          // Combine date and time: slot_date is YYYY-MM-DD, start_time is HH:MM:SS
+          return {
+            scheduledTime: `${slot.slot_date}T${slot.start_time}+08:00`,
+            slotId: slot.id,
+          };
+        }
+        
+        // No slot found, return null (will use midnight as fallback)
+        return null;
+      };
+
+      // Fetch existing matches for this round to update them
+      const { data: existingMatches, error: fetchError } = await supabase
+        .from("matches")
+        .select("*")
+        .eq("event_id", eventId)
+        .eq("round", round);
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      const warnings: string[] = [];
+      const updates: Array<{ matchId: string; updates: any }> = [];
+      const notFound: ParsedRow[] = [];
+
+      // Create a map of existing matches by player pair (order-independent)
+      const matchMap = new Map<string, any>();
+      existingMatches?.forEach((match) => {
+        if (match.player1_id && match.player2_id) {
+          // Create a key that works regardless of player order
+          const key1 = `${match.player1_id}|${match.player2_id}`;
+          const key2 = `${match.player2_id}|${match.player1_id}`;
+          matchMap.set(key1, match);
+          matchMap.set(key2, match);
+        }
+      });
 
       for (const row of rows) {
         const playerA = playersByName.get(normalizeName(row.teamA));
@@ -205,61 +281,148 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
 
         if (!playerA) {
           warnings.push(`第 ${row.sourceLine} 行：找不到隊伍 ${row.teamA}`);
+          continue;
         }
         if (!playerB) {
           warnings.push(`第 ${row.sourceLine} 行：找不到隊伍 ${row.teamB}`);
+          continue;
+        }
+
+        // Find matching existing match
+        const matchKey = `${playerA.id}|${playerB.id}`;
+        const existingMatch = matchMap.get(matchKey);
+
+        if (!existingMatch) {
+          notFound.push(row);
+          warnings.push(`第 ${row.sourceLine} 行：找不到對應的比賽 (${row.teamA} vs ${row.teamB})`);
+          continue;
         }
 
         const { status, winnerId } = determineStatusAndWinner(
           row.scoreA,
           row.scoreB,
-          playerA?.id,
-          playerB?.id,
+          playerA.id,
+          playerB.id,
         );
 
-        records.push({
-          event_id: eventId,
-          round,
-          match_number: matchNumber,
-          scheduled_time: row.date,
-          player1_id: playerA?.id ?? null,
-          player2_id: playerB?.id ?? null,
-          score1: row.scoreA ?? null,
-          score2: row.scoreB ?? null,
-          winner_id: winnerId ?? null,
-          status,
-          created_at: new Date().toISOString(),
+        // Prepare update object (only include fields that should be updated)
+        const updateData: any = {
           updated_at: new Date().toISOString(),
+        };
+
+        // Only update scheduled_time if date is provided in CSV
+        if (row.date) {
+          // Try to match to an existing slot first
+          const matchedSlot = matchDateToSlot(row.date);
+          if (matchedSlot) {
+            updateData.scheduled_time = matchedSlot.scheduledTime;
+            updateData.slot_id = matchedSlot.slotId;
+          } else {
+            // No slot found, use the date as-is (will default to midnight)
+            updateData.scheduled_time = row.date;
+            // Clear slot_id if no slot matched
+            updateData.slot_id = null;
+          }
+        }
+
+        // Update scores and status if provided
+        if (row.scoreA !== undefined || row.scoreB !== undefined) {
+          updateData.score1 = row.scoreA ?? null;
+          updateData.score2 = row.scoreB ?? null;
+          updateData.winner_id = winnerId ?? null;
+          updateData.status = status;
+        }
+
+        updates.push({
+          matchId: existingMatch.id,
+          updates: updateData,
         });
-
-        matchNumber += 1;
       }
 
-      if (replaceRegularSeason) {
-        const { error: deleteError } = await supabase
+      // Perform updates
+      let updatedCount = 0;
+      for (const { matchId, updates: updateData } of updates) {
+        const { error: updateError } = await supabase
           .from("matches")
-          .delete()
-          .eq("event_id", eventId)
-          .eq("round", round);
+          .update(updateData)
+          .eq("id", matchId);
 
-        if (deleteError) {
-          throw deleteError;
+        if (updateError) {
+          warnings.push(`更新比賽 ${matchId} 失敗: ${updateError.message}`);
+        } else {
+          updatedCount++;
         }
       }
 
-      const chunkSize = 100;
-      for (let i = 0; i < records.length; i += chunkSize) {
-        const chunk = records.slice(i, i + chunkSize);
-        const { error: insertError } = await supabase.from("matches").insert(chunk);
-        if (insertError) {
-          throw insertError;
+      if (notFound.length > 0 && replaceRegularSeason) {
+        // If user wants to replace and there are unmatched CSV rows, ask about creating new matches
+        const createNew = confirm(
+          `CSV 中有 ${notFound.length} 場比賽在資料庫中找不到對應。\n\n是否要建立這些新比賽？\n\n點擊「取消」則只更新現有比賽。`
+        );
+
+        if (createNew) {
+          const newMatches = notFound.map((row, idx) => {
+            const playerA = playersByName.get(normalizeName(row.teamA))!;
+            const playerB = playersByName.get(normalizeName(row.teamB))!;
+            const { status, winnerId } = determineStatusAndWinner(
+              row.scoreA,
+              row.scoreB,
+              playerA.id,
+              playerB.id,
+            );
+
+            // Match to slot if date provided
+            let scheduledTime = row.date;
+            let slotId = null;
+            if (row.date) {
+              const matchedSlot = matchDateToSlot(row.date);
+              if (matchedSlot) {
+                scheduledTime = matchedSlot.scheduledTime;
+                slotId = matchedSlot.slotId;
+              }
+            }
+
+            return {
+              event_id: eventId,
+              round,
+              match_number: (existingMatches?.length || 0) + idx + 1,
+              scheduled_time: scheduledTime,
+              slot_id: slotId,
+              player1_id: playerA.id,
+              player2_id: playerB.id,
+              score1: row.scoreA ?? null,
+              score2: row.scoreB ?? null,
+              winner_id: winnerId ?? null,
+              status,
+            };
+          });
+
+          const { error: insertError } = await supabase
+            .from("matches")
+            .insert(newMatches);
+
+          if (insertError) {
+            warnings.push(`建立新比賽失敗: ${insertError.message}`);
+          } else {
+            updatedCount += newMatches.length;
+          }
         }
       }
 
-      const successMessage = `成功匯入 ${records.length} 場比賽`;
+      const successMessage = `成功更新 ${updatedCount} 場比賽`;
       const warningMessage = warnings.length ? `，另有 ${warnings.length} 則警告` : "";
 
-      setSummary([successMessage, warnings.slice(0, 20).join("\n")].filter(Boolean).join("\n"));
+      const summaryText = [
+        successMessage,
+        warnings.length > 0 ? `\n警告:\n${warnings.slice(0, 20).join("\n")}` : "",
+        notFound.length > 0 && !replaceRegularSeason
+          ? `\n\n注意: ${notFound.length} 場比賽在資料庫中找不到對應，未進行更新。`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      setSummary(summaryText);
       toast.success(successMessage + warningMessage);
 
       if (warnings.length) {
@@ -285,7 +448,7 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
         <div>
           <h2 className="text-2xl font-semibold text-ntu-green mb-2">📅 匯入既定賽程</h2>
           <p className="text-sm text-gray-600 max-w-2xl">
-            主辦方若已排定賽程，可直接匯入 CSV 檔。匯入資料會以指定輪次覆蓋既有賽程，不需再使用系統排程或不可出賽設定。
+            主辦方若已排定部分賽程，可直接匯入 CSV 檔。系統會更新 CSV 中提到的比賽日期/比分，未提及的比賽將保持 TBD 狀態。
           </p>
 
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -310,7 +473,7 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
                 checked={replaceRegularSeason}
                 onChange={(e) => setReplaceRegularSeason(e.target.checked)}
               />
-              匯入前刪除同輪次既有賽程
+              允許建立 CSV 中新增的比賽（若找不到對應）
             </label>
           </div>
         </div>
@@ -339,11 +502,15 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
         <p className="font-semibold text-gray-700">格式說明</p>
         <ul className="list-disc list-inside space-y-1">
           <li>
-            必填欄位：<span className="font-mono">Date, Team A, Team B</span>
+            必填欄位：<span className="font-mono">Team A, Team B</span>（日期為選填）
+          </li>
+          <li>
+            日期欄位：第一欄可以是日期（如 <span className="font-mono">2025-01-15</span>）或留空/TBD。若留空，該比賽日期保持 TBD。
           </li>
           <li>可選欄位：Score A, Score B，若有比分會自動標記比賽完成並計算勝隊。</li>
           <li>CSV 中的「Week X」等標題列會自動忽略，可保留原格式。</li>
-          <li>若找不到隊伍名稱，該列仍會建立比賽，但會記錄警告以供匯入後檢查。</li>
+          <li>系統會根據隊伍名稱匹配現有比賽並更新，未在 CSV 中提及的比賽不受影響。</li>
+          <li>若找不到對應的比賽且勾選「允許建立新比賽」，系統會詢問是否建立。</li>
           <li>匯入後會自動重新整理頁面以顯示最新賽程。</li>
         </ul>
       </div>

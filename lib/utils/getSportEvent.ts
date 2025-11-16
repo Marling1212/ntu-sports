@@ -1,22 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 
-export async function getTennisEvent() {
+export async function getSportEvent(sport: string) {
   const supabase = await createClient();
   
-  // Get the tennis event (assuming there's one main tennis event)
-  // You can filter by sport='tennis' and name or other criteria
+  // Get the event for this sport (case-insensitive)
+  // Database stores sport names in lowercase, so normalize the input
+  const sportLower = sport.toLowerCase();
+  
+  // Query for lowercase version (as stored in DB)
   const { data: event } = await supabase
     .from("events")
     .select("*")
-    .eq("sport", "tennis")
+    .eq("sport", sportLower)
     .order("created_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   return event;
 }
 
-export async function getTennisPlayers(eventId: string) {
+export async function getSportPlayers(eventId: string) {
   const supabase = await createClient();
   
   const { data: players } = await supabase
@@ -29,7 +32,7 @@ export async function getTennisPlayers(eventId: string) {
   return players || [];
 }
 
-export async function getTennisMatches(eventId: string) {
+export async function getSportMatches(eventId: string) {
   const supabase = await createClient();
   
   const { data: matches } = await supabase
@@ -49,7 +52,7 @@ export async function getTennisMatches(eventId: string) {
   return matches || [];
 }
 
-export async function getTennisAnnouncements(eventId: string) {
+export async function getSportAnnouncements(eventId: string) {
   const supabase = await createClient();
   
   const { data: announcements } = await supabase
