@@ -18,14 +18,18 @@ export async function POST(req: Request, context: any) {
   if (!user) return json(401, { ok: false, message: "Unauthorized" });
 
   // Verify organizer permission
-  const orgRes = await supabase
-    .from("organizers")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("event_id", eventId)
-    .maybeSingle()
-    .catch(() => null as any);
-  const organizer = orgRes?.data;
+  let organizer: any = null;
+  try {
+    const { data } = await supabase
+      .from("organizers")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("event_id", eventId)
+      .maybeSingle();
+    organizer = data;
+  } catch (_e) {
+    organizer = null;
+  }
   const hasAccess = !!organizer;
 
   if (!hasAccess) return json(403, { ok: false, message: "Forbidden" });
