@@ -834,6 +834,19 @@ export default function SchedulingManager({
     }
   };
 
+  const handleDeleteBlackout = async (blackoutId: string) => {
+    if (!confirm("確定要刪除此不可出賽時段嗎？")) return;
+    try {
+      const { error } = await supabase.from("team_blackouts").delete().eq("id", blackoutId);
+      if (error) throw error;
+      setBlackouts(blackouts.filter((b) => b.id !== blackoutId));
+      toast.success("已刪除");
+    } catch (error: any) {
+      console.error("Delete blackout error", error);
+      toast.error(error?.message || "刪除失敗");
+    }
+  };
+
   const handleGenerateBlackoutsFromTemplates = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!blackoutTemplateGenerateForm.startDate || !blackoutTemplateGenerateForm.endDate) {
