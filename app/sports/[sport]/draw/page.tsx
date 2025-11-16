@@ -19,8 +19,8 @@ export default async function SportDrawPage(context: any) {
   // Try to get data from Supabase (case-insensitive)
   const event = sportParam ? await getSportEvent(sportParam) : null; // Pass lowercase version for case-insensitive lookup
   
-  let matches;
-  let players;
+  let matches: any[] = [];
+  let players: any[] = [];
   
   if (event) {
     // Fetch from Supabase
