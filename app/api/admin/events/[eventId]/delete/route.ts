@@ -13,15 +13,19 @@ export async function POST(req: Request, context: any) {
   const supabase = await createClient();
 
   // AuthN
-  const {
-    data: { user },
-  } = await superfluousTry(async () => await supabase.auth.getUser());
+  const userRes = await supabase.auth.getUser().catch(() => null as any);
+  const user = userRes?.data?.user;
   if (!user) return json(401, { ok: false, message: "Unauthorized" });
 
   // Verify organizer permission
-  const { data: organizer } = await superfluousTry(() =>
-    supabase.from("organizers").select("id").eq("user_id", user.id).eq("event_id", eventId).maybeSingle()
-  );
+  const orgRes = await supabase
+    .from("organizers")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("event_id", eventId)
+    .maybeSingle()
+    .catch(() => null as any);
+  const organizer = orgRes?.data;
   const hasAccess = !!organizer;
 
   if (!hasAccess) return json(403, { ok: false, message: "Forbidden" });
