@@ -39,9 +39,13 @@ export async function POST(req: Request, context: any) {
   if (!confirmAck) return json(400, { ok: false, message: "Confirmation required" });
 
   // Load event to validate name
-  const { data: event } = await superfluousTry(() =>
-    supabase.from("events").select("*").eq("id", eventId).single()
-  );
+  let event: any = null;
+  try {
+    const { data } = await supabase.from("events").select("*").eq("id", eventId).single();
+    event = data;
+  } catch (_e) {
+    event = null;
+  }
   if (!event) return json(404, { ok: false, message: "Event not found" });
   // accept either {confirmPhrase: 'DELETE'} or legacy confirmId === 'DELETE'
   const { confirmPhrase } = (body as any) || {};
