@@ -67,7 +67,11 @@ export async function POST(req: Request, context: any) {
     { name: "push_subscriptions", key: "event_id" },
   ];
   for (const t of tables) {
-    await superfluousTry(() => supabase.from(t.name).delete().eq(t.key, eventId));
+    try {
+      await supabase.from(t.name).delete().eq(t.key, eventId);
+    } catch (_e) {
+      // ignore best-effort delete
+    }
   }
   const { error: delErr } = await supabase.from("events").delete().eq("id", eventId);
   if (delErr) return json(500, { ok: false, message: delErr.message || "Delete failed" });
