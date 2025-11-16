@@ -2,9 +2,11 @@ import { getSportEvent, getSportAnnouncements, getSportMatches } from "@/lib/uti
 import MarkdownText from "@/components/MarkdownText";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 
-export default async function SportAnnouncementsPage({ params }: { params: { sport: string } }) {
-  const sportName = params.sport.charAt(0).toUpperCase() + params.sport.slice(1);
-  const event = await getSportEvent(params.sport); // Pass lowercase version for case-insensitive lookup
+export default async function SportAnnouncementsPage(context: any) {
+  const params = (context?.params || {}) as { sport?: string };
+  const sportParam = (params.sport || "").toLowerCase();
+  const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
+  const event = sportParam ? await getSportEvent(sportParam) : null; // Pass lowercase version for case-insensitive lookup
   const announcements = event ? await getSportAnnouncements(event.id) : [];
 
   // Build "next day" scheduled matches announcement (view-only, not persisted)
