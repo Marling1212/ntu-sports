@@ -7,11 +7,11 @@ import MarkdownText from "@/components/MarkdownText";
 export default async function TennisPage() {
   const supabase = await createClient();
   
-  // Get all active Tennis events
+  // Get all active Tennis events (DB stores sport in lowercase)
   const { data: events } = await supabase
     .from("events")
     .select("*")
-    .eq("sport", "Tennis")
+    .eq("sport", "tennis")
     .order("start_date", { ascending: false });
 
   const activeEvents = events || [];
