@@ -2224,7 +2224,7 @@ export default function SchedulingManager({
                         {item.player?.name || playersById.get(item.player_id || "")?.name || "未找到"}
                       </td>
                       <td className="px-4 py-2 text-gray-600">
-                        {getSlotCodeFromTemplate(item)}
+                        {getSlotCodeFromDate(new Date(item.start_time), item.start_time.slice(11, 16), item.end_time.slice(11, 16))}
                       </td>
                       <td className="px-4 py-2 text-gray-600">
                         {new Date(item.start_time).toLocaleDateString("zh-TW")}
