@@ -134,7 +134,7 @@ export default async function SportAnnouncementsPage(context: any) {
                 </span>
               </div>
               <div className="text-gray-700">
-                <MarkdownText text={announcement.content} />
+                <MarkdownText content={announcement.content} />
               </div>
             </div>
           ))
