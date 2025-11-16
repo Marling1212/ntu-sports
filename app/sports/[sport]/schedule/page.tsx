@@ -79,7 +79,7 @@ export default async function SportSchedulePage(context: any) {
                     {idx + 1}
                   </div>
                   <div className="flex-1">
-                    <MarkdownText text={rule.content} />
+                    <MarkdownText content={rule.content} />
                   </div>
                 </div>
               ))}
