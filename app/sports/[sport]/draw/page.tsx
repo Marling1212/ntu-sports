@@ -10,12 +10,14 @@ import { Toaster } from "react-hot-toast";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function SportDrawPage({ params }: { params: { sport: string } }) {
+export default async function SportDrawPage(context: any) {
+  const params = (context?.params || {}) as { sport?: string };
+  const sportParam = (params.sport || "").toLowerCase();
   // Capitalize first letter of sport name
-  const sportName = params.sport.charAt(0).toUpperCase() + params.sport.slice(1);
+  const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   
   // Try to get data from Supabase (case-insensitive)
-  const event = await getSportEvent(params.sport); // Pass lowercase version for case-insensitive lookup
+  const event = sportParam ? await getSportEvent(sportParam) : null; // Pass lowercase version for case-insensitive lookup
   
   let matches;
   let players;

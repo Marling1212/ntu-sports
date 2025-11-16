@@ -8,10 +8,12 @@ import { getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function SportSchedulePage({ params }: { params: { sport: string } }) {
+export default async function SportSchedulePage(context: any) {
   const supabase = await createClient();
-  const sportName = params.sport.charAt(0).toUpperCase() + params.sport.slice(1);
-  const event = await getSportEvent(params.sport); // Pass lowercase version for case-insensitive lookup
+  const params = (context?.params || {}) as { sport?: string };
+  const sportParam = (params.sport || "").toLowerCase();
+  const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
+  const event = sportParam ? await getSportEvent(sportParam) : null; // Pass lowercase version for case-insensitive lookup
   let matches: any[] = [];
   let players: any[] = [];
   if (event) {
