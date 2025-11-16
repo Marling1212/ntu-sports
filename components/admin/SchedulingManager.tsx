@@ -1082,7 +1082,7 @@ export default function SchedulingManager({
       setBlackoutTemplates((refreshedTemplates as BlackoutTemplateRecord[]) || []);
 
       if (bulkImportGenerateAfter) {
-        const generatePayload = [];
+        const generatePayload: any[] = [];
         const limit = blackoutLimit.trim() ? Number(blackoutLimit.trim()) : null;
         const weekCounts = buildExistingWeekCounts(blackouts);
         const skipped: string[] = [];
