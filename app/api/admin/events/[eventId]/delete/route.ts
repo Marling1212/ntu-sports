@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 function json(status: number, body: any) {
@@ -8,7 +8,7 @@ function json(status: number, body: any) {
   });
 }
 
-export async function POST(req: NextRequest, { params }: { params: { eventId: string } }) {
+export async function POST(req: Request, { params }: { params: { eventId: string } }) {
   const { eventId } = params;
   const supabase = await createClient();
 
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: { eventId: st
   return json(200, { ok: true });
 }
 
-async function safeJson(req: NextRequest) {
+async function safeJson(req: Request) {
   try {
     return await req.json();
   } catch {
