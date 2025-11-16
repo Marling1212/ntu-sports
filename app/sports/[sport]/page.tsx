@@ -2,7 +2,8 @@ import Link from "next/link";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { getSportMatches } from "@/lib/utils/getSportEvent";
+import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
+import MarkdownText from "@/components/MarkdownText";
 
 // Sport icons mapping
 const sportIcons: { [key: string]: string } = {
@@ -236,6 +237,30 @@ export default async function SportPage(context: any) {
                 </table>
               </div>
             )}
+          </div>
+        );
+      })()}
+
+      {/* Latest Announcement */}
+      {singleEvent && (async () => {
+        const anns = await getSportAnnouncements(singleEvent.id);
+        const latest = (anns || [])[0];
+        if (!latest) return null;
+        return (
+          <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+            <div className="flex items-start justify-between mb-3">
+              <h2 className="text-xl font-semibold text-ntu-green">最新公告</h2>
+              <Link href={`/sports/${sportParam}/announcements`} className="text-ntu-green hover:underline text-sm">
+                查看全部 →
+              </Link>
+            </div>
+            <div className="text-sm text-gray-500 mb-2">
+              {new Date(latest.created_at).toLocaleString("zh-TW")}
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">{latest.title}</h3>
+            <div className="prose max-w-none">
+              <MarkdownText content={latest.content} />
+            </div>
           </div>
         );
       })()}
