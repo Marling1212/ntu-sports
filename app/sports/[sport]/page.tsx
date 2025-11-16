@@ -18,16 +18,17 @@ const sportIcons: { [key: string]: string } = {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function SportPage({ params }: { params: { sport: string } }) {
+export default async function SportPage(context: any) {
   const supabase = await createClient();
-  
+  const params = (context?.params || {}) as { sport?: string };
+  const sportParam = (params.sport || "").toLowerCase();
   // Capitalize first letter of sport name
-  const sportName = params.sport.charAt(0).toUpperCase() + params.sport.slice(1);
+  const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const sportIcon = sportIcons[sportName] || "🏆";
   
   // Get all active events for this sport (case-insensitive)
   // Database stores sport names in lowercase, so normalize the input
-  const sportLower = params.sport.toLowerCase();
+  const sportLower = sportParam;
   const { data: events } = await supabase
     .from("events")
     .select("*")
@@ -84,7 +85,7 @@ export default async function SportPage({ params }: { params: { sport: string } 
           {activeEvents.map((event) => (
             <Link
               key={event.id}
-              href={`/sports/${params.sport}/events/${event.id}`}
+              href={`/sports/${sportParam}/events/${event.id}`}
               className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border border-gray-100"
             >
               <h2 className="text-2xl font-bold text-ntu-green mb-3">
@@ -175,7 +176,7 @@ export default async function SportPage({ params }: { params: { sport: string } 
       {/* Navigation Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link
-          href={`/sports/${params.sport}/draw`}
+          href={`/sports/${sportParam}/draw`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
         >
           <div className="text-center">
@@ -206,7 +207,7 @@ export default async function SportPage({ params }: { params: { sport: string } 
         </Link>
 
         <Link
-          href={`/sports/${params.sport}/schedule`}
+          href={`/sports/${sportParam}/schedule`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
         >
           <div className="text-center">
@@ -235,7 +236,7 @@ export default async function SportPage({ params }: { params: { sport: string } 
         </Link>
 
         <Link
-          href={`/sports/${params.sport}/announcements`}
+          href={`/sports/${sportParam}/announcements`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
         >
           <div className="text-center">
