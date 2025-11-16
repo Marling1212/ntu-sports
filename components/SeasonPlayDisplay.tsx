@@ -16,11 +16,13 @@ interface SeasonPlayDisplayProps {
   };
   // Which view to show initially
   defaultView?: "regular" | "playoffs" | "standings";
+  // Optional: admin-configured number of qualifiers per group
+  qualifiersPerGroup?: number;
 }
 
 const TAIPEI_TZ = "Asia/Taipei";
 
-export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView }: SeasonPlayDisplayProps) {
+export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps }: SeasonPlayDisplayProps) {
   const tabs = {
     regular: visibleTabs?.regular !== false,
     standings: visibleTabs?.standings !== false,
@@ -76,6 +78,31 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   
   const hasRegularSeason = matches.filter(m => m.round === 0).length > 0;
   const hasPlayoffs = playoffMatches.length > 0;
+
+  // Derive number of qualifiers (top X) from existing playoff round-1 participants if available.
+  // Fallback to 4 if no playoffs yet.
+  const qualifiersPerGroup = useMemo(() => {
+    if (typeof qualifiersFromProps === "number" && qualifiersFromProps > 0) {
+      return qualifiersFromProps;
+    }
+    if (!hasRegularSeason) return 0;
+    // Determine number of groups (>=1)
+    const numGroups = Math.max(1, allGroups.length || 1);
+    // If playoffs exist, infer X from round 1 participants
+    const round1 = matches.filter(m => m.round === 1);
+    if (round1.length > 0) {
+      const ids = new Set<string>();
+      round1.forEach(m => {
+        if (m.player1?.id) ids.add(m.player1.id);
+        if (m.player2?.id) ids.add(m.player2.id);
+      });
+      const totalRound1Players = ids.size;
+      const perGroup = Math.max(1, Math.floor(totalRound1Players / numGroups));
+      return perGroup;
+    }
+    // No playoffs yet → default visual hint to 4
+    return 4;
+  }, [matches, allGroups, hasRegularSeason]);
 
   // Format date/time for display
   const formatDateTime = (dateTimeStr: string | null | undefined): string => {
@@ -447,12 +474,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             {groupStandings.map((standing, idx) => (
                               <tr 
                                 key={standing.player.id} 
-                                className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < 4 ? 'border-l-4 border-yellow-400' : ''}`}
+                                className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < qualifiersPerGroup ? 'border-l-4 border-yellow-400' : ''}`}
                               >
                                 <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-2">
-                                    {idx < 4 && <span className="text-yellow-500">🏆</span>}
+                                    {idx < qualifiersPerGroup && <span className="text-yellow-500">🏆</span>}
                                     <span className="font-semibold">{standing.player.name}</span>
                                     {standing.player.seed && (
                                       <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>
@@ -493,12 +520,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         {Array.isArray(standings) && standings.map((standing, idx) => (
                           <tr 
                             key={standing.player.id} 
-                            className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < 4 ? 'border-l-4 border-yellow-400' : ''}`}
+                            className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < qualifiersPerGroup ? 'border-l-4 border-yellow-400' : ''}`}
                           >
                             <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                {idx < 4 && <span className="text-yellow-500">🏆</span>}
+                                {idx < qualifiersPerGroup && <span className="text-yellow-500">🏆</span>}
                                 <span className="font-semibold">{standing.player.name}</span>
                                 {standing.player.seed && (
                                   <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>
@@ -533,15 +560,15 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                     </tr>
                   </thead>
                   <tbody>
-                    {Array.isArray(standings) && standings.map((standing, idx) => (
+                            {Array.isArray(standings) && standings.map((standing, idx) => (
                       <tr 
                         key={standing.player.id} 
-                        className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < 4 ? 'border-l-4 border-yellow-400' : ''}`}
+                                className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < qualifiersPerGroup ? 'border-l-4 border-yellow-400' : ''}`}
                       >
                         <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            {idx < 4 && <span className="text-yellow-500">🏆</span>}
+                                    {idx < qualifiersPerGroup && <span className="text-yellow-500">🏆</span>}
                             <span className="font-semibold">{standing.player.name}</span>
                             {standing.player.seed && (
                               <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>

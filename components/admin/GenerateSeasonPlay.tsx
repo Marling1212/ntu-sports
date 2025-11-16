@@ -59,6 +59,9 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
     setLoading(true);
 
     try {
+      // Persist chosen playoff qualifiers per group on the event
+      await supabase.from("events").update({ playoff_qualifiers_per_group: playoffTeams }).eq("id", eventId);
+
       // Delete existing matches
       const { error: deleteError } = await supabase
         .from("matches")
