@@ -431,7 +431,11 @@ export default function SchedulingManager({
   );
 
   const getSlotCodeFromTemplate = useCallback(
-    (template: BlackoutTemplateRecord) => {
+    (
+      template:
+        | Pick<SlotTemplateRecord, "day_of_week" | "start_time" | "end_time">
+        | Pick<BlackoutTemplateRecord, "day_of_week" | "start_time" | "end_time">
+    ) => {
       const key = `${template.day_of_week}-${template.start_time.slice(0, 5)}-${template.end_time.slice(0, 5)}`;
       const match = slotTemplatesByKey.get(key);
       return match?.code || WEEKDAY_LABELS[template.day_of_week];
