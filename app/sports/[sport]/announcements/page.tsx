@@ -9,29 +9,63 @@ export default async function SportAnnouncementsPage(context: any) {
   const event = sportParam ? await getSportEvent(sportParam) : null; // Pass lowercase version for case-insensitive lookup
   const announcements = event ? await getSportAnnouncements(event.id) : [];
 
-  // Build "next day" scheduled matches announcement (view-only, not persisted)
-  let nextDayMatches: any[] = [];
+  // Build "today's or next day" scheduled matches announcement (view-only, not persisted)
+  let matchesToShow: any[] = [];
+  let showTitle = "";
+  let emptyMessage = "";
   if (event) {
     const matches = await getSportMatches(event.id);
     const tz = "Asia/Taipei";
     const now = new Date();
-    // Compute next day's start/end in Taipei timezone by using local date components
+    // Compute today's and next day's start/end in Taipei timezone
     const nowTz = new Date(now.toLocaleString("en-US", { timeZone: tz }));
+    
+    // Calculate today's date range
+    const todayStart = new Date(nowTz);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(nowTz);
+    todayEnd.setHours(23, 59, 59, 999);
+    
+    // Calculate tomorrow's date range
     const nextDayStart = new Date(nowTz);
     nextDayStart.setDate(nextDayStart.getDate() + 1);
     nextDayStart.setHours(0, 0, 0, 0);
     const nextDayEnd = new Date(nextDayStart);
     nextDayEnd.setHours(23, 59, 59, 999);
-
-    nextDayMatches = (matches || [])
+    
+    // Get today's matches
+    const todayMatches = (matches || [])
       .filter((m: any) => !!m.scheduled_time)
       .filter((m: any) => {
         const d = new Date(m.scheduled_time);
-        // Convert to Taipei-local time for comparison
         const dTz = new Date(d.toLocaleString("en-US", { timeZone: tz }));
-        return dTz >= nextDayStart && dTz <= nextDayEnd;
+        return dTz >= todayStart && dTz <= todayEnd;
       })
       .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
+    
+    // Check if any of today's matches haven't started yet (scheduled_time > now)
+    const hasUpcomingToday = todayMatches.some((m: any) => {
+      const matchTime = new Date(m.scheduled_time);
+      return matchTime > now && m.status !== "completed";
+    });
+    
+    // Determine which matches to show
+    if (hasUpcomingToday) {
+      matchesToShow = todayMatches;
+      showTitle = `今日賽程（${sportName}）`;
+      emptyMessage = "今日沒有已排定的比賽。";
+    } else {
+      matchesToShow = (matches || [])
+        .filter((m: any) => !!m.scheduled_time)
+        .filter((m: any) => {
+          const d = new Date(m.scheduled_time);
+          const dTz = new Date(d.toLocaleString("en-US", { timeZone: tz }));
+          return dTz >= nextDayStart && dTz <= nextDayEnd;
+        })
+        .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
+      showTitle = `明日賽程預告（${sportName}）`;
+      emptyMessage = "明日沒有已排定的比賽。";
+    }
   }
 
   return (
@@ -45,20 +79,20 @@ export default async function SportAnnouncementsPage(context: any) {
         </p>
       </div>
 
-      {/* Auto announcement: next-day scheduled matches (view-only, generated on load) */}
+      {/* Auto announcement: today's or next-day scheduled matches (view-only, generated on load) */}
       {event && (
         <div className="space-y-4 mb-8">
           <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
             <div className="flex items-start justify-between mb-3">
               <h2 className="text-xl font-semibold text-ntu-green">
-                明日賽程預告（{sportName}）
+                {showTitle}
               </h2>
               <span className="text-sm text-gray-500">
                 依照目前排定之賽程時間產生
               </span>
             </div>
-            {nextDayMatches.length === 0 ? (
-              <p className="text-gray-600">明日沒有已排定的比賽。</p>
+            {matchesToShow.length === 0 ? (
+              <p className="text-gray-600">{emptyMessage}</p>
             ) : (
               <div className="overflow-x-auto -mx-2">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -71,7 +105,7 @@ export default async function SportAnnouncementsPage(context: any) {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {nextDayMatches.map((m: any) => {
+                    {matchesToShow.map((m: any) => {
                       const timeStr = new Intl.DateTimeFormat("zh-TW", {
                         hour: "2-digit",
                         minute: "2-digit",
