@@ -643,6 +643,44 @@ export default function MatchesTable({
   return (
     <>
       <Toaster position="top-right" />
+      
+      {/* Quick Action Bar */}
+      <nav className="sticky top-4 z-10 bg-white rounded-xl shadow-lg p-4 border-2 border-gray-200 mb-6">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4">
+          <span className="text-sm font-semibold text-gray-700 mr-2">快速導航：</span>
+          <a
+            href="#search-filters"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-ntu-green rounded-lg hover:opacity-90 transition-opacity"
+          >
+            🔍 搜尋與篩選
+          </a>
+          <a
+            href="#batch-operations"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-blue-500 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            📦 批量操作
+          </a>
+          <a
+            href="#matches-table"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-500 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            📋 比賽列表
+          </a>
+          <a
+            href="#player-stats"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-purple-500 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            📊 選手統計
+          </a>
+          <a
+            href="#match-history"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            🏆 歷史對戰
+          </a>
+        </div>
+      </nav>
+
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-start mb-4">
@@ -658,7 +696,8 @@ export default function MatchesTable({
           </div>
 
           {/* Search and Filter Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+          <div id="search-filters" className="scroll-mt-24">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
             {/* Search */}
             <div className="lg:col-span-2">
               <input
@@ -866,9 +905,10 @@ export default function MatchesTable({
             </div>
           )}
         </div>
+        </div>
 
         {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
+        <div id="matches-table" className="hidden md:block overflow-x-auto scroll-mt-24">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>

@@ -97,7 +97,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
         />
 
         {/* Player Statistics */}
-        <div className="mt-8">
+        <div id="player-stats" className="mt-8 scroll-mt-24">
           <PlayerStats
             players={players || []}
             matches={matches || []}
@@ -106,7 +106,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
         </div>
 
         {/* Match History */}
-        <div className="mt-8">
+        <div id="match-history" className="mt-8 scroll-mt-24">
           <MatchHistory
             players={players || []}
             matches={matches || []}
