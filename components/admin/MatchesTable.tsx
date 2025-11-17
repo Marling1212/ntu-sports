@@ -145,7 +145,8 @@ export default function MatchesTable({
         const query = searchQuery.toLowerCase();
         const player1Name = match.player1?.name?.toLowerCase() || "";
         const player2Name = match.player2?.name?.toLowerCase() || "";
-        const winnerName = match.winner?.name?.toLowerCase() || "";
+        const winner = match.winner_id ? players.find(p => p.id === match.winner_id) : null;
+        const winnerName = winner?.name?.toLowerCase() || "";
         if (!player1Name.includes(query) && !player2Name.includes(query) && !winnerName.includes(query)) {
           return false;
         }
