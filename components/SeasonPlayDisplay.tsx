@@ -126,6 +126,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     player: Player;
     wins: number;
     losses: number;
+    draws: number;
     points: number;
     goalsFor: number;
     goalsAgainst: number;
@@ -161,6 +162,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           player: p,
           wins: 0,
           losses: 0,
+          draws: 0,
           points: 0,
           goalsFor: 0,
           goalsAgainst: 0,
@@ -169,18 +171,33 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       });
 
       regularSeasonMatches.forEach((m) => {
-        if (m.status === "completed" && m.winner && m.player1?.id && m.player2?.id) {
+        if (m.status === "completed" && m.player1?.id && m.player2?.id) {
           const p1 = table[m.player1.id] as any;
           const p2 = table[m.player2.id] as any;
           const sc = parseScorePair(m.score);
           if (sc) {
             p1.goalsFor += sc.a; p1.goalsAgainst += sc.b;
             p2.goalsFor += sc.b; p2.goalsAgainst += sc.a;
-          }
-          if (m.winner.id === m.player1.id) {
-            p1.wins += 1; p1.points += 3; p2.losses += 1;
-          } else if (m.winner.id === m.player2.id) {
-            p2.wins += 1; p2.points += 3; p1.losses += 1;
+            
+            // Check for draw (equal scores)
+            if (sc.a === sc.b) {
+              p1.draws += 1; p1.points += 1;
+              p2.draws += 1; p2.points += 1;
+            } else if (m.winner) {
+              // Has winner, not a draw
+              if (m.winner.id === m.player1.id) {
+                p1.wins += 1; p1.points += 3; p2.losses += 1;
+              } else if (m.winner.id === m.player2.id) {
+                p2.wins += 1; p2.points += 3; p1.losses += 1;
+              }
+            }
+          } else if (m.winner) {
+            // No score but has winner
+            if (m.winner.id === m.player1.id) {
+              p1.wins += 1; p1.points += 3; p2.losses += 1;
+            } else if (m.winner.id === m.player2.id) {
+              p2.wins += 1; p2.points += 3; p1.losses += 1;
+            }
           }
         }
       });
@@ -211,21 +228,33 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     groupPlayerIds.forEach(playerId => {
       const player = players.find(p => p.id === playerId);
       if (player) {
-        (table as any)[playerId] = { player, wins: 0, losses: 0, points: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0, group: groupNum };
+        (table as any)[playerId] = { player, wins: 0, losses: 0, draws: 0, points: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0, group: groupNum };
       }
     });
 
     groupMatches.forEach((m) => {
-      if (m.status === "completed" && m.winner && m.player1?.id && m.player2?.id) {
+      if (m.status === "completed" && m.player1?.id && m.player2?.id) {
         const p1 = table[m.player1?.id] as any;
         const p2 = table[m.player2?.id] as any;
         const sc = parseScorePair(m.score);
         if (sc) {
           p1.goalsFor += sc.a; p1.goalsAgainst += sc.b; p1.goalDiff = p1.goalsFor - p1.goalsAgainst;
           p2.goalsFor += sc.b; p2.goalsAgainst += sc.a; p2.goalDiff = p2.goalsFor - p2.goalsAgainst;
+          
+          // Check for draw (equal scores)
+          if (sc.a === sc.b) {
+            p1.draws += 1; p1.points += 1;
+            p2.draws += 1; p2.points += 1;
+          } else if (m.winner) {
+            // Has winner, not a draw
+            if (m.winner.id === m.player1?.id) { p1.wins += 1; p1.points += 3; p2.losses += 1; }
+            else if (m.winner.id === m.player2?.id) { p2.wins += 1; p2.points += 3; p1.losses += 1; }
+          }
+        } else if (m.winner) {
+          // No score but has winner
+          if (m.winner.id === m.player1?.id) { p1.wins += 1; p1.points += 3; p2.losses += 1; }
+          else if (m.winner.id === m.player2?.id) { p2.wins += 1; p2.points += 3; p1.losses += 1; }
         }
-        if (m.winner.id === m.player1?.id) { p1.wins += 1; p1.points += 3; p2.losses += 1; }
-        else if (m.winner.id === m.player2?.id) { p2.wins += 1; p2.points += 3; p1.losses += 1; }
       }
     });
 
@@ -233,6 +262,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       player: r.player,
       wins: r.wins || 0,
       losses: r.losses || 0,
+      draws: r.draws || 0,
       points: r.points || 0,
       goalsFor: r.goalsFor || 0,
       goalsAgainst: r.goalsAgainst || 0,
@@ -466,6 +496,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               <th className="px-4 py-3 text-left">Player</th>
                               <th className="px-4 py-3 text-center">Wins</th>
                               <th className="px-4 py-3 text-center">Losses</th>
+                              <th className="px-4 py-3 text-center">Draws</th>
                               <th className="px-4 py-3 text-center">Points</th>
                               <th className="px-4 py-3 text-center">GD</th>
                             </tr>
@@ -488,6 +519,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 </td>
                                 <td className="px-4 py-3 text-center font-semibold text-green-600">{standing.wins}</td>
                                 <td className="px-4 py-3 text-center font-semibold text-red-600">{standing.losses}</td>
+                                <td className="px-4 py-3 text-center font-semibold text-gray-600">{standing.draws || 0}</td>
                                 <td className="px-4 py-3 text-center font-bold text-ntu-green">{standing.points}</td>
                                 <td className="px-4 py-3 text-center font-semibold text-gray-700">{standing.goalDiff}</td>
                               </tr>
