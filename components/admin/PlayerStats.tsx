@@ -54,11 +54,11 @@ export default function PlayerStats({ players, matches, tournamentType }: Player
 
     // Process matches
     matches.forEach(match => {
-      if (match.status !== "completed" || !match.winner) return;
+      if (match.status !== "completed" || !match.winner_id) return;
 
       const player1Id = match.player1_id;
       const player2Id = match.player2_id;
-      const winnerId = match.winner.id;
+      const winnerId = match.winner_id;
       const score = parseScore(match.score1 && match.score2 ? `${match.score1}-${match.score2}` : undefined);
 
       if (!player1Id || !player2Id) return;
