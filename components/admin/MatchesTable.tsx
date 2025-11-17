@@ -116,12 +116,69 @@ export default function MatchesTable({
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const supabase = createClient();
+  
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [courtFilter, setCourtFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("");
+  const [roundFilter, setRoundFilter] = useState<string>("all");
+  
+  // Batch operation states
+  const [selectedMatches, setSelectedMatches] = useState<Set<string>>(new Set());
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchOperation, setBatchOperation] = useState<"score" | "court" | "status" | null>(null);
+  const [batchForm, setBatchForm] = useState({ court: "", status: "", customCourt: "" });
 
   const slotMap = useMemo(() => {
     const map = new Map<string, SlotOption>();
     slots.forEach((slot) => map.set(slot.id, slot));
     return map;
   }, [slots]);
+
+  // Filter matches based on search and filters
+  const filteredMatches = useMemo(() => {
+    return matches.filter((match) => {
+      // Search query filter (player names)
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const player1Name = match.player1?.name?.toLowerCase() || "";
+        const player2Name = match.player2?.name?.toLowerCase() || "";
+        const winnerName = match.winner?.name?.toLowerCase() || "";
+        if (!player1Name.includes(query) && !player2Name.includes(query) && !winnerName.includes(query)) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (statusFilter !== "all" && match.status !== statusFilter) {
+        return false;
+      }
+
+      // Court filter
+      if (courtFilter !== "all") {
+        if (courtFilter === "none" && match.court) return false;
+        if (courtFilter !== "none" && match.court !== courtFilter) return false;
+      }
+
+      // Date filter
+      if (dateFilter) {
+        const matchDate = match.scheduled_time ? new Date(match.scheduled_time).toISOString().split("T")[0] : null;
+        if (matchDate !== dateFilter) return false;
+      }
+
+      // Round filter
+      if (roundFilter !== "all") {
+        if (roundFilter === "regular" && match.round !== 0) return false;
+        if (roundFilter === "playoffs" && match.round === 0) return false;
+        if (roundFilter !== "regular" && roundFilter !== "playoffs" && match.round.toString() !== roundFilter) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [matches, searchQuery, statusFilter, courtFilter, dateFilter, roundFilter]);
 
   const handleEdit = (match: Match) => {
     const slotCandidate = match.slot_id ? slotMap.get(match.slot_id) || match.slot || null : match.slot || null;
@@ -371,6 +428,95 @@ export default function MatchesTable({
     setEditForm({});
   };
 
+  // Batch operations
+  const toggleMatchSelection = (matchId: string) => {
+    const newSelected = new Set(selectedMatches);
+    if (newSelected.has(matchId)) {
+      newSelected.delete(matchId);
+    } else {
+      newSelected.add(matchId);
+    }
+    setSelectedMatches(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedMatches.size === filteredMatches.length) {
+      setSelectedMatches(new Set());
+    } else {
+      setSelectedMatches(new Set(filteredMatches.map(m => m.id)));
+    }
+  };
+
+  const handleBatchUpdate = async () => {
+    if (selectedMatches.size === 0) {
+      toast.error("請選擇至少一場比賽");
+      return;
+    }
+
+    if (batchOperation === "court") {
+      const courtValue = batchForm.court === "OTHER" ? batchForm.customCourt : batchForm.court;
+      if (!courtValue) {
+        toast.error("請選擇或輸入場地");
+        return;
+      }
+    }
+
+    if (batchOperation === "status" && !batchForm.status) {
+      toast.error("請選擇狀態");
+      return;
+    }
+
+    const updates: any[] = [];
+    for (const matchId of selectedMatches) {
+      const updateData: any = { updated_at: new Date().toISOString() };
+      
+      if (batchOperation === "court") {
+        updateData.court = batchForm.court === "OTHER" ? batchForm.customCourt : batchForm.court;
+      }
+      
+      if (batchOperation === "status") {
+        updateData.status = batchForm.status;
+      }
+
+      updates.push(
+        supabase
+          .from("matches")
+          .update(updateData)
+          .eq("id", matchId)
+      );
+    }
+
+    try {
+      await Promise.all(updates);
+      toast.success(`成功更新 ${selectedMatches.size} 場比賽`);
+      
+      // Refresh matches
+      const { data: updatedMatches } = await supabase
+        .from("matches")
+        .select(`
+          *,
+          player1:players!matches_player1_id_fkey(id, name, seed),
+          player2:players!matches_player2_id_fkey(id, name, seed),
+          winner:players!matches_winner_id_fkey(id, name, seed),
+          slot:event_slots(id, slot_date, start_time, end_time, code, court_id)
+        `)
+        .eq("event_id", eventId)
+        .order("round", { ascending: true })
+        .order("match_number", { ascending: true });
+
+      if (updatedMatches) {
+        setMatches(updatedMatches);
+      }
+      
+      setSelectedMatches(new Set());
+      setBatchMode(false);
+      setBatchOperation(null);
+      setBatchForm({ court: "", status: "", customCourt: "" });
+    } catch (error: any) {
+      toast.error(`更新失敗: ${error.message}`);
+    }
+  };
+
   // Calculate dynamic round names based on actual bracket
   const maxRound = matches.length > 0 ? Math.max(...matches.map(m => m.round)) : 0;
   const playoffMatches = matches.filter(match => match.round > 0);
@@ -420,16 +566,232 @@ export default function MatchesTable({
       <Toaster position="top-right" />
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-2">Matches & Results</h2>
-          <p className="text-sm text-gray-600">
-            💡 Click the <span className="font-semibold text-ntu-green">&quot;Edit&quot;</span> button on any match to update scores, winner, and court.
-          </p>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-2xl font-semibold text-ntu-green mb-2">Matches & Results</h2>
+              <p className="text-sm text-gray-600">
+                💡 Click the <span className="font-semibold text-ntu-green">&quot;Edit&quot;</span> button on any match to update scores, winner, and court.
+              </p>
+            </div>
+            <div className="text-sm text-gray-500">
+              顯示 {filteredMatches.length} / {matches.length} 場比賽
+            </div>
+          </div>
+
+          {/* Search and Filter Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+            {/* Search */}
+            <div className="lg:col-span-2">
+              <input
+                type="text"
+                placeholder="搜尋選手名稱..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+              >
+                <option value="all">所有狀態</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="live">Live</option>
+                <option value="completed">Completed</option>
+                <option value="delayed">Delayed</option>
+              </select>
+            </div>
+
+            {/* Court Filter */}
+            <div>
+              <select
+                value={courtFilter}
+                onChange={(e) => setCourtFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+              >
+                <option value="all">所有場地</option>
+                <option value="none">未分配</option>
+                {courts.map((court) => (
+                  <option key={court.id} value={court.name}>
+                    {court.name}
+                  </option>
+                ))}
+                {Array.from(new Set(matches.map(m => m.court).filter(Boolean))).filter(c => !courts.some(ec => ec.name === c)).map((court) => (
+                  <option key={court} value={court}>
+                    {court}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date Filter */}
+            <div>
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Round Filter (for season play) */}
+          {tournamentType === "season_play" && (
+            <div className="mt-4">
+              <select
+                value={roundFilter}
+                onChange={(e) => setRoundFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+              >
+                <option value="all">所有輪次</option>
+                <option value="regular">常規賽</option>
+                <option value="playoffs">季後賽</option>
+                {Array.from(new Set(matches.filter(m => m.round > 0).map(m => m.round))).sort((a, b) => a - b).map((round) => (
+                  <option key={round} value={round.toString()}>
+                    {describeEliminationRound(round, maxPlayoffRound)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Clear Filters Button */}
+          {(searchQuery || statusFilter !== "all" || courtFilter !== "all" || dateFilter || roundFilter !== "all") && (
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                  setCourtFilter("all");
+                  setDateFilter("");
+                  setRoundFilter("all");
+                }}
+                className="text-sm text-ntu-green hover:underline"
+              >
+                ✕ 清除所有篩選
+              </button>
+            </div>
+          )}
+
+          {/* Batch Operations */}
+          <div className="mt-4 flex items-center gap-4">
+            <button
+              onClick={() => {
+                setBatchMode(!batchMode);
+                if (batchMode) {
+                  setSelectedMatches(new Set());
+                  setBatchOperation(null);
+                  setBatchForm({ court: "", status: "", customCourt: "" });
+                }
+              }}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                batchMode
+                  ? "bg-red-100 text-red-700 hover:bg-red-200"
+                  : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+              }`}
+            >
+              {batchMode ? "✕ 取消批量操作" : "📋 批量操作"}
+            </button>
+            
+            {batchMode && selectedMatches.size > 0 && (
+              <span className="text-sm text-gray-600">
+                已選擇 {selectedMatches.size} 場比賽
+              </span>
+            )}
+          </div>
+
+          {/* Batch Operation Controls */}
+          {batchMode && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex flex-wrap gap-4 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">操作類型</label>
+                  <select
+                    value={batchOperation || ""}
+                    onChange={(e) => setBatchOperation(e.target.value as "score" | "court" | "status" | null)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  >
+                    <option value="">選擇操作...</option>
+                    <option value="court">批量分配場地</option>
+                    <option value="status">批量更新狀態</option>
+                  </select>
+                </div>
+
+                {batchOperation === "court" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">場地</label>
+                    <select
+                      value={batchForm.court}
+                      onChange={(e) => setBatchForm({ ...batchForm, court: e.target.value })}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="">選擇場地...</option>
+                      {courts.map((court) => (
+                        <option key={court.id} value={court.name}>{court.name}</option>
+                      ))}
+                      <option value="OTHER">其他（手動輸入）</option>
+                    </select>
+                    {batchForm.court === "OTHER" && (
+                      <input
+                        type="text"
+                        placeholder="輸入場地名稱"
+                        value={batchForm.customCourt}
+                        onChange={(e) => setBatchForm({ ...batchForm, customCourt: e.target.value })}
+                        className="mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm w-full"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {batchOperation === "status" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">狀態</label>
+                    <select
+                      value={batchForm.status}
+                      onChange={(e) => setBatchForm({ ...batchForm, status: e.target.value })}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="">選擇狀態...</option>
+                      <option value="upcoming">Upcoming</option>
+                      <option value="live">Live</option>
+                      <option value="completed">Completed</option>
+                      <option value="delayed">Delayed</option>
+                    </select>
+                  </div>
+                )}
+
+                {batchOperation && (
+                  <button
+                    onClick={handleBatchUpdate}
+                    disabled={selectedMatches.size === 0}
+                    className="px-4 py-2 bg-ntu-green text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    執行批量更新 ({selectedMatches.size})
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                {batchMode && (
+                  <th className="px-6 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedMatches.size === filteredMatches.length && filteredMatches.length > 0}
+                      onChange={toggleSelectAll}
+                      className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green"
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Round</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Match #</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player 1</th>
@@ -443,15 +805,27 @@ export default function MatchesTable({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {matches.length === 0 ? (
+              {filteredMatches.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
-                    No matches created yet.
+                  <td colSpan={batchMode ? 11 : 10} className="px-6 py-12 text-center text-gray-500">
+                    {matches.length === 0 
+                      ? "No matches created yet."
+                      : "No matches match your filters. Try adjusting your search criteria."}
                   </td>
                 </tr>
               ) : (
-                matches.map((match) => (
-                  <tr key={match.id} className="hover:bg-gray-50">
+                filteredMatches.map((match) => (
+                  <tr key={match.id} className={`hover:bg-gray-50 ${selectedMatches.has(match.id) ? 'bg-blue-50' : ''}`}>
+                    {batchMode && (
+                      <td className="px-6 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedMatches.has(match.id)}
+                          onChange={() => toggleMatchSelection(match.id)}
+                          className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green"
+                        />
+                      </td>
+                    )}
                     {editingMatch === match.id ? (
                       // Edit mode
                       <>

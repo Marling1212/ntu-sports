@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player } from "@/types/database";
@@ -16,7 +16,33 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
   const [isAdding, setIsAdding] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [newPlayer, setNewPlayer] = useState({ name: "", department: "", seed: "" });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterSeed, setFilterSeed] = useState<string>("all");
   const supabase = createClient();
+
+  // Filter players based on search and filters
+  const filteredPlayers = useMemo(() => {
+    return players.filter((player) => {
+      // Search query filter (name, department, email)
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const name = player.name?.toLowerCase() || "";
+        const department = player.department?.toLowerCase() || "";
+        const email = player.email?.toLowerCase() || "";
+        if (!name.includes(query) && !department.includes(query) && !email.includes(query)) {
+          return false;
+        }
+      }
+
+      // Seed filter
+      if (filterSeed !== "all") {
+        if (filterSeed === "seeded" && !player.seed) return false;
+        if (filterSeed === "unseeded" && player.seed) return false;
+      }
+
+      return true;
+    });
+  }, [players, searchQuery, filterSeed]);
 
   const refreshPlayers = async () => {
     const { data } = await supabase
@@ -132,9 +158,57 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
       )}
 
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-2xl font-semibold text-ntu-green">Players List ({players.length})</h2>
-          <div className="flex gap-3">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold text-ntu-green">Players List</h2>
+            <div className="text-sm text-gray-500">
+              顯示 {filteredPlayers.length} / {players.length} 位選手
+            </div>
+          </div>
+
+          {/* Search and Filter Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* Search */}
+            <div className="md:col-span-2">
+              <input
+                type="text"
+                placeholder="搜尋選手名稱、科系或 Email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+              />
+            </div>
+
+            {/* Seed Filter */}
+            <div>
+              <select
+                value={filterSeed}
+                onChange={(e) => setFilterSeed(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+              >
+                <option value="all">所有選手</option>
+                <option value="seeded">有種子序號</option>
+                <option value="unseeded">無種子序號</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Clear Filters Button */}
+          {(searchQuery || filterSeed !== "all") && (
+            <div className="mb-4">
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setFilterSeed("all");
+                }}
+                className="text-sm text-ntu-green hover:underline"
+              >
+                ✕ 清除所有篩選
+              </button>
+            </div>
+          )}
+
+          <div className="flex justify-end items-center gap-3">
             {players.length > 0 && (
               <button
                 onClick={handleDeleteAll}
@@ -215,14 +289,16 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {players.length === 0 ? (
+              {filteredPlayers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    No players added yet. Click &quot;Add Player&quot; to get started.
+                    {players.length === 0 
+                      ? "No players added yet. Click \"Add Player\" to get started."
+                      : "No players match your search. Try adjusting your search criteria."}
                   </td>
                 </tr>
               ) : (
-                players.map((player) => (
+                filteredPlayers.map((player) => (
                   <tr key={player.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       {player.seed ? (
