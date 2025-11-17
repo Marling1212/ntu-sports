@@ -560,7 +560,7 @@ export default function MatchesTable({
           match.player1?.name || "TBD",
           match.player2?.name || "TBD",
           match.score1 && match.score2 ? `${match.score1}-${match.score2}` : "-",
-          match.winner?.name || "-",
+          (match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "-",
           match.court || "-",
           matchData.scheduled_time ? formatDateTimeDisplay(matchData.scheduled_time) : "-",
           match.status
@@ -1144,7 +1144,7 @@ export default function MatchesTable({
                           <span className="text-sm">{match.player2?.name || "TBD"}</span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {match.winner?.name || "—"}
+                          {(match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "—"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {match.slot ? (
