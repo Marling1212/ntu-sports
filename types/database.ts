@@ -28,6 +28,8 @@ export interface Player {
   department?: string;
   seed?: number;
   eliminated_round?: number;
+  email?: string;
+  email_opt_in?: boolean;
   created_at: string;
   updated_at: string;
 }
