@@ -656,12 +656,6 @@ export default function MatchesTable({
             🔍 搜尋與篩選
           </a>
           <a
-            href="#batch-operations"
-            className="px-3 py-1.5 text-sm font-medium text-white bg-blue-500 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            📦 批量操作
-          </a>
-          <a
             href="#matches-table"
             className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-500 rounded-lg hover:opacity-90 transition-opacity"
           >
@@ -995,19 +989,19 @@ export default function MatchesTable({
                           </div>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player2?.name || "TBD"}</td>
-                        <td className="px-3 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4">
                           <select
                             value={editForm.winner_id}
                             onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value })}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
                           >
                             <option value="">No winner</option>
                             {match.player1_id && <option value={match.player1_id}>{match.player1?.name}</option>}
                             {match.player2_id && <option value={match.player2_id}>{match.player2?.name}</option>}
                           </select>
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <div className="flex flex-col gap-2">
+                        <td className="px-3 py-4">
+                          <div className="flex flex-col gap-2 min-w-0">
                             <input
                               type="datetime-local"
                               value={editForm.scheduled_time || ""}
@@ -1018,7 +1012,7 @@ export default function MatchesTable({
                                   slot_id: "",
                                 })
                               }
-                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                              className="w-full max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm"
                             />
                             {slots.length > 0 && (
                               <select
@@ -1039,7 +1033,7 @@ export default function MatchesTable({
                                     scheduled_time: toLocalInputValue(deriveIsoFromSlot(slot)),
                                   });
                                 }}
-                                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                                className="w-full max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm"
                               >
                                 <option value="">選擇時段代號</option>
                                 {slots.map((slot) => (
@@ -1051,8 +1045,8 @@ export default function MatchesTable({
                             )}
                           </div>
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <div className="flex flex-col gap-2">
+                        <td className="px-3 py-4">
+                          <div className="flex flex-col gap-2 min-w-0">
                             <select
                               value={
                                 editForm.court && courts.find((c: any) => c.name === editForm.court)
@@ -1071,7 +1065,7 @@ export default function MatchesTable({
                                   setEditForm({ ...editForm, court: selected?.name || "" });
                                 }
                               }}
-                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                              className="w-full max-w-[150px] px-2 py-1 border border-gray-300 rounded text-sm"
                             >
                               <option value="">選擇場地</option>
                               {courts.map((c) => (
@@ -1083,16 +1077,16 @@ export default function MatchesTable({
                               type="text"
                               value={editForm.court}
                               onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
-                              className="w-40 px-2 py-1 border border-gray-300 rounded text-sm"
+                              className="w-full max-w-[150px] px-2 py-1 border border-gray-300 rounded text-sm"
                               placeholder="Court"
                             />
                           </div>
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4">
                           <select
                             value={editForm.status}
                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
                           >
                             <option value="upcoming">Upcoming</option>
                             <option value="live">Live</option>
@@ -1103,19 +1097,21 @@ export default function MatchesTable({
                             </option>
                           </select>
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button 
-                            onClick={() => handleSave(match.id)} 
-                            className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity mr-2 font-semibold"
-                          >
-                            ✓ Save
-                          </button>
-                          <button 
-                            onClick={handleCancel} 
-                            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-                          >
-                            ✕ Cancel
-                          </button>
+                        <td className="px-3 py-4 text-right text-sm font-medium">
+                          <div className="flex flex-col gap-2 items-end">
+                            <button 
+                              onClick={() => handleSave(match.id)} 
+                              className="bg-ntu-green text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs whitespace-nowrap"
+                            >
+                              ✓ Save
+                            </button>
+                            <button 
+                              onClick={handleCancel} 
+                              className="bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-xs whitespace-nowrap"
+                            >
+                              ✕ Cancel
+                            </button>
+                          </div>
                         </td>
                       </>
                     ) : (
