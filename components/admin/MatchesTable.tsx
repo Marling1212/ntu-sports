@@ -800,7 +800,10 @@ export default function MatchesTable({
           {/* Batch Operations */}
           <div className="mt-4 flex items-center gap-4">
             <button
-              onClick={() => {
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setBatchMode(!batchMode);
                 if (batchMode) {
                   setSelectedMatches(new Set());
