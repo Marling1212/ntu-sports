@@ -44,13 +44,7 @@ export default function MatchHistory({ players, matches }: MatchHistoryProps) {
     let draws = 0;
 
     h2hMatches.forEach(match => {
-      if (!match.winner) return;
-
-      if (match.winner.id === p1.id) {
-        player1Wins++;
-      } else if (match.winner.id === p2.id) {
-        player2Wins++;
-      } else {
+      if (!match.winner_id) {
         // Check if it's a draw (same score)
         const score = match.score1 && match.score2 ? `${match.score1}-${match.score2}` : undefined;
         if (score) {
@@ -59,6 +53,13 @@ export default function MatchHistory({ players, matches }: MatchHistoryProps) {
             draws++;
           }
         }
+        return;
+      }
+
+      if (match.winner_id === p1.id) {
+        player1Wins++;
+      } else if (match.winner_id === p2.id) {
+        player2Wins++;
       }
     });
 
@@ -159,13 +160,18 @@ export default function MatchHistory({ players, matches }: MatchHistoryProps) {
                           ? new Date(matchData.scheduled_time).toLocaleDateString('zh-TW')
                           : "-";
                         
+                        // Find winner player by winner_id
+                        const winner = match.winner_id 
+                          ? players.find(p => p.id === match.winner_id)
+                          : null;
+                        
                         return (
                           <tr key={match.id} className="hover:bg-gray-50">
                             <td className="px-4 py-3 text-sm text-gray-700">{date}</td>
                             <td className="px-4 py-3 text-sm font-medium text-gray-900">{score}</td>
                             <td className="px-4 py-3 text-sm">
-                              {match.winner ? (
-                                <span className="font-semibold text-ntu-green">{match.winner.name}</span>
+                              {winner ? (
+                                <span className="font-semibold text-ntu-green">{winner.name}</span>
                               ) : (
                                 <span className="text-gray-400">-</span>
                               )}
