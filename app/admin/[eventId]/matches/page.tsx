@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AdminNavbar from "@/components/admin/Navbar";
 import MatchesTable from "@/components/admin/MatchesTable";
+import PlayerStats from "@/components/admin/PlayerStats";
+import MatchHistory from "@/components/admin/MatchHistory";
 
 export default async function MatchesPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
@@ -93,6 +95,23 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           courts={courts || []}
           tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
         />
+
+        {/* Player Statistics */}
+        <div className="mt-8">
+          <PlayerStats
+            players={players || []}
+            matches={matches || []}
+            tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
+          />
+        </div>
+
+        {/* Match History */}
+        <div className="mt-8">
+          <MatchHistory
+            players={players || []}
+            matches={matches || []}
+          />
+        </div>
       </div>
     </>
   );

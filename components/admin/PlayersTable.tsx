@@ -267,7 +267,8 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
           </form>
         )}
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -337,6 +338,58 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-3">
+          {filteredPlayers.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              {players.length === 0 
+                ? "No players added yet. Click \"Add Player\" to get started."
+                : "No players match your search. Try adjusting your search criteria."}
+            </div>
+          ) : (
+            filteredPlayers.map((player) => (
+              <div
+                key={player.id}
+                className="bg-white border border-gray-200 rounded-lg p-4"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      {player.seed && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
+                          Seed {player.seed}
+                        </span>
+                      )}
+                      <span className="font-semibold text-gray-900">{player.name}</span>
+                    </div>
+                    {player.department && (
+                      <div className="text-sm text-gray-600">{player.department}</div>
+                    )}
+                    {player.email && (
+                      <div className="text-xs text-gray-500 mt-1">{player.email}</div>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    {player.eliminated_round ? (
+                      <span className="text-red-600 text-xs">
+                        Eliminated (R{player.eliminated_round})
+                      </span>
+                    ) : (
+                      <span className="text-green-600 text-xs">Active</span>
+                    )}
+                    <button
+                      onClick={() => handleDeletePlayer(player.id)}
+                      className="text-red-600 hover:text-red-900 text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </>
