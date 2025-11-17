@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 
 interface TennisNavbarClientProps {
   eventName?: string;
+  tournamentType?: string;
 }
 
-export default function TennisNavbarClient({ eventName }: TennisNavbarClientProps) {
+export default function TennisNavbarClient({ eventName, tournamentType }: TennisNavbarClientProps) {
   const pathname = usePathname();
 
   // Derive current sport from the URL: /sports/[sport]/...
@@ -60,7 +61,7 @@ export default function TennisNavbarClient({ eventName }: TennisNavbarClientProp
                   : "text-gray-700 hover:bg-ntu-green hover:text-white"
               }`}
             >
-              籤表
+              {tournamentType === 'season_play' ? '戰績' : '籤表'}
             </Link>
             <Link
               href={`${basePath}/schedule`}

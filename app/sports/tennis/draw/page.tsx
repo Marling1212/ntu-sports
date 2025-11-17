@@ -61,7 +61,7 @@ export default async function TennisDrawPage() {
 
   return (
     <>
-      <TennisNavbarClient eventName={event?.name} />
+      <TennisNavbarClient eventName={event?.name} tournamentType={event?.tournament_type} />
       <Toaster position="top-right" />
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8 flex justify-between items-start">
