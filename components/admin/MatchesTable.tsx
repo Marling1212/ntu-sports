@@ -757,6 +757,7 @@ export default function MatchesTable({
               />
             </div>
           </div>
+          </div>
 
           {/* Round Filter (for season play) */}
           {tournamentType === "season_play" && (
