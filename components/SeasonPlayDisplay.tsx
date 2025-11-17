@@ -102,7 +102,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     }
     // No playoffs yet → default visual hint to 4
     return 4;
-  }, [matches, allGroups, hasRegularSeason]);
+  }, [matches, allGroups, hasRegularSeason, qualifiersFromProps]);
 
   // Format date/time for display
   const formatDateTime = (dateTimeStr: string | null | undefined): string => {

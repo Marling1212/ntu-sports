@@ -124,18 +124,7 @@ export default function PlayerStats({ players, matches, tournamentType }: Player
     });
   }, [players, matches]);
 
-  const hasStats = playerStats.some(s => s.matchesPlayed > 0);
-
-  if (!hasStats) {
-    return (
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">選手統計</h2>
-        <p className="text-gray-500">尚無比賽數據</p>
-      </div>
-    );
-  }
-
-  // Calculate top performers for charts
+  // Calculate top performers for charts (must be before early return)
   const topScorers = useMemo(() => {
     return [...playerStats]
       .sort((a, b) => b.goalsFor - a.goalsFor)
@@ -149,6 +138,17 @@ export default function PlayerStats({ players, matches, tournamentType }: Player
       .sort((a, b) => b.winRate - a.winRate)
       .slice(0, 5);
   }, [playerStats]);
+
+  const hasStats = playerStats.some(s => s.matchesPlayed > 0);
+
+  if (!hasStats) {
+    return (
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <h2 className="text-2xl font-semibold text-ntu-green mb-4">選手統計</h2>
+        <p className="text-gray-500">尚無比賽數據</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
