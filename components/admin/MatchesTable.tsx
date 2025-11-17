@@ -909,12 +909,13 @@ export default function MatchesTable({
         </div>
 
         {/* Desktop Table View */}
-        <div id="matches-table" className="hidden md:block overflow-x-auto scroll-mt-24">
-          <table className="w-full">
+        <div id="matches-table" className="hidden md:block scroll-mt-24">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {batchMode && (
-                  <th className="px-6 py-3 text-center">
+                  <th className="px-3 py-3 text-center">
                     <input
                       type="checkbox"
                       checked={selectedMatches.size === filteredMatches.length && filteredMatches.length > 0}
@@ -923,22 +924,22 @@ export default function MatchesTable({
                     />
                   </th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Round</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Match #</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player 1</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player 2</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Winner</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Court</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Round</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Match #</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player 1</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player 2</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Winner</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Court</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredMatches.length === 0 ? (
                 <tr>
-                  <td colSpan={batchMode ? 11 : 10} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={batchMode ? 11 : 10} className="px-3 py-12 text-center text-gray-500">
                     {matches.length === 0 
                       ? "No matches created yet."
                       : "No matches match your filters. Try adjusting your search criteria."}
@@ -948,7 +949,7 @@ export default function MatchesTable({
                 filteredMatches.map((match) => (
                   <tr key={match.id} className={`hover:bg-gray-50 ${selectedMatches.has(match.id) ? 'bg-blue-50' : ''}`}>
                     {batchMode && (
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 py-4 text-center">
                         <input
                           type="checkbox"
                           checked={selectedMatches.has(match.id)}
@@ -960,18 +961,18 @@ export default function MatchesTable({
                     {editingMatch === match.id ? (
                       // Edit mode
                       <>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
                           {isThirdPlaceMatch(match) ? (
                             <span className="text-amber-600 font-semibold">🥉 3rd Place</span>
                           ) : (
                             getRoundName(match.round)
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm font-mono">
                           {formatMatchNumber(match)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">{match.player1?.name || "TBD"}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player1?.name || "TBD"}</td>
+                        <td className="px-3 py-4 whitespace-nowrap">
                           <div className="flex gap-1">
                             <input
                               type="text"
@@ -990,8 +991,8 @@ export default function MatchesTable({
                             />
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">{match.player2?.name || "TBD"}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player2?.name || "TBD"}</td>
+                        <td className="px-3 py-4 whitespace-nowrap">
                           <select
                             value={editForm.winner_id}
                             onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value })}
@@ -1002,7 +1003,7 @@ export default function MatchesTable({
                             {match.player2_id && <option value={match.player2_id}>{match.player2?.name}</option>}
                           </select>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4 whitespace-nowrap">
                           <div className="flex flex-col gap-2">
                             <input
                               type="datetime-local"
@@ -1047,7 +1048,7 @@ export default function MatchesTable({
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4 whitespace-nowrap">
                           <div className="flex flex-col gap-2">
                             <select
                               value={
@@ -1084,7 +1085,7 @@ export default function MatchesTable({
                             />
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4 whitespace-nowrap">
                           <select
                             value={editForm.status}
                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
@@ -1099,7 +1100,7 @@ export default function MatchesTable({
                             </option>
                           </select>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button 
                             onClick={() => handleSave(match.id)} 
                             className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity mr-2 font-semibold"
@@ -1117,17 +1118,17 @@ export default function MatchesTable({
                     ) : (
                       // View mode
                       <>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
                           {isThirdPlaceMatch(match) ? (
                             <span className="text-amber-600 font-semibold">🥉 3rd Place</span>
                           ) : (
                             getRoundName(match.round)
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm font-mono">
                           {formatMatchNumber(match)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4 whitespace-nowrap">
                           {match.player1?.seed && (
                             <span className="text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded mr-2">
                               {match.player1.seed}
@@ -1135,10 +1136,10 @@ export default function MatchesTable({
                           )}
                           <span className="text-sm">{match.player1?.name || "TBD"}</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
                           {match.score1 && match.score2 ? `${match.score1} - ${match.score2}` : "—"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4 whitespace-nowrap">
                           {match.player2?.seed && (
                             <span className="text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded mr-2">
                               {match.player2.seed}
@@ -1146,10 +1147,10 @@ export default function MatchesTable({
                           )}
                           <span className="text-sm">{match.player2?.name || "TBD"}</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
                           {(match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "—"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
                           {match.slot ? (
                             <div className="flex flex-col">
                               {match.slot.code && (
@@ -1169,8 +1170,8 @@ export default function MatchesTable({
                             <span className="text-sm text-gray-400">未排定</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">{match.court || "—"}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">{match.court || "—"}</td>
+                        <td className="px-3 py-4 whitespace-nowrap">
                           <span
                             className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                               match.status === 'completed'
@@ -1185,7 +1186,7 @@ export default function MatchesTable({
                             {match.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button 
                             onClick={() => handleEdit(match)} 
                             className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity font-semibold"
@@ -1200,6 +1201,7 @@ export default function MatchesTable({
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Mobile Card View */}
