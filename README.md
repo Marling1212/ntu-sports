@@ -284,7 +284,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY = [你的 Supabase Anon Key]
 
 ## 📄 授權
 
-MIT License - 台灣大學網球社
+MIT License - 台灣大學男網隊
 
 ---
 
