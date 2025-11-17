@@ -1275,12 +1275,15 @@ export default function MatchesTable({
                     </div>
                   )}
 
-                  {match.winner && (
-                    <div className="text-center text-sm">
-                      <span className="text-gray-600">Winner: </span>
-                      <span className="font-semibold text-ntu-green">{match.winner.name}</span>
-                    </div>
-                  )}
+                  {match.winner_id && (() => {
+                    const winner = players.find(p => p.id === match.winner_id);
+                    return winner ? (
+                      <div className="text-center text-sm">
+                        <span className="text-gray-600">Winner: </span>
+                        <span className="font-semibold text-ntu-green">{winner.name}</span>
+                      </div>
+                    ) : null;
+                  })()}
 
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-2 border-t border-gray-100">
                     <div>
