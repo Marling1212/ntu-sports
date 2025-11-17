@@ -906,6 +906,7 @@ export default function MatchesTable({
               </div>
             </div>
           )}
+        </div>
 
         {/* Desktop Table View */}
         <div id="matches-table" className="hidden md:block overflow-x-auto scroll-mt-24">
