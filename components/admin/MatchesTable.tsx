@@ -179,6 +179,30 @@ export default function MatchesTable({
       }
 
       return true;
+    }).sort((a, b) => {
+      // Priority: delayed status and no scheduled time go to bottom
+      const aIsDelayedOrUnscheduled = a.status === 'delayed' || !a.scheduled_time;
+      const bIsDelayedOrUnscheduled = b.status === 'delayed' || !b.scheduled_time;
+      
+      // If one is delayed/unscheduled and the other is not, delayed/unscheduled goes to bottom
+      if (aIsDelayedOrUnscheduled && !bIsDelayedOrUnscheduled) return 1;
+      if (!aIsDelayedOrUnscheduled && bIsDelayedOrUnscheduled) return -1;
+      
+      // If both are delayed/unscheduled or both are not, sort by scheduled time
+      if (aIsDelayedOrUnscheduled && bIsDelayedOrUnscheduled) {
+        // Both are delayed/unscheduled - sort by match number or round
+        if (a.round !== b.round) return a.round - b.round;
+        return a.match_number - b.match_number;
+      }
+      
+      // Both have scheduled time - sort by time
+      if (a.scheduled_time && b.scheduled_time) {
+        return new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime();
+      }
+      
+      // Fallback: sort by round and match number
+      if (a.round !== b.round) return a.round - b.round;
+      return a.match_number - b.match_number;
     });
   }, [matches, searchQuery, statusFilter, courtFilter, dateFilter, roundFilter]);
 
