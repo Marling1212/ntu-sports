@@ -53,6 +53,9 @@ export default async function AnnouncementsPage({ params }: { params: Promise<{ 
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">Manage Announcements</h1>
           <p className="text-lg text-gray-600">{event?.name}</p>
+          <p className="text-sm text-gray-500 mt-2">
+            明日賽程將自動顯示於此頁，不需手動發布
+          </p>
         </div>
 
         <AnnouncementsManager 

@@ -74,9 +74,6 @@ export default async function SportAnnouncementsPage(context: any) {
       <div className="container mx-auto px-4 py-12">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-ntu-green mb-4">{sportName} Announcements</h1>
-        <p className="text-lg text-gray-600">
-          明日賽程將自動顯示於此頁，不需手動發布
-        </p>
       </div>
 
       {/* Auto announcement: today's or next-day scheduled matches (view-only, generated on load) */}
