@@ -1,6 +1,7 @@
 import BracketSection from "@/components/BracketSection";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import ExportBracket from "@/components/ExportBracket";
+import ExportPDF from "@/components/ExportPDF";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getTennisEvent, getTennisMatches, getTennisPlayers } from "@/lib/utils/getTennisEvent";
 import { generateTennisPlayers, seedPlayers, generateMatches } from "@/data/tennisDraw";
@@ -76,14 +77,24 @@ export default async function TennisDrawPage() {
             </p>
           </div>
           
-        <ExportBracket 
-          matches={matches}
-          players={players}
-          eventName={event?.name || "NTU Tennis Tournament"}
-          eventDate={eventDate}
-          eventVenue={eventVenue}
-          tournamentType={event?.tournament_type || "single_elimination"}
-        />
+        <div className="flex gap-2">
+          <ExportBracket 
+            matches={matches}
+            players={players}
+            eventName={event?.name || "NTU Tennis Tournament"}
+            eventDate={eventDate}
+            eventVenue={eventVenue}
+            tournamentType={event?.tournament_type || "single_elimination"}
+          />
+          <ExportPDF
+            matches={matches}
+            players={players}
+            eventName={event?.name || "NTU Tennis Tournament"}
+            eventDate={eventDate}
+            eventVenue={eventVenue}
+            tournamentType={event?.tournament_type || "single_elimination"}
+          />
+        </div>
       </div>
 
       {event?.tournament_type === 'season_play' ? (
