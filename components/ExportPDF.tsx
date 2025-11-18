@@ -78,21 +78,43 @@ export default function ExportPDF({
 
       const imgWidth = 297; // A4 landscape width in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      // Add image to PDF
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-
-      // If content is too tall, split into multiple pages
       const pageHeight = 210; // A4 height in mm
-      let heightLeft = imgHeight;
-      let position = 0;
+      const pageWidth = 297; // A4 landscape width in mm
 
-      if (heightLeft > pageHeight) {
-        while (heightLeft > 0) {
-          position = heightLeft - pageHeight;
+      // Calculate how many pages we need
+      const totalPages = Math.ceil(imgHeight / pageHeight);
+
+      // Add image to PDF, split across multiple pages if needed
+      for (let i = 0; i < totalPages; i++) {
+        if (i > 0) {
           pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
+        }
+
+        // Calculate the source Y position in the original image (in pixels)
+        const sourceY = (i * pageHeight * canvas.height) / imgHeight;
+        const sourceHeight = Math.min(
+          (pageHeight * canvas.height) / imgHeight,
+          canvas.height - sourceY
+        );
+
+        // Create a temporary canvas for this page
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceHeight;
+        const pageCtx = pageCanvas.getContext("2d");
+        
+        if (pageCtx) {
+          // Draw the portion of the image for this page
+          pageCtx.drawImage(
+            canvas,
+            0, sourceY, canvas.width, sourceHeight,
+            0, 0, canvas.width, sourceHeight
+          );
+
+          const pageImgData = pageCanvas.toDataURL("image/png");
+          const pageImgHeight = (sourceHeight * pageWidth) / canvas.width;
+          
+          pdf.addImage(pageImgData, "PNG", 0, 0, pageWidth, pageImgHeight);
         }
       }
 
