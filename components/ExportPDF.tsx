@@ -2,7 +2,7 @@
 
 import { Player, Match } from "@/types/tournament";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 import toast from "react-hot-toast";
 
 interface ExportPDFProps {
@@ -23,155 +23,176 @@ export default function ExportPDF({
   tournamentType = "single_elimination"
 }: ExportPDFProps) {
   
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      });
+      toast.loading("正在生成 PDF...", { id: "pdf-export" });
+      
+      // Create a temporary container for the PDF content
+      const container = document.createElement("div");
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      container.style.width = "1200px"; // Landscape A4 width in pixels
+      container.style.backgroundColor = "white";
+      container.style.padding = "40px";
+      container.style.fontFamily = "Arial, 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif";
+      document.body.appendChild(container);
 
       // Detect tournament type
       const hasRegularSeason = matches.some(m => m.round === 0);
       const isSeasonPlay = tournamentType === "season_play" || hasRegularSeason;
 
-      if (isSeasonPlay) {
-        exportSeasonPlayPDF(doc);
-      } else {
-        exportSingleEliminationPDF(doc);
+      const regularSeasonMatches = matches.filter(m => m.round === 0);
+      const playoffMatches = matches.filter(m => m.round >= 1);
+
+      // Generate HTML content
+      const htmlContent = isSeasonPlay 
+        ? generateSeasonPlayHTML(regularSeasonMatches, playoffMatches)
+        : generateSingleEliminationHTML();
+
+      container.innerHTML = htmlContent;
+
+      // Wait for fonts to load
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Convert to canvas
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        width: container.offsetWidth,
+        height: container.scrollHeight
+      });
+
+      // Remove temporary container
+      document.body.removeChild(container);
+
+      // Create PDF
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4"
+      });
+
+      const imgWidth = 297; // A4 landscape width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Add image to PDF
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+      // If content is too tall, split into multiple pages
+      const pageHeight = 210; // A4 height in mm
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      if (heightLeft > pageHeight) {
+        while (heightLeft > 0) {
+          position = heightLeft - pageHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
       }
 
       // Generate filename
       const timestamp = new Date().toISOString().slice(0, 10);
-      const filename = `${eventName.replace(/\s+/g, '_')}_${isSeasonPlay ? '賽季' : '籤表'}_${timestamp}.pdf`;
+      const filename = `${eventName.replace(/\s+/g, '_')}_${isSeasonPlay ? 'Season' : 'Bracket'}_${timestamp}.pdf`;
       
-      doc.save(filename);
-      toast.success(`📄 PDF ${isSeasonPlay ? '賽季資料' : '籤表'}已下載！`);
+      pdf.save(filename);
+      toast.success(`📄 PDF ${isSeasonPlay ? '賽季資料' : '籤表'}已下載！`, { id: "pdf-export" });
     } catch (error) {
       console.error("PDF export error:", error);
-      toast.error("PDF 匯出失敗，請稍後再試");
+      toast.error("PDF 匯出失敗，請稍後再試", { id: "pdf-export" });
     }
   };
 
-  const exportSeasonPlayPDF = (doc: jsPDF) => {
-    const regularSeasonMatches = matches.filter(m => m.round === 0);
-    const playoffMatches = matches.filter(m => m.round >= 1);
-
-    // Page 1: Event Info & Regular Season Matches
-    let yPos = 10;
-    
-    // Title
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text(eventName, 14, yPos);
-    yPos += 8;
-
-    // Event details
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(`比賽日期: ${eventDate}`, 14, yPos);
-    yPos += 6;
-    doc.text(`比賽地點: ${eventVenue}`, 14, yPos);
-    yPos += 10;
-
-    // Regular Season Matches Table
-    if (regularSeasonMatches.length > 0) {
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Regular Season Matches", 14, yPos);
-      yPos += 8;
-
-      const matchData = regularSeasonMatches
-        .sort((a, b) => {
-          const aGroup = (a as any).group_number || 0;
-          const bGroup = (b as any).group_number || 0;
-          if (aGroup !== bGroup) return aGroup - bGroup;
-          return a.matchNumber - b.matchNumber;
-        })
-        .map(match => {
-          const matchData = match as any;
-          return [
-            matchData.group_number ? `Group ${matchData.group_number}` : "",
-            match.matchNumber.toString(),
-            match.player1?.name || "TBD",
-            match.player2?.name || "TBD",
-            match.score || "-",
-            match.status
-          ];
-        });
-
-      autoTable(doc, {
-        startY: yPos,
-        head: [["Group", "Match #", "Player 1", "Player 2", "Score", "Status"]],
-        body: matchData,
-        theme: "striped",
-        headStyles: { fillColor: [34, 139, 34], textColor: 255, fontStyle: "bold" },
-        styles: { fontSize: 9 },
-        margin: { left: 14, right: 14 }
-      });
-
-      yPos = (doc as any).lastAutoTable.finalY + 10;
-    }
-
-    // If we need a new page for standings
-    if (yPos > 180) {
-      doc.addPage();
-      yPos = 10;
-    }
-
-    // Standings Table
+  const generateSeasonPlayHTML = (regularSeasonMatches: Match[], playoffMatches: Match[]) => {
     const standings = calculateStandings(regularSeasonMatches, players);
-    if (standings.length > 0) {
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Standings", 14, yPos);
-      yPos += 8;
+    
+    let html = `
+      <div style="font-family: Arial, 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif;">
+        <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #00694E;">${eventName}</h1>
+        <div style="margin-bottom: 20px; font-size: 14px;">
+          <p><strong>比賽日期:</strong> ${eventDate}</p>
+          <p><strong>比賽地點:</strong> ${eventVenue}</p>
+        </div>
+    `;
 
-      const standingsData = standings.map((s, idx) => [
-        (idx + 1).toString(),
-        s.player.name,
-        s.wins.toString(),
-        s.draws.toString(),
-        s.losses.toString(),
-        s.points.toString(),
-        s.goalDiff.toString()
-      ]);
+    // Regular Season Matches
+    if (regularSeasonMatches.length > 0) {
+      html += `<h2 style="font-size: 18px; font-weight: bold; margin-top: 30px; margin-bottom: 15px;">Regular Season Matches</h2>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">`;
+      html += `<thead><tr style="background-color: #00694E; color: white; font-weight: bold;">`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Group</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Match #</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player 1</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player 2</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Score</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Status</th>`;
+      html += `</tr></thead><tbody>`;
 
-      autoTable(doc, {
-        startY: yPos,
-        head: [["Rank", "Player", "W", "D", "L", "Points", "GD"]],
-        body: standingsData,
-        theme: "striped",
-        headStyles: { fillColor: [34, 139, 34], textColor: 255, fontStyle: "bold" },
-        styles: { fontSize: 9 },
-        margin: { left: 14, right: 14 }
+      const sortedMatches = regularSeasonMatches.sort((a, b) => {
+        const aGroup = (a as any).group_number || 0;
+        const bGroup = (b as any).group_number || 0;
+        if (aGroup !== bGroup) return aGroup - bGroup;
+        return a.matchNumber - b.matchNumber;
       });
+
+      sortedMatches.forEach((match, idx) => {
+        const matchData = match as any;
+        const bgColor = idx % 2 === 0 ? "#f9f9f9" : "white";
+        html += `<tr style="background-color: ${bgColor};">`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd;">${matchData.group_number ? `Group ${matchData.group_number}` : ""}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${match.matchNumber}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd;">${match.player1?.name || "TBD"}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd;">${match.player2?.name || "TBD"}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${match.score || "-"}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${match.status}</td>`;
+        html += `</tr>`;
+      });
+
+      html += `</tbody></table>`;
     }
 
-    // Page 2: Playoff Bracket (if exists)
-    if (playoffMatches.length > 0) {
-      doc.addPage();
-      exportPlayoffBracketPDF(doc, playoffMatches);
+    // Standings
+    if (standings.length > 0) {
+      html += `<h2 style="font-size: 18px; font-weight: bold; margin-top: 30px; margin-bottom: 15px;">Standings</h2>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">`;
+      html += `<thead><tr style="background-color: #00694E; color: white; font-weight: bold;">`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Rank</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">W</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">D</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">L</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Points</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">GD</th>`;
+      html += `</tr></thead><tbody>`;
+
+      standings.forEach((standing, idx) => {
+        const bgColor = idx % 2 === 0 ? "#f9f9f9" : "white";
+        html += `<tr style="background-color: ${bgColor};">`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${idx + 1}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd;">${standing.player.name}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.wins}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.draws}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.losses}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${standing.points}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.goalDiff}</td>`;
+        html += `</tr>`;
+      });
+
+      html += `</tbody></table>`;
     }
+
+    html += `</div>`;
+    return html;
   };
 
-  const exportSingleEliminationPDF = (doc: jsPDF) => {
+  const generateSingleEliminationHTML = () => {
     const maxRound = Math.max(...matches.map(m => m.round), 1);
     
-    // Title section
-    let yPos = 10;
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text(eventName, 14, yPos);
-    yPos += 8;
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(`比賽日期: ${eventDate}`, 14, yPos);
-    yPos += 6;
-    doc.text(`比賽地點: ${eventVenue}`, 14, yPos);
-    yPos += 10;
-
     // Build bracket data
     const round1Matches = matches
       .filter(m => m.round === 1)
@@ -216,7 +237,7 @@ export default function ExportPDF({
       });
     }
 
-    // Create table data
+    // Create headers
     const headers = ["順序", "種子", "姓名", "系級"];
     for (let i = 1; i <= maxRound; i++) {
       if (i === 1) headers.push("第一輪");
@@ -228,19 +249,37 @@ export default function ExportPDF({
       else headers.push(`第${i}輪`);
     }
 
-    const tableData = positions.map((player, index) => {
-      const row: any[] = [
-        (index + 1).toString(),
-        player?.seed ? `s${player.seed}` : "",
-        player?.name || "BYE",
-        player?.school || ""
-      ];
+    let html = `
+      <div style="font-family: Arial, 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif;">
+        <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #00694E;">${eventName}</h1>
+        <div style="margin-bottom: 20px; font-size: 14px;">
+          <p><strong>比賽日期:</strong> ${eventDate}</p>
+          <p><strong>比賽地點:</strong> ${eventVenue}</p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <thead>
+            <tr style="background-color: #00694E; color: white; font-weight: bold;">
+    `;
+
+    headers.forEach(header => {
+      html += `<th style="padding: 8px; border: 1px solid #ddd; text-align: center;">${header}</th>`;
+    });
+
+    html += `</tr></thead><tbody>`;
+
+    positions.forEach((player, index) => {
+      const bgColor = index % 2 === 0 ? "#f9f9f9" : "white";
+      html += `<tr style="background-color: ${bgColor};">`;
+      html += `<td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${index + 1}</td>`;
+      html += `<td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${player?.seed ? `s${player.seed}` : ""}</td>`;
+      html += `<td style="padding: 6px; border: 1px solid #ddd;">${player?.name || "BYE"}</td>`;
+      html += `<td style="padding: 6px; border: 1px solid #ddd;">${player?.school || ""}</td>`;
       
       for (let round = 1; round <= maxRound; round++) {
-        row.push(positionRoundResults[index][round] || "");
+        html += `<td style="padding: 6px; border: 1px solid #ddd;">${positionRoundResults[index][round] || ""}</td>`;
       }
       
-      return row;
+      html += `</tr>`;
     });
 
     // Add 3rd place match if exists
@@ -249,112 +288,24 @@ export default function ExportPDF({
     const thirdPlaceMatch = has3rdPlace ? finalRoundMatches.find(m => m.matchNumber === 2) : null;
 
     if (has3rdPlace && thirdPlaceMatch) {
-      tableData.push([]);
-      tableData.push(["", "", "季軍賽 (3rd Place Match)", ""]);
-      tableData.push(["", "", thirdPlaceMatch.player1?.name || "TBD", thirdPlaceMatch.player1?.school || ""]);
-      tableData.push(["", "", thirdPlaceMatch.player2?.name || "TBD", thirdPlaceMatch.player2?.school || ""]);
+      html += `<tr><td colspan="${headers.length}" style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f0f0f0;">季軍賽 (3rd Place Match)</td></tr>`;
+      html += `<tr><td colspan="2"></td><td style="padding: 6px; border: 1px solid #ddd;">${thirdPlaceMatch.player1?.name || "TBD"}</td><td style="padding: 6px; border: 1px solid #ddd;">${thirdPlaceMatch.player1?.school || ""}</td>`;
+      for (let i = 4; i < headers.length; i++) html += `<td></td>`;
+      html += `</tr>`;
+      html += `<tr><td colspan="2"></td><td style="padding: 6px; border: 1px solid #ddd;">${thirdPlaceMatch.player2?.name || "TBD"}</td><td style="padding: 6px; border: 1px solid #ddd;">${thirdPlaceMatch.player2?.school || ""}</td>`;
+      for (let i = 4; i < headers.length; i++) html += `<td></td>`;
+      html += `</tr>`;
       
       if (thirdPlaceMatch.status === "completed" && thirdPlaceMatch.winner) {
         const score = thirdPlaceMatch.score || "";
-        tableData.push(["", "", `第三名: ${thirdPlaceMatch.winner.name} (${score})`, ""]);
+        html += `<tr><td colspan="2"></td><td colspan="2" style="padding: 6px; border: 1px solid #ddd; font-weight: bold;">第三名: ${thirdPlaceMatch.winner.name} (${score})</td>`;
+        for (let i = 4; i < headers.length; i++) html += `<td></td>`;
+        html += `</tr>`;
       }
     }
 
-    // Generate table
-    autoTable(doc, {
-      startY: yPos,
-      head: [headers],
-      body: tableData,
-      theme: "striped",
-      headStyles: { fillColor: [34, 139, 34], textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 8 },
-      margin: { left: 14, right: 14 },
-      columnStyles: {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 15 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 40 }
-      }
-    });
-  };
-
-  const exportPlayoffBracketPDF = (doc: jsPDF, playoffMatches: Match[]) => {
-    const maxRound = Math.max(...playoffMatches.map(m => m.round), 1);
-    
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("Playoff Bracket", 14, 10);
-
-    // Similar logic to single elimination
-    const round1Matches = playoffMatches
-      .filter(m => m.round === 1)
-      .sort((a, b) => a.matchNumber - b.matchNumber);
-
-    const positions: (Player | null)[] = [];
-    round1Matches.forEach(match => {
-      positions.push(match.player1 || null);
-      positions.push(match.player2 || null);
-    });
-
-    const positionRoundResults: Record<number, Record<number, string>> = {};
-    positions.forEach((_, index) => {
-      positionRoundResults[index] = {};
-    });
-
-    for (let round = 1; round <= maxRound; round++) {
-      const roundMatches = playoffMatches
-        .filter(m => m.round === round)
-        .sort((a, b) => a.matchNumber - b.matchNumber);
-
-      roundMatches.forEach((match) => {
-        const playersPerMatch = Math.pow(2, round);
-        const startPos = (match.matchNumber - 1) * playersPerMatch;
-        const endPos = startPos + playersPerMatch - 1;
-        const lowestPosition = Math.max(...Array.from({ length: endPos - startPos + 1 }, (_, i) => startPos + i).filter(pos => pos < positions.length));
-
-        let displayText = "";
-        if (match.status === "bye" && match.winner) {
-          displayText = `${match.winner.name} (bye)`;
-        } else if (match.status === "completed" && match.winner) {
-          const score = match.score || "";
-          displayText = `${match.winner.name} (${score})`;
-        }
-
-        if (displayText) {
-          positionRoundResults[lowestPosition][round] = displayText;
-        }
-      });
-    }
-
-    const headers = ["順序", "種子", "姓名", "系級"];
-    for (let i = 1; i <= maxRound; i++) {
-      headers.push(`Round ${i}`);
-    }
-
-    const tableData = positions.map((player, index) => {
-      const row: any[] = [
-        (index + 1).toString(),
-        player?.seed ? `s${player.seed}` : "",
-        player?.name || "BYE",
-        player?.school || ""
-      ];
-      
-      for (let round = 1; round <= maxRound; round++) {
-        row.push(positionRoundResults[index][round] || "");
-      }
-      
-      return row;
-    });
-
-    autoTable(doc, {
-      startY: 20,
-      head: [headers],
-      body: tableData,
-      theme: "striped",
-      headStyles: { fillColor: [34, 139, 34], textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 8 },
-      margin: { left: 14, right: 14 }
-    });
+    html += `</tbody></table></div>`;
+    return html;
   };
 
   const calculateStandings = (regularSeasonMatches: Match[], players: Player[]) => {
@@ -437,4 +388,3 @@ export default function ExportPDF({
     </button>
   );
 }
-
