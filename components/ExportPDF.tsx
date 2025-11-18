@@ -148,11 +148,10 @@ export default function ExportPDF({
       html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">`;
       html += `<thead><tr style="background-color: #00694E; color: white; font-weight: bold;">`;
       html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Group</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Match #</th>`;
       html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player 1</th>`;
       html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player 2</th>`;
       html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Score</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Status</th>`;
+      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Game Date</th>`;
       html += `</tr></thead><tbody>`;
 
       const sortedMatches = regularSeasonMatches.sort((a, b) => {
@@ -162,16 +161,32 @@ export default function ExportPDF({
         return a.matchNumber - b.matchNumber;
       });
 
+      const formatGameDate = (scheduledTime?: string | null): string => {
+        if (!scheduledTime) return "TBD";
+        try {
+          const date = new Date(scheduledTime);
+          return date.toLocaleDateString('zh-TW', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Asia/Taipei'
+          });
+        } catch {
+          return "TBD";
+        }
+      };
+
       sortedMatches.forEach((match, idx) => {
         const matchData = match as any;
         const bgColor = idx % 2 === 0 ? "#f9f9f9" : "white";
         html += `<tr style="background-color: ${bgColor};">`;
         html += `<td style="padding: 8px; border: 1px solid #ddd;">${matchData.group_number ? `Group ${matchData.group_number}` : ""}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${match.matchNumber}</td>`;
         html += `<td style="padding: 8px; border: 1px solid #ddd;">${match.player1?.name || "TBD"}</td>`;
         html += `<td style="padding: 8px; border: 1px solid #ddd;">${match.player2?.name || "TBD"}</td>`;
         html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${match.score || "-"}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${match.status}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${formatGameDate(matchData.scheduled_time)}</td>`;
         html += `</tr>`;
       });
 
