@@ -373,10 +373,10 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                   const maxGoals = topScorers[0].goalsFor;
                   const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
                   return (
-                    <div key={stat.id || stat.player?.id}>
+                    <div key={stat.id}>
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-medium text-gray-700">
-                          {idx + 1}. {stat.name || stat.player?.name}
+                          {idx + 1}. {stat.name}
                         </span>
                         <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} 球</span>
                       </div>
