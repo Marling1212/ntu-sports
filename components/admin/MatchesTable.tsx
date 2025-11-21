@@ -6,6 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { Player } from "@/types/database";
 import { checkAndAnnounceRoundCompletion } from "@/lib/utils/checkRoundCompletion";
 import * as XLSX from 'xlsx';
+import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
 
 interface SlotOption {
   id: string;
@@ -131,6 +132,9 @@ export default function MatchesTable({
   const [batchOperation, setBatchOperation] = useState<"score" | "court" | "status" | null>(null);
   const [batchForm, setBatchForm] = useState({ court: "", status: "", customCourt: "" });
 
+  // Announcement draft states
+  const [announcementDrafts, setAnnouncementDrafts] = useState<AnnouncementDraft[]>([]);
+
   const slotMap = useMemo(() => {
     const map = new Map<string, SlotOption>();
     slots.forEach((slot) => map.set(slot.id, slot));
@@ -204,7 +208,7 @@ export default function MatchesTable({
       if (a.round !== b.round) return a.round - b.round;
       return a.match_number - b.match_number;
     });
-  }, [matches, searchQuery, statusFilter, courtFilter, dateFilter, roundFilter]);
+  }, [matches, searchQuery, statusFilter, courtFilter, dateFilter, roundFilter, players]);
 
   const handleEdit = (match: Match) => {
     const slotCandidate = match.slot_id ? slotMap.get(match.slot_id) || match.slot || null : match.slot || null;
@@ -263,7 +267,7 @@ export default function MatchesTable({
       return;
     }
 
-    // If status changed to "live", create an announcement
+    // If status changed to "live", create an announcement (keep existing behavior)
     if (isNowLive && data.player1 && data.player2) {
       const player1Name = data.player1.name || "TBD";
       const player2Name = data.player2.name || "TBD";
@@ -285,6 +289,81 @@ export default function MatchesTable({
         console.error("Error creating announcement:", announcementError);
       } else {
         console.log("Announcement created for live match");
+      }
+    }
+
+    // Generate announcement drafts for other changes (status, date, score)
+    // Skip if status changed to "live" (already handled above)
+    if (!isNowLive && data.player1 && data.player2) {
+      const player1Name = data.player1.name || "TBD";
+      const player2Name = data.player2.name || "TBD";
+      const matchInfo = `Round ${currentMatch.round}, Match ${currentMatch.match_number}: ${player1Name} vs ${player2Name}`;
+      
+      // Check for status change (excluding live)
+      if (editForm.status !== currentMatch.status && editForm.status !== "live") {
+        const statusLabels: { [key: string]: string } = {
+          upcoming: "即將開始",
+          completed: "已完成",
+          delayed: "延遲",
+          bye: "輪空",
+        };
+        const originalStatus = statusLabels[currentMatch.status] || currentMatch.status;
+        const newStatus = statusLabels[editForm.status] || editForm.status;
+        
+        const draftId = `status-${matchId}-${Date.now()}`;
+        const defaultContent = `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
+        
+        setAnnouncementDrafts(prev => [...prev, {
+          id: draftId,
+          matchId,
+          matchInfo,
+          changeType: "status",
+          originalValue: originalStatus,
+          newValue: newStatus,
+          content: defaultContent,
+        }]);
+      }
+      
+      // Check for date/time change
+      const oldDate = currentMatch.scheduled_time ? formatDateTimeDisplay(currentMatch.scheduled_time) : "未排定";
+      const newDate = scheduledIso ? formatDateTimeDisplay(scheduledIso) : "未排定";
+      
+      if (oldDate !== newDate) {
+        const draftId = `date-${matchId}-${Date.now()}`;
+        const defaultContent = `📅 ${matchInfo}\n比賽時間更新：${oldDate} → ${newDate}`;
+        
+        setAnnouncementDrafts(prev => [...prev, {
+          id: draftId,
+          matchId,
+          matchInfo,
+          changeType: "date",
+          originalValue: oldDate,
+          newValue: newDate,
+          content: defaultContent,
+        }]);
+      }
+      
+      // Check for score change
+      const oldScore = currentMatch.score1 && currentMatch.score2 
+        ? `${currentMatch.score1}-${currentMatch.score2}` 
+        : "未記錄";
+      const newScore = editForm.score1 && editForm.score2 
+        ? `${editForm.score1}-${editForm.score2}` 
+        : (editForm.score1 || editForm.score2 ? `${editForm.score1 || 0}-${editForm.score2 || 0}` : "未記錄");
+      
+      if (oldScore !== newScore && (editForm.score1 || editForm.score2)) {
+        const draftId = `score-${matchId}-${Date.now()}`;
+        const defaultContent = `⚽ ${matchInfo}\n比數更新：${oldScore} → ${newScore}`;
+        
+        setAnnouncementDrafts(prev => [...prev, {
+          id: draftId,
+          matchId,
+          matchInfo,
+          changeType: "score",
+          originalValue: oldScore,
+          newValue: newScore,
+          content: defaultContent,
+        }]);
       }
     }
 
@@ -541,6 +620,44 @@ export default function MatchesTable({
     } catch (error: any) {
       toast.error(`更新失敗: ${error.message}`);
     }
+  };
+
+  // Announcement draft handlers
+  const handleUpdateDraft = (id: string, content: string) => {
+    setAnnouncementDrafts(prev => 
+      prev.map(draft => draft.id === id ? { ...draft, content } : draft)
+    );
+  };
+
+  const handleRemoveDraft = (id: string) => {
+    setAnnouncementDrafts(prev => prev.filter(draft => draft.id !== id));
+  };
+
+  const handlePublishAnnouncements = async (drafts: AnnouncementDraft[], combinedContent: string) => {
+    if (drafts.length === 0) return;
+
+    if (!combinedContent.trim()) {
+      toast.error("請輸入公告內容");
+      return;
+    }
+    
+    // Create a single announcement with all changes
+    const { error } = await supabase
+      .from("announcements")
+      .insert({
+        event_id: eventId,
+        title: `📢 比賽更新公告 (${drafts.length} 項變更)`,
+        content: combinedContent,
+        created_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      console.error("Error publishing announcement:", error);
+      throw error;
+    }
+
+    // Clear all drafts after successful publish
+    setAnnouncementDrafts([]);
   };
 
   // Batch export function
@@ -1397,6 +1514,15 @@ export default function MatchesTable({
           )}
         </div>
       </div>
+
+      {/* Announcement Draft Window */}
+      <AnnouncementDraftWindow
+        drafts={announcementDrafts}
+        onUpdateDraft={handleUpdateDraft}
+        onRemoveDraft={handleRemoveDraft}
+        onPublish={handlePublishAnnouncements}
+        eventId={eventId}
+      />
     </>
   );
 }
