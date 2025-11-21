@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player, SportStatDefinition, MatchPlayerStat, Event } from "@/types/database";
@@ -317,6 +317,65 @@ export default function MatchDetailContent({
     }));
   };
 
+  // Calculate team-level stats from player-level stats (auto-sum)
+  const calculateTeamStats = useMemo(() => {
+    const teamStats: Record<string, Record<string, string>> = {};
+    
+    if (!isTeamEvent) return teamStats;
+    
+    // For each team (player1 and player2)
+    [player1, player2].forEach(player => {
+      if (!player || !teamMembers[player.id]) return;
+      
+      teamStats[player.id] = {};
+      
+      // For each team-level stat, sum up from player-level stats
+      teamLevelStats.forEach(stat => {
+        // Find corresponding player-level stat (e.g., 'goals' -> 'player_goals')
+        const playerStatName = `player_${stat.stat_name}`;
+        const playerStat = playerLevelStats.find(s => s.stat_name === playerStatName);
+        
+        if (playerStat && stat.stat_type === 'number') {
+          // Sum up all player stats for this team
+          let total = 0;
+          teamMembers[player.id].forEach((member: any) => {
+            const value = teamMemberStats[player.id]?.[member.id]?.[playerStatName];
+            if (value) {
+              total += parseFloat(value) || 0;
+            }
+          });
+          teamStats[player.id][stat.stat_name] = total > 0 ? total.toString() : "";
+        } else if (stat.stat_type === 'boolean') {
+          // For boolean stats, check if any player has it set to true
+          let hasTrue = false;
+          teamMembers[player.id].forEach((member: any) => {
+            const value = teamMemberStats[player.id]?.[member.id]?.[`player_${stat.stat_name}`];
+            if (value === "true") {
+              hasTrue = true;
+            }
+          });
+          teamStats[player.id][stat.stat_name] = hasTrue ? "true" : "";
+        }
+      });
+    });
+    
+    return teamStats;
+  }, [teamMemberStats, teamMembers, teamLevelStats, playerLevelStats, isTeamEvent, player1, player2]);
+
+  // Get list of team members who have data entered
+  const getTeamMembersWithData = (playerId: string) => {
+    if (!teamMembers[playerId]) return [];
+    return teamMembers[playerId].filter((member: any) => {
+      // Check if this member has any stats entered
+      const memberStats = teamMemberStats[playerId]?.[member.id];
+      if (!memberStats) return false;
+      return Object.keys(memberStats).some(key => {
+        const value = memberStats[key];
+        return value !== undefined && value !== null && value !== "";
+      });
+    });
+  };
+
   // Separate team-level and player-level stats
   const allStats = [...statDefinitions.filter(s => s.is_default), ...customStats].sort(
     (a, b) => a.display_order - b.display_order
@@ -510,52 +569,9 @@ export default function MatchDetailContent({
                   )}
                 </h3>
 
-                {/* Team-level Stats */}
-                {isTeamEvent && teamLevelStats.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計</h4>
-                    <div className="space-y-3">
-                      {teamLevelStats.map(stat => (
-                        <div key={stat.id}>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {stat.stat_label}
-                          </label>
-                          {stat.stat_type === 'number' ? (
-                            <input
-                              type="number"
-                              value={playerStats[player1.id]?.[stat.stat_name] || ""}
-                              onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                              placeholder="0"
-                            />
-                          ) : stat.stat_type === 'boolean' ? (
-                            <select
-                              value={playerStats[player1.id]?.[stat.stat_name] || ""}
-                              onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                            >
-                              <option value="">—</option>
-                              <option value="true">是</option>
-                              <option value="false">否</option>
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              value={playerStats[player1.id]?.[stat.stat_name] || ""}
-                              onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                              placeholder="輸入文字"
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Player-level Stats for Team Members */}
+                {/* Player-level Stats for Team Members - MOVED TO TOP */}
                 {isTeamEvent && playerLevelStats.length > 0 && teamMembers[player1.id] && teamMembers[player1.id].length > 0 && (
-                  <div>
+                  <div className="mb-6">
                     <div className="flex justify-between items-center mb-3">
                       <h4 className="text-md font-medium text-gray-700">個別球員統計</h4>
                       <select
@@ -564,9 +580,18 @@ export default function MatchDetailContent({
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
                       >
                         <option value="">選擇球員...</option>
-                        {teamMembers[player1.id].map((member: any) => (
+                        {/* Show only players with data */}
+                        {getTeamMembersWithData(player1.id).map((member: any) => (
                           <option key={member.id} value={member.id}>
                             {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
+                          </option>
+                        ))}
+                        {/* Also show option to add new player */}
+                        {teamMembers[player1.id].filter((m: any) => 
+                          !getTeamMembersWithData(player1.id).some((d: any) => d.id === m.id)
+                        ).map((member: any) => (
+                          <option key={member.id} value={member.id}>
+                            + {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
                           </option>
                         ))}
                       </select>
@@ -680,52 +705,9 @@ export default function MatchDetailContent({
                   )}
                 </h3>
 
-                {/* Team-level Stats */}
-                {isTeamEvent && teamLevelStats.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計</h4>
-                    <div className="space-y-3">
-                      {teamLevelStats.map(stat => (
-                        <div key={stat.id}>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {stat.stat_label}
-                          </label>
-                          {stat.stat_type === 'number' ? (
-                            <input
-                              type="number"
-                              value={playerStats[player2.id]?.[stat.stat_name] || ""}
-                              onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                              placeholder="0"
-                            />
-                          ) : stat.stat_type === 'boolean' ? (
-                            <select
-                              value={playerStats[player2.id]?.[stat.stat_name] || ""}
-                              onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                            >
-                              <option value="">—</option>
-                              <option value="true">是</option>
-                              <option value="false">否</option>
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              value={playerStats[player2.id]?.[stat.stat_name] || ""}
-                              onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                              placeholder="輸入文字"
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Player-level Stats for Team Members */}
+                {/* Player-level Stats for Team Members - MOVED TO TOP */}
                 {isTeamEvent && playerLevelStats.length > 0 && teamMembers[player2.id] && teamMembers[player2.id].length > 0 && (
-                  <div>
+                  <div className="mb-6">
                     <div className="flex justify-between items-center mb-3">
                       <h4 className="text-md font-medium text-gray-700">個別球員統計</h4>
                       <select
@@ -734,9 +716,18 @@ export default function MatchDetailContent({
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
                       >
                         <option value="">選擇球員...</option>
-                        {teamMembers[player2.id].map((member: any) => (
+                        {/* Show only players with data */}
+                        {getTeamMembersWithData(player2.id).map((member: any) => (
                           <option key={member.id} value={member.id}>
                             {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
+                          </option>
+                        ))}
+                        {/* Also show option to add new player */}
+                        {teamMembers[player2.id].filter((m: any) => 
+                          !getTeamMembersWithData(player2.id).some((d: any) => d.id === m.id)
+                        ).map((member: any) => (
+                          <option key={member.id} value={member.id}>
+                            + {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
                           </option>
                         ))}
                       </select>
@@ -793,6 +784,53 @@ export default function MatchDetailContent({
                         </div>
                       );
                     })()}
+                  </div>
+                )}
+
+                {/* Team-level Stats - READ ONLY, AUTO CALCULATED */}
+                {isTeamEvent && teamLevelStats.length > 0 && (
+                  <div>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計（自動計算）</h4>
+                    <div className="space-y-3">
+                      {teamLevelStats.map(stat => {
+                        // Find corresponding player-level stat
+                        const playerStatName = `player_${stat.stat_name}`;
+                        const playerStat = playerLevelStats.find(s => s.stat_name === playerStatName);
+                        const calculatedValue = calculateTeamStats[player2.id]?.[stat.stat_name] || "";
+                        
+                        return (
+                          <div key={stat.id}>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              {stat.stat_label}
+                            </label>
+                            {stat.stat_type === 'number' ? (
+                              <input
+                                type="number"
+                                value={calculatedValue}
+                                readOnly
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                                placeholder="0"
+                              />
+                            ) : stat.stat_type === 'boolean' ? (
+                              <input
+                                type="text"
+                                value={calculatedValue ? (calculatedValue === "true" ? "是" : "否") : "—"}
+                                readOnly
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                value={calculatedValue}
+                                readOnly
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                                placeholder="自動計算"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 

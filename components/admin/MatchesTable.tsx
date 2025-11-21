@@ -153,39 +153,21 @@ export default function MatchesTable({
   }, [slots]);
 
   // Check if match has individual player stats entered (for team events)
+  // Changed: Now checks if ANY player-level stat exists, not just goals matching scores
   const hasIndividualStats = useMemo(() => {
     const statsMap = new Map<string, boolean>();
     
     if (registrationType !== 'team') return statsMap;
     
     matches.forEach(match => {
-      if (!match.score1 || !match.score2) {
-        statsMap.set(match.id, false);
-        return;
-      }
+      // Get any player-level stats for this match (with team_member_id)
+      const matchStats = matchPlayerStats.filter(s => 
+        s.match_id === match.id && 
+        s.team_member_id // Has team_member_id means it's a player-level stat
+      );
       
-      const score1 = parseInt(match.score1) || 0;
-      const score2 = parseInt(match.score2) || 0;
-      
-      // Get player-level goals for this match
-      const matchStats = matchPlayerStats.filter(s => s.match_id === match.id && s.stat_name === 'player_goals' && s.team_member_id);
-      
-      if (matchStats.length === 0) {
-        statsMap.set(match.id, false);
-        return;
-      }
-      
-      // Sum up goals for each team
-      const team1Goals = matchStats
-        .filter(s => s.player_id === match.player1_id)
-        .reduce((sum, s) => sum + (parseInt(s.stat_value || '0') || 0), 0);
-      
-      const team2Goals = matchStats
-        .filter(s => s.player_id === match.player2_id)
-        .reduce((sum, s) => sum + (parseInt(s.stat_value || '0') || 0), 0);
-      
-      // Check if individual goals match team scores
-      statsMap.set(match.id, team1Goals === score1 && team2Goals === score2);
+      // If any player-level stats exist, mark as having individual stats
+      statsMap.set(match.id, matchStats.length > 0);
     });
     
     return statsMap;
@@ -1156,16 +1138,16 @@ export default function MatchesTable({
                     />
                   </th>
                 )}
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Round</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Match #</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player 1</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player 2</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Winner</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Court</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">Round</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">Match #</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Player 1</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">Score</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Player 2</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Winner</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-40">Schedule</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Court</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">Status</th>
+                <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase w-40">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -1431,7 +1413,9 @@ export default function MatchesTable({
                           <div className="flex gap-2 justify-end">
                             <a
                               href={`/admin/${eventId}/matches/${match.id}`}
-                              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity font-semibold"
+                              className={`${
+                                hasStats ? 'bg-green-500' : 'bg-blue-500'
+                              } text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity font-semibold`}
                             >
                               📊 詳情
                             </a>
