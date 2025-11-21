@@ -162,17 +162,41 @@ export default function MatchesTable({
     
     if (registrationType !== 'team') return statsMap;
     
+    // Debug: Log to see what we're working with
+    console.log('hasIndividualStats check:', {
+      registrationType,
+      matchesCount: matches.length,
+      matchPlayerStatsCount: matchPlayerStats.length,
+      matchPlayerStats: matchPlayerStats.slice(0, 5) // First 5 for debugging
+    });
+    
     matches.forEach(match => {
       // Get any player-level stats for this match (with team_member_id)
-      const matchStats = matchPlayerStats.filter(s => 
-        s.match_id === match.id && 
-        s.team_member_id !== null && 
-        s.team_member_id !== undefined // Has team_member_id means it's a player-level stat
-      );
+      const matchStats = matchPlayerStats.filter(s => {
+        const hasTeamMemberId = s.team_member_id !== null && s.team_member_id !== undefined;
+        const matchIdMatches = s.match_id === match.id;
+        
+        if (matchIdMatches && hasTeamMemberId) {
+          console.log('Found player-level stat:', {
+            match_id: s.match_id,
+            team_member_id: s.team_member_id,
+            stat_name: s.stat_name
+          });
+        }
+        
+        return matchIdMatches && hasTeamMemberId;
+      });
       
       // If any player-level stats exist, mark as having individual stats
-      statsMap.set(match.id, matchStats.length > 0);
+      const hasStats = matchStats.length > 0;
+      statsMap.set(match.id, hasStats);
+      
+      if (hasStats) {
+        console.log(`Match ${match.id} has individual stats:`, matchStats.length);
+      }
     });
+    
+    console.log('hasIndividualStats map:', Array.from(statsMap.entries()));
     
     return statsMap;
   }, [matches, matchPlayerStats, registrationType]);

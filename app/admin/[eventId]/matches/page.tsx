@@ -111,6 +111,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           courts={courts || []}
           tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
           registrationType={event?.registration_type as 'player' | 'team' | undefined}
+          matchPlayerStats={matchPlayerStats || []}
         />
 
         {/* Player Statistics */}
