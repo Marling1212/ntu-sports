@@ -317,6 +317,28 @@ export default function MatchDetailContent({
     }));
   };
 
+  // Get list of team members who have data entered
+  const getTeamMembersWithData = (playerId: string) => {
+    if (!teamMembers[playerId]) return [];
+    return teamMembers[playerId].filter((member: any) => {
+      // Check if this member has any stats entered
+      const memberStats = teamMemberStats[playerId]?.[member.id];
+      if (!memberStats) return false;
+      return Object.keys(memberStats).some(key => {
+        const value = memberStats[key];
+        return value !== undefined && value !== null && value !== "";
+      });
+    });
+  };
+
+  // Separate team-level and player-level stats
+  const allStats = [...statDefinitions.filter(s => s.is_default), ...customStats].sort(
+    (a, b) => a.display_order - b.display_order
+  );
+  
+  const teamLevelStats = allStats.filter(s => s.stat_level === 'team' || !s.stat_level);
+  const playerLevelStats = allStats.filter(s => s.stat_level === 'player');
+
   // Calculate team-level stats from player-level stats (auto-sum)
   const calculateTeamStats = useMemo(() => {
     const teamStats: Record<string, Record<string, string>> = {};
@@ -361,28 +383,6 @@ export default function MatchDetailContent({
     
     return teamStats;
   }, [teamMemberStats, teamMembers, teamLevelStats, playerLevelStats, isTeamEvent, player1, player2]);
-
-  // Get list of team members who have data entered
-  const getTeamMembersWithData = (playerId: string) => {
-    if (!teamMembers[playerId]) return [];
-    return teamMembers[playerId].filter((member: any) => {
-      // Check if this member has any stats entered
-      const memberStats = teamMemberStats[playerId]?.[member.id];
-      if (!memberStats) return false;
-      return Object.keys(memberStats).some(key => {
-        const value = memberStats[key];
-        return value !== undefined && value !== null && value !== "";
-      });
-    });
-  };
-
-  // Separate team-level and player-level stats
-  const allStats = [...statDefinitions.filter(s => s.is_default), ...customStats].sort(
-    (a, b) => a.display_order - b.display_order
-  );
-  
-  const teamLevelStats = allStats.filter(s => s.stat_level === 'team' || !s.stat_level);
-  const playerLevelStats = allStats.filter(s => s.stat_level === 'player');
 
   const player1 = match.player1_id ? players.find(p => p.id === match.player1_id) : null;
   const player2 = match.player2_id ? players.find(p => p.id === match.player2_id) : null;
