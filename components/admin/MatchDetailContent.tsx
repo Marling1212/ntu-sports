@@ -651,6 +651,53 @@ export default function MatchDetailContent({
                   </div>
                 )}
 
+                {/* Team-level Stats - READ ONLY, AUTO CALCULATED - Always show for team events */}
+                {isTeamEvent && teamLevelStats.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計（自動計算）</h4>
+                    <div className="space-y-3">
+                      {teamLevelStats.map(stat => {
+                        // Find corresponding player-level stat
+                        const playerStatName = `player_${stat.stat_name}`;
+                        const playerStat = playerLevelStats.find(s => s.stat_name === playerStatName);
+                        const calculatedValue = calculateTeamStats[player1.id]?.[stat.stat_name] || "";
+                        
+                        return (
+                          <div key={stat.id}>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              {stat.stat_label}
+                            </label>
+                            {stat.stat_type === 'number' ? (
+                              <input
+                                type="number"
+                                value={calculatedValue}
+                                readOnly
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                                placeholder="0"
+                              />
+                            ) : stat.stat_type === 'boolean' ? (
+                              <input
+                                type="text"
+                                value={calculatedValue ? (calculatedValue === "true" ? "是" : "否") : "—"}
+                                readOnly
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                value={calculatedValue}
+                                readOnly
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                                placeholder="自動計算"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* For non-team events, show all stats */}
                 {!isTeamEvent && (
                   <div className="space-y-3">

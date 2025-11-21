@@ -107,11 +107,14 @@ interface MatchesTableProps {
   tournamentType?: "single_elimination" | "season_play" | null;
   registrationType?: 'player' | 'team';
   matchPlayerStats?: Array<{
+    id: string;
     match_id: string;
     player_id: string;
-    team_member_id?: string;
+    team_member_id?: string | null;
     stat_name: string;
     stat_value?: string;
+    created_at?: string;
+    updated_at?: string;
   }>;
 }
 
@@ -163,7 +166,8 @@ export default function MatchesTable({
       // Get any player-level stats for this match (with team_member_id)
       const matchStats = matchPlayerStats.filter(s => 
         s.match_id === match.id && 
-        s.team_member_id // Has team_member_id means it's a player-level stat
+        s.team_member_id !== null && 
+        s.team_member_id !== undefined // Has team_member_id means it's a player-level stat
       );
       
       // If any player-level stats exist, mark as having individual stats
