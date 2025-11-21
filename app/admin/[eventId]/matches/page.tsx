@@ -94,6 +94,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           slots={slots || []}
           courts={courts || []}
           tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
+          registrationType={event?.registration_type as 'player' | 'team' | undefined}
         />
 
         {/* Player Statistics */}
@@ -102,6 +103,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
             players={players || []}
             matches={matches || []}
             tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
+            registrationType={event?.registration_type as 'player' | 'team' | undefined}
           />
         </div>
 

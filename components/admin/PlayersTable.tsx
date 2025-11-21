@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player, TeamMember } from "@/types/database";
 import BulkPlayerImport from "./BulkPlayerImport";
+import BulkTeamMemberImport from "./BulkTeamMemberImport";
 
 interface PlayersTableProps {
   eventId: string;
@@ -22,6 +23,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [teamMembers, setTeamMembers] = useState<Record<string, TeamMember[]>>({});
   const [editingMember, setEditingMember] = useState<{ teamId: string; memberId?: string; name: string; jerseyNumber: string } | null>(null);
+  const [showBulkMemberImport, setShowBulkMemberImport] = useState<Record<string, boolean>>({});
   const supabase = createClient();
 
   // Load team members for all teams
@@ -118,7 +120,8 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
   };
 
   const handleDeletePlayer = async (playerId: string) => {
-    if (!confirm("Are you sure you want to delete this player?")) return;
+    const entityName = registrationType === 'team' ? 'team' : 'player';
+    if (!confirm(`確定要刪除此${registrationType === 'team' ? '隊伍' : '選手'}嗎？`)) return;
 
     const { error } = await supabase
       .from("players")
@@ -129,7 +132,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       toast.error(`Error: ${error.message}`);
     } else {
       setPlayers(players.filter(p => p.id !== playerId));
-      toast.success("Player deleted successfully!");
+      toast.success(`${registrationType === 'team' ? '隊伍' : '選手'}刪除成功！`);
     }
   };
 
@@ -200,12 +203,13 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
   };
 
   const handleDeleteAll = async () => {
-    const confirmText = `⚠️ Are you sure you want to delete ALL ${players.length} players?\n\nThis will also RESET all matches and bracket data!\n\nThis cannot be undone!`;
+    const entityName = registrationType === 'team' ? '隊伍' : '選手';
+    const confirmText = `⚠️ 確定要刪除所有 ${players.length} 個${entityName}嗎？\n\n這也會重置所有比賽和籤表資料！\n\n此操作無法復原！`;
     
     if (!confirm(confirmText)) return;
     
     // Double confirmation for safety
-    if (!confirm("⚠️ FINAL CONFIRMATION: Delete all players and reset all matches?")) return;
+    if (!confirm(`⚠️ 最終確認：刪除所有${entityName}並重置所有比賽？`)) return;
 
     // First, delete round completion tracking
     await supabase
@@ -234,7 +238,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       toast.error(`Error deleting players: ${playersError.message}`);
     } else {
       setPlayers([]);
-      toast.success("✅ All players and matches deleted! Starting fresh...");
+      toast.success(`✅ 所有${entityName}和比賽已刪除！重新開始...`);
       
       // Refresh the page after a short delay
       setTimeout(() => {
@@ -277,7 +281,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
             <div className="md:col-span-2">
               <input
                 type="text"
-                placeholder="搜尋選手名稱、科系或 Email..."
+                placeholder={registrationType === 'team' ? "搜尋隊伍名稱、科系或 Email..." : "搜尋選手名稱、科系或 Email..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
@@ -291,7 +295,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                 onChange={(e) => setFilterSeed(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
               >
-                <option value="all">所有選手</option>
+                <option value="all">{registrationType === 'team' ? '所有隊伍' : '所有選手'}</option>
                 <option value="seeded">有種子序號</option>
                 <option value="unseeded">無種子序號</option>
               </select>
@@ -399,8 +403,8 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     {players.length === 0 
-                      ? "No players added yet. Click \"Add Player\" to get started."
-                      : "No players match your search. Try adjusting your search criteria."}
+                      ? `No ${registrationType === 'team' ? 'teams' : 'players'} added yet. Click "Add ${registrationType === 'team' ? 'Team' : 'Player'}" to get started.`
+                      : `No ${registrationType === 'team' ? 'teams' : 'players'} match your search. Try adjusting your search criteria.`}
                   </td>
                 </tr>
               ) : (
@@ -466,13 +470,31 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                             <div className="space-y-4">
                               <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-gray-700">隊伍成員</h3>
-                                <button
-                                  onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
-                                  className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
-                                >
-                                  + 添加球員
-                                </button>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: !showBulkMemberImport[player.id] })}
+                                    className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90"
+                                  >
+                                    {showBulkMemberImport[player.id] ? "隱藏批量匯入" : "📋 批量匯入"}
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
+                                    className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
+                                  >
+                                    + 添加球員
+                                  </button>
+                                </div>
                               </div>
+                              
+                              {showBulkMemberImport[player.id] && (
+                                <BulkTeamMemberImport
+                                  teamId={player.id}
+                                  onImportComplete={() => {
+                                    loadTeamMembers();
+                                    setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: false });
+                                  }}
+                                />
+                              )}
                               
                               {editingMember && editingMember.teamId === player.id && (
                                 <div className="bg-white p-4 rounded border border-gray-200">
@@ -633,13 +655,31 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <h3 className="font-semibold text-gray-700">隊伍成員</h3>
-                          <button
-                            onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
-                            className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
-                          >
-                            + 添加球員
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: !showBulkMemberImport[player.id] })}
+                              className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90"
+                            >
+                              {showBulkMemberImport[player.id] ? "隱藏批量匯入" : "📋 批量匯入"}
+                            </button>
+                            <button
+                              onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
+                              className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
+                            >
+                              + 添加球員
+                            </button>
+                          </div>
                         </div>
+                        
+                        {showBulkMemberImport[player.id] && (
+                          <BulkTeamMemberImport
+                            teamId={player.id}
+                            onImportComplete={() => {
+                              loadTeamMembers();
+                              setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: false });
+                            }}
+                          />
+                        )}
                         
                         {editingMember && editingMember.teamId === player.id && (
                           <div className="bg-white p-3 rounded border border-gray-200">

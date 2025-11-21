@@ -104,6 +104,7 @@ interface MatchesTableProps {
   slots?: SlotOption[];
   courts?: Array<{ id: string; name: string }>;
   tournamentType?: "single_elimination" | "season_play" | null;
+  registrationType?: 'player' | 'team';
 }
 
 export default function MatchesTable({
@@ -113,6 +114,7 @@ export default function MatchesTable({
   slots = [],
   courts = [],
   tournamentType,
+  registrationType = 'player',
 }: MatchesTableProps) {
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
@@ -850,7 +852,7 @@ export default function MatchesTable({
             href="#player-stats"
             className="px-3 py-1.5 text-sm font-medium text-white bg-purple-500 rounded-lg hover:opacity-90 transition-opacity"
           >
-            📊 選手統計
+            📊 {registrationType === 'team' ? '隊伍統計' : '選手統計'}
           </a>
           <a
             href="#match-history"

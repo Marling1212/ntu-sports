@@ -7,6 +7,7 @@ interface PlayerStatsProps {
   players: Player[];
   matches: Match[];
   tournamentType?: "single_elimination" | "season_play" | null;
+  registrationType?: 'player' | 'team';
 }
 
 interface PlayerStat {
@@ -32,7 +33,7 @@ const parseScore = (score?: string): { score1: number; score2: number } | null =
   return { score1, score2 };
 };
 
-export default function PlayerStats({ players, matches, tournamentType }: PlayerStatsProps) {
+export default function PlayerStats({ players, matches, tournamentType, registrationType = 'player' }: PlayerStatsProps) {
   const playerStats = useMemo(() => {
     const statsMap = new Map<string, PlayerStat>();
 
@@ -144,7 +145,7 @@ export default function PlayerStats({ players, matches, tournamentType }: Player
   if (!hasStats) {
     return (
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">選手統計</h2>
+        <h2 className="text-2xl font-semibold text-ntu-green mb-4">{registrationType === 'team' ? '隊伍統計' : '選手統計'}</h2>
         <p className="text-gray-500">尚無比賽數據</p>
       </div>
     );
@@ -154,7 +155,7 @@ export default function PlayerStats({ players, matches, tournamentType }: Player
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-semibold text-ntu-green">選手統計</h2>
+          <h2 className="text-2xl font-semibold text-ntu-green">{registrationType === 'team' ? '隊伍統計' : '選手統計'}</h2>
           <p className="text-sm text-gray-600 mt-1">基於已完成比賽的統計數據</p>
         </div>
 
