@@ -110,6 +110,7 @@ export default function MatchDetailContent({
   const [teamMemberStats, setTeamMemberStats] = useState<Record<string, Record<string, Record<string, string>>>>({});
   const [customStats, setCustomStats] = useState<SportStatDefinition[]>([]);
   const [newCustomStat, setNewCustomStat] = useState({ name: "", label: "", type: "number" as const, level: "team" as const });
+  const [selectedTeamMember, setSelectedTeamMember] = useState<Record<string, string>>({}); // { playerId: teamMemberId }
   const [saving, setSaving] = useState(false);
   const supabase = createClient();
 
@@ -555,10 +556,28 @@ export default function MatchDetailContent({
                 {/* Player-level Stats for Team Members */}
                 {isTeamEvent && playerLevelStats.length > 0 && teamMembers[player1.id] && teamMembers[player1.id].length > 0 && (
                   <div>
-                    <h4 className="text-md font-medium text-gray-700 mb-3">個別球員統計</h4>
-                    <div className="space-y-6">
-                      {teamMembers[player1.id].map((member: any) => (
-                        <div key={member.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-md font-medium text-gray-700">個別球員統計</h4>
+                      <select
+                        value={selectedTeamMember[player1.id] || ""}
+                        onChange={(e) => setSelectedTeamMember({ ...selectedTeamMember, [player1.id]: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+                      >
+                        <option value="">選擇球員...</option>
+                        {teamMembers[player1.id].map((member: any) => (
+                          <option key={member.id} value={member.id}>
+                            {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {selectedTeamMember[player1.id] && (() => {
+                      const member = teamMembers[player1.id].find((m: any) => m.id === selectedTeamMember[player1.id]);
+                      if (!member) return null;
+                      
+                      return (
+                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                           <h5 className="font-semibold text-gray-800 mb-3">
                             {member.name}
                             {member.jersey_number && (
@@ -602,8 +621,8 @@ export default function MatchDetailContent({
                             ))}
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -707,10 +726,28 @@ export default function MatchDetailContent({
                 {/* Player-level Stats for Team Members */}
                 {isTeamEvent && playerLevelStats.length > 0 && teamMembers[player2.id] && teamMembers[player2.id].length > 0 && (
                   <div>
-                    <h4 className="text-md font-medium text-gray-700 mb-3">個別球員統計</h4>
-                    <div className="space-y-6">
-                      {teamMembers[player2.id].map((member: any) => (
-                        <div key={member.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-md font-medium text-gray-700">個別球員統計</h4>
+                      <select
+                        value={selectedTeamMember[player2.id] || ""}
+                        onChange={(e) => setSelectedTeamMember({ ...selectedTeamMember, [player2.id]: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+                      >
+                        <option value="">選擇球員...</option>
+                        {teamMembers[player2.id].map((member: any) => (
+                          <option key={member.id} value={member.id}>
+                            {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {selectedTeamMember[player2.id] && (() => {
+                      const member = teamMembers[player2.id].find((m: any) => m.id === selectedTeamMember[player2.id]);
+                      if (!member) return null;
+                      
+                      return (
+                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                           <h5 className="font-semibold text-gray-800 mb-3">
                             {member.name}
                             {member.jersey_number && (
@@ -754,8 +791,8 @@ export default function MatchDetailContent({
                             ))}
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })()}
                   </div>
                 )}
 

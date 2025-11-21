@@ -14,20 +14,24 @@ COMMENT ON COLUMN match_player_stats.team_member_id IS 'Reference to team_member
 CREATE INDEX IF NOT EXISTS idx_match_player_stats_team_member ON match_player_stats(team_member_id);
 
 -- Update existing stat definitions to mark team-level stats
--- For soccer/football: team-level stats
+-- For soccer/football: existing stats are team-level, but we'll keep them as team-level
+-- The new player_* stats will be added as player-level
 UPDATE sport_stat_definitions
 SET stat_level = 'team'
-WHERE sport = 'soccer' AND stat_name IN ('goals', 'assists', 'yellow_cards', 'red_cards', 'saves', 'shots', 'shots_on_target', 'fouls', 'minutes_played');
+WHERE sport = 'soccer' AND stat_name IN ('goals', 'assists', 'yellow_cards', 'red_cards', 'saves', 'shots', 'shots_on_target', 'fouls', 'minutes_played')
+  AND stat_name NOT LIKE 'player_%';
 
--- For basketball: team-level stats
+-- For basketball: existing stats are team-level
 UPDATE sport_stat_definitions
 SET stat_level = 'team'
-WHERE sport = 'basketball' AND stat_name IN ('points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers', 'fouls', 'minutes_played', 'field_goals_made', 'field_goals_attempted', 'three_pointers_made', 'three_pointers_attempted', 'free_throws_made', 'free_throws_attempted');
+WHERE sport = 'basketball' AND stat_name IN ('points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers', 'fouls', 'minutes_played', 'field_goals_made', 'field_goals_attempted', 'three_pointers_made', 'three_pointers_attempted', 'free_throws_made', 'free_throws_attempted')
+  AND stat_name NOT LIKE 'player_%';
 
--- For volleyball: team-level stats
+-- For volleyball: existing stats are team-level
 UPDATE sport_stat_definitions
 SET stat_level = 'team'
-WHERE sport = 'volleyball' AND stat_name IN ('kills', 'blocks', 'aces', 'digs', 'assists', 'errors', 'service_errors');
+WHERE sport = 'volleyball' AND stat_name IN ('kills', 'blocks', 'aces', 'digs', 'assists', 'errors', 'service_errors')
+  AND stat_name NOT LIKE 'player_%';
 
 -- For tennis: team-level stats (since tennis is usually individual)
 UPDATE sport_stat_definitions
