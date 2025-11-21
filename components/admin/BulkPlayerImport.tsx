@@ -7,9 +7,10 @@ import toast from "react-hot-toast";
 interface BulkPlayerImportProps {
   eventId: string;
   onImportComplete: () => void;
+  registrationType?: 'player' | 'team';
 }
 
-export default function BulkPlayerImport({ eventId, onImportComplete }: BulkPlayerImportProps) {
+export default function BulkPlayerImport({ eventId, onImportComplete, registrationType = 'player' }: BulkPlayerImportProps) {
   const [textInput, setTextInput] = useState("");
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
@@ -68,6 +69,7 @@ export default function BulkPlayerImport({ eventId, onImportComplete }: BulkPlay
           seed,
           email,
           email_opt_in: true,
+          type: registrationType, // Set type based on registration type
         };
 
         if (player.name) {
@@ -110,7 +112,9 @@ export default function BulkPlayerImport({ eventId, onImportComplete }: BulkPlay
 
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-ntu-green mb-4">Bulk Import Players</h3>
+      <h3 className="text-lg font-semibold text-ntu-green mb-4">
+        Bulk Import {registrationType === 'team' ? 'Teams' : 'Players'}
+      </h3>
       
       <div className="mb-4">
         <p className="text-sm text-gray-600 mb-2">
@@ -154,7 +158,7 @@ FC KimchiSushi	B09701140@ntu.edu.tw
           disabled={loading || !textInput.trim()}
           className="bg-ntu-green text-white px-6 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          {loading ? "Importing..." : "Import Players"}
+          {loading ? "Importing..." : `Import ${registrationType === 'team' ? 'Teams' : 'Players'}`}
         </button>
         
         <button

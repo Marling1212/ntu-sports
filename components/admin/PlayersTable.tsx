@@ -1,24 +1,58 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
-import { Player } from "@/types/database";
+import { Player, TeamMember } from "@/types/database";
 import BulkPlayerImport from "./BulkPlayerImport";
 
 interface PlayersTableProps {
   eventId: string;
   initialPlayers: Player[];
+  registrationType?: 'player' | 'team';
 }
 
-export default function PlayersTable({ eventId, initialPlayers }: PlayersTableProps) {
+export default function PlayersTable({ eventId, initialPlayers, registrationType = 'player' }: PlayersTableProps) {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [isAdding, setIsAdding] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [newPlayer, setNewPlayer] = useState({ name: "", department: "", seed: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSeed, setFilterSeed] = useState<string>("all");
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [teamMembers, setTeamMembers] = useState<Record<string, TeamMember[]>>({});
+  const [editingMember, setEditingMember] = useState<{ teamId: string; memberId?: string; name: string; jerseyNumber: string } | null>(null);
   const supabase = createClient();
+
+  // Load team members for all teams
+  useEffect(() => {
+    if (registrationType === 'team') {
+      loadTeamMembers();
+    }
+  }, [registrationType, players]);
+
+  const loadTeamMembers = async () => {
+    const teamIds = players.filter(p => p.type === 'team').map(p => p.id);
+    if (teamIds.length === 0) return;
+
+    const { data } = await supabase
+      .from("team_members")
+      .select("*")
+      .in("player_id", teamIds)
+      .order("jersey_number", { ascending: true, nullsFirst: true })
+      .order("name", { ascending: true });
+
+    if (data) {
+      const membersByTeam: Record<string, TeamMember[]> = {};
+      data.forEach((member) => {
+        if (!membersByTeam[member.player_id]) {
+          membersByTeam[member.player_id] = [];
+        }
+        membersByTeam[member.player_id].push(member);
+      });
+      setTeamMembers(membersByTeam);
+    }
+  };
 
   // Filter players based on search and filters
   const filteredPlayers = useMemo(() => {
@@ -67,6 +101,7 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
         name: newPlayer.name,
         department: newPlayer.department || null,
         seed: newPlayer.seed ? parseInt(newPlayer.seed) : null,
+        type: registrationType, // Set type based on registration type
       })
       .select()
       .single();
@@ -77,7 +112,8 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
       setPlayers([...players, data]);
       setNewPlayer({ name: "", department: "", seed: "" });
       setIsAdding(false);
-      toast.success("Player added successfully!");
+      const entityName = registrationType === 'team' ? 'Team' : 'Player';
+      toast.success(`${entityName} added successfully!`);
     }
   };
 
@@ -94,6 +130,72 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
     } else {
       setPlayers(players.filter(p => p.id !== playerId));
       toast.success("Player deleted successfully!");
+    }
+  };
+
+  const handleAddTeamMember = async (teamId: string) => {
+    if (!editingMember || !editingMember.name.trim()) {
+      toast.error("請輸入球員名稱");
+      return;
+    }
+
+    const memberData: any = {
+      player_id: teamId,
+      name: editingMember.name.trim(),
+    };
+
+    if (editingMember.jerseyNumber) {
+      const jerseyNum = parseInt(editingMember.jerseyNumber);
+      if (!isNaN(jerseyNum)) {
+        memberData.jersey_number = jerseyNum;
+      }
+    }
+
+    if (editingMember.memberId) {
+      // Update existing member
+      const { error } = await supabase
+        .from("team_members")
+        .update(memberData)
+        .eq("id", editingMember.memberId);
+
+      if (error) {
+        toast.error(`Error: ${error.message}`);
+      } else {
+        await loadTeamMembers();
+        setEditingMember(null);
+        toast.success("球員更新成功！");
+      }
+    } else {
+      // Add new member
+      const { error } = await supabase
+        .from("team_members")
+        .insert(memberData)
+        .select()
+        .single();
+
+      if (error) {
+        toast.error(`Error: ${error.message}`);
+      } else {
+        await loadTeamMembers();
+        setEditingMember(null);
+        toast.success("球員添加成功！");
+      }
+    }
+  };
+
+  const handleDeleteTeamMember = async (memberId: string) => {
+    if (!confirm("確定要刪除此球員嗎？")) return;
+
+    const { error } = await supabase
+      .from("team_members")
+      .delete()
+      .eq("id", memberId);
+
+    if (error) {
+      toast.error(`Error: ${error.message}`);
+    } else {
+      await loadTeamMembers();
+      toast.success("球員刪除成功！");
     }
   };
 
@@ -149,6 +251,7 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
         <div className="mb-6">
           <BulkPlayerImport 
             eventId={eventId} 
+            registrationType={registrationType}
             onImportComplete={() => {
               setShowBulkImport(false);
               refreshPlayers();
@@ -160,9 +263,11 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold text-ntu-green">Players List</h2>
+            <h2 className="text-2xl font-semibold text-ntu-green">
+              {registrationType === 'team' ? '隊伍列表' : '選手列表'}
+            </h2>
             <div className="text-sm text-gray-500">
-              顯示 {filteredPlayers.length} / {players.length} 位選手
+              顯示 {filteredPlayers.length} / {players.length} {registrationType === 'team' ? '支隊伍' : '位選手'}
             </div>
           </div>
 
@@ -227,7 +332,7 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
               onClick={() => setIsAdding(!isAdding)}
               className="bg-ntu-green text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
-              {isAdding ? "Cancel" : "+ Add Player"}
+              {isAdding ? "Cancel" : `+ Add ${registrationType === 'team' ? 'Team' : 'Player'}`}
             </button>
           </div>
         </div>
@@ -237,7 +342,7 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <input
                 type="text"
-                placeholder="Player Name"
+                placeholder={registrationType === 'team' ? "Team Name" : "Player Name"}
                 value={newPlayer.name}
                 onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
@@ -261,7 +366,7 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
                 type="submit"
                 className="bg-ntu-green text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity"
               >
-                Add Player
+                Add {registrationType === 'team' ? 'Team' : 'Player'}
               </button>
             </div>
           </form>
@@ -299,42 +404,160 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
                   </td>
                 </tr>
               ) : (
-                filteredPlayers.map((player) => (
-                  <tr key={player.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {player.seed ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
-                          {player.seed}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">—</span>
+                filteredPlayers.map((player) => {
+                  const isTeam = player.type === 'team';
+                  const isExpanded = expandedTeam === player.id;
+                  const members = teamMembers[player.id] || [];
+                  
+                  return (
+                    <>
+                      <tr key={player.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {player.seed ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
+                              {player.seed}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                          <div className="flex items-center gap-2">
+                            {isTeam && (
+                              <button
+                                onClick={() => setExpandedTeam(isExpanded ? null : player.id)}
+                                className="text-ntu-green hover:text-ntu-green-dark"
+                              >
+                                {isExpanded ? '▼' : '▶'}
+                              </button>
+                            )}
+                            {player.name}
+                            {isTeam && (
+                              <span className="text-xs text-gray-500">
+                                ({members.length} 位球員)
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                          {player.department || "—"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {player.eliminated_round ? (
+                            <span className="text-red-600 text-sm">
+                              Eliminated (R{player.eliminated_round})
+                            </span>
+                          ) : (
+                            <span className="text-green-600 text-sm">Active</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleDeletePlayer(player.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                      {isTeam && isExpanded && (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-4 bg-gray-50">
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center">
+                                <h3 className="font-semibold text-gray-700">隊伍成員</h3>
+                                <button
+                                  onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
+                                  className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
+                                >
+                                  + 添加球員
+                                </button>
+                              </div>
+                              
+                              {editingMember && editingMember.teamId === player.id && (
+                                <div className="bg-white p-4 rounded border border-gray-200">
+                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                    <input
+                                      type="text"
+                                      placeholder="球員名稱"
+                                      value={editingMember.name}
+                                      onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
+                                      className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                    />
+                                    <input
+                                      type="number"
+                                      placeholder="背號 (選填)"
+                                      value={editingMember.jerseyNumber}
+                                      onChange={(e) => setEditingMember({ ...editingMember, jerseyNumber: e.target.value })}
+                                      className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleAddTeamMember(player.id)}
+                                        className="flex-1 bg-ntu-green text-white px-3 py-2 rounded hover:opacity-90 text-sm"
+                                      >
+                                        {editingMember.memberId ? '更新' : '添加'}
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingMember(null)}
+                                        className="flex-1 bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-gray-300 text-sm"
+                                      >
+                                        取消
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {members.length === 0 ? (
+                                <p className="text-gray-500 text-sm">尚無球員，點擊「添加球員」開始添加</p>
+                              ) : (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead className="bg-gray-100">
+                                      <tr>
+                                        <th className="px-3 py-2 text-left">背號</th>
+                                        <th className="px-3 py-2 text-left">姓名</th>
+                                        <th className="px-3 py-2 text-right">操作</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {members.map((member) => (
+                                        <tr key={member.id} className="border-b border-gray-200">
+                                          <td className="px-3 py-2">{member.jersey_number || '—'}</td>
+                                          <td className="px-3 py-2">{member.name}</td>
+                                          <td className="px-3 py-2 text-right">
+                                            <button
+                                              onClick={() => setEditingMember({
+                                                teamId: player.id,
+                                                memberId: member.id,
+                                                name: member.name,
+                                                jerseyNumber: member.jersey_number?.toString() || ""
+                                              })}
+                                              className="text-blue-600 hover:text-blue-800 mr-3"
+                                            >
+                                              編輯
+                                            </button>
+                                            <button
+                                              onClick={() => handleDeleteTeamMember(member.id)}
+                                              className="text-red-600 hover:text-red-800"
+                                            >
+                                              刪除
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                      {player.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      {player.department || "—"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {player.eliminated_round ? (
-                        <span className="text-red-600 text-sm">
-                          Eliminated (R{player.eliminated_round})
-                        </span>
-                      ) : (
-                        <span className="text-green-600 text-sm">Active</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleDeletePlayer(player.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                    </>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -345,50 +568,155 @@ export default function PlayersTable({ eventId, initialPlayers }: PlayersTablePr
           {filteredPlayers.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               {players.length === 0 
-                ? "No players added yet. Click \"Add Player\" to get started."
+                ? `No ${registrationType === 'team' ? 'teams' : 'players'} added yet. Click "Add ${registrationType === 'team' ? 'Team' : 'Player'}" to get started.`
                 : "No players match your search. Try adjusting your search criteria."}
             </div>
           ) : (
-            filteredPlayers.map((player) => (
-              <div
-                key={player.id}
-                className="bg-white border border-gray-200 rounded-lg p-4"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      {player.seed && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
-                          Seed {player.seed}
-                        </span>
-                      )}
-                      <span className="font-semibold text-gray-900">{player.name}</span>
+            filteredPlayers.map((player) => {
+              const isTeam = player.type === 'team';
+              const isExpanded = expandedTeam === player.id;
+              const members = teamMembers[player.id] || [];
+              
+              return (
+                <div key={player.id}>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {isTeam && (
+                            <button
+                              onClick={() => setExpandedTeam(isExpanded ? null : player.id)}
+                              className="text-ntu-green hover:text-ntu-green-dark"
+                            >
+                              {isExpanded ? '▼' : '▶'}
+                            </button>
+                          )}
+                          {player.seed && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
+                              Seed {player.seed}
+                            </span>
+                          )}
+                          <span className="font-semibold text-gray-900">{player.name}</span>
+                          {isTeam && (
+                            <span className="text-xs text-gray-500">
+                              ({members.length} 位球員)
+                            </span>
+                          )}
+                        </div>
+                        {player.department && (
+                          <div className="text-sm text-gray-600">{player.department}</div>
+                        )}
+                        {player.email && (
+                          <div className="text-xs text-gray-500 mt-1">{player.email}</div>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        {player.eliminated_round ? (
+                          <span className="text-red-600 text-xs">
+                            Eliminated (R{player.eliminated_round})
+                          </span>
+                        ) : (
+                          <span className="text-green-600 text-xs">Active</span>
+                        )}
+                        <button
+                          onClick={() => handleDeletePlayer(player.id)}
+                          className="text-red-600 hover:text-red-900 text-sm font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                    {player.department && (
-                      <div className="text-sm text-gray-600">{player.department}</div>
-                    )}
-                    {player.email && (
-                      <div className="text-xs text-gray-500 mt-1">{player.email}</div>
-                    )}
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    {player.eliminated_round ? (
-                      <span className="text-red-600 text-xs">
-                        Eliminated (R{player.eliminated_round})
-                      </span>
-                    ) : (
-                      <span className="text-green-600 text-xs">Active</span>
-                    )}
-                    <button
-                      onClick={() => handleDeletePlayer(player.id)}
-                      className="text-red-600 hover:text-red-900 text-sm font-medium"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  
+                  {isTeam && isExpanded && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-2">
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-semibold text-gray-700">隊伍成員</h3>
+                          <button
+                            onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
+                            className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
+                          >
+                            + 添加球員
+                          </button>
+                        </div>
+                        
+                        {editingMember && editingMember.teamId === player.id && (
+                          <div className="bg-white p-3 rounded border border-gray-200">
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                placeholder="球員名稱"
+                                value={editingMember.name}
+                                onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                              />
+                              <input
+                                type="number"
+                                placeholder="背號 (選填)"
+                                value={editingMember.jerseyNumber}
+                                onChange={(e) => setEditingMember({ ...editingMember, jerseyNumber: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleAddTeamMember(player.id)}
+                                  className="flex-1 bg-ntu-green text-white px-3 py-2 rounded hover:opacity-90 text-sm"
+                                >
+                                  {editingMember.memberId ? '更新' : '添加'}
+                                </button>
+                                <button
+                                  onClick={() => setEditingMember(null)}
+                                  className="flex-1 bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-gray-300 text-sm"
+                                >
+                                  取消
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {members.length === 0 ? (
+                          <p className="text-gray-500 text-sm">尚無球員，點擊「添加球員」開始添加</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {members.map((member) => (
+                              <div key={member.id} className="bg-white p-3 rounded border border-gray-200 flex justify-between items-center">
+                                <div>
+                                  <span className="font-medium">{member.name}</span>
+                                  {member.jersey_number && (
+                                    <span className="text-gray-500 ml-2">#{member.jersey_number}</span>
+                                  )}
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setEditingMember({
+                                      teamId: player.id,
+                                      memberId: member.id,
+                                      name: member.name,
+                                      jerseyNumber: member.jersey_number?.toString() || ""
+                                    })}
+                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                  >
+                                    編輯
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteTeamMember(member.id)}
+                                    className="text-red-600 hover:text-red-800 text-sm"
+                                  >
+                                    刪除
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

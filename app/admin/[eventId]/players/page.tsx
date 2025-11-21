@@ -55,7 +55,9 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
       <AdminNavbar eventId={eventId} eventName={event?.name} />
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-ntu-green mb-2">Manage Players</h1>
+          <h1 className="text-4xl font-bold text-ntu-green mb-2">
+            {event?.registration_type === 'team' ? '管理隊伍' : '管理選手'}
+          </h1>
           <p className="text-lg text-gray-600">{event?.name}</p>
         </div>
 
@@ -77,7 +79,11 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
           </div>
         )}
 
-        <PlayersTable eventId={eventId} initialPlayers={players || []} />
+        <PlayersTable 
+          eventId={eventId} 
+          initialPlayers={players || []} 
+          registrationType={event?.registration_type as 'player' | 'team' | undefined}
+        />
       </div>
     </>
   );

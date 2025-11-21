@@ -8,6 +8,7 @@ export interface Event {
   owner_id: string;
   description?: string;
   tournament_type?: 'single_elimination' | 'season_play';
+  registration_type?: 'player' | 'team';
   blackout_limit?: number | null;
   created_at: string;
   updated_at: string;
@@ -30,6 +31,16 @@ export interface Player {
   eliminated_round?: number;
   email?: string;
   email_opt_in?: boolean;
+  type?: 'player' | 'team';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TeamMember {
+  id: string;
+  player_id: string;
+  name: string;
+  jersey_number?: number;
   created_at: string;
   updated_at: string;
 }

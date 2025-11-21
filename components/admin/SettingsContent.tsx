@@ -32,6 +32,7 @@ interface SettingsContentProps {
   scheduleNotes: string;
   scheduleUpdatedAt: string;
   contactInfo: string;
+  initialRegistrationType?: 'player' | 'team';
 }
 
 export default function SettingsContent({ 
@@ -41,14 +42,16 @@ export default function SettingsContent({
   initialScheduleItems,
   scheduleNotes: initialScheduleNotes,
   scheduleUpdatedAt: initialScheduleUpdatedAt,
-  contactInfo: initialContactInfo
+  contactInfo: initialContactInfo,
+  initialRegistrationType = 'player'
 }: SettingsContentProps) {
   const [rules, setRules] = useState<TournamentRule[]>(initialRules);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(initialScheduleItems);
   const [scheduleNotes, setScheduleNotes] = useState<string>(initialScheduleNotes);
   const [scheduleUpdatedAt, setScheduleUpdatedAt] = useState<string>(initialScheduleUpdatedAt);
   const [contactInfo, setContactInfo] = useState<string>(initialContactInfo);
-  const [activeTab, setActiveTab] = useState<"rules" | "schedule">("rules");
+  const [registrationType, setRegistrationType] = useState<'player' | 'team'>(initialRegistrationType);
+  const [activeTab, setActiveTab] = useState<"basic" | "rules" | "schedule">("basic");
   const supabase = createClient();
 
   // Rules Management
@@ -272,6 +275,58 @@ export default function SettingsContent({
   const [confirmId, setConfirmId] = useState(""); // will be used as 'DELETE' keyword
   const [deleting, setDeleting] = useState(false);
 
+  const saveBasicInfo = async () => {
+    try {
+      // Check if there are existing players/teams
+      const { data: existingPlayers, count } = await supabase
+        .from("players")
+        .select("*", { count: 'exact', head: true })
+        .eq("event_id", eventId);
+
+      if (count && count > 0 && registrationType !== initialRegistrationType) {
+        const confirmMessage = `⚠️ 警告：您正在更改報名類型從「${initialRegistrationType === 'player' ? '選手' : '隊伍'}」改為「${registrationType === 'player' ? '選手' : '隊伍'}」。\n\n` +
+          `目前已有 ${count} 個${initialRegistrationType === 'player' ? '選手' : '隊伍'}記錄。\n\n` +
+          `此操作將：\n` +
+          `- 更新所有現有記錄的類型\n` +
+          `- 如果改為「隊伍」，現有選手將變為隊伍（需要手動添加成員）\n` +
+          `- 如果改為「選手」，現有隊伍將變為選手（團隊成員資料將保留但不再顯示）\n\n` +
+          `確定要繼續嗎？`;
+        
+        if (!confirm(confirmMessage)) {
+          setRegistrationType(initialRegistrationType);
+          return;
+        }
+      }
+
+      const { error } = await supabase
+        .from("events")
+        .update({
+          registration_type: registrationType
+        })
+        .eq("id", eventId);
+
+      if (error) throw error;
+
+      // If registration type changed, update all players' type
+      if (registrationType !== initialRegistrationType) {
+        const { error: updateError } = await supabase
+          .from("players")
+          .update({ type: registrationType })
+          .eq("event_id", eventId);
+
+        if (updateError) {
+          console.error("Error updating players type:", updateError);
+          toast.error("已更新事件類型，但更新現有記錄時發生錯誤。請手動檢查。");
+        }
+      }
+
+      toast.success("基本資訊已保存！");
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`);
+    }
+  };
+
   const handleDeleteEvent = async () => {
     if (!confirmAck || confirmName !== eventName || confirmId !== "DELETE") {
       toast.error("請完成三項確認後再嘗試刪除");
@@ -313,6 +368,16 @@ export default function SettingsContent({
       <div className="mb-6 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           <button
+            onClick={() => setActiveTab("basic")}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "basic"
+                ? "border-ntu-green text-ntu-green"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            ⚙️ 基本資訊
+          </button>
+          <button
             onClick={() => setActiveTab("rules")}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === "rules"
@@ -334,6 +399,50 @@ export default function SettingsContent({
           </button>
         </nav>
       </div>
+
+      {/* Basic Info Tab */}
+      {activeTab === "basic" && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <h2 className="text-2xl font-semibold text-ntu-green mb-6">基本資訊設定</h2>
+          
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                報名類型 (Registration Type) *
+              </label>
+              <select
+                value={registrationType}
+                onChange={(e) => setRegistrationType(e.target.value as 'player' | 'team')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              >
+                <option value="player">選手 (Player) - 個人報名</option>
+                <option value="team">隊伍 (Team) - 團隊報名</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-2">
+                {registrationType === 'team' 
+                  ? '選擇「隊伍」時，您可以為每個隊伍添加個別球員的名稱與背號。'
+                  : '選擇「選手」時，每個報名單位為個人。'}
+              </p>
+              {registrationType !== initialRegistrationType && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ 您已更改報名類型。保存後，所有現有記錄的類型也會相應更新。
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-gray-200">
+              <button
+                onClick={saveBasicInfo}
+                className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+              >
+                💾 保存基本資訊
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rules Tab */}
       {activeTab === "rules" && (

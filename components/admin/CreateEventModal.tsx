@@ -19,6 +19,7 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
     venue: "",
     description: "",
     tournamentType: "single_elimination", // Default to single elimination
+    registrationType: "player", // Default to player for backward compatibility
   });
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
@@ -40,6 +41,7 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
           description: formData.description || null,
           owner_id: userId,
           tournament_type: formData.tournamentType,
+          registration_type: formData.registrationType,
         })
         .select()
         .single();
@@ -132,6 +134,24 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
             </select>
             <p className="text-xs text-gray-500 mt-1">
               Single Elimination: Traditional bracket tournament. Season Play: Round-robin regular season followed by playoff bracket.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              報名類型 (Registration Type) *
+            </label>
+            <select
+              value={formData.registrationType}
+              onChange={(e) => setFormData({ ...formData, registrationType: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              required
+            >
+              <option value="player">選手 (Player) - 個人報名</option>
+              <option value="team">隊伍 (Team) - 團隊報名</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              選擇此賽事的報名類型。選擇「隊伍」時，您可以為每個隊伍添加個別球員的名稱與背號。
             </p>
           </div>
 
