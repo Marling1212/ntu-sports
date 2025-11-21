@@ -6,6 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { Player } from "@/types/database";
 import { checkAndAnnounceRoundCompletion } from "@/lib/utils/checkRoundCompletion";
 import * as XLSX from 'xlsx';
+import Link from "next/link";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
 
 interface SlotOption {
@@ -1373,12 +1374,20 @@ export default function MatchesTable({
                           </span>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button 
-                            onClick={() => handleEdit(match)} 
-                            className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity font-semibold"
-                          >
-                            ✏️ Edit
-                          </button>
+                          <div className="flex gap-2 justify-end">
+                            <a
+                              href={`/admin/${eventId}/matches/${match.id}`}
+                              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity font-semibold"
+                            >
+                              📊 詳情
+                            </a>
+                            <button 
+                              onClick={() => handleEdit(match)} 
+                              className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity font-semibold"
+                            >
+                              ✏️ Edit
+                            </button>
+                          </div>
                         </td>
                       </>
                     )}
@@ -1493,12 +1502,20 @@ export default function MatchesTable({
                   </div>
 
                   {editingMatch !== match.id && (
-                    <button
-                      onClick={() => handleEdit(match)}
-                      className="w-full mt-3 bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                    >
-                      ✏️ Edit
-                    </button>
+                    <div className="mt-3 flex gap-2">
+                      <Link
+                        href={`/admin/${eventId}/matches/${match.id}`}
+                        className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-center"
+                      >
+                        📊 詳情
+                      </Link>
+                      <button
+                        onClick={() => handleEdit(match)}
+                        className="flex-1 bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                      >
+                        ✏️ Edit
+                      </button>
+                    </div>
                   )}
 
                   {editingMatch === match.id && (

@@ -134,3 +134,26 @@ export interface TeamBlackoutTemplate {
   updated_at: string;
 }
 
+export interface SportStatDefinition {
+  id: string;
+  sport: string;
+  stat_name: string;
+  stat_label: string;
+  stat_type: 'number' | 'text' | 'boolean';
+  default_value?: string;
+  display_order: number;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MatchPlayerStat {
+  id: string;
+  match_id: string;
+  player_id: string;
+  stat_name: string;
+  stat_value?: string;
+  created_at: string;
+  updated_at: string;
+}
+
