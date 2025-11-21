@@ -8,7 +8,7 @@ export interface AnnouncementDraft {
   id: string;
   matchId: string;
   matchInfo: string;
-  changeType: "status" | "date" | "score";
+  changeType: "status" | "date" | "score" | "court";
   originalValue: string;
   newValue: string;
   content: string;
@@ -218,7 +218,12 @@ export default function AnnouncementDraftWindow({
                   <div className="flex-1">
                     <div className="text-xs text-gray-500 mb-1">{draft.matchInfo}</div>
                     <div className="text-xs text-gray-600">
-                      <span className="font-semibold">{draft.changeType === "status" ? "狀態" : draft.changeType === "date" ? "日期" : "比數"}</span>
+                      <span className="font-semibold">
+                        {draft.changeType === "status" ? "狀態" : 
+                         draft.changeType === "date" ? "日期" : 
+                         draft.changeType === "court" ? "場地" :
+                         "比數"}
+                      </span>
                       : {draft.originalValue} → {draft.newValue}
                     </div>
                   </div>

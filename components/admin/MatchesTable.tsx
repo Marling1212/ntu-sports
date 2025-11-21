@@ -571,6 +571,16 @@ export default function MatchesTable({
       return;
     }
 
+    // Get original match data before update for announcement drafts
+    const selectedMatchesArray = Array.from(selectedMatches);
+    const originalMatches = matches.filter(m => selectedMatchesArray.includes(m.id));
+    
+    // Check if any match is changing to "live" status (for direct announcement)
+    const isChangingToLive = batchOperation === "status" && batchForm.status === "live";
+    const matchesChangingToLive = isChangingToLive 
+      ? originalMatches.filter(m => m.status !== "live" && m.player1 && m.player2)
+      : [];
+
     const updates: any[] = [];
     for (const matchId of selectedMatches) {
       const updateData: any = { updated_at: new Date().toISOString() };
@@ -593,7 +603,28 @@ export default function MatchesTable({
 
     try {
       await Promise.all(updates);
-      toast.success(`成功更新 ${selectedMatches.size} 場比賽`);
+      
+      // Create direct announcements for matches changing to "live" (keep existing behavior)
+      if (matchesChangingToLive.length > 0) {
+        const liveAnnouncements = matchesChangingToLive.map(match => {
+          const player1Name = match.player1?.name || "TBD";
+          const player2Name = match.player2?.name || "TBD";
+          const court = batchOperation === "court" 
+            ? (batchForm.court === "OTHER" ? batchForm.customCourt : batchForm.court)
+            : (match.court || "TBA");
+          
+          return supabase
+            .from("announcements")
+            .insert({
+              event_id: eventId,
+              title: `🎾 Match Now Live!`,
+              content: `${player1Name} vs ${player2Name} is now starting on Court ${court}. Please head to the court!`,
+              created_at: new Date().toISOString(),
+            });
+        });
+        
+        await Promise.all(liveAnnouncements);
+      }
       
       // Refresh matches
       const { data: updatedMatches } = await supabase
@@ -611,7 +642,72 @@ export default function MatchesTable({
 
       if (updatedMatches) {
         setMatches(updatedMatches);
+        
+        // Generate announcement drafts for batch updates (excluding live status changes)
+        if (batchOperation && !isChangingToLive) {
+          const newDrafts: AnnouncementDraft[] = [];
+          
+          for (const originalMatch of originalMatches) {
+            const updatedMatch = updatedMatches.find(m => m.id === originalMatch.id);
+            if (!updatedMatch || !updatedMatch.player1 || !updatedMatch.player2) continue;
+            
+            const player1Name = updatedMatch.player1.name || "TBD";
+            const player2Name = updatedMatch.player2.name || "TBD";
+            const matchInfo = `Round ${updatedMatch.round}, Match ${updatedMatch.match_number}: ${player1Name} vs ${player2Name}`;
+            
+            if (batchOperation === "status") {
+              const statusLabels: { [key: string]: string } = {
+                upcoming: "即將開始",
+                completed: "已完成",
+                delayed: "延遲",
+                bye: "輪空",
+              };
+              const originalStatus = statusLabels[originalMatch.status] || originalMatch.status;
+              const newStatus = statusLabels[batchForm.status] || batchForm.status;
+              
+              if (originalStatus !== newStatus) {
+                const draftId = `batch-status-${originalMatch.id}-${Date.now()}`;
+                const defaultContent = `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
+                
+                newDrafts.push({
+                  id: draftId,
+                  matchId: originalMatch.id,
+                  matchInfo,
+                  changeType: "status",
+                  originalValue: originalStatus,
+                  newValue: newStatus,
+                  content: defaultContent,
+                });
+              }
+            } else if (batchOperation === "court") {
+              const courtValue = batchForm.court === "OTHER" ? batchForm.customCourt : batchForm.court;
+              const originalCourt = originalMatch.court || "未分配";
+              const newCourt = courtValue || "未分配";
+              
+              if (originalCourt !== newCourt) {
+                const draftId = `batch-court-${originalMatch.id}-${Date.now()}`;
+                const defaultContent = `🏟️ ${matchInfo}\n場地更新：${originalCourt} → ${newCourt}`;
+                
+                newDrafts.push({
+                  id: draftId,
+                  matchId: originalMatch.id,
+                  matchInfo,
+                  changeType: "court",
+                  originalValue: originalCourt,
+                  newValue: newCourt,
+                  content: defaultContent,
+                });
+              }
+            }
+          }
+          
+          if (newDrafts.length > 0) {
+            setAnnouncementDrafts(prev => [...prev, ...newDrafts]);
+          }
+        }
       }
+      
+      toast.success(`成功更新 ${selectedMatches.size} 場比賽`);
       
       setSelectedMatches(new Set());
       setBatchMode(false);
