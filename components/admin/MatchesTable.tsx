@@ -1463,11 +1463,15 @@ export default function MatchesTable({
                 : "No matches match your filters. Try adjusting your search criteria."}
             </div>
           ) : (
-            filteredMatches.map((match) => (
+            filteredMatches.map((match) => {
+              const hasStats = hasIndividualStats.get(match.id) || false;
+              return (
               <div
                 key={match.id}
                 className={`bg-white border rounded-lg p-4 ${
-                  selectedMatches.has(match.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                  selectedMatches.has(match.id) ? 'border-blue-500 bg-blue-50' : 
+                  hasStats ? 'border-green-500 bg-green-50 border-l-4' : 
+                  'border-gray-200'
                 }`}
               >
                 {batchMode && (
