@@ -8,6 +8,19 @@ interface PlayerStatsProps {
   matches: Match[];
   tournamentType?: "single_elimination" | "season_play" | null;
   registrationType?: 'player' | 'team';
+  matchPlayerStats?: Array<{
+    match_id: string;
+    player_id: string;
+    team_member_id?: string;
+    stat_name: string;
+    stat_value?: string;
+  }>;
+  teamMembers?: Array<{
+    id: string;
+    player_id: string;
+    name: string;
+    jersey_number?: number | null;
+  }>;
 }
 
 interface PlayerStat {
@@ -33,7 +46,7 @@ const parseScore = (score?: string): { score1: number; score2: number } | null =
   return { score1, score2 };
 };
 
-export default function PlayerStats({ players, matches, tournamentType, registrationType = 'player' }: PlayerStatsProps) {
+export default function PlayerStats({ players, matches, tournamentType, registrationType = 'player', matchPlayerStats = [], teamMembers = [] }: PlayerStatsProps) {
   const playerStats = useMemo(() => {
     const statsMap = new Map<string, PlayerStat>();
 
@@ -126,12 +139,55 @@ export default function PlayerStats({ players, matches, tournamentType, registra
   }, [players, matches]);
 
   // Calculate top performers for charts (must be before early return)
+  // For team events, calculate individual player goals from match_player_stats
+  const individualPlayerGoals = useMemo(() => {
+    if (registrationType !== 'team') return new Map<string, number>();
+    
+    const goalsMap = new Map<string, { name: string; goals: number }>();
+    
+    // Sum up player_goals from match_player_stats for each team member
+    matchPlayerStats.forEach(stat => {
+      if (stat.stat_name === 'player_goals' && stat.team_member_id && stat.stat_value) {
+        const member = teamMembers.find(m => m.id === stat.team_member_id);
+        if (member) {
+          const key = `${member.player_id}_${member.id}`;
+          const current = goalsMap.get(key) || { name: member.name, goals: 0 };
+          goalsMap.set(key, {
+            name: member.name,
+            goals: current.goals + (parseInt(stat.stat_value) || 0)
+          });
+        }
+      }
+    });
+    
+    return goalsMap;
+  }, [matchPlayerStats, teamMembers, registrationType]);
+
   const topScorers = useMemo(() => {
-    return [...playerStats]
-      .sort((a, b) => b.goalsFor - a.goalsFor)
-      .slice(0, 5)
-      .filter(s => s.goalsFor > 0);
-  }, [playerStats]);
+    if (registrationType === 'team' && individualPlayerGoals.size > 0) {
+      // For team events, show individual players
+      return Array.from(individualPlayerGoals.values())
+        .sort((a, b) => b.goals - a.goals)
+        .slice(0, 5)
+        .filter(s => s.goals > 0)
+        .map((item, idx) => ({
+          id: `player_${idx}`,
+          name: item.name,
+          goalsFor: item.goals
+        }));
+    } else {
+      // For player events, show team/player goals
+      return [...playerStats]
+        .sort((a, b) => b.goalsFor - a.goalsFor)
+        .slice(0, 5)
+        .filter(s => s.goalsFor > 0)
+        .map(stat => ({
+          id: stat.player.id,
+          name: stat.player.name,
+          goalsFor: stat.goalsFor
+        }));
+    }
+  }, [playerStats, individualPlayerGoals, registrationType]);
 
   const topWinRate = useMemo(() => {
     return [...playerStats]
@@ -165,7 +221,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">排名</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">選手</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{registrationType === 'team' ? '隊伍' : '選手'}</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">勝</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">敗</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">和</th>
@@ -313,10 +369,10 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                   const maxGoals = topScorers[0].goalsFor;
                   const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
                   return (
-                    <div key={stat.player.id}>
+                    <div key={stat.id || stat.player?.id}>
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-medium text-gray-700">
-                          {idx + 1}. {stat.player.name}
+                          {idx + 1}. {stat.name || stat.player?.name}
                         </span>
                         <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} 球</span>
                       </div>

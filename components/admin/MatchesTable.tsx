@@ -106,6 +106,13 @@ interface MatchesTableProps {
   courts?: Array<{ id: string; name: string }>;
   tournamentType?: "single_elimination" | "season_play" | null;
   registrationType?: 'player' | 'team';
+  matchPlayerStats?: Array<{
+    match_id: string;
+    player_id: string;
+    team_member_id?: string;
+    stat_name: string;
+    stat_value?: string;
+  }>;
 }
 
 export default function MatchesTable({
@@ -116,6 +123,7 @@ export default function MatchesTable({
   courts = [],
   tournamentType,
   registrationType = 'player',
+  matchPlayerStats = [],
 }: MatchesTableProps) {
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
@@ -143,6 +151,45 @@ export default function MatchesTable({
     slots.forEach((slot) => map.set(slot.id, slot));
     return map;
   }, [slots]);
+
+  // Check if match has individual player stats entered (for team events)
+  const hasIndividualStats = useMemo(() => {
+    const statsMap = new Map<string, boolean>();
+    
+    if (registrationType !== 'team') return statsMap;
+    
+    matches.forEach(match => {
+      if (!match.score1 || !match.score2) {
+        statsMap.set(match.id, false);
+        return;
+      }
+      
+      const score1 = parseInt(match.score1) || 0;
+      const score2 = parseInt(match.score2) || 0;
+      
+      // Get player-level goals for this match
+      const matchStats = matchPlayerStats.filter(s => s.match_id === match.id && s.stat_name === 'player_goals' && s.team_member_id);
+      
+      if (matchStats.length === 0) {
+        statsMap.set(match.id, false);
+        return;
+      }
+      
+      // Sum up goals for each team
+      const team1Goals = matchStats
+        .filter(s => s.player_id === match.player1_id)
+        .reduce((sum, s) => sum + (parseInt(s.stat_value || '0') || 0), 0);
+      
+      const team2Goals = matchStats
+        .filter(s => s.player_id === match.player2_id)
+        .reduce((sum, s) => sum + (parseInt(s.stat_value || '0') || 0), 0);
+      
+      // Check if individual goals match team scores
+      statsMap.set(match.id, team1Goals === score1 && team2Goals === score2);
+    });
+    
+    return statsMap;
+  }, [matches, matchPlayerStats, registrationType]);
 
   // Filter matches based on search and filters
   const filteredMatches = useMemo(() => {
@@ -885,7 +932,7 @@ export default function MatchesTable({
             <div className="lg:col-span-2">
               <input
                 type="text"
-                placeholder="搜尋選手名稱..."
+                placeholder={registrationType === 'team' ? "搜尋隊伍名稱..." : "搜尋選手名稱..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
@@ -1392,7 +1439,8 @@ export default function MatchesTable({
                       </>
                     )}
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -1573,7 +1621,8 @@ export default function MatchesTable({
                   )}
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

@@ -78,6 +78,22 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
     .eq("event_id", eventId)
     .order("name", { ascending: true });
 
+  // Get match player stats for individual player goals
+  const { data: matchPlayerStats } = await supabase
+    .from("match_player_stats")
+    .select("*")
+    .in("match_id", (matches || []).map(m => m.id));
+
+  // Get team members if team event
+  let teamMembers: any[] = [];
+  if (event?.registration_type === 'team') {
+    const { data: members } = await supabase
+      .from("team_members")
+      .select("*")
+      .in("player_id", (players || []).map(p => p.id));
+    teamMembers = members || [];
+  }
+
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
@@ -104,6 +120,8 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
             matches={matches || []}
             tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
             registrationType={event?.registration_type as 'player' | 'team' | undefined}
+            matchPlayerStats={matchPlayerStats || []}
+            teamMembers={teamMembers}
           />
         </div>
 
@@ -112,6 +130,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           <MatchHistory
             players={players || []}
             matches={matches || []}
+            registrationType={event?.registration_type as 'player' | 'team' | undefined}
           />
         </div>
       </div>

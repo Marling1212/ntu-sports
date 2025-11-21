@@ -6,6 +6,7 @@ import { Player, Match } from "@/types/database";
 interface MatchHistoryProps {
   players: Player[];
   matches: Match[];
+  registrationType?: 'player' | 'team';
 }
 
 interface HeadToHead {
@@ -17,7 +18,7 @@ interface HeadToHead {
   draws: number;
 }
 
-export default function MatchHistory({ players, matches }: MatchHistoryProps) {
+export default function MatchHistory({ players, matches, registrationType = 'player' }: MatchHistoryProps) {
   const [selectedPlayer1, setSelectedPlayer1] = useState<string>("");
   const [selectedPlayer2, setSelectedPlayer2] = useState<string>("");
 
@@ -77,19 +78,19 @@ export default function MatchHistory({ players, matches }: MatchHistoryProps) {
     <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-2xl font-semibold text-ntu-green">歷史對戰記錄</h2>
-        <p className="text-sm text-gray-600 mt-1">查看兩位選手之間的對戰歷史</p>
+        <p className="text-sm text-gray-600 mt-1">查看兩位{registrationType === 'team' ? '隊伍' : '選手'}之間的對戰歷史</p>
       </div>
 
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">選手 1</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{registrationType === 'team' ? '隊伍' : '選手'} 1</label>
             <select
               value={selectedPlayer1}
               onChange={(e) => setSelectedPlayer1(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
             >
-              <option value="">選擇選手...</option>
+              <option value="">選擇{registrationType === 'team' ? '隊伍' : '選手'}...</option>
               {players.map(player => (
                 <option key={player.id} value={player.id}>
                   {player.name} {player.department ? `(${player.department})` : ""}
@@ -99,13 +100,13 @@ export default function MatchHistory({ players, matches }: MatchHistoryProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">選手 2</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{registrationType === 'team' ? '隊伍' : '選手'} 2</label>
             <select
               value={selectedPlayer2}
               onChange={(e) => setSelectedPlayer2(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
             >
-              <option value="">選擇選手...</option>
+              <option value="">選擇{registrationType === 'team' ? '隊伍' : '選手'}...</option>
               {players
                 .filter(p => p.id !== selectedPlayer1)
                 .map(player => (
@@ -186,7 +187,7 @@ export default function MatchHistory({ players, matches }: MatchHistoryProps) {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <p>這兩位選手尚未有對戰記錄</p>
+                <p>這兩位{registrationType === 'team' ? '隊伍' : '選手'}尚未有對戰記錄</p>
               </div>
             )}
           </div>
@@ -194,7 +195,7 @@ export default function MatchHistory({ players, matches }: MatchHistoryProps) {
 
         {!headToHead && selectedPlayer1 && selectedPlayer2 && (
           <div className="text-center py-8 text-gray-500">
-            <p>請選擇兩位不同的選手查看對戰記錄</p>
+            <p>請選擇兩位不同的{registrationType === 'team' ? '隊伍' : '選手'}查看對戰記錄</p>
           </div>
         )}
       </div>
