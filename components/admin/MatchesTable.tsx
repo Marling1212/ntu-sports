@@ -229,9 +229,6 @@ export default function MatchesTable({
     const currentMatch = matches.find(m => m.id === matchId);
     if (!currentMatch) return;
 
-    // Check if status changed to "live"
-    const isNowLive = editForm.status === "live" && currentMatch.status !== "live";
-
     const slotIdValue: string | null = editForm.slot_id ? editForm.slot_id : null;
     const selectedSlot = slotIdValue ? slotMap.get(slotIdValue) || null : null;
     let scheduledIso = toIsoString(editForm.scheduled_time);
@@ -267,42 +264,17 @@ export default function MatchesTable({
       return;
     }
 
-    // If status changed to "live", create an announcement (keep existing behavior)
-    if (isNowLive && data.player1 && data.player2) {
-      const player1Name = data.player1.name || "TBD";
-      const player2Name = data.player2.name || "TBD";
-      const court = editForm.court || "TBA";
-      
-      const announcementTitle = `🎾 Match Now Live!`;
-      const announcementContent = `${player1Name} vs ${player2Name} is now starting on Court ${court}. Please head to the court!`;
-      
-      const { error: announcementError } = await supabase
-        .from("announcements")
-        .insert({
-          event_id: eventId,
-          title: announcementTitle,
-          content: announcementContent,
-          created_at: new Date().toISOString(),
-        });
-      
-      if (announcementError) {
-        console.error("Error creating announcement:", announcementError);
-      } else {
-        console.log("Announcement created for live match");
-      }
-    }
-
-    // Generate announcement drafts for other changes (status, date, score)
-    // Skip if status changed to "live" (already handled above)
-    if (!isNowLive && data.player1 && data.player2) {
+    // Generate announcement drafts for all changes (status, date, score)
+    if (data.player1 && data.player2) {
       const player1Name = data.player1.name || "TBD";
       const player2Name = data.player2.name || "TBD";
       const matchInfo = `Round ${currentMatch.round}, Match ${currentMatch.match_number}: ${player1Name} vs ${player2Name}`;
       
-      // Check for status change (excluding live)
-      if (editForm.status !== currentMatch.status && editForm.status !== "live") {
+      // Check for status change (including live)
+      if (editForm.status !== currentMatch.status) {
         const statusLabels: { [key: string]: string } = {
           upcoming: "即將開始",
+          live: "進行中",
           completed: "已完成",
           delayed: "延遲",
           bye: "輪空",
@@ -311,7 +283,10 @@ export default function MatchesTable({
         const newStatus = statusLabels[editForm.status] || editForm.status;
         
         const draftId = `status-${matchId}-${Date.now()}`;
-        const defaultContent = `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
+        // Special content for live status
+        const defaultContent = editForm.status === "live" && currentMatch.status !== "live"
+          ? `🎾 ${matchInfo}\n比賽現在開始！場地：${editForm.court || "TBA"}\n請前往場地觀賽！`
+          : `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
         
         setAnnouncementDrafts(prev => [...prev, {
           id: draftId,
@@ -521,11 +496,7 @@ export default function MatchesTable({
       });
     }
     
-    if (isNowLive) {
-      toast.success("Match is now LIVE! Announcement posted.");
-    } else {
-      toast.success("Match updated successfully!");
-    }
+    toast.success("Match updated successfully!");
   };
 
   const handleCancel = () => {
@@ -574,12 +545,6 @@ export default function MatchesTable({
     // Get original match data before update for announcement drafts
     const selectedMatchesArray = Array.from(selectedMatches);
     const originalMatches = matches.filter(m => selectedMatchesArray.includes(m.id));
-    
-    // Check if any match is changing to "live" status (for direct announcement)
-    const isChangingToLive = batchOperation === "status" && batchForm.status === "live";
-    const matchesChangingToLive = isChangingToLive 
-      ? originalMatches.filter(m => m.status !== "live" && m.player1 && m.player2)
-      : [];
 
     const updates: any[] = [];
     for (const matchId of selectedMatches) {
@@ -604,28 +569,6 @@ export default function MatchesTable({
     try {
       await Promise.all(updates);
       
-      // Create direct announcements for matches changing to "live" (keep existing behavior)
-      if (matchesChangingToLive.length > 0) {
-        const liveAnnouncements = matchesChangingToLive.map(match => {
-          const player1Name = match.player1?.name || "TBD";
-          const player2Name = match.player2?.name || "TBD";
-          const court = batchOperation === "court" 
-            ? (batchForm.court === "OTHER" ? batchForm.customCourt : batchForm.court)
-            : (match.court || "TBA");
-          
-          return supabase
-            .from("announcements")
-            .insert({
-              event_id: eventId,
-              title: `🎾 Match Now Live!`,
-              content: `${player1Name} vs ${player2Name} is now starting on Court ${court}. Please head to the court!`,
-              created_at: new Date().toISOString(),
-            });
-        });
-        
-        await Promise.all(liveAnnouncements);
-      }
-      
       // Refresh matches
       const { data: updatedMatches } = await supabase
         .from("matches")
@@ -643,8 +586,8 @@ export default function MatchesTable({
       if (updatedMatches) {
         setMatches(updatedMatches);
         
-        // Generate announcement drafts for batch updates (excluding live status changes)
-        if (batchOperation && !isChangingToLive) {
+        // Generate announcement drafts for batch updates (including live status changes)
+        if (batchOperation) {
           const newDrafts: AnnouncementDraft[] = [];
           
           for (const originalMatch of originalMatches) {
@@ -658,6 +601,7 @@ export default function MatchesTable({
             if (batchOperation === "status") {
               const statusLabels: { [key: string]: string } = {
                 upcoming: "即將開始",
+                live: "進行中",
                 completed: "已完成",
                 delayed: "延遲",
                 bye: "輪空",
@@ -667,7 +611,11 @@ export default function MatchesTable({
               
               if (originalStatus !== newStatus) {
                 const draftId = `batch-status-${originalMatch.id}-${Date.now()}`;
-                const defaultContent = `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
+                // Special content for live status
+                const court = updatedMatch.court || "TBA";
+                const defaultContent = batchForm.status === "live" && originalMatch.status !== "live"
+                  ? `🎾 ${matchInfo}\n比賽現在開始！場地：${court}\n請前往場地觀賽！`
+                  : `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
                 
                 newDrafts.push({
                   id: draftId,
