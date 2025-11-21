@@ -141,7 +141,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
   // Calculate top performers for charts (must be before early return)
   // For team events, calculate individual player goals from match_player_stats
   const individualPlayerGoals = useMemo(() => {
-    if (registrationType !== 'team') return new Map<string, number>();
+    if (registrationType !== 'team') return new Map<string, { name: string; goals: number }>();
     
     const goalsMap = new Map<string, { name: string; goals: number }>();
     
@@ -166,7 +166,11 @@ export default function PlayerStats({ players, matches, tournamentType, registra
   const topScorers = useMemo(() => {
     if (registrationType === 'team' && individualPlayerGoals.size > 0) {
       // For team events, show individual players
-      return Array.from(individualPlayerGoals.values())
+      const playerGoalsArray: Array<{ name: string; goals: number }> = [];
+      individualPlayerGoals.forEach((value) => {
+        playerGoalsArray.push(value);
+      });
+      return playerGoalsArray
         .sort((a, b) => b.goals - a.goals)
         .slice(0, 5)
         .filter(s => s.goals > 0)
