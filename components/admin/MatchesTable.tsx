@@ -1439,7 +1439,7 @@ export default function MatchesTable({
                       </>
                     )}
                   </tr>
-                  );
+                );
                 })
               )}
             </tbody>
