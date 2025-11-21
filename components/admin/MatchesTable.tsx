@@ -1178,8 +1178,15 @@ export default function MatchesTable({
                   </td>
                 </tr>
               ) : (
-                filteredMatches.map((match) => (
-                  <tr key={match.id} className={`hover:bg-gray-50 ${selectedMatches.has(match.id) ? 'bg-blue-50' : ''}`}>
+                filteredMatches.map((match) => {
+                  const hasStats = hasIndividualStats.get(match.id) || false;
+                  return (
+                  <tr 
+                    key={match.id} 
+                    className={`hover:bg-gray-50 ${selectedMatches.has(match.id) ? 'bg-blue-50' : ''} ${
+                      hasStats ? 'bg-green-50 border-l-4 border-green-500' : ''
+                    }`}
+                  >
                     {batchMode && (
                       <td className="px-3 py-4 text-center">
                         <input
@@ -1439,7 +1446,7 @@ export default function MatchesTable({
                       </>
                     )}
                   </tr>
-                );
+                  );
                 })
               )}
             </tbody>
