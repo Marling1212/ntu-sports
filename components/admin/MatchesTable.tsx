@@ -1124,8 +1124,8 @@ export default function MatchesTable({
 
         {/* Desktop Table View */}
         <div id="matches-table" className="hidden md:block scroll-mt-24">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-full">
+          <div>
+            <table className="w-full table-fixed" style={{ tableLayout: 'fixed', width: '100%' }}>
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {batchMode && (
@@ -1138,16 +1138,16 @@ export default function MatchesTable({
                     />
                   </th>
                 )}
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">Round</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">Match #</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Player 1</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">Score</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Player 2</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Winner</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-40">Schedule</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Court</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">Status</th>
-                <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase w-40">Actions</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '7%' }}>Round</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '7%' }}>Match #</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '12%' }}>Player 1</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Score</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '12%' }}>Player 2</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '12%' }}>Winner</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '14%' }}>Schedule</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Court</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Status</th>
+                <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -1410,20 +1410,21 @@ export default function MatchesTable({
                           </span>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex gap-1 justify-end">
                             <a
                               href={`/admin/${eventId}/matches/${match.id}`}
                               className={`${
                                 hasStats ? 'bg-green-500' : 'bg-blue-500'
-                              } text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity font-semibold`}
+                              } text-white px-2 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs`}
+                              title={hasStats ? "已輸入個別資料" : "查看詳情"}
                             >
-                              📊 詳情
+                              📊
                             </a>
                             <button 
                               onClick={() => handleEdit(match)} 
-                              className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity font-semibold"
+                              className="bg-ntu-green text-white px-2 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs"
                             >
-                              ✏️ Edit
+                              ✏️
                             </button>
                           </div>
                         </td>
@@ -1548,7 +1549,9 @@ export default function MatchesTable({
                     <div className="mt-3 flex gap-2">
                       <Link
                         href={`/admin/${eventId}/matches/${match.id}`}
-                        className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-center"
+                        className={`flex-1 ${
+                          hasStats ? 'bg-green-500' : 'bg-blue-500'
+                        } text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-center`}
                       >
                         📊 詳情
                       </Link>
