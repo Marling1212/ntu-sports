@@ -30,17 +30,21 @@ export default function AnnouncementDraftWindow({
   eventId,
 }: AnnouncementDraftWindowProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 100 });
+  const [size, setSize] = useState({ width: 400, height: 600 });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [resizeOffset, setResizeOffset] = useState({ x: 0, y: 0 });
   const [isMinimized, setIsMinimized] = useState(false);
   const [combinedContent, setCombinedContent] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const windowRef = useRef<HTMLDivElement>(null);
 
-  // Initialize position on client side
+  // Initialize position and size on client side
   useEffect(() => {
     if (typeof window !== "undefined") {
       setPosition({ x: window.innerWidth - 420, y: 100 });
+      setSize({ width: 400, height: 600 });
     }
   }, []);
 
@@ -72,18 +76,51 @@ export default function AnnouncementDraftWindow({
     const newY = e.clientY - dragOffset.y;
     
     // Keep window within viewport
-    const maxX = window.innerWidth - (windowRef.current?.offsetWidth || 400);
-    const maxY = window.innerHeight - (windowRef.current?.offsetHeight || 200);
+    const currentWidth = windowRef.current?.offsetWidth || size.width;
+    const currentHeight = windowRef.current?.offsetHeight || size.height;
+    const maxX = window.innerWidth - currentWidth;
+    const maxY = window.innerHeight - currentHeight;
     
     setPosition({
       x: Math.max(0, Math.min(newX, maxX)),
       y: Math.max(0, Math.min(newY, maxY)),
     });
-  }, [isDragging, dragOffset]);
+  }, [isDragging, dragOffset, size]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+    setIsResizing(false);
   }, []);
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    const rect = windowRef.current?.getBoundingClientRect();
+    if (rect) {
+      setResizeOffset({
+        x: e.clientX - rect.right,
+        y: e.clientY - rect.bottom,
+      });
+    }
+  }, []);
+
+  const handleResizeMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const minWidth = 300;
+    const maxWidth = Math.min(800, window.innerWidth - position.x);
+    const minHeight = 300;
+    const maxHeight = Math.min(800, window.innerHeight - position.y - 20);
+    
+    const newWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX - position.x));
+    const newHeight = Math.max(minHeight, Math.min(maxHeight, e.clientY - position.y));
+    
+    setSize({
+      width: newWidth,
+      height: newHeight,
+    });
+  }, [isResizing, position]);
 
   useEffect(() => {
     if (isDragging) {
@@ -95,6 +132,17 @@ export default function AnnouncementDraftWindow({
       };
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener("mousemove", handleResizeMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+      return () => {
+        window.removeEventListener("mousemove", handleResizeMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [isResizing, handleResizeMouseMove, handleMouseUp]);
 
   const handlePublish = async () => {
     if (drafts.length === 0) {
@@ -125,12 +173,14 @@ export default function AnnouncementDraftWindow({
   return (
     <div
       ref={windowRef}
-      className={`fixed z-50 bg-white rounded-lg shadow-2xl border-2 border-ntu-green ${
-        isMinimized ? "h-auto" : "h-[600px]"
-      } w-[400px] flex flex-col`}
+      className={`fixed z-50 bg-white rounded-lg shadow-2xl border-2 border-ntu-green flex flex-col ${
+        isMinimized ? "h-auto" : ""
+      }`}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
+        width: `${size.width}px`,
+        height: isMinimized ? "auto" : `${size.height}px`,
         cursor: isDragging ? "grabbing" : "default",
       }}
     >
@@ -154,7 +204,14 @@ export default function AnnouncementDraftWindow({
       {!isMinimized && (
         <>
           {/* Draft List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 border-b">
+          <div 
+            className="flex-1 overflow-y-auto p-4 space-y-3 border-b scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200" 
+            style={{ 
+              maxHeight: `${Math.max(200, size.height - 300)}px`,
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch"
+            }}
+          >
             {drafts.map((draft) => (
               <div key={draft.id} className="bg-gray-50 rounded p-3 border border-gray-200">
                 <div className="flex items-start justify-between mb-2">
@@ -217,6 +274,20 @@ export default function AnnouncementDraftWindow({
             </button>
           </div>
         </>
+      )}
+
+      {/* Resize Handle */}
+      {!isMinimized && (
+        <div
+          onMouseDown={handleResizeMouseDown}
+          className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize bg-ntu-green opacity-50 hover:opacity-100 transition-opacity rounded-tl-lg"
+          style={{
+            clipPath: "polygon(100% 0, 0 100%, 100% 100%)",
+          }}
+          title="拖動調整大小"
+        >
+          <div className="absolute bottom-0.5 right-0.5 w-3 h-3 border-r-2 border-b-2 border-white opacity-70"></div>
+        </div>
       )}
     </div>
   );
