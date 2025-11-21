@@ -107,21 +107,38 @@ export default function MatchDetailContent({
   });
 
   const [playerStats, setPlayerStats] = useState<Record<string, Record<string, string>>>({});
+  const [teamMemberStats, setTeamMemberStats] = useState<Record<string, Record<string, Record<string, string>>>>({});
   const [customStats, setCustomStats] = useState<SportStatDefinition[]>([]);
-  const [newCustomStat, setNewCustomStat] = useState({ name: "", label: "", type: "number" as const });
+  const [newCustomStat, setNewCustomStat] = useState({ name: "", label: "", type: "number" as const, level: "team" as const });
   const [saving, setSaving] = useState(false);
   const supabase = createClient();
 
   // Initialize player stats from existing stats
   useEffect(() => {
     const statsMap: Record<string, Record<string, string>> = {};
+    const memberStatsMap: Record<string, Record<string, Record<string, string>>> = {};
+    
     existingStats.forEach(stat => {
-      if (!statsMap[stat.player_id]) {
-        statsMap[stat.player_id] = {};
+      if (stat.team_member_id) {
+        // Player-level stat for team member
+        if (!memberStatsMap[stat.player_id]) {
+          memberStatsMap[stat.player_id] = {};
+        }
+        if (!memberStatsMap[stat.player_id][stat.team_member_id]) {
+          memberStatsMap[stat.player_id][stat.team_member_id] = {};
+        }
+        memberStatsMap[stat.player_id][stat.team_member_id][stat.stat_name] = stat.stat_value || "";
+      } else {
+        // Team-level stat or player event stat
+        if (!statsMap[stat.player_id]) {
+          statsMap[stat.player_id] = {};
+        }
+        statsMap[stat.player_id][stat.stat_name] = stat.stat_value || "";
       }
-      statsMap[stat.player_id][stat.stat_name] = stat.stat_value || "";
     });
+    
     setPlayerStats(statsMap);
+    setTeamMemberStats(memberStatsMap);
   }, [existingStats]);
 
   // Separate default and custom stats
@@ -176,6 +193,8 @@ export default function MatchDetailContent({
 
       // Insert new stats
       const statsToInsert: any[] = [];
+      
+      // Team-level stats (or player event stats)
       Object.keys(playerStats).forEach(playerId => {
         Object.keys(playerStats[playerId]).forEach(statName => {
           const value = playerStats[playerId][statName];
@@ -185,8 +204,27 @@ export default function MatchDetailContent({
               player_id: playerId,
               stat_name: statName,
               stat_value: value,
+              team_member_id: null, // Team-level stat
             });
           }
+        });
+      });
+
+      // Player-level stats for team members
+      Object.keys(teamMemberStats).forEach(playerId => {
+        Object.keys(teamMemberStats[playerId]).forEach(teamMemberId => {
+          Object.keys(teamMemberStats[playerId][teamMemberId]).forEach(statName => {
+            const value = teamMemberStats[playerId][teamMemberId][statName];
+            if (value !== undefined && value !== null && value !== "") {
+              statsToInsert.push({
+                match_id: match.id,
+                player_id: playerId,
+                team_member_id: teamMemberId,
+                stat_name: statName,
+                stat_value: value,
+              });
+            }
+          });
         });
       });
 
@@ -198,7 +236,7 @@ export default function MatchDetailContent({
         if (error) throw error;
       }
 
-      toast.success("球員統計數據已保存！");
+      toast.success("統計數據已保存！");
     } catch (error: any) {
       toast.error(`錯誤: ${error.message}`);
     } finally {
@@ -220,6 +258,7 @@ export default function MatchDetailContent({
           stat_name: newCustomStat.name,
           stat_label: newCustomStat.label,
           stat_type: newCustomStat.type,
+          stat_level: newCustomStat.level,
           is_default: false,
           display_order: statDefinitions.length + customStats.length,
         })
@@ -229,7 +268,7 @@ export default function MatchDetailContent({
       if (error) throw error;
 
       setCustomStats([...customStats, data]);
-      setNewCustomStat({ name: "", label: "", type: "number" });
+      setNewCustomStat({ name: "", label: "", type: "number", level: "team" });
       toast.success("自定義統計項目已添加！");
     } catch (error: any) {
       toast.error(`錯誤: ${error.message}`);
@@ -264,9 +303,26 @@ export default function MatchDetailContent({
     }));
   };
 
+  const updateTeamMemberStat = (playerId: string, teamMemberId: string, statName: string, value: string) => {
+    setTeamMemberStats(prev => ({
+      ...prev,
+      [playerId]: {
+        ...prev[playerId],
+        [teamMemberId]: {
+          ...prev[playerId]?.[teamMemberId],
+          [statName]: value,
+        },
+      },
+    }));
+  };
+
+  // Separate team-level and player-level stats
   const allStats = [...statDefinitions.filter(s => s.is_default), ...customStats].sort(
     (a, b) => a.display_order - b.display_order
   );
+  
+  const teamLevelStats = allStats.filter(s => s.stat_level === 'team' || !s.stat_level);
+  const playerLevelStats = allStats.filter(s => s.stat_level === 'player');
 
   const player1 = match.player1_id ? players.find(p => p.id === match.player1_id) : null;
   const player2 = match.player2_id ? players.find(p => p.id === match.player2_id) : null;
@@ -424,7 +480,7 @@ export default function MatchDetailContent({
         </div>
       </div>
 
-      {/* Player Statistics */}
+      {/* Statistics Section */}
       {allStats.length > 0 && (player1 || player2) && (
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
@@ -441,7 +497,7 @@ export default function MatchDetailContent({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Player 1 Stats */}
+            {/* Team/Player 1 */}
             {player1 && (
               <div>
                 <h3 className="text-lg font-semibold mb-4 border-b pb-2">
@@ -452,46 +508,148 @@ export default function MatchDetailContent({
                     </span>
                   )}
                 </h3>
-                <div className="space-y-3">
-                  {allStats.map(stat => (
-                    <div key={stat.id}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {stat.stat_label}
-                      </label>
-                      {stat.stat_type === 'number' ? (
-                        <input
-                          type="number"
-                          value={playerStats[player1.id]?.[stat.stat_name] || ""}
-                          onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                          placeholder="0"
-                        />
-                      ) : stat.stat_type === 'boolean' ? (
-                        <select
-                          value={playerStats[player1.id]?.[stat.stat_name] || ""}
-                          onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                        >
-                          <option value="">—</option>
-                          <option value="true">是</option>
-                          <option value="false">否</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={playerStats[player1.id]?.[stat.stat_name] || ""}
-                          onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                          placeholder="輸入文字"
-                        />
-                      )}
+
+                {/* Team-level Stats */}
+                {isTeamEvent && teamLevelStats.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計</h4>
+                    <div className="space-y-3">
+                      {teamLevelStats.map(stat => (
+                        <div key={stat.id}>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {stat.stat_label}
+                          </label>
+                          {stat.stat_type === 'number' ? (
+                            <input
+                              type="number"
+                              value={playerStats[player1.id]?.[stat.stat_name] || ""}
+                              onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                              placeholder="0"
+                            />
+                          ) : stat.stat_type === 'boolean' ? (
+                            <select
+                              value={playerStats[player1.id]?.[stat.stat_name] || ""}
+                              onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                            >
+                              <option value="">—</option>
+                              <option value="true">是</option>
+                              <option value="false">否</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={playerStats[player1.id]?.[stat.stat_name] || ""}
+                              onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                              placeholder="輸入文字"
+                            />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Player-level Stats for Team Members */}
+                {isTeamEvent && playerLevelStats.length > 0 && teamMembers[player1.id] && teamMembers[player1.id].length > 0 && (
+                  <div>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">個別球員統計</h4>
+                    <div className="space-y-6">
+                      {teamMembers[player1.id].map((member: any) => (
+                        <div key={member.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <h5 className="font-semibold text-gray-800 mb-3">
+                            {member.name}
+                            {member.jersey_number && (
+                              <span className="text-sm text-gray-500 ml-2">#{member.jersey_number}</span>
+                            )}
+                          </h5>
+                          <div className="space-y-3">
+                            {playerLevelStats.map(stat => (
+                              <div key={stat.id}>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  {stat.stat_label}
+                                </label>
+                                {stat.stat_type === 'number' ? (
+                                  <input
+                                    type="number"
+                                    value={teamMemberStats[player1.id]?.[member.id]?.[stat.stat_name] || ""}
+                                    onChange={(e) => updateTeamMemberStat(player1.id, member.id, stat.stat_name, e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                    placeholder="0"
+                                  />
+                                ) : stat.stat_type === 'boolean' ? (
+                                  <select
+                                    value={teamMemberStats[player1.id]?.[member.id]?.[stat.stat_name] || ""}
+                                    onChange={(e) => updateTeamMemberStat(player1.id, member.id, stat.stat_name, e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                  >
+                                    <option value="">—</option>
+                                    <option value="true">是</option>
+                                    <option value="false">否</option>
+                                  </select>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={teamMemberStats[player1.id]?.[member.id]?.[stat.stat_name] || ""}
+                                    onChange={(e) => updateTeamMemberStat(player1.id, member.id, stat.stat_name, e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                    placeholder="輸入文字"
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* For non-team events, show all stats */}
+                {!isTeamEvent && (
+                  <div className="space-y-3">
+                    {allStats.map(stat => (
+                      <div key={stat.id}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {stat.stat_label}
+                        </label>
+                        {stat.stat_type === 'number' ? (
+                          <input
+                            type="number"
+                            value={playerStats[player1.id]?.[stat.stat_name] || ""}
+                            onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                            placeholder="0"
+                          />
+                        ) : stat.stat_type === 'boolean' ? (
+                          <select
+                            value={playerStats[player1.id]?.[stat.stat_name] || ""}
+                            onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                          >
+                            <option value="">—</option>
+                            <option value="true">是</option>
+                            <option value="false">否</option>
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={playerStats[player1.id]?.[stat.stat_name] || ""}
+                            onChange={(e) => updatePlayerStat(player1.id, stat.stat_name, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                            placeholder="輸入文字"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Player 2 Stats */}
+            {/* Team/Player 2 */}
             {player2 && (
               <div>
                 <h3 className="text-lg font-semibold mb-4 border-b pb-2">
@@ -502,42 +660,144 @@ export default function MatchDetailContent({
                     </span>
                   )}
                 </h3>
-                <div className="space-y-3">
-                  {allStats.map(stat => (
-                    <div key={stat.id}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {stat.stat_label}
-                      </label>
-                      {stat.stat_type === 'number' ? (
-                        <input
-                          type="number"
-                          value={playerStats[player2.id]?.[stat.stat_name] || ""}
-                          onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                          placeholder="0"
-                        />
-                      ) : stat.stat_type === 'boolean' ? (
-                        <select
-                          value={playerStats[player2.id]?.[stat.stat_name] || ""}
-                          onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                        >
-                          <option value="">—</option>
-                          <option value="true">是</option>
-                          <option value="false">否</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={playerStats[player2.id]?.[stat.stat_name] || ""}
-                          onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                          placeholder="輸入文字"
-                        />
-                      )}
+
+                {/* Team-level Stats */}
+                {isTeamEvent && teamLevelStats.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計</h4>
+                    <div className="space-y-3">
+                      {teamLevelStats.map(stat => (
+                        <div key={stat.id}>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {stat.stat_label}
+                          </label>
+                          {stat.stat_type === 'number' ? (
+                            <input
+                              type="number"
+                              value={playerStats[player2.id]?.[stat.stat_name] || ""}
+                              onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                              placeholder="0"
+                            />
+                          ) : stat.stat_type === 'boolean' ? (
+                            <select
+                              value={playerStats[player2.id]?.[stat.stat_name] || ""}
+                              onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                            >
+                              <option value="">—</option>
+                              <option value="true">是</option>
+                              <option value="false">否</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={playerStats[player2.id]?.[stat.stat_name] || ""}
+                              onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                              placeholder="輸入文字"
+                            />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Player-level Stats for Team Members */}
+                {isTeamEvent && playerLevelStats.length > 0 && teamMembers[player2.id] && teamMembers[player2.id].length > 0 && (
+                  <div>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">個別球員統計</h4>
+                    <div className="space-y-6">
+                      {teamMembers[player2.id].map((member: any) => (
+                        <div key={member.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <h5 className="font-semibold text-gray-800 mb-3">
+                            {member.name}
+                            {member.jersey_number && (
+                              <span className="text-sm text-gray-500 ml-2">#{member.jersey_number}</span>
+                            )}
+                          </h5>
+                          <div className="space-y-3">
+                            {playerLevelStats.map(stat => (
+                              <div key={stat.id}>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  {stat.stat_label}
+                                </label>
+                                {stat.stat_type === 'number' ? (
+                                  <input
+                                    type="number"
+                                    value={teamMemberStats[player2.id]?.[member.id]?.[stat.stat_name] || ""}
+                                    onChange={(e) => updateTeamMemberStat(player2.id, member.id, stat.stat_name, e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                    placeholder="0"
+                                  />
+                                ) : stat.stat_type === 'boolean' ? (
+                                  <select
+                                    value={teamMemberStats[player2.id]?.[member.id]?.[stat.stat_name] || ""}
+                                    onChange={(e) => updateTeamMemberStat(player2.id, member.id, stat.stat_name, e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                  >
+                                    <option value="">—</option>
+                                    <option value="true">是</option>
+                                    <option value="false">否</option>
+                                  </select>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={teamMemberStats[player2.id]?.[member.id]?.[stat.stat_name] || ""}
+                                    onChange={(e) => updateTeamMemberStat(player2.id, member.id, stat.stat_name, e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                    placeholder="輸入文字"
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* For non-team events, show all stats */}
+                {!isTeamEvent && (
+                  <div className="space-y-3">
+                    {allStats.map(stat => (
+                      <div key={stat.id}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {stat.stat_label}
+                        </label>
+                        {stat.stat_type === 'number' ? (
+                          <input
+                            type="number"
+                            value={playerStats[player2.id]?.[stat.stat_name] || ""}
+                            onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                            placeholder="0"
+                          />
+                        ) : stat.stat_type === 'boolean' ? (
+                          <select
+                            value={playerStats[player2.id]?.[stat.stat_name] || ""}
+                            onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                          >
+                            <option value="">—</option>
+                            <option value="true">是</option>
+                            <option value="false">否</option>
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={playerStats[player2.id]?.[stat.stat_name] || ""}
+                            onChange={(e) => updatePlayerStat(player2.id, stat.stat_name, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                            placeholder="輸入文字"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -549,7 +809,7 @@ export default function MatchDetailContent({
         <h2 className="text-2xl font-semibold text-ntu-green mb-4">自定義統計項目</h2>
         
         <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className={`grid grid-cols-1 md:grid-cols-${isTeamEvent ? '5' : '4'} gap-3`}>
             <input
               type="text"
               placeholder="統計名稱（英文，如：custom_stat）"
@@ -573,6 +833,16 @@ export default function MatchDetailContent({
               <option value="text">文字</option>
               <option value="boolean">是/否</option>
             </select>
+            {isTeamEvent && (
+              <select
+                value={newCustomStat.level}
+                onChange={(e) => setNewCustomStat({ ...newCustomStat, level: e.target.value as any })}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              >
+                <option value="team">隊伍層級</option>
+                <option value="player">球員層級</option>
+              </select>
+            )}
             <button
               onClick={handleAddCustomStat}
               className="bg-ntu-green text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity"
@@ -590,7 +860,8 @@ export default function MatchDetailContent({
                 <div>
                   <span className="font-medium">{stat.stat_label}</span>
                   <span className="text-sm text-gray-500 ml-2">
-                    ({stat.stat_name} - {stat.stat_type === 'number' ? '數字' : stat.stat_type === 'text' ? '文字' : '是/否'})
+                    ({stat.stat_name} - {stat.stat_type === 'number' ? '數字' : stat.stat_type === 'text' ? '文字' : '是/否'}
+                    {isTeamEvent && ` - ${stat.stat_level === 'team' ? '隊伍層級' : '球員層級'}`})
                   </span>
                 </div>
                 <button

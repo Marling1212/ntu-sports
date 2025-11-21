@@ -140,6 +140,7 @@ export interface SportStatDefinition {
   stat_name: string;
   stat_label: string;
   stat_type: 'number' | 'text' | 'boolean';
+  stat_level?: 'team' | 'player';
   default_value?: string;
   display_order: number;
   is_default: boolean;
@@ -151,6 +152,7 @@ export interface MatchPlayerStat {
   id: string;
   match_id: string;
   player_id: string;
+  team_member_id?: string;
   stat_name: string;
   stat_value?: string;
   created_at: string;
