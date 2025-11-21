@@ -339,6 +339,10 @@ export default function MatchDetailContent({
   const teamLevelStats = allStats.filter(s => s.stat_level === 'team' || !s.stat_level);
   const playerLevelStats = allStats.filter(s => s.stat_level === 'player');
 
+  const player1 = match.player1_id ? players.find(p => p.id === match.player1_id) : null;
+  const player2 = match.player2_id ? players.find(p => p.id === match.player2_id) : null;
+  const isTeamEvent = event?.registration_type === 'team';
+
   // Calculate team-level stats from player-level stats (auto-sum)
   const calculateTeamStats = useMemo(() => {
     const teamStats: Record<string, Record<string, string>> = {};
@@ -383,10 +387,6 @@ export default function MatchDetailContent({
     
     return teamStats;
   }, [teamMemberStats, teamMembers, teamLevelStats, playerLevelStats, isTeamEvent, player1, player2]);
-
-  const player1 = match.player1_id ? players.find(p => p.id === match.player1_id) : null;
-  const player2 = match.player2_id ? players.find(p => p.id === match.player2_id) : null;
-  const isTeamEvent = event?.registration_type === 'team';
 
   return (
     <>
