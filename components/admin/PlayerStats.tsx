@@ -141,32 +141,40 @@ export default function PlayerStats({ players, matches, tournamentType, registra
   // Calculate top performers for charts (must be before early return)
   // For team events, calculate individual player goals from match_player_stats
   const individualPlayerGoals = useMemo(() => {
-    if (registrationType !== 'team') return new Map<string, { name: string; goals: number }>();
+    if (registrationType !== 'team') return new Map<string, { name: string; goals: number; teamName?: string; jerseyNumber?: number | null }>();
     
-    const goalsMap = new Map<string, { name: string; goals: number }>();
+    const goalsMap = new Map<string, { name: string; goals: number; teamName?: string; jerseyNumber?: number | null }>();
     
     // Sum up player_goals from match_player_stats for each team member
     matchPlayerStats.forEach(stat => {
       if (stat.stat_name === 'player_goals' && stat.team_member_id && stat.stat_value) {
         const member = teamMembers.find(m => m.id === stat.team_member_id);
         if (member) {
+          const team = players.find(p => p.id === member.player_id);
           const key = `${member.player_id}_${member.id}`;
-          const current = goalsMap.get(key) || { name: member.name, goals: 0 };
+          const current = goalsMap.get(key) || { 
+            name: member.name, 
+            goals: 0,
+            teamName: team?.name,
+            jerseyNumber: member.jersey_number
+          };
           goalsMap.set(key, {
             name: member.name,
-            goals: current.goals + (parseInt(stat.stat_value) || 0)
+            goals: current.goals + (parseInt(stat.stat_value) || 0),
+            teamName: team?.name,
+            jerseyNumber: member.jersey_number
           });
         }
       }
     });
     
     return goalsMap;
-  }, [matchPlayerStats, teamMembers, registrationType]);
+  }, [matchPlayerStats, teamMembers, registrationType, players]);
 
   const topScorers = useMemo(() => {
     if (registrationType === 'team' && individualPlayerGoals.size > 0) {
-      // For team events, show individual players
-      const playerGoalsArray: Array<{ name: string; goals: number }> = [];
+      // For team events, show individual players with team name and jersey number
+      const playerGoalsArray: Array<{ name: string; goals: number; teamName?: string; jerseyNumber?: number | null }> = [];
       individualPlayerGoals.forEach((value) => {
         playerGoalsArray.push(value);
       });
@@ -177,7 +185,9 @@ export default function PlayerStats({ players, matches, tournamentType, registra
         .map((item, idx) => ({
           id: `player_${idx}`,
           name: item.name,
-          goalsFor: item.goals
+          goalsFor: item.goals,
+          teamName: item.teamName,
+          jerseyNumber: item.jerseyNumber
         }));
     } else {
       // For player events, show team/player goals
@@ -372,11 +382,14 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                 {topScorers.map((stat, idx) => {
                   const maxGoals = topScorers[0].goalsFor;
                   const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
+                  const displayName = registrationType === 'team' && 'teamName' in stat && stat.teamName
+                    ? `${stat.name}${stat.jerseyNumber !== null && stat.jerseyNumber !== undefined ? ` #${stat.jerseyNumber}` : ''} (${stat.teamName})`
+                    : stat.name;
                   return (
                     <div key={stat.id}>
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-medium text-gray-700">
-                          {idx + 1}. {stat.name}
+                          {idx + 1}. {displayName}
                         </span>
                         <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} 球</span>
                       </div>
