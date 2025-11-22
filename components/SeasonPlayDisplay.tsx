@@ -4,7 +4,6 @@ import { Match, Player } from "@/types/tournament";
 import { useState, useMemo } from "react";
 import TournamentBracket from "./TournamentBracket";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
-import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 
 interface SeasonPlayDisplayProps {
   matches: Match[];
