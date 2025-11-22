@@ -317,17 +317,32 @@ export default function MatchDetailContent({
     }));
   };
 
-  // Get list of team members who have data entered
+  // Get list of team members who have data entered (for current match only)
   const getTeamMembersWithData = (playerId: string) => {
     if (!teamMembers[playerId]) return [];
     return teamMembers[playerId].filter((member: any) => {
-      // Check if this member has any stats entered
+      // Check if this member has any stats entered for THIS match only
       const memberStats = teamMemberStats[playerId]?.[member.id];
       if (!memberStats) return false;
       return Object.keys(memberStats).some(key => {
         const value = memberStats[key];
         return value !== undefined && value !== null && value !== "";
       });
+    });
+  };
+
+  // Get sorted team members list (by jersey number, then by name)
+  const getSortedTeamMembers = (playerId: string) => {
+    if (!teamMembers[playerId]) return [];
+    return [...teamMembers[playerId]].sort((a: any, b: any) => {
+      // Sort by jersey number first (nulls last)
+      if (a.jersey_number !== null && b.jersey_number !== null) {
+        return a.jersey_number - b.jersey_number;
+      }
+      if (a.jersey_number !== null) return -1;
+      if (b.jersey_number !== null) return 1;
+      // Then by name
+      return a.name.localeCompare(b.name, 'zh-TW');
     });
   };
 
@@ -580,20 +595,16 @@ export default function MatchDetailContent({
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
                       >
                         <option value="">選擇球員...</option>
-                        {/* Show only players with data */}
-                        {getTeamMembersWithData(player1.id).map((member: any) => (
-                          <option key={member.id} value={member.id}>
-                            {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
-                          </option>
-                        ))}
-                        {/* Also show option to add new player */}
-                        {teamMembers[player1.id].filter((m: any) => 
-                          !getTeamMembersWithData(player1.id).some((d: any) => d.id === m.id)
-                        ).map((member: any) => (
-                          <option key={member.id} value={member.id}>
-                            + {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
-                          </option>
-                        ))}
+                        {/* Show all players sorted by jersey number, then by name */}
+                        {getSortedTeamMembers(player1.id).map((member: any) => {
+                          const hasData = getTeamMembersWithData(player1.id).some((d: any) => d.id === member.id);
+                          const jerseyDisplay = member.jersey_number ? `#${member.jersey_number}` : '';
+                          return (
+                            <option key={member.id} value={member.id}>
+                              {hasData ? '✓ ' : ''}{member.name}{jerseyDisplay ? ` ${jerseyDisplay}` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                     
@@ -763,20 +774,16 @@ export default function MatchDetailContent({
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
                       >
                         <option value="">選擇球員...</option>
-                        {/* Show only players with data */}
-                        {getTeamMembersWithData(player2.id).map((member: any) => (
-                          <option key={member.id} value={member.id}>
-                            {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
-                          </option>
-                        ))}
-                        {/* Also show option to add new player */}
-                        {teamMembers[player2.id].filter((m: any) => 
-                          !getTeamMembersWithData(player2.id).some((d: any) => d.id === m.id)
-                        ).map((member: any) => (
-                          <option key={member.id} value={member.id}>
-                            + {member.name}{member.jersey_number ? ` #${member.jersey_number}` : ''}
-                          </option>
-                        ))}
+                        {/* Show all players sorted by jersey number, then by name */}
+                        {getSortedTeamMembers(player2.id).map((member: any) => {
+                          const hasData = getTeamMembersWithData(player2.id).some((d: any) => d.id === member.id);
+                          const jerseyDisplay = member.jersey_number ? `#${member.jersey_number}` : '';
+                          return (
+                            <option key={member.id} value={member.id}>
+                              {hasData ? '✓ ' : ''}{member.name}{jerseyDisplay ? ` ${jerseyDisplay}` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                     
