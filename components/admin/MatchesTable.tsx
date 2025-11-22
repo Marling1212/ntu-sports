@@ -1385,9 +1385,38 @@ export default function MatchesTable({
                         <td className="px-3 py-4 text-sm min-w-[120px]">
                           {match.slot ? (
                             (() => {
-                              console.log('[Schedule Render] Match', match.id, 'has slot, scheduled_time:', match.scheduled_time);
+                              // 如果有 slot，但 formatSlotScheduleRange 返回 undefined，則使用 scheduled_time
                               const slotRange = formatSlotScheduleRange(match.slot);
-                              console.log('[Schedule Render] slotRange:', slotRange);
+                              console.log('[Schedule Render] Match', match.id, 'has slot, slot:', match.slot, 'slotRange:', slotRange);
+                              
+                              // 如果 slotRange 是 undefined，使用 scheduled_time 來顯示
+                              if (!slotRange && match.scheduled_time) {
+                                const date = new Date(match.scheduled_time);
+                                if (!Number.isNaN(date.getTime())) {
+                                  const dateStr = date.toLocaleDateString('zh-TW', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit'
+                                  });
+                                  const timeStr = date.toLocaleTimeString('zh-TW', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false
+                                  });
+                                  return (
+                                    <div className="flex flex-col">
+                                      {match.slot.code && (
+                                        <span className="text-sm font-semibold text-ntu-green">
+                                          {match.slot.code}
+                                        </span>
+                                      )}
+                                      <span className="text-sm text-gray-700 whitespace-nowrap">{dateStr}</span>
+                                      <span className="text-xs text-gray-500 whitespace-nowrap">{timeStr}</span>
+                                    </div>
+                                  );
+                                }
+                              }
+                              
                               return (
                                 <div className="flex flex-col">
                                   {match.slot.code && (
@@ -1396,7 +1425,7 @@ export default function MatchesTable({
                                     </span>
                                   )}
                                   <span className="text-xs text-gray-500">
-                                    {slotRange}
+                                    {slotRange || '—'}
                                   </span>
                                 </div>
                               );
