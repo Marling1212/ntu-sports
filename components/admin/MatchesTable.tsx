@@ -1417,23 +1417,30 @@ export default function MatchesTable({
                             }
                             
                             // 將格式化的日期時間拆分為日期和時間
-                            // formatDateTimeDisplay 返回格式類似 "2025/1/15 下午2:30"
-                            const parts = formatted.split(' ');
-                            const datePart = parts[0] || formatted.split(' ')[0];
-                            const timePart = parts.slice(1).join(' ') || '';
-                            
-                            return (
-                              <div className="flex flex-col">
-                                <span className="text-sm text-gray-700">
-                                  {datePart}
-                                </span>
-                                {timePart && (
+                            // formatDateTimeDisplay 使用 taipeiFormatter，返回格式類似 "2025年1月15日 下午2:30" 或 "2025/1/15 下午2:30"
+                            // 嘗試按空格拆分，如果沒有空格則只顯示日期
+                            const spaceIndex = formatted.indexOf(' ');
+                            if (spaceIndex > 0) {
+                              const datePart = formatted.substring(0, spaceIndex);
+                              const timePart = formatted.substring(spaceIndex + 1);
+                              return (
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-gray-700">
+                                    {datePart}
+                                  </span>
                                   <span className="text-xs text-gray-500">
                                     {timePart}
                                   </span>
-                                )}
-                              </div>
-                            );
+                                </div>
+                              );
+                            } else {
+                              // 沒有時間部分，只顯示日期
+                              return (
+                                <span className="text-sm text-gray-700">
+                                  {formatted}
+                                </span>
+                              );
+                            }
                           })()}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
