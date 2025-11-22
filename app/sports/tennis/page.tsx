@@ -205,7 +205,7 @@ export default async function TennisPage() {
                         minute: "2-digit",
                         timeZone: "Asia/Taipei",
                       }).format(new Date(m.scheduled_time));
-                      const court = m.court_name || m?.slot?.event_courts?.name || "-";
+                      const court = m.court || m?.slot?.event_courts?.name || "-";
                       const p1 = m.player1?.name || "TBD";
                       const p2 = m.player2?.name || "TBD";
                       return (
