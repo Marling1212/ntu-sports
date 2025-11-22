@@ -42,7 +42,12 @@ export async function getSportMatches(eventId: string) {
       player1:players!matches_player1_id_fkey(id, name, seed, department),
       player2:players!matches_player2_id_fkey(id, name, seed, department),
       winner:players!matches_winner_id_fkey(id, name, seed, department),
-      slot:event_slots(id, code, court_id, event_courts(name))
+      slot:event_slots(
+        id, 
+        code, 
+        court_id, 
+        event_courts(name)
+      )
     `)
     .eq("event_id", eventId)
     .order("scheduled_time", { ascending: true, nullsFirst: false }) // Scheduled matches first, sorted by time

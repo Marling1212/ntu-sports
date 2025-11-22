@@ -108,7 +108,8 @@ export default async function SportAnnouncementsPage(context: any) {
                         minute: "2-digit",
                         timeZone: "Asia/Taipei",
                       }).format(new Date(m.scheduled_time));
-                      const court = m.court || m?.slot?.event_courts?.name || "-";
+                      // Get court: prioritize match.court, then slot's associated court
+                      const court = m.court || (m.slot?.event_courts as any)?.name || "-";
                       const p1 = m.player1?.name || "TBD";
                       const p2 = m.player2?.name || "TBD";
                       return (
