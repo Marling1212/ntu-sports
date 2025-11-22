@@ -73,14 +73,32 @@ const toIsoString = (value?: string | null): string | null => {
   return date.toISOString();
 };
 
+const normalizeTime = (time?: string | null): string => {
+  if (!time) return "00:00";
+  const [hour = "00", minute = "00"] = time.split(":");
+  return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+};
+
+const formatSlotScheduleRange = (slot: SlotOption): string => {
+  const start = normalizeTime(slot.start_time);
+  const end = normalizeTime(slot.end_time);
+  const range = end ? `${start}-${end}` : start;
+  return `${slot.slot_date} ${range}`;
+};
+
+const formatSlotLabel = (slot: SlotOption): string => {
+  const base = formatSlotScheduleRange(slot);
+  return slot.code ? `${slot.code} · ${base}` : base;
+};
+
 const deriveIsoFromSlot = (slot?: SlotOption | null): string | null => {
   if (!slot) return null;
-  const normalizeTime = (time?: string | null): string => {
+  const normalizeTimeWithSeconds = (time?: string | null): string => {
     if (!time) return "00:00:00";
     const [hour = "00", minute = "00", second = "00"] = time.split(":");
     return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:${second.padStart(2, "0")}`;
   };
-  const base = `${slot.slot_date}T${normalizeTime(slot.start_time)}`;
+  const base = `${slot.slot_date}T${normalizeTimeWithSeconds(slot.start_time)}`;
   if (base.includes("Z") || base.includes("+")) return base;
   return `${base}+08:00`;
 };
@@ -524,23 +542,88 @@ export default function MatchDetailContent({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">場地</label>
-            <input
-              type="text"
-              value={matchForm.court}
-              onChange={(e) => setMatchForm({ ...matchForm, court: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              placeholder="場地名稱"
-            />
+            <div className="flex flex-col gap-2">
+              <select
+                value={
+                  matchForm.court && courts.find((c: any) => c.name === matchForm.court)
+                    ? courts.find((c: any) => c.name === matchForm.court)!.id
+                    : matchForm.court === "" ? "" : "OTHER"
+                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setMatchForm({ ...matchForm, court: "" });
+                  } else if (val === "OTHER") {
+                    // leave court as-is for manual input
+                    if (!matchForm.court) setMatchForm({ ...matchForm, court: "" });
+                  } else {
+                    const selected = courts.find((c: any) => c.id === val);
+                    setMatchForm({ ...matchForm, court: selected?.name || "" });
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              >
+                <option value="">選擇場地</option>
+                {courts.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+                <option value="OTHER">其他（手動輸入）</option>
+              </select>
+              <input
+                type="text"
+                value={matchForm.court}
+                onChange={(e) => setMatchForm({ ...matchForm, court: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                placeholder="場地名稱（手動輸入）"
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">比賽時間</label>
-            <input
-              type="datetime-local"
-              value={matchForm.scheduled_time}
-              onChange={(e) => setMatchForm({ ...matchForm, scheduled_time: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-            />
+            <div className="flex flex-col gap-2">
+              <input
+                type="datetime-local"
+                value={matchForm.scheduled_time}
+                onChange={(e) => {
+                  setMatchForm({ 
+                    ...matchForm, 
+                    scheduled_time: e.target.value,
+                    slot_id: "" // Clear slot when manually setting time
+                  });
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              />
+              {slots.length > 0 && (
+                <select
+                  value={matchForm.slot_id || ""}
+                  onChange={(e) => {
+                    const newSlotId = e.target.value;
+                    if (!newSlotId) {
+                      setMatchForm({
+                        ...matchForm,
+                        slot_id: "",
+                      });
+                      return;
+                    }
+                    const slot = slots.find(s => s.id === newSlotId) || null;
+                    setMatchForm({
+                      ...matchForm,
+                      slot_id: newSlotId,
+                      scheduled_time: toLocalInputValue(deriveIsoFromSlot(slot)),
+                    });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                >
+                  <option value="">選擇時段代號</option>
+                  {slots.map((slot) => (
+                    <option key={slot.id} value={slot.id}>
+                      {formatSlotLabel(slot)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
         </div>
 
