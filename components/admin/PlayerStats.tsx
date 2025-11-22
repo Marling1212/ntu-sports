@@ -382,9 +382,13 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                 {topScorers.map((stat, idx) => {
                   const maxGoals = topScorers[0].goalsFor;
                   const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
-                  const displayName = registrationType === 'team' && 'teamName' in stat && stat.teamName
-                    ? `${stat.name}${stat.jerseyNumber !== null && stat.jerseyNumber !== undefined ? ` #${stat.jerseyNumber}` : ''} (${stat.teamName})`
-                    : stat.name;
+                  let displayName = stat.name;
+                  if (registrationType === 'team' && 'teamName' in stat && stat.teamName) {
+                    const jerseyPart = 'jerseyNumber' in stat && stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                      ? ` #${stat.jerseyNumber}` 
+                      : '';
+                    displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                  }
                   return (
                     <div key={stat.id}>
                       <div className="flex justify-between items-center mb-1">
