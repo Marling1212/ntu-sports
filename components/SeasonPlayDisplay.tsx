@@ -477,7 +477,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             )}
                           </td>
                           <td className="px-4 py-3 text-center text-sm text-gray-600">
-                            {matchData.court_name || '-'}
+                            {getCourtDisplay(matchData as any)}
                           </td>
                           <td className="px-4 py-3 text-center font-semibold">
                             {match.score || '-'}
