@@ -3,7 +3,7 @@ import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
 import { createClient } from "@/lib/supabase/server";
 import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import MarkdownText from "@/components/MarkdownText";
-import { getCourtDisplay, debugCourtInfo } from "@/lib/utils/getCourtDisplay";
+import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 
 export default async function TennisPage() {
   const supabase = await createClient();
@@ -201,9 +201,6 @@ export default async function TennisPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-yellow-200">
                     {matchesToShow.map((m: any) => {
-                      // Debug: 輸出每個 match 的 court 信息
-                      debugCourtInfo(m);
-                      
                       const timeStr = new Intl.DateTimeFormat("zh-TW", {
                         hour: "2-digit",
                         minute: "2-digit",

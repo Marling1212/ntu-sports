@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import MarkdownText from "@/components/MarkdownText";
-import { getCourtDisplay, debugCourtInfo } from "@/lib/utils/getCourtDisplay";
+import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 
 // Sport icons mapping
 const sportIcons: { [key: string]: string } = {
@@ -239,9 +239,6 @@ export default async function SportPage(context: any) {
                 </thead>
                 <tbody className="bg-white divide-y divide-yellow-200">
                   {matchesToShow.map((m: any) => {
-                    // Debug: 輸出每個 match 的 court 信息
-                    debugCourtInfo(m);
-                    
                     const timeStr = new Intl.DateTimeFormat("zh-TW", {
                       hour: "2-digit",
                       minute: "2-digit",
