@@ -18,11 +18,26 @@ interface SeasonPlayDisplayProps {
   defaultView?: "regular" | "playoffs" | "standings";
   // Optional: admin-configured number of qualifiers per group
   qualifiersPerGroup?: number;
+  // For top scorers display
+  registrationType?: 'player' | 'team';
+  matchPlayerStats?: Array<{
+    match_id: string;
+    player_id: string;
+    team_member_id?: string;
+    stat_name: string;
+    stat_value?: string;
+  }>;
+  teamMembers?: Array<{
+    id: string;
+    player_id: string;
+    name: string;
+    jersey_number?: number | null;
+  }>;
 }
 
 const TAIPEI_TZ = "Asia/Taipei";
 
-export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps }: SeasonPlayDisplayProps) {
+export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [] }: SeasonPlayDisplayProps) {
   const tabs = {
     regular: visibleTabs?.regular !== false,
     standings: visibleTabs?.standings !== false,
@@ -78,6 +93,53 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   
   const hasRegularSeason = matches.filter(m => m.round === 0).length > 0;
   const hasPlayoffs = playoffMatches.length > 0;
+
+  // Calculate top scorers for team events
+  const topScorers = useMemo(() => {
+    if (registrationType !== 'team' || matchPlayerStats.length === 0) return [];
+    
+    const goalsMap = new Map<string, { name: string; goals: number; teamName?: string; jerseyNumber?: number | null }>();
+    
+    // Sum up player_goals from match_player_stats for each team member
+    matchPlayerStats.forEach(stat => {
+      if (stat.stat_name === 'player_goals' && stat.team_member_id && stat.stat_value) {
+        const member = teamMembers.find(m => m.id === stat.team_member_id);
+        if (member) {
+          const team = players.find(p => p.id === member.player_id);
+          const key = `${member.player_id}_${member.id}`;
+          const current = goalsMap.get(key) || { 
+            name: member.name, 
+            goals: 0,
+            teamName: team?.name,
+            jerseyNumber: member.jersey_number
+          };
+          goalsMap.set(key, {
+            name: member.name,
+            goals: current.goals + (parseInt(stat.stat_value) || 0),
+            teamName: team?.name,
+            jerseyNumber: member.jersey_number
+          });
+        }
+      }
+    });
+    
+    const playerGoalsArray: Array<{ name: string; goals: number; teamName?: string; jerseyNumber?: number | null }> = [];
+    goalsMap.forEach((value) => {
+      playerGoalsArray.push(value);
+    });
+    
+    return playerGoalsArray
+      .sort((a, b) => b.goals - a.goals)
+      .slice(0, 5)
+      .filter(s => s.goals > 0)
+      .map((item, idx) => ({
+        id: `player_${idx}`,
+        name: item.name,
+        goalsFor: item.goals,
+        teamName: item.teamName,
+        jerseyNumber: item.jerseyNumber
+      }));
+  }, [matchPlayerStats, teamMembers, registrationType, players]);
 
   // Derive number of qualifiers (top X) from existing playoff round-1 participants if available.
   // Fallback to 4 if no playoffs yet.
@@ -623,6 +685,42 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             <span className="inline-block w-1 h-8 bg-yellow-400"></span>
             <span>Players with yellow border qualify for playoffs</span>
           </div>
+
+          {/* Top Scorers Chart */}
+          {topScorers.length > 0 && (
+            <div className="mt-8 bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-ntu-green mb-4">進球數 Top 5</h3>
+              <div className="space-y-3">
+                {topScorers.map((stat, idx) => {
+                  const maxGoals = topScorers[0].goalsFor;
+                  const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
+                  let displayName = stat.name;
+                  if (registrationType === 'team' && 'teamName' in stat && stat.teamName) {
+                    const jerseyPart = 'jerseyNumber' in stat && stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                      ? ` #${stat.jerseyNumber}` 
+                      : '';
+                    displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                  }
+                  return (
+                    <div key={stat.id}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-700">
+                          {idx + 1}. {displayName}
+                        </span>
+                        <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} 球</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-ntu-green h-3 rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

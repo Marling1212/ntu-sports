@@ -6,6 +6,7 @@ import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getSportEvent, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { generateTennisPlayers, seedPlayers, generateMatches } from "@/data/tennisDraw";
 import { Toaster } from "react-hot-toast";
+import { createClient } from "@/lib/supabase/server";
 
 // Disable caching to always fetch fresh data
 export const dynamic = 'force-dynamic';
@@ -19,14 +20,39 @@ export default async function SportDrawPage(context: any) {
   
   // Try to get data from Supabase (case-insensitive)
   const event = sportParam ? await getSportEvent(sportParam) : null; // Pass lowercase version for case-insensitive lookup
+  const supabase = await createClient();
   
   let matches: any[] = [];
   let players: any[] = [];
+  let matchPlayerStats: any[] = [];
+  let teamMembers: any[] = [];
   
   if (event) {
     // Fetch from Supabase
     const dbMatches = await getSportMatches(event.id);
     const dbPlayers = await getSportPlayers(event.id);
+    
+    // Get match player stats for top scorers
+    if (dbMatches && dbMatches.length > 0) {
+      const { data: stats } = await supabase
+        .from("match_player_stats")
+        .select("*")
+        .in("match_id", dbMatches.map((m: any) => m.id));
+      matchPlayerStats = stats || [];
+    }
+    
+    // Get team members if team event
+    if (event.registration_type === 'team' && dbPlayers) {
+      const teamIds = dbPlayers.filter((p: any) => p.type === 'team').map((p: any) => p.id);
+      if (teamIds.length > 0) {
+        const { data: members } = await supabase
+          .from("team_members")
+          .select("*")
+          .in("player_id", teamIds)
+          .order("jersey_number", { ascending: true, nullsFirst: true });
+        teamMembers = members || [];
+      }
+    }
     
     // Convert to tournament format
     matches = dbMatches.map((m: any) => ({
@@ -114,6 +140,9 @@ export default async function SportDrawPage(context: any) {
           qualifiersPerGroup={(event as any)?.playoff_qualifiers_per_group || undefined}
           visibleTabs={{ regular: false, standings: true, playoffs: true }}
           defaultView="standings"
+          registrationType={event?.registration_type as 'player' | 'team' | undefined}
+          matchPlayerStats={matchPlayerStats}
+          teamMembers={teamMembers}
         />
       ) : (
         <BracketSection
