@@ -1384,16 +1384,23 @@ export default function MatchesTable({
                         </td>
                         <td className="px-3 py-4 text-sm min-w-[120px]">
                           {match.slot ? (
-                            <div className="flex flex-col">
-                              {match.slot.code && (
-                                <span className="text-sm font-semibold text-ntu-green">
-                                  {match.slot.code}
-                                </span>
-                              )}
-                              <span className="text-xs text-gray-500">
-                                {formatSlotScheduleRange(match.slot)}
-                              </span>
-                            </div>
+                            (() => {
+                              console.log('[Schedule Render] Match', match.id, 'has slot, scheduled_time:', match.scheduled_time);
+                              const slotRange = formatSlotScheduleRange(match.slot);
+                              console.log('[Schedule Render] slotRange:', slotRange);
+                              return (
+                                <div className="flex flex-col">
+                                  {match.slot.code && (
+                                    <span className="text-sm font-semibold text-ntu-green">
+                                      {match.slot.code}
+                                    </span>
+                                  )}
+                                  <span className="text-xs text-gray-500">
+                                    {slotRange}
+                                  </span>
+                                </div>
+                              );
+                            })()
                           ) : (() => {
                             // 強制調試輸出
                             console.log('[Schedule Render] Match', match.id, 'scheduled_time:', match.scheduled_time, 'type:', typeof match.scheduled_time);
