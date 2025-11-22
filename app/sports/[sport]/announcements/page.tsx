@@ -108,13 +108,9 @@ export default async function SportAnnouncementsPage(context: any) {
                         minute: "2-digit",
                         timeZone: "Asia/Taipei",
                       }).format(new Date(m.scheduled_time));
-                      // Get court: prioritize match.court, then slot's associated court
-                      // Match admin page logic exactly
-                      const slotCourt = (m.slot as any)?.event_courts;
-                      const slotCourtName = Array.isArray(slotCourt) 
-                        ? slotCourt[0]?.name 
-                        : slotCourt?.name;
-                      const court = m.court || slotCourtName || "-";
+                      // Get court: use unified logic
+                      const { getCourtDisplay } = await import("@/lib/utils/getCourtDisplay");
+                      const court = getCourtDisplay(m);
                       const p1 = m.player1?.name || "TBD";
                       const p2 = m.player2?.name || "TBD";
                       return (

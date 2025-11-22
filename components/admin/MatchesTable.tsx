@@ -8,6 +8,7 @@ import { checkAndAnnounceRoundCompletion } from "@/lib/utils/checkRoundCompletio
 import * as XLSX from 'xlsx';
 import Link from "next/link";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
+import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 
 interface SlotOption {
   id: string;
@@ -1415,7 +1416,7 @@ export default function MatchesTable({
                           )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
-                          {match.court || (match.slot as any)?.event_courts?.name || "—"}
+                          {getCourtDisplay(match)}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap">
                           <span
@@ -1554,7 +1555,7 @@ export default function MatchesTable({
 
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-2 border-t border-gray-100">
                     <div>
-                      <span className="font-medium">Court:</span> {match.court || (match.slot as any)?.event_courts?.name || "—"}
+                      <span className="font-medium">Court:</span> {getCourtDisplay(match)}
                     </div>
                     <div>
                       <span className="font-medium">Time:</span>{" "}
