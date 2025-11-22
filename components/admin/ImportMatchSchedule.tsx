@@ -206,10 +206,13 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
         return;
       }
 
-      // Fetch existing time slots for this event to match dates
+      // Fetch existing time slots for this event to match dates (include court info)
       const { data: slots, error: slotsError } = await supabase
         .from("event_slots")
-        .select("*")
+        .select(`
+          *,
+          event_courts!event_slots_court_id_fkey(name)
+        `)
         .eq("event_id", eventId)
         .order("slot_date", { ascending: true })
         .order("start_time", { ascending: true });
@@ -229,7 +232,7 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
       });
 
       // Helper function to match date to a slot
-      const matchDateToSlot = (dateStr: string): { scheduledTime: string; slotId: string } | null => {
+      const matchDateToSlot = (dateStr: string): { scheduledTime: string; slotId: string; court?: string } | null => {
         // Extract date part (YYYY-MM-DD) from ISO string if needed
         const dateOnly = dateStr.split("T")[0];
         const slotsForDate = slotsByDate.get(dateOnly);
@@ -238,10 +241,22 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
           // Use the first available slot for that date
           const slot = slotsForDate[0];
           // Combine date and time: slot_date is YYYY-MM-DD, start_time is HH:MM:SS
-          return {
+          const result: { scheduledTime: string; slotId: string; court?: string } = {
             scheduledTime: `${slot.slot_date}T${slot.start_time}+08:00`,
             slotId: slot.id,
           };
+          
+          // If slot has associated court, include it
+          if (slot.event_courts) {
+            const courtName = Array.isArray(slot.event_courts) 
+              ? slot.event_courts[0]?.name 
+              : slot.event_courts?.name;
+            if (courtName) {
+              result.court = courtName;
+            }
+          }
+          
+          return result;
         }
         
         // No slot found, return null (will use midnight as fallback)
@@ -317,6 +332,10 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
           if (matchedSlot) {
             updateData.scheduled_time = matchedSlot.scheduledTime;
             updateData.slot_id = matchedSlot.slotId;
+            // If slot has associated court, set it to match.court
+            if (matchedSlot.court) {
+              updateData.court = matchedSlot.court;
+            }
           } else {
             // No slot found, use the date as-is (will default to midnight)
             updateData.scheduled_time = row.date;
@@ -374,11 +393,13 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
             // Match to slot if date provided
             let scheduledTime = row.date;
             let slotId = null;
+            let court = null;
             if (row.date) {
               const matchedSlot = matchDateToSlot(row.date);
               if (matchedSlot) {
                 scheduledTime = matchedSlot.scheduledTime;
                 slotId = matchedSlot.slotId;
+                court = matchedSlot.court || null;
               }
             }
 
@@ -388,6 +409,7 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
               match_number: (existingMatches?.length || 0) + idx + 1,
               scheduled_time: scheduledTime,
               slot_id: slotId,
+              court: court,
               player1_id: playerA.id,
               player2_id: playerB.id,
               score1: row.scoreA ?? null,
