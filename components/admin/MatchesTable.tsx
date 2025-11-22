@@ -1394,54 +1394,26 @@ export default function MatchesTable({
                                 {formatSlotScheduleRange(match.slot)}
                               </span>
                             </div>
-                          ) : (() => {
-                            // 檢查 scheduled_time 是否有效
-                            const scheduledTime = match.scheduled_time;
-                            
-                            // 檢查 null、undefined、空字符串、字符串 "undefined" 或 "null"
-                            if (scheduledTime === null || 
-                                scheduledTime === undefined || 
-                                scheduledTime === '' ||
-                                (typeof scheduledTime === 'string' && (
-                                  scheduledTime.toLowerCase() === 'undefined' || 
-                                  scheduledTime.toLowerCase() === 'null' ||
-                                  scheduledTime.trim() === ''
-                                ))) {
-                              return <span className="text-sm text-gray-400">未排定</span>;
-                            }
-                            
-                            // 使用 formatDateTimeDisplay 函數，與手機版保持一致
-                            const formatted = formatDateTimeDisplay(scheduledTime);
-                            if (formatted === "—" || formatted.includes('Invalid') || formatted.includes('undefined')) {
-                              return <span className="text-sm text-gray-400">未排定</span>;
-                            }
-                            
-                            // 將格式化的日期時間拆分為日期和時間
-                            // formatDateTimeDisplay 使用 taipeiFormatter，返回格式類似 "2025年1月15日 下午2:30" 或 "2025/1/15 下午2:30"
-                            // 嘗試按空格拆分，如果沒有空格則只顯示日期
-                            const spaceIndex = formatted.indexOf(' ');
-                            if (spaceIndex > 0) {
-                              const datePart = formatted.substring(0, spaceIndex);
-                              const timePart = formatted.substring(spaceIndex + 1);
-                              return (
-                                <div className="flex flex-col">
-                                  <span className="text-sm text-gray-700">
-                                    {datePart}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {timePart}
-                                  </span>
-                                </div>
-                              );
-                            } else {
-                              // 沒有時間部分，只顯示日期
-                              return (
-                                <span className="text-sm text-gray-700">
-                                  {formatted}
-                                </span>
-                              );
-                            }
-                          })()}
+                          ) : match.scheduled_time ? (
+                            <div className="flex flex-col">
+                              <span className="text-sm text-gray-700">
+                                {new Date(match.scheduled_time).toLocaleDateString('zh-TW', { 
+                                  year: 'numeric', 
+                                  month: '2-digit', 
+                                  day: '2-digit' 
+                                })}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(match.scheduled_time).toLocaleTimeString('zh-TW', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit',
+                                  hour12: false 
+                                })}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">未排定</span>
+                          )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
                           {(() => {
