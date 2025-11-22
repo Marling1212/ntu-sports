@@ -1395,43 +1395,22 @@ export default function MatchesTable({
                               </span>
                             </div>
                           ) : match.scheduled_time ? (
-                            (() => {
-                              try {
-                                const date = new Date(match.scheduled_time);
-                                if (Number.isNaN(date.getTime())) {
-                                  return <span className="text-sm text-gray-400">未排定</span>;
-                                }
-                                
-                                const dateStr = date.toLocaleDateString('zh-TW', { 
-                                  year: 'numeric', 
-                                  month: '2-digit', 
-                                  day: '2-digit' 
-                                });
-                                const timeStr = date.toLocaleTimeString('zh-TW', { 
-                                  hour: '2-digit', 
+                            <div className="flex flex-col">
+                              <span className="text-sm text-gray-700">
+                                {new Date(match.scheduled_time).toLocaleDateString('zh-TW', {
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit'
+                                })}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(match.scheduled_time).toLocaleTimeString('zh-TW', {
+                                  hour: '2-digit',
                                   minute: '2-digit',
-                                  hour12: false 
-                                });
-                                
-                                // 確保值存在且不是 undefined
-                                const safeDateStr = (dateStr && typeof dateStr === 'string') ? dateStr : '';
-                                const safeTimeStr = (timeStr && typeof timeStr === 'string') ? timeStr : '';
-                                
-                                if (!safeDateStr || !safeTimeStr) {
-                                  return <span className="text-sm text-gray-400">未排定</span>;
-                                }
-                                
-                                return (
-                                  <div className="flex flex-col">
-                                    <span className="text-sm text-gray-700">{safeDateStr}</span>
-                                    <span className="text-xs text-gray-500">{safeTimeStr}</span>
-                                  </div>
-                                );
-                              } catch (e) {
-                                console.error('Date formatting error:', e, match.scheduled_time);
-                                return <span className="text-sm text-gray-400">未排定</span>;
-                              }
-                            })()
+                                  hour12: false
+                                })}
+                              </span>
+                            </div>
                           ) : (
                             <span className="text-sm text-gray-400">未排定</span>
                           )}
