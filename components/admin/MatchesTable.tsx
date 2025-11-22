@@ -1398,11 +1398,6 @@ export default function MatchesTable({
                             // 檢查 scheduled_time 是否有效
                             const scheduledTime = match.scheduled_time;
                             
-                            // 調試：檢查實際值
-                            if (scheduledTime && typeof scheduledTime === 'string' && scheduledTime.includes('undefined')) {
-                              console.warn('[Desktop Date Debug] Match', match.id, 'has suspicious scheduled_time:', scheduledTime);
-                            }
-                            
                             // 檢查 null、undefined、空字符串、字符串 "undefined" 或 "null"
                             if (scheduledTime === null || 
                                 scheduledTime === undefined || 
@@ -1415,46 +1410,30 @@ export default function MatchesTable({
                               return <span className="text-sm text-gray-400">未排定</span>;
                             }
                             
-                            try {
-                              const date = new Date(scheduledTime);
-                              if (Number.isNaN(date.getTime())) {
-                                console.warn('[Desktop Date Debug] Match', match.id, 'Invalid date:', scheduledTime);
-                                return <span className="text-sm text-gray-400">未排定</span>;
-                              }
-                              
-                              const dateStr = date.toLocaleDateString('zh-TW', { 
-                                year: 'numeric', 
-                                month: '2-digit', 
-                                day: '2-digit' 
-                              });
-                              const timeStr = date.toLocaleTimeString('zh-TW', { 
-                                hour: '2-digit', 
-                                minute: '2-digit',
-                                hour12: false 
-                              });
-                              
-                              // 檢查是否返回 "Invalid Date" 或包含 "undefined"
-                              if (dateStr.includes('Invalid') || dateStr.includes('undefined') || 
-                                  timeStr.includes('Invalid') || timeStr.includes('undefined')) {
-                                console.warn('[Desktop Date Debug] Match', match.id, 'Date formatting returned invalid:', { dateStr, timeStr, scheduledTime });
-                                return <span className="text-sm text-gray-400">未排定</span>;
-                              }
-                              
-                              return (
-                                <div className="flex flex-col">
-                                  <span className="text-sm text-gray-700">
-                                    {dateStr}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {timeStr}
-                                  </span>
-                                </div>
-                              );
-                            } catch (e) {
-                              // 只在真正出錯時才記錄
-                              console.error('[Desktop Date Error] Match', match.id, 'Date parsing error:', e, 'scheduled_time:', scheduledTime, 'type:', typeof scheduledTime);
+                            // 使用 formatDateTimeDisplay 函數，與手機版保持一致
+                            const formatted = formatDateTimeDisplay(scheduledTime);
+                            if (formatted === "—" || formatted.includes('Invalid') || formatted.includes('undefined')) {
                               return <span className="text-sm text-gray-400">未排定</span>;
                             }
+                            
+                            // 將格式化的日期時間拆分為日期和時間
+                            // formatDateTimeDisplay 返回格式類似 "2025/1/15 下午2:30"
+                            const parts = formatted.split(' ');
+                            const datePart = parts[0] || formatted.split(' ')[0];
+                            const timePart = parts.slice(1).join(' ') || '';
+                            
+                            return (
+                              <div className="flex flex-col">
+                                <span className="text-sm text-gray-700">
+                                  {datePart}
+                                </span>
+                                {timePart && (
+                                  <span className="text-xs text-gray-500">
+                                    {timePart}
+                                  </span>
+                                )}
+                              </div>
+                            );
                           })()}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
