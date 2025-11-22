@@ -1395,12 +1395,18 @@ export default function MatchesTable({
                               </span>
                             </div>
                           ) : (() => {
+                            // 強制調試輸出
+                            console.log('[Schedule Render] Match', match.id, 'scheduled_time:', match.scheduled_time, 'type:', typeof match.scheduled_time);
+                            
                             if (!match.scheduled_time) {
+                              console.log('[Schedule Render] No scheduled_time, returning 未排定');
                               return <span className="text-sm text-gray-400">未排定</span>;
                             }
                             
                             // 預先格式化日期時間，避免在渲染時重複計算
                             const date = new Date(match.scheduled_time);
+                            console.log('[Schedule Render] Date object:', date, 'isValid:', !Number.isNaN(date.getTime()));
+                            
                             if (Number.isNaN(date.getTime())) {
                               console.warn('[Schedule Debug] Invalid date for match', match.id, 'scheduled_time:', match.scheduled_time);
                               return <span className="text-sm text-gray-400">未排定</span>;
@@ -1417,15 +1423,18 @@ export default function MatchesTable({
                               hour12: false
                             });
                             
-                            // 調試輸出
-                            if (!dateStr || !timeStr || dateStr === 'undefined' || timeStr === 'undefined') {
-                              console.error('[Schedule Debug] Match', match.id, 'dateStr:', dateStr, 'timeStr:', timeStr, 'scheduled_time:', match.scheduled_time);
-                            }
+                            console.log('[Schedule Render] dateStr:', dateStr, 'timeStr:', timeStr, 'dateStr type:', typeof dateStr, 'timeStr type:', typeof timeStr);
+                            
+                            // 確保值存在
+                            const safeDateStr = String(dateStr || '—');
+                            const safeTimeStr = String(timeStr || '—');
+                            
+                            console.log('[Schedule Render] safeDateStr:', safeDateStr, 'safeTimeStr:', safeTimeStr);
                             
                             return (
                               <div className="flex flex-col">
-                                <span className="text-sm text-gray-700 whitespace-nowrap">{dateStr || '—'}</span>
-                                <span className="text-xs text-gray-500 whitespace-nowrap">{timeStr || '—'}</span>
+                                <span className="text-sm text-gray-700 whitespace-nowrap">{safeDateStr}</span>
+                                <span className="text-xs text-gray-500 whitespace-nowrap">{safeTimeStr}</span>
                               </div>
                             );
                           })()}
