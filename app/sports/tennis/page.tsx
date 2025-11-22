@@ -206,7 +206,12 @@ export default async function TennisPage() {
                         timeZone: "Asia/Taipei",
                       }).format(new Date(m.scheduled_time));
                       // Get court: prioritize match.court, then slot's associated court
-                      const court = m.court || (m.slot?.event_courts as any)?.name || "-";
+                      // Note: slot.event_courts might be an array or object, handle both cases
+                      const slotCourt = m.slot?.event_courts;
+                      const slotCourtName = Array.isArray(slotCourt) 
+                        ? slotCourt[0]?.name 
+                        : slotCourt?.name;
+                      const court = m.court || slotCourtName || "-";
                       const p1 = m.player1?.name || "TBD";
                       const p2 = m.player2?.name || "TBD";
                       return (
