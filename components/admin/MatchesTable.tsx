@@ -1387,10 +1387,11 @@ export default function MatchesTable({
                             (() => {
                               // 如果有 slot，但 formatSlotScheduleRange 返回 undefined，則使用 scheduled_time
                               const slotRange = formatSlotScheduleRange(match.slot);
-                              console.log('[Schedule Render] Match', match.id, 'has slot, slot:', match.slot, 'slotRange:', slotRange);
+                              console.log('[Schedule Render] Match', match.id, 'has slot, slot_date:', match.slot.slot_date, 'start_time:', match.slot.start_time, 'end_time:', match.slot.end_time, 'slotRange:', slotRange);
                               
-                              // 如果 slotRange 是 undefined，使用 scheduled_time 來顯示
-                              if (!slotRange && match.scheduled_time) {
+                              // 如果 slotRange 是 undefined 或包含 "undefined"，使用 scheduled_time 來顯示
+                              if ((!slotRange || slotRange.includes('undefined')) && match.scheduled_time) {
+                                console.log('[Schedule Render] Using scheduled_time as fallback:', match.scheduled_time);
                                 const date = new Date(match.scheduled_time);
                                 if (!Number.isNaN(date.getTime())) {
                                   const dateStr = date.toLocaleDateString('zh-TW', {
