@@ -109,8 +109,8 @@ export default async function SportAnnouncementsPage(context: any) {
                         timeZone: "Asia/Taipei",
                       }).format(new Date(m.scheduled_time));
                       // Get court: prioritize match.court, then slot's associated court
-                      // Note: slot.event_courts might be an array or object, handle both cases
-                      const slotCourt = m.slot?.event_courts;
+                      // Match admin page logic exactly
+                      const slotCourt = (m.slot as any)?.event_courts;
                       const slotCourtName = Array.isArray(slotCourt) 
                         ? slotCourt[0]?.name 
                         : slotCourt?.name;
