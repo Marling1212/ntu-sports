@@ -46,7 +46,7 @@ export async function getSportMatches(eventId: string) {
         id, 
         code, 
         court_id,
-        event_courts!event_slots_court_id_fkey(name)
+        event_courts(name)
       )
     `)
     .eq("event_id", eventId)
