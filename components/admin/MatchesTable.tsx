@@ -1394,26 +1394,46 @@ export default function MatchesTable({
                                 {formatSlotScheduleRange(match.slot)}
                               </span>
                             </div>
-                          ) : (match.scheduled_time && match.scheduled_time !== 'undefined' && match.scheduled_time !== 'null') ? (
-                            <div className="flex flex-col">
-                              <span className="text-sm text-gray-700">
-                                {new Date(match.scheduled_time).toLocaleDateString('zh-TW', { 
-                                  year: 'numeric', 
-                                  month: '2-digit', 
-                                  day: '2-digit' 
-                                })}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {new Date(match.scheduled_time).toLocaleTimeString('zh-TW', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit',
-                                  hour12: false 
-                                })}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">未排定</span>
-                          )}
+                          ) : (() => {
+                            // 檢查 scheduled_time 是否有效
+                            const scheduledTime = match.scheduled_time;
+                            if (!scheduledTime || 
+                                scheduledTime === 'undefined' || 
+                                scheduledTime === 'null' ||
+                                scheduledTime === null ||
+                                scheduledTime === undefined) {
+                              return <span className="text-sm text-gray-400">未排定</span>;
+                            }
+                            
+                            try {
+                              const date = new Date(scheduledTime);
+                              if (Number.isNaN(date.getTime())) {
+                                return <span className="text-sm text-gray-400">未排定</span>;
+                              }
+                              
+                              return (
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-gray-700">
+                                    {date.toLocaleDateString('zh-TW', { 
+                                      year: 'numeric', 
+                                      month: '2-digit', 
+                                      day: '2-digit' 
+                                    })}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('zh-TW', { 
+                                      hour: '2-digit', 
+                                      minute: '2-digit',
+                                      hour12: false 
+                                    })}
+                                  </span>
+                                </div>
+                              );
+                            } catch (e) {
+                              console.error('Date parsing error:', e, 'scheduled_time:', scheduledTime);
+                              return <span className="text-sm text-gray-400">未排定</span>;
+                            }
+                          })()}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
                           {(() => {
@@ -1567,13 +1587,27 @@ export default function MatchesTable({
                     </div>
                     <div>
                       <span className="font-medium">Time:</span>{" "}
-                      {(match.scheduled_time && match.scheduled_time !== 'undefined' && match.scheduled_time !== 'null') ? (
-                        <span className="text-gray-700">
-                          {formatDateTimeDisplay(match.scheduled_time)}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
+                      {(() => {
+                        const scheduledTime = match.scheduled_time;
+                        if (!scheduledTime || 
+                            scheduledTime === 'undefined' || 
+                            scheduledTime === 'null' ||
+                            scheduledTime === null ||
+                            scheduledTime === undefined) {
+                          return "—";
+                        }
+                        
+                        try {
+                          return (
+                            <span className="text-gray-700">
+                              {formatDateTimeDisplay(scheduledTime)}
+                            </span>
+                          );
+                        } catch (e) {
+                          console.error('Date formatting error:', e, 'scheduled_time:', scheduledTime);
+                          return "—";
+                        }
+                      })()}
                     </div>
                   </div>
 
