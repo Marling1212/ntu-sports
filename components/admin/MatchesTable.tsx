@@ -1394,26 +1394,35 @@ export default function MatchesTable({
                                 {formatSlotScheduleRange(match.slot)}
                               </span>
                             </div>
-                          ) : match.scheduled_time ? (
-                            <div className="flex flex-col">
-                              <span className="text-sm text-gray-700">
-                                {new Date(match.scheduled_time).toLocaleDateString('zh-TW', {
-                                  year: 'numeric',
-                                  month: '2-digit',
-                                  day: '2-digit'
-                                })}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {new Date(match.scheduled_time).toLocaleTimeString('zh-TW', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  hour12: false
-                                })}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">未排定</span>
-                          )}
+                          ) : (() => {
+                            if (!match.scheduled_time) {
+                              return <span className="text-sm text-gray-400">未排定</span>;
+                            }
+                            
+                            // 預先格式化日期時間，避免在渲染時重複計算
+                            const date = new Date(match.scheduled_time);
+                            if (Number.isNaN(date.getTime())) {
+                              return <span className="text-sm text-gray-400">未排定</span>;
+                            }
+                            
+                            const dateStr = date.toLocaleDateString('zh-TW', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit'
+                            });
+                            const timeStr = date.toLocaleTimeString('zh-TW', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: false
+                            });
+                            
+                            return (
+                              <div className="flex flex-col">
+                                <span className="text-sm text-gray-700">{dateStr}</span>
+                                <span className="text-xs text-gray-500">{timeStr}</span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
                           {getCourtDisplay(match)}
