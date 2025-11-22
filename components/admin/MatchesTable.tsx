@@ -1394,26 +1394,44 @@ export default function MatchesTable({
                                 {formatSlotScheduleRange(match.slot)}
                               </span>
                             </div>
-                          ) : match.scheduled_time ? (
-                            <div className="flex flex-col">
-                              <span className="text-sm text-gray-700">
-                                {new Date(match.scheduled_time).toLocaleDateString('zh-TW', { 
-                                  year: 'numeric', 
-                                  month: '2-digit', 
-                                  day: '2-digit' 
-                                })}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {new Date(match.scheduled_time).toLocaleTimeString('zh-TW', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit',
-                                  hour12: false 
-                                })}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">未排定</span>
-                          )}
+                          ) : (() => {
+                            const scheduledTime = match.scheduled_time;
+                            if (!scheduledTime || scheduledTime === null || scheduledTime === undefined) {
+                              return <span className="text-sm text-gray-400">未排定</span>;
+                            }
+                            
+                            try {
+                              const date = new Date(scheduledTime);
+                              if (Number.isNaN(date.getTime())) {
+                                return <span className="text-sm text-gray-400">未排定</span>;
+                              }
+                              
+                              const dateStr = date.toLocaleDateString('zh-TW', { 
+                                year: 'numeric', 
+                                month: '2-digit', 
+                                day: '2-digit' 
+                              });
+                              const timeStr = date.toLocaleTimeString('zh-TW', { 
+                                hour: '2-digit', 
+                                minute: '2-digit',
+                                hour12: false 
+                              });
+                              
+                              // 確保返回的字符串不是 undefined
+                              if (!dateStr || !timeStr || dateStr === 'undefined' || timeStr === 'undefined') {
+                                return <span className="text-sm text-gray-400">未排定</span>;
+                              }
+                              
+                              return (
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-gray-700">{dateStr}</span>
+                                  <span className="text-xs text-gray-500">{timeStr}</span>
+                                </div>
+                              );
+                            } catch (e) {
+                              return <span className="text-sm text-gray-400">未排定</span>;
+                            }
+                          })()}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
                           {(() => {
