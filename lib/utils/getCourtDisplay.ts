@@ -55,12 +55,21 @@ export function debugCourtInfo(match: any, matchId?: string) {
     }
   }
   
+  // 詳細輸出 slot 對象的結構
+  const slotDetails = match.slot ? {
+    id: match.slot.id,
+    code: match.slot.code,
+    court_id: match.slot.court_id,
+    event_courts: match.slot.event_courts,
+    event_courts_keys: match.slot.event_courts ? Object.keys(match.slot.event_courts) : null,
+  } : null;
+  
   console.log(`[Court Debug] Match ${matchId || match.id}:`, {
     matchCourt: match.court,
     slotId: match.slot_id,
-    slot: match.slot,
+    slot: slotDetails, // 顯示 slot 的詳細結構
     slotCourt: slotCourt,
-    slotCourtName: slotCourtName, // 新增：直接顯示 slotCourt.name 的值
+    slotCourtName: slotCourtName,
     slotCourtType: Array.isArray(slotCourt) ? 'array' : typeof slotCourt,
     finalDisplay: getCourtDisplay(match),
   });
