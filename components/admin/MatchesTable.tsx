@@ -1559,7 +1559,11 @@ export default function MatchesTable({
 
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-2 border-t border-gray-100">
                     <div>
-                      <span className="font-medium">Court:</span> {getCourtDisplay(match)}
+                      <span className="font-medium">Court:</span> {(() => {
+                        // Debug: 輸出每個 match 的 court 信息
+                        debugCourtInfo(match);
+                        return getCourtDisplay(match);
+                      })()}
                     </div>
                     <div>
                       <span className="font-medium">Time:</span>{" "}
