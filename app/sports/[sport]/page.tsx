@@ -120,6 +120,64 @@ export default async function SportPage(context: any) {
   }
 
   // Single event - show event intro page
+  // Fetch matches and announcements at component level
+  let matches: any[] = [];
+  let announcements: any[] = [];
+  
+  if (singleEvent) {
+    matches = await getSportMatches(singleEvent.id);
+    announcements = await getSportAnnouncements(singleEvent.id);
+  }
+
+  // Process matches for display
+  const tz = "Asia/Taipei";
+  const now = new Date();
+  const nowTz = new Date(now.toLocaleString("en-US", { timeZone: tz }));
+  
+  // Calculate today's date range
+  const todayStart = new Date(nowTz);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(nowTz);
+  todayEnd.setHours(23, 59, 59, 999);
+  
+  // Calculate tomorrow's date range
+  const nextDayStart = new Date(nowTz);
+  nextDayStart.setDate(nextDayStart.getDate() + 1);
+  nextDayStart.setHours(0, 0, 0, 0);
+  const nextDayEnd = new Date(nextDayStart);
+  nextDayEnd.setHours(23, 59, 59, 999);
+  
+  // Get today's matches
+  const todayMatches = (matches || [])
+    .filter((m: any) => !!m.scheduled_time)
+    .filter((m: any) => {
+      const d = new Date(m.scheduled_time);
+      const dTz = new Date(d.toLocaleString("en-US", { timeZone: tz }));
+      return dTz >= todayStart && dTz <= todayEnd;
+    })
+    .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
+  
+  // Check if any of today's matches haven't started yet (scheduled_time > now)
+  const hasUpcomingToday = todayMatches.some((m: any) => {
+    const matchTime = new Date(m.scheduled_time);
+    return matchTime > now && m.status !== "completed";
+  });
+  
+  // Determine which matches to show
+  const matchesToShow = hasUpcomingToday ? todayMatches : (matches || [])
+    .filter((m: any) => !!m.scheduled_time)
+    .filter((m: any) => {
+      const d = new Date(m.scheduled_time);
+      const dTz = new Date(d.toLocaleString("en-US", { timeZone: tz }));
+      return dTz >= nextDayStart && dTz <= nextDayEnd;
+    })
+    .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
+  
+  const title = hasUpcomingToday ? `今日賽程（${sportName}）` : `明日賽程預告（${sportName}）`;
+  const emptyMessage = hasUpcomingToday ? "今日沒有已排定的比賽。" : "明日沒有已排定的比賽。";
+  
+  const latestAnnouncement = (announcements || [])[0];
+
   return (
     <div className="container mx-auto px-4 py-12">
       {/* Header Section */}
@@ -159,143 +217,89 @@ export default async function SportPage(context: any) {
       )}
 
       {/* Today's or Tomorrow's Matches */}
-      {singleEvent && (async () => {
-        const matches = await getSportMatches(singleEvent.id);
-        const tz = "Asia/Taipei";
-        const now = new Date();
-        const nowTz = new Date(now.toLocaleString("en-US", { timeZone: tz }));
-        
-        // Calculate today's date range
-        const todayStart = new Date(nowTz);
-        todayStart.setHours(0, 0, 0, 0);
-        const todayEnd = new Date(nowTz);
-        todayEnd.setHours(23, 59, 59, 999);
-        
-        // Calculate tomorrow's date range
-        const nextDayStart = new Date(nowTz);
-        nextDayStart.setDate(nextDayStart.getDate() + 1);
-        nextDayStart.setHours(0, 0, 0, 0);
-        const nextDayEnd = new Date(nextDayStart);
-        nextDayEnd.setHours(23, 59, 59, 999);
-        
-        // Get today's matches
-        const todayMatches = (matches || [])
-          .filter((m: any) => !!m.scheduled_time)
-          .filter((m: any) => {
-            const d = new Date(m.scheduled_time);
-            const dTz = new Date(d.toLocaleString("en-US", { timeZone: tz }));
-            return dTz >= todayStart && dTz <= todayEnd;
-          })
-          .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
-        
-        // Check if any of today's matches haven't started yet (scheduled_time > now)
-        const hasUpcomingToday = todayMatches.some((m: any) => {
-          const matchTime = new Date(m.scheduled_time);
-          return matchTime > now && m.status !== "completed";
-        });
-        
-        // Determine which matches to show
-        const matchesToShow = hasUpcomingToday ? todayMatches : (matches || [])
-          .filter((m: any) => !!m.scheduled_time)
-          .filter((m: any) => {
-            const d = new Date(m.scheduled_time);
-            const dTz = new Date(d.toLocaleString("en-US", { timeZone: tz }));
-            return dTz >= nextDayStart && dTz <= nextDayEnd;
-          })
-          .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
-        
-        const title = hasUpcomingToday ? `今日賽程（${sportName}）` : `明日賽程預告（${sportName}）`;
-        const emptyMessage = hasUpcomingToday ? "今日沒有已排定的比賽。" : "明日沒有已排定的比賽。";
-        
-        return (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-lg">
-            <div className="flex items-start justify-between mb-3">
-              <h2 className="text-lg font-semibold text-yellow-800">{title}</h2>
-              <span className="text-sm text-yellow-700">依照目前排定之賽程時間產生</span>
-            </div>
-            {matchesToShow.length === 0 ? (
-              <p className="text-yellow-800 text-sm">{emptyMessage}</p>
-            ) : (
-              <div className="overflow-x-auto -mx-2">
-                <table className="min-w-full divide-y divide-yellow-200">
-                  <thead>
-                    <tr className="bg-yellow-100">
-                      <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">時間</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">場地</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">對戰組合</th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-yellow-800 uppercase tracking-wider">狀態</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-yellow-200">
-                    {matchesToShow.map((m: any) => {
-                      const timeStr = new Intl.DateTimeFormat("zh-TW", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZone: "Asia/Taipei",
-                      }).format(new Date(m.scheduled_time));
-                      // Get court: prioritize match.court, then slot's associated court
-                      // Match admin page logic exactly
-                      const slotCourt = (m.slot as any)?.event_courts;
-                      const slotCourtName = Array.isArray(slotCourt) 
-                        ? slotCourt[0]?.name 
-                        : slotCourt?.name;
-                      const court = m.court || slotCourtName || "-";
-                      const p1 = m.player1?.name || "TBD";
-                      const p2 = m.player2?.name || "TBD";
-                      return (
-                        <tr key={m.id}>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{timeStr}</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{court}</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">
-                            <span className="font-semibold">{p1}</span>
-                            <span className="mx-2 text-gray-400">vs</span>
-                            <span className="font-semibold">{p2}</span>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
-                            {m.status === "completed" ? (
-                              <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">Completed</span>
-                            ) : m.status === "live" ? (
-                              <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">Live</span>
-                            ) : m.status === "delayed" ? (
-                              <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">Delayed</span>
-                            ) : (
-                              <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">Upcoming</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+      {singleEvent && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-lg">
+          <div className="flex items-start justify-between mb-3">
+            <h2 className="text-lg font-semibold text-yellow-800">{title}</h2>
+            <span className="text-sm text-yellow-700">依照目前排定之賽程時間產生</span>
           </div>
-        );
-      })()}
+          {matchesToShow.length === 0 ? (
+            <p className="text-yellow-800 text-sm">{emptyMessage}</p>
+          ) : (
+            <div className="overflow-x-auto -mx-2">
+              <table className="min-w-full divide-y divide-yellow-200">
+                <thead>
+                  <tr className="bg-yellow-100">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">時間</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">場地</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">對戰組合</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-yellow-800 uppercase tracking-wider">狀態</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-yellow-200">
+                  {matchesToShow.map((m: any) => {
+                    const timeStr = new Intl.DateTimeFormat("zh-TW", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: "Asia/Taipei",
+                    }).format(new Date(m.scheduled_time));
+                    // Get court: prioritize match.court, then slot's associated court
+                    // Match admin page logic exactly
+                    const slotCourt = (m.slot as any)?.event_courts;
+                    const slotCourtName = Array.isArray(slotCourt) 
+                      ? slotCourt[0]?.name 
+                      : slotCourt?.name;
+                    const court = m.court || slotCourtName || "-";
+                    const p1 = m.player1?.name || "TBD";
+                    const p2 = m.player2?.name || "TBD";
+                    return (
+                      <tr key={m.id}>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{timeStr}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{court}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">
+                          <span className="font-semibold">{p1}</span>
+                          <span className="mx-2 text-gray-400">vs</span>
+                          <span className="font-semibold">{p2}</span>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
+                          {m.status === "completed" ? (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">Completed</span>
+                          ) : m.status === "live" ? (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">Live</span>
+                          ) : m.status === "delayed" ? (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">Delayed</span>
+                          ) : (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">Upcoming</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Latest Announcement */}
-      {singleEvent && (async () => {
-        const anns = await getSportAnnouncements(singleEvent.id);
-        const latest = (anns || [])[0];
-        if (!latest) return null;
-        return (
-          <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
-            <div className="flex items-start justify-between mb-3">
-              <h2 className="text-xl font-semibold text-ntu-green">最新公告</h2>
-              <Link href={`/sports/${sportParam}/announcements`} className="text-ntu-green hover:underline text-sm">
-                查看全部 →
-              </Link>
-            </div>
-            <div className="text-sm text-gray-500 mb-2">
-              {new Date(latest.created_at).toLocaleString("zh-TW")}
-            </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">{latest.title}</h3>
-            <div className="prose max-w-none">
-              <MarkdownText content={latest.content} />
-            </div>
+      {singleEvent && latestAnnouncement && (
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+          <div className="flex items-start justify-between mb-3">
+            <h2 className="text-xl font-semibold text-ntu-green">最新公告</h2>
+            <Link href={`/sports/${sportParam}/announcements`} className="text-ntu-green hover:underline text-sm">
+              查看全部 →
+            </Link>
           </div>
-        );
-      })()}
+          <div className="text-sm text-gray-500 mb-2">
+            {new Date(latestAnnouncement.created_at).toLocaleString("zh-TW")}
+          </div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">{latestAnnouncement.title}</h3>
+          <div className="prose max-w-none">
+            <MarkdownText content={latestAnnouncement.content} />
+          </div>
+        </div>
+      )}
 
       {/* Purpose Statement */}
       {singleEvent?.description && (
