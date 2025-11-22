@@ -156,47 +156,26 @@ export default function MatchesTable({
   }, [slots]);
 
   // Check if match has individual player stats entered (for team events)
-  // Changed: Now checks if ANY player-level stat exists, not just goals matching scores
+  // Changed: Now checks if ANY player-level stat exists with actual values, not just empty records
   const hasIndividualStats = useMemo(() => {
     const statsMap = new Map<string, boolean>();
     
     if (registrationType !== 'team') return statsMap;
     
-    // Debug: Log to see what we're working with
-    console.log('hasIndividualStats check:', {
-      registrationType,
-      matchesCount: matches.length,
-      matchPlayerStatsCount: matchPlayerStats.length,
-      matchPlayerStats: matchPlayerStats.slice(0, 5) // First 5 for debugging
-    });
-    
     matches.forEach(match => {
-      // Get any player-level stats for this match (with team_member_id)
-      const matchStats = matchPlayerStats.filter(s => {
-        const hasTeamMemberId = s.team_member_id !== null && s.team_member_id !== undefined;
-        const matchIdMatches = s.match_id === match.id;
-        
-        if (matchIdMatches && hasTeamMemberId) {
-          console.log('Found player-level stat:', {
-            match_id: s.match_id,
-            team_member_id: s.team_member_id,
-            stat_name: s.stat_name
-          });
-        }
-        
-        return matchIdMatches && hasTeamMemberId;
-      });
+      // Get any player-level stats for this match (with team_member_id) that have actual values
+      const matchStats = matchPlayerStats.filter(s => 
+        s.match_id === match.id && 
+        s.team_member_id !== null && 
+        s.team_member_id !== undefined && // Has team_member_id means it's a player-level stat
+        s.stat_value !== null &&
+        s.stat_value !== undefined &&
+        s.stat_value !== "" // Must have an actual value, not just an empty record
+      );
       
-      // If any player-level stats exist, mark as having individual stats
-      const hasStats = matchStats.length > 0;
-      statsMap.set(match.id, hasStats);
-      
-      if (hasStats) {
-        console.log(`Match ${match.id} has individual stats:`, matchStats.length);
-      }
+      // If any player-level stats with values exist, mark as having individual stats
+      statsMap.set(match.id, matchStats.length > 0);
     });
-    
-    console.log('hasIndividualStats map:', Array.from(statsMap.entries()));
     
     return statsMap;
   }, [matches, matchPlayerStats, registrationType]);
@@ -1166,14 +1145,14 @@ export default function MatchesTable({
                     />
                   </th>
                 )}
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '7%' }}>Round</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '7%' }}>Match #</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '12%' }}>Player 1</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '12%' }}>Round</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Match #</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '11%' }}>Player 1</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Score</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '12%' }}>Player 2</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '12%' }}>Winner</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '14%' }}>Schedule</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Court</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '11%' }}>Player 2</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '11%' }}>Winner</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '13%' }}>Schedule</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '9%' }}>Court</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Status</th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Actions</th>
               </tr>
