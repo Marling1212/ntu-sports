@@ -1394,7 +1394,7 @@ export default function MatchesTable({
                                 {formatSlotScheduleRange(match.slot)}
                               </span>
                             </div>
-                          ) : match.scheduled_time ? (
+                          ) : (match.scheduled_time && match.scheduled_time !== 'undefined' && match.scheduled_time !== 'null') ? (
                             <div className="flex flex-col">
                               <span className="text-sm text-gray-700">
                                 {new Date(match.scheduled_time).toLocaleDateString('zh-TW', { 
@@ -1567,7 +1567,7 @@ export default function MatchesTable({
                     </div>
                     <div>
                       <span className="font-medium">Time:</span>{" "}
-                      {match.scheduled_time ? (
+                      {(match.scheduled_time && match.scheduled_time !== 'undefined' && match.scheduled_time !== 'null') ? (
                         <span className="text-gray-700">
                           {formatDateTimeDisplay(match.scheduled_time)}
                         </span>
