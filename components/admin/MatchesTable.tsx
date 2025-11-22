@@ -1153,7 +1153,7 @@ export default function MatchesTable({
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Score</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '11%' }}>Player 2</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '11%' }}>Winner</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '13%' }}>Schedule</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '15%', minWidth: '120px' }}>Schedule</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '9%' }}>Court</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Status</th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Actions</th>
@@ -1382,7 +1382,7 @@ export default function MatchesTable({
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
                           {(match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "—"}
                         </td>
-                        <td className="px-3 py-4 text-sm">
+                        <td className="px-3 py-4 text-sm min-w-[120px]">
                           {match.slot ? (
                             <div className="flex flex-col">
                               {match.slot.code && (
@@ -1402,6 +1402,7 @@ export default function MatchesTable({
                             // 預先格式化日期時間，避免在渲染時重複計算
                             const date = new Date(match.scheduled_time);
                             if (Number.isNaN(date.getTime())) {
+                              console.warn('[Schedule Debug] Invalid date for match', match.id, 'scheduled_time:', match.scheduled_time);
                               return <span className="text-sm text-gray-400">未排定</span>;
                             }
                             
@@ -1416,10 +1417,15 @@ export default function MatchesTable({
                               hour12: false
                             });
                             
+                            // 調試輸出
+                            if (!dateStr || !timeStr || dateStr === 'undefined' || timeStr === 'undefined') {
+                              console.error('[Schedule Debug] Match', match.id, 'dateStr:', dateStr, 'timeStr:', timeStr, 'scheduled_time:', match.scheduled_time);
+                            }
+                            
                             return (
                               <div className="flex flex-col">
-                                <span className="text-sm text-gray-700">{dateStr}</span>
-                                <span className="text-xs text-gray-500">{timeStr}</span>
+                                <span className="text-sm text-gray-700 whitespace-nowrap">{dateStr || '—'}</span>
+                                <span className="text-xs text-gray-500 whitespace-nowrap">{timeStr || '—'}</span>
                               </div>
                             );
                           })()}
