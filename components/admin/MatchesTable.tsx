@@ -93,6 +93,7 @@ interface Match {
   slot_id?: string | null;
   slot?: SlotOption | null;
   status: string;
+  court_name?: string | null; // For display consistency
   player1?: Player;
   player2?: Player;
   winner?: Player;
@@ -1413,7 +1414,9 @@ export default function MatchesTable({
                             <span className="text-sm text-gray-400">未排定</span>
                           )}
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm">{match.court || "—"}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          {match.court || (match.slot as any)?.event_courts?.name || "—"}
+                        </td>
                         <td className="px-3 py-4 whitespace-nowrap">
                           <span
                             className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -1551,7 +1554,7 @@ export default function MatchesTable({
 
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-2 border-t border-gray-100">
                     <div>
-                      <span className="font-medium">Court:</span> {match.court || "—"}
+                      <span className="font-medium">Court:</span> {match.court || (match.slot as any)?.event_courts?.name || "—"}
                     </div>
                     <div>
                       <span className="font-medium">Time:</span>{" "}
