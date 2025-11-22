@@ -1398,21 +1398,21 @@ export default function MatchesTable({
                             // 檢查 scheduled_time 是否有效
                             const scheduledTime = match.scheduled_time;
                             
-                            // 調試：輸出實際的值
-                            if (scheduledTime === 'undefined' || scheduledTime === undefined || scheduledTime === null) {
-                              console.warn('[Date Debug] Match', match.id, 'has invalid scheduled_time:', scheduledTime, 'type:', typeof scheduledTime);
-                              return <span className="text-sm text-gray-400">未排定</span>;
-                            }
-                            
-                            if (typeof scheduledTime === 'string' && (scheduledTime === 'undefined' || scheduledTime === 'null' || scheduledTime.trim() === '')) {
-                              console.warn('[Date Debug] Match', match.id, 'has invalid scheduled_time string:', scheduledTime);
+                            // 檢查 null、undefined、空字符串、字符串 "undefined" 或 "null"
+                            if (scheduledTime === null || 
+                                scheduledTime === undefined || 
+                                scheduledTime === '' ||
+                                (typeof scheduledTime === 'string' && (
+                                  scheduledTime.toLowerCase() === 'undefined' || 
+                                  scheduledTime.toLowerCase() === 'null' ||
+                                  scheduledTime.trim() === ''
+                                ))) {
                               return <span className="text-sm text-gray-400">未排定</span>;
                             }
                             
                             try {
                               const date = new Date(scheduledTime);
                               if (Number.isNaN(date.getTime())) {
-                                console.warn('[Date Debug] Match', match.id, 'scheduled_time is not a valid date:', scheduledTime);
                                 return <span className="text-sm text-gray-400">未排定</span>;
                               }
                               
@@ -1435,7 +1435,8 @@ export default function MatchesTable({
                                 </div>
                               );
                             } catch (e) {
-                              console.error('[Date Debug] Match', match.id, 'Date parsing error:', e, 'scheduled_time:', scheduledTime, 'type:', typeof scheduledTime);
+                              // 只在真正出錯時才記錄
+                              console.error('[Date Error] Match', match.id, 'Date parsing error:', e, 'scheduled_time:', scheduledTime);
                               return <span className="text-sm text-gray-400">未排定</span>;
                             }
                           })()}
@@ -1594,11 +1595,16 @@ export default function MatchesTable({
                       <span className="font-medium">Time:</span>{" "}
                       {(() => {
                         const scheduledTime = match.scheduled_time;
-                        if (!scheduledTime || 
-                            scheduledTime === 'undefined' || 
-                            scheduledTime === 'null' ||
-                            scheduledTime === null ||
-                            scheduledTime === undefined) {
+                        
+                        // 檢查 null、undefined、空字符串、字符串 "undefined" 或 "null"
+                        if (scheduledTime === null || 
+                            scheduledTime === undefined || 
+                            scheduledTime === '' ||
+                            (typeof scheduledTime === 'string' && (
+                              scheduledTime.toLowerCase() === 'undefined' || 
+                              scheduledTime.toLowerCase() === 'null' ||
+                              scheduledTime.trim() === ''
+                            ))) {
                           return "—";
                         }
                         
@@ -1609,7 +1615,7 @@ export default function MatchesTable({
                             </span>
                           );
                         } catch (e) {
-                          console.error('Date formatting error:', e, 'scheduled_time:', scheduledTime);
+                          console.error('[Date Error] Match', match.id, 'Date formatting error:', e, 'scheduled_time:', scheduledTime);
                           return "—";
                         }
                       })()}
