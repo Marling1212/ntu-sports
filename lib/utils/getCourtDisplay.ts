@@ -44,12 +44,24 @@ export function getCourtDisplay(match: any): string {
  * 調試用：輸出 match 的 court 相關信息
  */
 export function debugCourtInfo(match: any, matchId?: string) {
+  const slotCourt = match.slot?.event_courts;
+  let slotCourtName = null;
+  
+  if (slotCourt) {
+    if (Array.isArray(slotCourt)) {
+      slotCourtName = slotCourt[0]?.name;
+    } else if (typeof slotCourt === 'object') {
+      slotCourtName = slotCourt.name;
+    }
+  }
+  
   console.log(`[Court Debug] Match ${matchId || match.id}:`, {
     matchCourt: match.court,
     slotId: match.slot_id,
     slot: match.slot,
-    slotCourt: match.slot?.event_courts,
-    slotCourtType: Array.isArray(match.slot?.event_courts) ? 'array' : typeof match.slot?.event_courts,
+    slotCourt: slotCourt,
+    slotCourtName: slotCourtName, // 新增：直接顯示 slotCourt.name 的值
+    slotCourtType: Array.isArray(slotCourt) ? 'array' : typeof slotCourt,
     finalDisplay: getCourtDisplay(match),
   });
 }
