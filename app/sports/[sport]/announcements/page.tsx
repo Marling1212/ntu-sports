@@ -1,6 +1,7 @@
 import { getSportEvent, getSportAnnouncements, getSportMatches } from "@/lib/utils/getSportEvent";
 import MarkdownText from "@/components/MarkdownText";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
+import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 
 export default async function SportAnnouncementsPage(context: any) {
   const params = (context?.params || {}) as { sport?: string };
@@ -109,7 +110,6 @@ export default async function SportAnnouncementsPage(context: any) {
                         timeZone: "Asia/Taipei",
                       }).format(new Date(m.scheduled_time));
                       // Get court: use unified logic
-                      const { getCourtDisplay } = await import("@/lib/utils/getCourtDisplay");
                       const court = getCourtDisplay(m);
                       const p1 = m.player1?.name || "TBD";
                       const p2 = m.player2?.name || "TBD";
