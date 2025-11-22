@@ -1397,17 +1397,22 @@ export default function MatchesTable({
                           ) : (() => {
                             // 檢查 scheduled_time 是否有效
                             const scheduledTime = match.scheduled_time;
-                            if (!scheduledTime || 
-                                scheduledTime === 'undefined' || 
-                                scheduledTime === 'null' ||
-                                scheduledTime === null ||
-                                scheduledTime === undefined) {
+                            
+                            // 調試：輸出實際的值
+                            if (scheduledTime === 'undefined' || scheduledTime === undefined || scheduledTime === null) {
+                              console.warn('[Date Debug] Match', match.id, 'has invalid scheduled_time:', scheduledTime, 'type:', typeof scheduledTime);
+                              return <span className="text-sm text-gray-400">未排定</span>;
+                            }
+                            
+                            if (typeof scheduledTime === 'string' && (scheduledTime === 'undefined' || scheduledTime === 'null' || scheduledTime.trim() === '')) {
+                              console.warn('[Date Debug] Match', match.id, 'has invalid scheduled_time string:', scheduledTime);
                               return <span className="text-sm text-gray-400">未排定</span>;
                             }
                             
                             try {
                               const date = new Date(scheduledTime);
                               if (Number.isNaN(date.getTime())) {
+                                console.warn('[Date Debug] Match', match.id, 'scheduled_time is not a valid date:', scheduledTime);
                                 return <span className="text-sm text-gray-400">未排定</span>;
                               }
                               
@@ -1430,7 +1435,7 @@ export default function MatchesTable({
                                 </div>
                               );
                             } catch (e) {
-                              console.error('Date parsing error:', e, 'scheduled_time:', scheduledTime);
+                              console.error('[Date Debug] Match', match.id, 'Date parsing error:', e, 'scheduled_time:', scheduledTime, 'type:', typeof scheduledTime);
                               return <span className="text-sm text-gray-400">未排定</span>;
                             }
                           })()}
