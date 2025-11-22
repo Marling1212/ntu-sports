@@ -1380,7 +1380,7 @@ export default function MatchesTable({
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
                           {(match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "—"}
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                        <td className="px-3 py-4 text-sm">
                           {match.slot ? (
                             <div className="flex flex-col">
                               {match.slot.code && (
@@ -1393,9 +1393,22 @@ export default function MatchesTable({
                               </span>
                             </div>
                           ) : match.scheduled_time ? (
-                            <span className="text-sm text-gray-700">
-                              {formatDateTimeDisplay(match.scheduled_time)}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="text-sm text-gray-700">
+                                {new Date(match.scheduled_time).toLocaleDateString('zh-TW', { 
+                                  year: 'numeric', 
+                                  month: '2-digit', 
+                                  day: '2-digit' 
+                                })}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(match.scheduled_time).toLocaleTimeString('zh-TW', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit',
+                                  hour12: false 
+                                })}
+                              </span>
+                            </div>
                           ) : (
                             <span className="text-sm text-gray-400">未排定</span>
                           )}
