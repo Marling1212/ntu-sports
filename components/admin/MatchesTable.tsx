@@ -1138,16 +1138,16 @@ export default function MatchesTable({
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {batchMode && (
-                  <th className="px-3 py-3 text-center">
+                  <th className="px-2 py-3 text-center" style={{ width: '4%', minWidth: '50px' }}>
                     <input
                       type="checkbox"
                       checked={selectedMatches.size === filteredMatches.length && filteredMatches.length > 0}
                       onChange={toggleSelectAll}
-                      className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green"
+                      className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green cursor-pointer"
                     />
                   </th>
                 )}
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '12%' }}>Round</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: batchMode ? '11%' : '12%' }}>Round</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Match #</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '11%' }}>Player 1</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Score</th>
@@ -1179,12 +1179,12 @@ export default function MatchesTable({
                     }`}
                   >
                     {batchMode && (
-                      <td className="px-3 py-4 text-center">
+                      <td className="px-2 py-4 text-center" style={{ width: '4%', minWidth: '50px' }}>
                         <input
                           type="checkbox"
                           checked={selectedMatches.has(match.id)}
                           onChange={() => toggleMatchSelection(match.id)}
-                          className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green"
+                          className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green cursor-pointer"
                         />
                       </td>
                     )}
