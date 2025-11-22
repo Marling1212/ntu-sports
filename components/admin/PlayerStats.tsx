@@ -203,6 +203,118 @@ export default function PlayerStats({ players, matches, tournamentType, registra
     }
   }, [playerStats, individualPlayerGoals, registrationType]);
 
+  // Calculate yellow cards Top 5
+  const topYellowCards = useMemo(() => {
+    const cardsMap = new Map<string, { name: string; cards: number; teamName?: string; jerseyNumber?: number | null }>();
+    
+    matchPlayerStats.forEach(stat => {
+      // 檢查常見的黃牌統計名稱
+      if ((stat.stat_name === 'yellow_card' || stat.stat_name === 'yellow_cards' || stat.stat_name === '黃牌') && stat.stat_value) {
+        const cardCount = parseInt(stat.stat_value) || 0;
+        if (cardCount > 0) {
+          if (registrationType === 'team' && stat.team_member_id) {
+            // 團隊賽事：個別球員
+            const member = teamMembers.find(m => m.id === stat.team_member_id);
+            if (member) {
+              const team = players.find(p => p.id === member.player_id);
+              const key = `${member.player_id}_${member.id}`;
+              const current = cardsMap.get(key) || { 
+                name: member.name, 
+                cards: 0,
+                teamName: team?.name,
+                jerseyNumber: member.jersey_number
+              };
+              cardsMap.set(key, {
+                name: member.name,
+                cards: current.cards + cardCount,
+                teamName: team?.name,
+                jerseyNumber: member.jersey_number
+              });
+            }
+          } else {
+            // 個人賽事：隊伍/選手
+            const player = players.find(p => p.id === stat.player_id);
+            if (player) {
+              const current = cardsMap.get(stat.player_id) || { name: player.name, cards: 0 };
+              cardsMap.set(stat.player_id, {
+                name: player.name,
+                cards: current.cards + cardCount
+              });
+            }
+          }
+        }
+      }
+    });
+    
+    return Array.from(cardsMap.values())
+      .sort((a, b) => b.cards - a.cards)
+      .slice(0, 5)
+      .filter(s => s.cards > 0)
+      .map((item, idx) => ({
+        id: `yellow_${idx}`,
+        name: item.name,
+        count: item.cards,
+        teamName: item.teamName,
+        jerseyNumber: item.jerseyNumber
+      }));
+  }, [matchPlayerStats, teamMembers, registrationType, players]);
+
+  // Calculate red cards Top 5
+  const topRedCards = useMemo(() => {
+    const cardsMap = new Map<string, { name: string; cards: number; teamName?: string; jerseyNumber?: number | null }>();
+    
+    matchPlayerStats.forEach(stat => {
+      // 檢查常見的紅牌統計名稱
+      if ((stat.stat_name === 'red_card' || stat.stat_name === 'red_cards' || stat.stat_name === '紅牌') && stat.stat_value) {
+        const cardCount = parseInt(stat.stat_value) || 0;
+        if (cardCount > 0) {
+          if (registrationType === 'team' && stat.team_member_id) {
+            // 團隊賽事：個別球員
+            const member = teamMembers.find(m => m.id === stat.team_member_id);
+            if (member) {
+              const team = players.find(p => p.id === member.player_id);
+              const key = `${member.player_id}_${member.id}`;
+              const current = cardsMap.get(key) || { 
+                name: member.name, 
+                cards: 0,
+                teamName: team?.name,
+                jerseyNumber: member.jersey_number
+              };
+              cardsMap.set(key, {
+                name: member.name,
+                cards: current.cards + cardCount,
+                teamName: team?.name,
+                jerseyNumber: member.jersey_number
+              });
+            }
+          } else {
+            // 個人賽事：隊伍/選手
+            const player = players.find(p => p.id === stat.player_id);
+            if (player) {
+              const current = cardsMap.get(stat.player_id) || { name: player.name, cards: 0 };
+              cardsMap.set(stat.player_id, {
+                name: player.name,
+                cards: current.cards + cardCount
+              });
+            }
+          }
+        }
+      }
+    });
+    
+    return Array.from(cardsMap.values())
+      .sort((a, b) => b.cards - a.cards)
+      .slice(0, 5)
+      .filter(s => s.cards > 0)
+      .map((item, idx) => ({
+        id: `red_${idx}`,
+        name: item.name,
+        count: item.cards,
+        teamName: item.teamName,
+        jerseyNumber: item.jerseyNumber
+      }));
+  }, [matchPlayerStats, teamMembers, registrationType, players]);
+
   const topWinRate = useMemo(() => {
     return [...playerStats]
       .filter(s => s.matchesPlayed >= 3) // At least 3 matches
@@ -372,68 +484,147 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       </div>
 
       {/* Simple Charts */}
-      {(topScorers.length > 0 || topWinRate.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Top Scorers Chart */}
-          {topScorers.length > 0 && (
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-ntu-green mb-4">進球數 Top 5</h3>
-              <div className="space-y-3">
-                {topScorers.map((stat, idx) => {
-                  const maxGoals = topScorers[0].goalsFor;
-                  const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
-                  let displayName = stat.name;
-                  if (registrationType === 'team' && 'teamName' in stat && stat.teamName) {
-                    const jerseyPart = 'jerseyNumber' in stat && stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
-                      ? ` #${stat.jerseyNumber}` 
-                      : '';
-                    displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
-                  }
-                  return (
-                    <div key={stat.id}>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-700">
-                          {idx + 1}. {displayName}
-                        </span>
-                        <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} 球</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div
-                          className="bg-ntu-green h-3 rounded-full transition-all"
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+      {(topScorers.length > 0 || topWinRate.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0) && (
+        <div className="space-y-6">
+          {/* Top Performers: Goals, Yellow Cards, Red Cards */}
+          {(topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Top Scorers Chart */}
+              {topScorers.length > 0 && (
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                  <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
+                  <div className="space-y-3">
+                    {topScorers.map((stat, idx) => {
+                      const maxGoals = topScorers[0].goalsFor;
+                      const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
+                      let displayName = stat.name;
+                      if (registrationType === 'team' && 'teamName' in stat && stat.teamName) {
+                        const jerseyPart = 'jerseyNumber' in stat && stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                          ? ` #${stat.jerseyNumber}` 
+                          : '';
+                        displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                      }
+                      return (
+                        <div key={stat.id}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-gray-700">
+                              {idx + 1}. {displayName}
+                            </span>
+                            <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} 球</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div
+                              className="bg-ntu-green h-3 rounded-full transition-all"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Top Yellow Cards Chart */}
+              {topYellowCards.length > 0 && (
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                  <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
+                  <div className="space-y-3">
+                    {topYellowCards.map((stat, idx) => {
+                      const maxCards = topYellowCards[0].count;
+                      const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
+                      let displayName = stat.name;
+                      if (registrationType === 'team' && stat.teamName) {
+                        const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                          ? ` #${stat.jerseyNumber}` 
+                          : '';
+                        displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                      }
+                      return (
+                        <div key={stat.id}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-gray-700">
+                              {idx + 1}. {displayName}
+                            </span>
+                            <span className="text-sm font-bold text-yellow-600">{stat.count} 張</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div
+                              className="bg-yellow-500 h-3 rounded-full transition-all"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Top Red Cards Chart */}
+              {topRedCards.length > 0 && (
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                  <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
+                  <div className="space-y-3">
+                    {topRedCards.map((stat, idx) => {
+                      const maxCards = topRedCards[0].count;
+                      const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
+                      let displayName = stat.name;
+                      if (registrationType === 'team' && stat.teamName) {
+                        const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                          ? ` #${stat.jerseyNumber}` 
+                          : '';
+                        displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                      }
+                      return (
+                        <div key={stat.id}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-gray-700">
+                              {idx + 1}. {displayName}
+                            </span>
+                            <span className="text-sm font-bold text-red-600">{stat.count} 張</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div
+                              className="bg-red-500 h-3 rounded-full transition-all"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* Top Win Rate Chart */}
           {topWinRate.length > 0 && (
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-ntu-green mb-4">勝率 Top 5 (至少 3 場比賽)</h3>
-              <div className="space-y-3">
-                {topWinRate.map((stat, idx) => (
-                  <div key={stat.player.id}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium text-gray-700">
-                        {idx + 1}. {stat.player.name}
-                      </span>
-                      <span className="text-sm font-bold text-ntu-green">{stat.winRate}%</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-ntu-green mb-4">勝率 Top 5 (至少 3 場比賽)</h3>
+                <div className="space-y-3">
+                  {topWinRate.map((stat, idx) => (
+                    <div key={stat.player.id}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-700">
+                          {idx + 1}. {stat.player.name}
+                        </span>
+                        <span className="text-sm font-bold text-ntu-green">{stat.winRate}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-ntu-green h-3 rounded-full transition-all"
+                          style={{ width: `${stat.winRate}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {stat.wins} 勝 {stat.losses} 敗 {stat.draws} 和 ({stat.matchesPlayed} 場)
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className="bg-ntu-green h-3 rounded-full transition-all"
-                        style={{ width: `${stat.winRate}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {stat.wins} 勝 {stat.losses} 敗 {stat.draws} 和 ({stat.matchesPlayed} 場)
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
