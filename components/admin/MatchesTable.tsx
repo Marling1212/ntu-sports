@@ -1191,11 +1191,11 @@ export default function MatchesTable({
                     {editingMatch === match.id ? (
                       // Edit mode
                       <>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                        <td className="px-3 py-4 text-sm" style={{ minWidth: '100px' }}>
                           {isThirdPlaceMatch(match) ? (
                             <span className="text-amber-600 font-semibold">🥉 3rd Place</span>
                           ) : (
-                            getRoundName(match.round)
+                            <span className="whitespace-nowrap">{getRoundName(match.round)}</span>
                           )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm font-mono">
