@@ -54,7 +54,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
         id, 
         code, 
         court_id,
-        event_courts(name)
+        event_courts!event_slots_court_id_fkey(name)
       )
     `)
     .eq("event_id", eventId)
