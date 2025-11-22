@@ -50,7 +50,12 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
       player1:players!matches_player1_id_fkey(id, name, seed),
       player2:players!matches_player2_id_fkey(id, name, seed),
       winner:players!matches_winner_id_fkey(id, name, seed),
-      slot:event_slots(id, code, court_id, event_courts(name))
+      slot:event_slots(
+        id, 
+        code, 
+        court_id,
+        event_courts!event_slots_court_id_fkey(name)
+      )
     `)
     .eq("event_id", eventId)
     .neq("status", "bye") // Don't show BYE matches in management view
