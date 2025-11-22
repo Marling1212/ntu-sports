@@ -8,7 +8,7 @@ import { checkAndAnnounceRoundCompletion } from "@/lib/utils/checkRoundCompletio
 import * as XLSX from 'xlsx';
 import Link from "next/link";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
-import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { getCourtDisplay, debugCourtInfo } from "@/lib/utils/getCourtDisplay";
 
 interface SlotOption {
   id: string;
@@ -1416,7 +1416,11 @@ export default function MatchesTable({
                           )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
-                          {getCourtDisplay(match)}
+                          {(() => {
+                            // Debug: 輸出每個 match 的 court 信息
+                            debugCourtInfo(match);
+                            return getCourtDisplay(match);
+                          })()}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap">
                           <span
