@@ -3,6 +3,7 @@ import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
 import { createClient } from "@/lib/supabase/server";
 import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import MarkdownText from "@/components/MarkdownText";
+import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 
 export default async function TennisPage() {
   const supabase = await createClient();
