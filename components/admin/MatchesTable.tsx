@@ -1413,13 +1413,22 @@ export default function MatchesTable({
                                   hour12: false 
                                 });
                                 
+                                // 確保值存在且不是 undefined
+                                const safeDateStr = (dateStr && typeof dateStr === 'string') ? dateStr : '';
+                                const safeTimeStr = (timeStr && typeof timeStr === 'string') ? timeStr : '';
+                                
+                                if (!safeDateStr || !safeTimeStr) {
+                                  return <span className="text-sm text-gray-400">未排定</span>;
+                                }
+                                
                                 return (
                                   <div className="flex flex-col">
-                                    <span className="text-sm text-gray-700">{String(dateStr || '')}</span>
-                                    <span className="text-xs text-gray-500">{String(timeStr || '')}</span>
+                                    <span className="text-sm text-gray-700">{safeDateStr}</span>
+                                    <span className="text-xs text-gray-500">{safeTimeStr}</span>
                                   </div>
                                 );
                               } catch (e) {
+                                console.error('Date formatting error:', e, match.scheduled_time);
                                 return <span className="text-sm text-gray-400">未排定</span>;
                               }
                             })()
