@@ -598,7 +598,7 @@ export default function MatchDetailContent({
                         {/* Show all players sorted by jersey number, then by name */}
                         {getSortedTeamMembers(player1.id).map((member: any) => {
                           const hasData = getTeamMembersWithData(player1.id).some((d: any) => d.id === member.id);
-                          const jerseyDisplay = member.jersey_number ? `#${member.jersey_number}` : '';
+                          const jerseyDisplay = (member.jersey_number !== null && member.jersey_number !== undefined) ? `#${member.jersey_number}` : '';
                           return (
                             <option key={member.id} value={member.id}>
                               {hasData ? '✓ ' : ''}{member.name}{jerseyDisplay ? ` ${jerseyDisplay}` : ''}
@@ -616,7 +616,7 @@ export default function MatchDetailContent({
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                           <h5 className="font-semibold text-gray-800 mb-3">
                             {member.name}
-                            {member.jersey_number && (
+                            {(member.jersey_number !== null && member.jersey_number !== undefined) && (
                               <span className="text-sm text-gray-500 ml-2">#{member.jersey_number}</span>
                             )}
                           </h5>
@@ -777,7 +777,7 @@ export default function MatchDetailContent({
                         {/* Show all players sorted by jersey number, then by name */}
                         {getSortedTeamMembers(player2.id).map((member: any) => {
                           const hasData = getTeamMembersWithData(player2.id).some((d: any) => d.id === member.id);
-                          const jerseyDisplay = member.jersey_number ? `#${member.jersey_number}` : '';
+                          const jerseyDisplay = (member.jersey_number !== null && member.jersey_number !== undefined) ? `#${member.jersey_number}` : '';
                           return (
                             <option key={member.id} value={member.id}>
                               {hasData ? '✓ ' : ''}{member.name}{jerseyDisplay ? ` ${jerseyDisplay}` : ''}
@@ -795,7 +795,7 @@ export default function MatchDetailContent({
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                           <h5 className="font-semibold text-gray-800 mb-3">
                             {member.name}
-                            {member.jersey_number && (
+                            {(member.jersey_number !== null && member.jersey_number !== undefined) && (
                               <span className="text-sm text-gray-500 ml-2">#{member.jersey_number}</span>
                             )}
                           </h5>
