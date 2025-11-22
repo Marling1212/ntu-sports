@@ -36,7 +36,7 @@ export default async function TennisDrawPage() {
       status: m.status as "upcoming" | "live" | "completed" | "bye" | "delayed",
       scheduled_time: m.scheduled_time, // Pass through scheduled_time for sorting
       slot_code: m.slot?.code, // Pass through slot code if available
-      court_name: m.slot?.event_courts?.name, // Pass through court name if available
+      court: m.court, // Use match.court for consistency with admin page
     }));
     
     players = dbPlayers.map((p: any) => ({

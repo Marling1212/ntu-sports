@@ -31,7 +31,7 @@ export default async function SportSchedulePage(context: any) {
       status: m.status as "upcoming" | "live" | "completed" | "bye" | "delayed",
       scheduled_time: m.scheduled_time,
       slot_code: m.slot?.code,
-      court_name: m.slot?.event_courts?.name,
+      court: m.court, // Use match.court for consistency with admin page
     }));
     players = dbPlayers.map((p: any) => ({
       id: p.id,
