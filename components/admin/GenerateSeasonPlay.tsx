@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Player } from "@/types/database";
@@ -12,9 +12,116 @@ interface GenerateSeasonPlayProps {
 
 export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonPlayProps) {
   const [loading, setLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
   const [numGroups, setNumGroups] = useState(1); // Default: 1 group (single round-robin)
   const [playoffTeams, setPlayoffTeams] = useState(4); // Default: top 4 teams go to playoffs
+  const [hasBackup, setHasBackup] = useState(false);
   const supabase = createClient();
+
+  // Check for backup on mount
+  useEffect(() => {
+    const checkBackup = async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("matches_backup")
+        .eq("id", eventId)
+        .single();
+      
+      if (!error && data?.matches_backup) {
+        const backup = data.matches_backup;
+        if ((backup.matches && backup.matches.length > 0) || (backup.playoffs && backup.playoffs.length > 0)) {
+          setHasBackup(true);
+        }
+      }
+    };
+    
+    checkBackup();
+  }, [eventId, supabase]);
+
+  // Restore matches from backup
+  const restoreMatches = async () => {
+    if (!confirm("確定要恢復之前的比賽數據嗎？這將刪除當前的所有比賽並恢復備份的數據。")) {
+      return;
+    }
+
+    setRestoreLoading(true);
+
+    try {
+      // Get backup data
+      const { data: eventData, error: fetchError } = await supabase
+        .from("events")
+        .select("matches_backup")
+        .eq("id", eventId)
+        .single();
+
+      if (fetchError || !eventData?.matches_backup) {
+        toast.error("找不到備份數據");
+        setRestoreLoading(false);
+        return;
+      }
+
+      const backup = eventData.matches_backup;
+
+      // Delete current matches
+      const { error: deleteError } = await supabase
+        .from("matches")
+        .delete()
+        .eq("event_id", eventId);
+
+      if (deleteError) {
+        toast.error(`刪除當前比賽時出錯: ${deleteError.message}`);
+        setRestoreLoading(false);
+        return;
+      }
+
+      // Restore matches
+      const matchesToRestore: any[] = [];
+      
+      if (backup.matches && backup.matches.length > 0) {
+        matchesToRestore.push(...backup.matches);
+      }
+      
+      if (backup.playoffs && backup.playoffs.length > 0) {
+        matchesToRestore.push(...backup.playoffs);
+      }
+
+      if (matchesToRestore.length === 0) {
+        toast.error("備份中沒有比賽數據");
+        setRestoreLoading(false);
+        return;
+      }
+
+      // Remove id and other auto-generated fields, let database create new ones
+      const matchesToInsert = matchesToRestore.map(({ id, created_at, updated_at, ...match }) => match);
+
+      const { error: insertError } = await supabase
+        .from("matches")
+        .insert(matchesToInsert);
+
+      if (insertError) {
+        toast.error(`恢復比賽時出錯: ${insertError.message}`);
+        setRestoreLoading(false);
+        return;
+      }
+
+      // Clear backup after successful restore
+      await supabase
+        .from("events")
+        .update({ matches_backup: null })
+        .eq("id", eventId);
+
+      setHasBackup(false);
+      toast.success(`✅ 已成功恢復 ${matchesToRestore.length} 場比賽！`);
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (err) {
+      console.error("Error:", err);
+      toast.error("恢復時發生錯誤");
+      setRestoreLoading(false);
+    }
+  };
 
   // Helper function to shuffle array randomly
   const shuffleArray = <T,>(array: T[]): T[] => {
@@ -59,6 +166,42 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
     setLoading(true);
 
     try {
+      // Backup existing matches before deletion
+      const { data: existingMatches, error: fetchError } = await supabase
+        .from("matches")
+        .select("*")
+        .eq("event_id", eventId);
+
+      if (fetchError) {
+        toast.error(`Error fetching existing matches: ${fetchError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      // Store backup in events table
+      if (existingMatches && existingMatches.length > 0) {
+        const backupData = {
+          matches: existingMatches,
+          backup_time: new Date().toISOString(),
+        };
+        
+        const { error: backupError } = await supabase
+          .from("events")
+          .update({ 
+            playoff_qualifiers_per_group: playoffTeams,
+            matches_backup: backupData 
+          })
+          .eq("id", eventId);
+
+        if (backupError) {
+          console.error("Failed to backup matches:", backupError);
+          // Continue anyway, but warn user
+          toast.error("警告：無法備份現有比賽數據，但將繼續重置");
+        } else {
+          toast.success(`已備份 ${existingMatches.length} 場比賽數據`);
+        }
+      }
+
       // Persist chosen playoff qualifiers per group on the event
       await supabase.from("events").update({ playoff_qualifiers_per_group: playoffTeams }).eq("id", eventId);
 
@@ -250,6 +393,43 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
     setLoading(true);
 
     try {
+      // Backup existing playoff matches before deletion
+      const { data: existingPlayoffs, error: fetchError } = await supabase
+        .from("matches")
+        .select("*")
+        .eq("event_id", eventId)
+        .gte("round", 1);
+
+      if (fetchError) {
+        toast.error(`Error fetching existing playoffs: ${fetchError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      // Get current backup or create new one
+      const { data: eventData } = await supabase
+        .from("events")
+        .select("matches_backup")
+        .eq("id", eventId)
+        .single();
+
+      if (existingPlayoffs && existingPlayoffs.length > 0) {
+        const backupData = eventData?.matches_backup || {};
+        backupData.playoffs = existingPlayoffs;
+        backupData.playoffs_backup_time = new Date().toISOString();
+        
+        const { error: backupError } = await supabase
+          .from("events")
+          .update({ matches_backup: backupData })
+          .eq("id", eventId);
+
+        if (backupError) {
+          console.error("Failed to backup playoffs:", backupError);
+        } else {
+          toast.success(`已備份 ${existingPlayoffs.length} 場季後賽數據`);
+        }
+      }
+
       // Delete existing playoff matches (round >= 1)
       const { error: deleteError } = await supabase
         .from("matches")
@@ -349,9 +529,28 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-      <h2 className="text-2xl font-semibold text-ntu-green mb-4">
-        🏀 Season Play - Generate Matches
-      </h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-semibold text-ntu-green">
+          🏀 Season Play - Generate Matches
+        </h2>
+        {hasBackup && (
+          <button
+            onClick={restoreMatches}
+            disabled={restoreLoading}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {restoreLoading ? "恢復中..." : "🔄 恢復之前的比賽"}
+          </button>
+        )}
+      </div>
+      
+      {hasBackup && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <p className="text-sm text-amber-800">
+            ⚠️ <strong>備份可用：</strong>檢測到之前的比賽備份。如果重置是誤操作，可以點擊上方的「恢復之前的比賽」按鈕來恢復。
+          </p>
+        </div>
+      )}
       
       <div className="space-y-4 mb-6">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
