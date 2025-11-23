@@ -259,6 +259,17 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         const score = String(row[scoreCol] || "").trim() || "-";
         const status = String(row[statusCol] || "").trim().toLowerCase() || "upcoming";
         const dateTime = dateCol >= 0 ? String(row[dateCol] || "").trim() : undefined;
+        
+        // Debug: log parsed data for first few matches
+        if (matches.length < 3) {
+          console.log(`解析比賽 ${matchNumber}:`, {
+            player1: player1Name,
+            player2: player2Name,
+            score: score,
+            status: status,
+            dateTime: dateTime
+          });
+        }
 
         // Only add if we have at least one player name
         if (player1Name || player2Name) {
@@ -406,6 +417,17 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
             }
           }
         }
+        
+        // Debug: log score parsing for first few matches
+        if (parsedMatches.indexOf(match) < 3) {
+          console.log(`處理比賽 ${match.matchNumber} 的比分:`, {
+            originalScore: match.score,
+            parsedScore1: score1,
+            parsedScore2: score2,
+            status: match.status,
+            winnerId: winnerId
+          });
+        }
 
         // Parse scheduled time - handle various formats
         let scheduledTime: string | null = null;
@@ -500,6 +522,15 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
       if (matchesToUpdate.length > 0) {
         for (const match of matchesToUpdate) {
           const { id, ...updateData } = match;
+          // Log the actual data being updated (especially score and time)
+          console.log(`更新比賽 ${id} (Match #${match.match_number}):`, {
+            score1: updateData.score1,
+            score2: updateData.score2,
+            scheduled_time: updateData.scheduled_time,
+            status: updateData.status,
+            winner_id: updateData.winner_id
+          });
+          
           const { error: updateError } = await supabase
             .from("matches")
             .update(updateData)
@@ -507,8 +538,6 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
 
           if (updateError) {
             console.error(`更新比賽 ${id} 時出錯:`, updateError, updateData);
-          } else {
-            console.log(`成功更新比賽 ${id}:`, updateData);
           }
         }
       }
