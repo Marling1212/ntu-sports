@@ -260,9 +260,9 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         const status = String(row[statusCol] || "").trim().toLowerCase() || "upcoming";
         const dateTime = dateCol >= 0 ? String(row[dateCol] || "").trim() : undefined;
         
-        // Debug: log parsed data for first few matches
-        if (matches.length < 3) {
-          console.log(`解析比賽 ${matchNumber}:`, {
+        // Debug: log parsed data for matches with scores
+        if (score !== "-" && score.trim() !== "") {
+          console.log(`解析比賽 ${matchNumber} (有比分):`, {
             player1: player1Name,
             player2: player2Name,
             score: score,
@@ -418,14 +418,16 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
           }
         }
         
-        // Debug: log score parsing for first few matches
-        if (parsedMatches.indexOf(match) < 3) {
+        // Debug: log score parsing for matches with scores or completed status
+        if (match.score !== "-" || match.status === "completed") {
           console.log(`處理比賽 ${match.matchNumber} 的比分:`, {
             originalScore: match.score,
             parsedScore1: score1,
             parsedScore2: score2,
             status: match.status,
-            winnerId: winnerId
+            winnerId: winnerId,
+            player1: match.player1Name,
+            player2: match.player2Name
           });
         }
 
