@@ -34,6 +34,8 @@ interface PlayerStat {
   points: number;
   winRate: number;
   matchesPlayed: number;
+  yellowCards: number;
+  redCards: number;
 }
 
 const parseScore = (score?: string): { score1: number; score2: number } | null => {
@@ -63,6 +65,8 @@ export default function PlayerStats({ players, matches, tournamentType, registra
         points: 0,
         winRate: 0,
         matchesPlayed: 0,
+        yellowCards: 0,
+        redCards: 0,
       });
     });
 
@@ -130,13 +134,71 @@ export default function PlayerStats({ players, matches, tournamentType, registra
         : 0;
     });
 
+    // Calculate yellow and red cards for each player/team
+    statsMap.forEach((stat, playerId) => {
+      let yellowCount = 0;
+      let redCount = 0;
+      
+      matchPlayerStats.forEach(matchStat => {
+        if (registrationType === 'team') {
+          // For team events, sum cards from all team members
+          if (matchStat.team_member_id) {
+            const member = teamMembers.find(m => m.id === matchStat.team_member_id);
+            if (member && member.player_id === playerId) {
+              const isYellowCard = matchStat.stat_name === 'yellow_card' || 
+                                  matchStat.stat_name === 'yellow_cards' || 
+                                  matchStat.stat_name === '黃牌' ||
+                                  matchStat.stat_name?.toLowerCase().includes('yellow') ||
+                                  matchStat.stat_name?.includes('黃');
+              const isRedCard = matchStat.stat_name === 'red_card' || 
+                                matchStat.stat_name === 'red_cards' || 
+                                matchStat.stat_name === '紅牌' ||
+                                matchStat.stat_name?.toLowerCase().includes('red') ||
+                                matchStat.stat_name?.includes('紅');
+              
+              if (isYellowCard && matchStat.stat_value) {
+                yellowCount += parseInt(matchStat.stat_value) || 0;
+              }
+              if (isRedCard && matchStat.stat_value) {
+                redCount += parseInt(matchStat.stat_value) || 0;
+              }
+            }
+          }
+        } else {
+          // For individual events
+          if (matchStat.player_id === playerId) {
+            const isYellowCard = matchStat.stat_name === 'yellow_card' || 
+                                matchStat.stat_name === 'yellow_cards' || 
+                                matchStat.stat_name === '黃牌' ||
+                                matchStat.stat_name?.toLowerCase().includes('yellow') ||
+                                matchStat.stat_name?.includes('黃');
+            const isRedCard = matchStat.stat_name === 'red_card' || 
+                              matchStat.stat_name === 'red_cards' || 
+                              matchStat.stat_name === '紅牌' ||
+                              matchStat.stat_name?.toLowerCase().includes('red') ||
+                              matchStat.stat_name?.includes('紅');
+            
+            if (isYellowCard && matchStat.stat_value) {
+              yellowCount += parseInt(matchStat.stat_value) || 0;
+            }
+            if (isRedCard && matchStat.stat_value) {
+              redCount += parseInt(matchStat.stat_value) || 0;
+            }
+          }
+        }
+      });
+      
+      stat.yellowCards = yellowCount;
+      stat.redCards = redCount;
+    });
+
     // Sort by points, then goal difference, then goals for
     return Array.from(statsMap.values()).sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
       return b.goalsFor - a.goalsFor;
     });
-  }, [players, matches]);
+  }, [players, matches, matchPlayerStats, teamMembers, registrationType]);
 
   // Calculate top performers for charts (must be before early return)
   // For team events, calculate individual player goals from match_player_stats
@@ -371,11 +433,18 @@ export default function PlayerStats({ players, matches, tournamentType, registra
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">失球</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">得失分差</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">積分</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Y/R</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">勝率</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {playerStats.map((stat, idx) => (
+            {playerStats.map((stat, idx) => {
+              const cardDisplay = stat.redCards > 0 
+                ? `${stat.yellowCards}/${stat.redCards}` 
+                : stat.yellowCards > 0 
+                  ? `${stat.yellowCards}` 
+                  : '-';
+              return (
               <tr key={stat.player.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                 <td className="px-4 py-3">
@@ -402,6 +471,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                   {stat.goalDiff > 0 ? '+' : ''}{stat.goalDiff}
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-ntu-green">{stat.points}</td>
+                <td className="px-4 py-3 text-center font-semibold text-gray-700">{cardDisplay}</td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <span className="font-semibold text-gray-700">{stat.winRate}%</span>
@@ -414,7 +484,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                   </div>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>
@@ -474,6 +544,16 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                   stat.goalDiff > 0 ? 'text-green-600' : stat.goalDiff < 0 ? 'text-red-600' : 'text-gray-600'
                 }`}>
                   {stat.goalDiff > 0 ? '+' : ''}{stat.goalDiff}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600">Y/R:</span>{" "}
+                <span className="font-semibold text-gray-700">
+                  {stat.redCards > 0 
+                    ? `${stat.yellowCards}/${stat.redCards}` 
+                    : stat.yellowCards > 0 
+                      ? `${stat.yellowCards}` 
+                      : '-'}
                 </span>
               </div>
               <div>
