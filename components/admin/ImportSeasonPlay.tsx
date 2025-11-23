@@ -57,27 +57,47 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
       setLoading(true);
       setFileName(file.name);
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
-
-      // Look for "Regular Season" sheet first, then "Playoffs" if needed
-      let sheetName = workbook.SheetNames.find(name => 
-        name.toLowerCase().includes("regular") || name.toLowerCase().includes("season")
-      );
       
-      // If not found, try first sheet
-      if (!sheetName) {
-        sheetName = workbook.SheetNames[0];
-      }
+      let rows: string[][];
+      
+      // Check if it's CSV or Excel - XLSX library can handle both
+      const isCSV = file.name.toLowerCase().endsWith('.csv');
+      
+      if (isCSV) {
+        // Parse CSV using XLSX (it supports CSV)
+        const workbook = XLSX.read(data, { type: "array", codepage: 65001 }); // UTF-8
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) {
+          toast.error("無法讀取 CSV 文件");
+          setLoading(false);
+          return;
+        }
+        rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+      } else {
+        // Parse Excel
+        const workbook = XLSX.read(data, { type: "array" });
 
-      const worksheet = workbook.Sheets[sheetName];
-      if (!worksheet) {
-        toast.error("找不到 Regular Season 工作表");
-        setLoading(false);
-        return;
-      }
+        // Look for "Regular Season" sheet first, then "Playoffs" if needed
+        let sheetName = workbook.SheetNames.find(name => 
+          name.toLowerCase().includes("regular") || name.toLowerCase().includes("season")
+        );
+        
+        // If not found, try first sheet
+        if (!sheetName) {
+          sheetName = workbook.SheetNames[0];
+        }
 
-      // Parse worksheet
-      const rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) {
+          toast.error("找不到 Regular Season 工作表");
+          setLoading(false);
+          return;
+        }
+
+        // Parse worksheet
+        rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+      }
       
       // Find header row
       let headerRowIndex = -1;
@@ -100,13 +120,28 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         return;
       }
 
-      // Find column indices
-      const matchNumCol = headerRow.findIndex(h => h.includes("match") || h.includes("比賽"));
-      const player1Col = headerRow.findIndex(h => h.includes("player 1") || h.includes("player1") || h.includes("選手1"));
-      const player2Col = headerRow.findIndex(h => h.includes("player 2") || h.includes("player2") || h.includes("選手2"));
-      const scoreCol = headerRow.findIndex(h => h.includes("score") || h.includes("比分"));
-      const statusCol = headerRow.findIndex(h => h.includes("status") || h.includes("狀態"));
-      const dateCol = headerRow.findIndex(h => h.includes("date") || h.includes("時間") || h.includes("time"));
+      // Find column indices - be more flexible with matching
+      const matchNumCol = headerRow.findIndex(h => 
+        h.includes("match") || h.includes("比賽") || h === "match #" || h === "match#"
+      );
+      const player1Col = headerRow.findIndex(h => 
+        h.includes("player 1") || h.includes("player1") || h.includes("選手1") || 
+        h.toLowerCase() === "player 1" || h.toLowerCase() === "player1"
+      );
+      const player2Col = headerRow.findIndex(h => 
+        h.includes("player 2") || h.includes("player2") || h.includes("選手2") ||
+        h.toLowerCase() === "player 2" || h.toLowerCase() === "player2"
+      );
+      const scoreCol = headerRow.findIndex(h => 
+        h.includes("score") || h.includes("比分") || h.toLowerCase() === "score"
+      );
+      const statusCol = headerRow.findIndex(h => 
+        h.includes("status") || h.includes("狀態") || h.toLowerCase() === "status"
+      );
+      const dateCol = headerRow.findIndex(h => 
+        h.includes("date") || h.includes("時間") || h.includes("time") ||
+        h.toLowerCase().includes("date & time") || h.toLowerCase().includes("date&time")
+      );
 
       if (matchNumCol === -1 || player1Col === -1 || player2Col === -1) {
         toast.error("Excel 格式不正確，缺少必要的欄位");
@@ -372,7 +407,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-semibold text-blue-900 mb-2">📋 使用說明：</h3>
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li>上傳之前從系統導出的 Excel 文件（包含 &quot;Regular Season&quot; 工作表）</li>
+            <li>上傳之前從系統導出的 Excel 或 CSV 文件（包含 &quot;Regular Season&quot; 工作表）</li>
             <li>系統會自動解析比賽數據並匹配選手</li>
             <li>如果選手名稱無法自動匹配，請手動選擇</li>
             <li>導入後會創建新比賽或更新現有比賽</li>
@@ -383,7 +418,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx,.xls"
+            accept=".xlsx,.xls,.csv"
             onChange={handleFileChange}
             className="hidden"
           />
@@ -392,7 +427,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
             disabled={loading}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "解析中..." : fileName ? `已選擇: ${fileName}` : "選擇 Excel 檔案"}
+            {loading ? "解析中..." : fileName ? `已選擇: ${fileName}` : "選擇 Excel 或 CSV 檔案"}
           </button>
         </div>
 
