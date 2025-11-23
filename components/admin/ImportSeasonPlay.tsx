@@ -145,19 +145,22 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
       }
       
-      // Find header row
+      // Find header row - look for row that has both "match" and "player" columns
       let headerRowIndex = -1;
       let headerRow: string[] = [];
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (row && row.length > 0) {
-          const firstCell = String(row[0] || "").trim().toLowerCase();
-          // More flexible matching for header row
-          if (firstCell.includes("match") || firstCell.includes("比賽") || 
-              firstCell === "match #" || firstCell === "match#" ||
-              firstCell.startsWith("match")) {
+          const rowLower = row.map(cell => String(cell || "").trim().toLowerCase());
+          const firstCell = rowLower[0] || "";
+          const hasMatch = firstCell.includes("match") || firstCell === "match #" || firstCell === "match#";
+          const hasPlayer1 = rowLower.some(cell => cell.includes("player 1") || cell.includes("player1") || cell === "player 1");
+          const hasPlayer2 = rowLower.some(cell => cell.includes("player 2") || cell.includes("player2") || cell === "player 2");
+          
+          // Only consider it a header row if it has both "match" and at least one "player" column
+          if (hasMatch && (hasPlayer1 || hasPlayer2)) {
             headerRowIndex = i;
-            headerRow = row.map(cell => String(cell || "").trim().toLowerCase());
+            headerRow = rowLower;
             break;
           }
         }
