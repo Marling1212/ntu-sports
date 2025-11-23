@@ -372,7 +372,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-semibold text-blue-900 mb-2">📋 使用說明：</h3>
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li>上傳之前從系統導出的 Excel 文件（包含 "Regular Season" 工作表）</li>
+            <li>上傳之前從系統導出的 Excel 文件（包含 &quot;Regular Season&quot; 工作表）</li>
             <li>系統會自動解析比賽數據並匹配選手</li>
             <li>如果選手名稱無法自動匹配，請手動選擇</li>
             <li>導入後會創建新比賽或更新現有比賽</li>
