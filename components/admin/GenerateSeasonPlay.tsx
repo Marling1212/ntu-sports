@@ -159,9 +159,31 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
       totalMatches += (groupSize * (groupSize - 1)) / 2;
     }
 
-    const confirmText = `確定要生成季賽賽程嗎？\n\n選手數: ${players.length}\n分組數: ${numGroups}\n\n常規賽:\n- 隨機分組後，每組內採用單循環制\n- 總比賽數: ${totalMatches} 場\n\n季後賽:\n- 前 ${playoffTeams} 名進入季後賽\n- 採用單淘汰制\n\n確定生成？`;
-    
-    if (!confirm(confirmText)) return;
+    // Check if there are existing completed matches
+    const { data: existingMatches, error: checkError } = await supabase
+      .from("matches")
+      .select("id, status")
+      .eq("event_id", eventId);
+
+    if (!checkError && existingMatches && existingMatches.length > 0) {
+      const completedCount = existingMatches.filter(m => m.status === 'completed').length;
+      if (completedCount > 0) {
+        const warningText = `⚠️ 警告：檢測到 ${existingMatches.length} 場現有比賽，其中 ${completedCount} 場已完成！\n\n重置將刪除所有現有比賽數據，包括：\n- 所有比賽記錄\n- 所有比賽統計數據\n- 所有比分和結果\n\n此操作無法撤銷！\n\n確定要繼續重置並生成新的賽程嗎？\n\n（如果點擊確定，系統會自動備份現有數據以便恢復）`;
+        
+        if (!confirm(warningText)) return;
+        
+        // Second confirmation for safety
+        if (!confirm(`最後確認：您真的要刪除 ${completedCount} 場已完成的比賽嗎？\n\n請再次確認！`)) return;
+      } else {
+        const confirmText = `確定要生成季賽賽程嗎？\n\n選手數: ${players.length}\n分組數: ${numGroups}\n\n常規賽:\n- 隨機分組後，每組內採用單循環制\n- 總比賽數: ${totalMatches} 場\n\n季後賽:\n- 前 ${playoffTeams} 名進入季後賽\n- 採用單淘汰制\n\n⚠️ 注意：這將刪除所有現有比賽（${existingMatches.length} 場）\n\n確定生成？`;
+        
+        if (!confirm(confirmText)) return;
+      }
+    } else {
+      const confirmText = `確定要生成季賽賽程嗎？\n\n選手數: ${players.length}\n分組數: ${numGroups}\n\n常規賽:\n- 隨機分組後，每組內採用單循環制\n- 總比賽數: ${totalMatches} 場\n\n季後賽:\n- 前 ${playoffTeams} 名進入季後賽\n- 採用單淘汰制\n\n確定生成？`;
+      
+      if (!confirm(confirmText)) return;
+    }
 
     setLoading(true);
 
