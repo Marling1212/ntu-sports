@@ -151,10 +151,13 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (row && row.length > 0) {
-          const firstCell = String(row[0] || "").toLowerCase();
-          if (firstCell.includes("match") || firstCell.includes("比賽") || firstCell === "match #") {
+          const firstCell = String(row[0] || "").trim().toLowerCase();
+          // More flexible matching for header row
+          if (firstCell.includes("match") || firstCell.includes("比賽") || 
+              firstCell === "match #" || firstCell === "match#" ||
+              firstCell.startsWith("match")) {
             headerRowIndex = i;
-            headerRow = row.map(cell => String(cell || "").toLowerCase());
+            headerRow = row.map(cell => String(cell || "").trim().toLowerCase());
             break;
           }
         }
@@ -167,30 +170,49 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
       }
 
       // Find column indices - be more flexible with matching
-      const matchNumCol = headerRow.findIndex(h => 
-        h.includes("match") || h.includes("比賽") || h === "match #" || h === "match#"
-      );
-      const player1Col = headerRow.findIndex(h => 
-        h.includes("player 1") || h.includes("player1") || h.includes("選手1") || 
-        h.toLowerCase() === "player 1" || h.toLowerCase() === "player1"
-      );
-      const player2Col = headerRow.findIndex(h => 
-        h.includes("player 2") || h.includes("player2") || h.includes("選手2") ||
-        h.toLowerCase() === "player 2" || h.toLowerCase() === "player2"
-      );
-      const scoreCol = headerRow.findIndex(h => 
-        h.includes("score") || h.includes("比分") || h.toLowerCase() === "score"
-      );
-      const statusCol = headerRow.findIndex(h => 
-        h.includes("status") || h.includes("狀態") || h.toLowerCase() === "status"
-      );
-      const dateCol = headerRow.findIndex(h => 
-        h.includes("date") || h.includes("時間") || h.includes("time") ||
-        h.toLowerCase().includes("date & time") || h.toLowerCase().includes("date&time")
-      );
+      const matchNumCol = headerRow.findIndex(h => {
+        const hLower = h.toLowerCase().trim();
+        return hLower.includes("match") || hLower.includes("比賽") || 
+               hLower === "match #" || hLower === "match#" ||
+               hLower.startsWith("match");
+      });
+      const player1Col = headerRow.findIndex(h => {
+        const hLower = h.toLowerCase().trim();
+        return hLower.includes("player 1") || hLower.includes("player1") || 
+               hLower.includes("選手1") || hLower === "player 1" || 
+               hLower === "player1" || hLower.startsWith("player 1") ||
+               hLower.startsWith("player1");
+      });
+      const player2Col = headerRow.findIndex(h => {
+        const hLower = h.toLowerCase().trim();
+        return hLower.includes("player 2") || hLower.includes("player2") || 
+               hLower.includes("選手2") || hLower === "player 2" || 
+               hLower === "player2" || hLower.startsWith("player 2") ||
+               hLower.startsWith("player2");
+      });
+      const scoreCol = headerRow.findIndex(h => {
+        const hLower = h.toLowerCase().trim();
+        return hLower.includes("score") || hLower.includes("比分") || 
+               hLower === "score";
+      });
+      const statusCol = headerRow.findIndex(h => {
+        const hLower = h.toLowerCase().trim();
+        return hLower.includes("status") || hLower.includes("狀態") || 
+               hLower === "status";
+      });
+      const dateCol = headerRow.findIndex(h => {
+        const hLower = h.toLowerCase().trim();
+        return hLower.includes("date") || hLower.includes("時間") || 
+               hLower.includes("time") || hLower.includes("date & time") || 
+               hLower.includes("date&time");
+      });
+
+      // Debug: log what we found
+      console.log("Header row:", headerRow);
+      console.log("Column indices:", { matchNumCol, player1Col, player2Col, scoreCol, statusCol, dateCol });
 
       if (matchNumCol === -1 || player1Col === -1 || player2Col === -1) {
-        toast.error("Excel 格式不正確，缺少必要的欄位");
+        toast.error(`Excel 格式不正確，缺少必要的欄位。找到的欄位：${headerRow.join(", ")}`);
         setLoading(false);
         return;
       }
