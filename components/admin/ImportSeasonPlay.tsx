@@ -79,12 +79,22 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
             const text = new TextDecoder(encoding.value, { fatal: false }).decode(data);
             // Check if we got valid text (not all question marks)
             if (text && !text.match(/^[?,\s\n\r]*$/)) {
-              // Try to parse with XLSX
-              const workbook = XLSX.read(text, { type: "string", codepage: 65001 });
+              // Try to parse with XLSX - use raw option to prevent date conversion
+              const workbook = XLSX.read(text, { 
+                type: "string", 
+                codepage: 65001,
+                cellDates: false,  // Don't convert dates
+                raw: true          // Keep raw values as strings
+              });
               const sheetName = workbook.SheetNames[0];
               const worksheet = workbook.Sheets[sheetName];
               if (worksheet) {
-                const parsedRows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+                // Use raw option to prevent Excel from converting scores like "0-2" to dates
+                const parsedRows = XLSX.utils.sheet_to_json<string[]>(worksheet, { 
+                  header: 1, 
+                  defval: "",
+                  raw: true  // Keep raw string values
+                });
                 // Check if we got meaningful data (not all empty/question marks)
                 if (parsedRows && parsedRows.length > 0 && parsedRows.some(row => row && row.length > 0 && String(row[0] || "").trim() !== "" && !String(row[0] || "").match(/^[?]+$/))) {
                   rows = parsedRows;
@@ -101,13 +111,21 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         }
         
         if (!rowsParsed) {
-          // Fallback: try XLSX directly
+          // Fallback: try XLSX directly with raw option
           try {
-            const workbook = XLSX.read(data, { type: "array" });
+            const workbook = XLSX.read(data, { 
+              type: "array",
+              cellDates: false,
+              raw: true
+            });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             if (worksheet) {
-              rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+              rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { 
+                header: 1, 
+                defval: "",
+                raw: true
+              });
               rowsParsed = true;
             }
           } catch (e) {
@@ -141,8 +159,12 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
           return;
         }
 
-        // Parse worksheet
-        rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+        // Parse worksheet - use raw option to prevent date conversion
+        rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { 
+          header: 1, 
+          defval: "",
+          raw: true  // Keep raw string values to prevent "0-2" from being converted to date
+        });
       }
       
       // Find header row - look for row that has both "match" and "player" columns
