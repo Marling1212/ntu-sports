@@ -377,14 +377,56 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
       return;
     }
 
-    if (!confirm(`確定要導入 ${parsedMatches.length} 場比賽嗎？\n\n這將創建或更新現有的比賽數據。`)) {
-      return;
+    // Check if there are existing matches
+    const { data: existingMatchesCheck } = await supabase
+      .from("matches")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("round", 0)
+      .limit(1);
+
+    const hasExistingMatches = existingMatchesCheck && existingMatchesCheck.length > 0;
+    
+    let deleteExisting = false;
+    if (hasExistingMatches) {
+      deleteExisting = confirm(
+        `檢測到現有比賽數據。\n\n` +
+        `選項 1（推薦）：刪除所有現有比賽後重新導入（完全替換）\n` +
+        `選項 2：取消，然後手動刪除現有比賽後再導入\n\n` +
+        `點擊「確定」將刪除所有現有比賽並重新導入 ${parsedMatches.length} 場比賽。\n` +
+        `點擊「取消」則取消操作。`
+      );
+      
+      if (!deleteExisting) {
+        return;
+      }
+    } else {
+      if (!confirm(`確定要導入 ${parsedMatches.length} 場比賽嗎？`)) {
+        return;
+      }
     }
 
     setLoading(true);
 
     try {
-      // Get existing matches to update or create new ones
+      // Delete existing matches if requested
+      if (deleteExisting) {
+        const { error: deleteError } = await supabase
+          .from("matches")
+          .delete()
+          .eq("event_id", eventId)
+          .eq("round", 0);
+
+        if (deleteError) {
+          toast.error(`刪除現有比賽時出錯: ${deleteError.message}`);
+          setLoading(false);
+          return;
+        }
+        
+        toast.success(`已刪除現有比賽，開始導入新數據...`);
+      }
+
+      // Get existing matches to update or create new ones (after potential deletion)
       const { data: existingMatches } = await supabase
         .from("matches")
         .select("id, match_number, round, group_number")
