@@ -545,8 +545,8 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                 </div>
               )}
 
-            {/* Top Yellow Cards Chart */}
-            {topYellowCards.length > 0 ? (
+              {/* Top Yellow Cards Chart */}
+              {topYellowCards.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                   <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
                   <div className="space-y-3">
