@@ -139,8 +139,12 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
           return;
         }
       } else {
-        // Parse Excel
-        const workbook = XLSX.read(data, { type: "array" });
+        // Parse Excel - use raw option to prevent date conversion
+        const workbook = XLSX.read(data, { 
+          type: "array",
+          cellDates: false,  // Don't convert dates
+          raw: true         // Keep raw values as strings
+        });
 
         // Look for "Regular Season" sheet first, then "Playoffs" if needed
         let sheetName = workbook.SheetNames.find(name => 
