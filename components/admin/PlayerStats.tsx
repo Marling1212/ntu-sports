@@ -207,9 +207,19 @@ export default function PlayerStats({ players, matches, tournamentType, registra
   const topYellowCards = useMemo(() => {
     const cardsMap = new Map<string, { name: string; cards: number; teamName?: string; jerseyNumber?: number | null }>();
     
+    // Debug: 輸出所有統計名稱
+    const allStatNames = new Set(matchPlayerStats.map(s => s.stat_name));
+    console.log('[PlayerStats] All stat names:', Array.from(allStatNames));
+    
     matchPlayerStats.forEach(stat => {
-      // 檢查常見的黃牌統計名稱
-      if ((stat.stat_name === 'yellow_card' || stat.stat_name === 'yellow_cards' || stat.stat_name === '黃牌') && stat.stat_value) {
+      // 檢查常見的黃牌統計名稱（支援多種命名方式）
+      const isYellowCard = stat.stat_name === 'yellow_card' || 
+                          stat.stat_name === 'yellow_cards' || 
+                          stat.stat_name === '黃牌' ||
+                          stat.stat_name?.toLowerCase().includes('yellow') ||
+                          stat.stat_name?.includes('黃');
+      
+      if (isYellowCard && stat.stat_value) {
         const cardCount = parseInt(stat.stat_value) || 0;
         if (cardCount > 0) {
           if (registrationType === 'team' && stat.team_member_id) {
@@ -264,8 +274,14 @@ export default function PlayerStats({ players, matches, tournamentType, registra
     const cardsMap = new Map<string, { name: string; cards: number; teamName?: string; jerseyNumber?: number | null }>();
     
     matchPlayerStats.forEach(stat => {
-      // 檢查常見的紅牌統計名稱
-      if ((stat.stat_name === 'red_card' || stat.stat_name === 'red_cards' || stat.stat_name === '紅牌') && stat.stat_value) {
+      // 檢查常見的紅牌統計名稱（支援多種命名方式）
+      const isRedCard = stat.stat_name === 'red_card' || 
+                        stat.stat_name === 'red_cards' || 
+                        stat.stat_name === '紅牌' ||
+                        stat.stat_name?.toLowerCase().includes('red') ||
+                        stat.stat_name?.includes('紅');
+      
+      if (isRedCard && stat.stat_value) {
         const cardCount = parseInt(stat.stat_value) || 0;
         if (cardCount > 0) {
           if (registrationType === 'team' && stat.team_member_id) {
@@ -487,10 +503,9 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       {(topScorers.length > 0 || topWinRate.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0) && (
         <div className="space-y-6">
           {/* Top Performers: Goals, Yellow Cards, Red Cards */}
-          {(topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Top Scorers Chart */}
-              {topScorers.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Top Scorers Chart */}
+            {topScorers.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                   <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
                   <div className="space-y-3">
@@ -523,10 +538,15 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                     })}
                   </div>
                 </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                  <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
+                  <p className="text-sm text-gray-500">尚無數據</p>
+                </div>
               )}
 
-              {/* Top Yellow Cards Chart */}
-              {topYellowCards.length > 0 && (
+            {/* Top Yellow Cards Chart */}
+            {topYellowCards.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                   <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
                   <div className="space-y-3">
@@ -559,10 +579,15 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                     })}
                   </div>
                 </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                  <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
+                  <p className="text-sm text-gray-500">尚無數據</p>
+                </div>
               )}
 
-              {/* Top Red Cards Chart */}
-              {topRedCards.length > 0 && (
+            {/* Top Red Cards Chart */}
+            {topRedCards.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                   <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
                   <div className="space-y-3">
@@ -595,9 +620,13 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                     })}
                   </div>
                 </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                  <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
+                  <p className="text-sm text-gray-500">尚無數據</p>
+                </div>
               )}
-            </div>
-          )}
+          </div>
 
           {/* Top Win Rate Chart */}
           {topWinRate.length > 0 && (
