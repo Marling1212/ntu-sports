@@ -813,114 +813,132 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
           {/* Statistics Charts */}
           {(topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0) && (
-            <div className="mt-8 space-y-6">
-              {/* Top Scorers Chart */}
-              {topScorers.length > 0 && (
-                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
-                  <div className="space-y-3">
-                    {topScorers.map((stat, idx) => {
-                      const maxGoals = topScorers[0].goalsFor;
-                      const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
-                      let displayName = stat.name;
-                      if (registrationType === 'team' && 'teamName' in stat && stat.teamName) {
-                        const jerseyPart = 'jerseyNumber' in stat && stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
-                          ? ` #${stat.jerseyNumber}` 
-                          : '';
-                        displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
-                      }
-                      return (
-                        <div key={stat.id}>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-gray-700">
-                              {idx + 1}. {displayName}
-                            </span>
-                            <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} 球</span>
+            <div className="mt-8">
+              {/* Top Performers: Goals, Yellow Cards, Red Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Top Scorers Chart */}
+                {topScorers.length > 0 ? (
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                    <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
+                    <div className="space-y-3">
+                      {topScorers.map((stat, idx) => {
+                        const maxGoals = topScorers[0].goalsFor;
+                        const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
+                        let displayName = stat.name;
+                        if (registrationType === 'team' && 'teamName' in stat && stat.teamName) {
+                          const jerseyPart = 'jerseyNumber' in stat && stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                            ? ` #${stat.jerseyNumber}` 
+                            : '';
+                          displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                        }
+                        return (
+                          <div key={stat.id}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-medium text-gray-700">
+                                {idx + 1}. {displayName}
+                              </span>
+                              <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} 球</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3">
+                              <div
+                                className="bg-ntu-green h-3 rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div
-                              className="bg-ntu-green h-3 rounded-full transition-all"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                    <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
+                    <p className="text-sm text-gray-500">尚無數據</p>
+                  </div>
+                )}
 
-              {/* Top Yellow Cards Chart */}
-              {topYellowCards.length > 0 ? (
-                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
-                  <div className="space-y-3">
-                    {topYellowCards.map((stat, idx) => {
-                      const maxCards = topYellowCards[0].count;
-                      const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
-                      let displayName = stat.name;
-                      if (registrationType === 'team' && stat.teamName) {
-                        const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
-                          ? ` #${stat.jerseyNumber}` 
-                          : '';
-                        displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
-                      }
-                      return (
-                        <div key={stat.id}>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-gray-700">
-                              {idx + 1}. {displayName}
-                            </span>
-                            <span className="text-sm font-bold text-yellow-600">{stat.count} 張</span>
+                {/* Top Yellow Cards Chart */}
+                {topYellowCards.length > 0 ? (
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                    <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
+                    <div className="space-y-3">
+                      {topYellowCards.map((stat, idx) => {
+                        const maxCards = topYellowCards[0].count;
+                        const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
+                        let displayName = stat.name;
+                        if (registrationType === 'team' && stat.teamName) {
+                          const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                            ? ` #${stat.jerseyNumber}` 
+                            : '';
+                          displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                        }
+                        return (
+                          <div key={stat.id}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-medium text-gray-700">
+                                {idx + 1}. {displayName}
+                              </span>
+                              <span className="text-sm font-bold text-yellow-600">{stat.count} 張</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3">
+                              <div
+                                className="bg-yellow-500 h-3 rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div
-                              className="bg-yellow-500 h-3 rounded-full transition-all"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : (
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                    <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
+                    <p className="text-sm text-gray-500">尚無數據</p>
+                  </div>
+                )}
 
-              {/* Top Red Cards Chart */}
-              {topRedCards.length > 0 ? (
-                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
-                  <div className="space-y-3">
-                    {topRedCards.map((stat, idx) => {
-                      const maxCards = topRedCards[0].count;
-                      const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
-                      let displayName = stat.name;
-                      if (registrationType === 'team' && stat.teamName) {
-                        const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
-                          ? ` #${stat.jerseyNumber}` 
-                          : '';
-                        displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
-                      }
-                      return (
-                        <div key={stat.id}>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-gray-700">
-                              {idx + 1}. {displayName}
-                            </span>
-                            <span className="text-sm font-bold text-red-600">{stat.count} 張</span>
+                {/* Top Red Cards Chart */}
+                {topRedCards.length > 0 ? (
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                    <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
+                    <div className="space-y-3">
+                      {topRedCards.map((stat, idx) => {
+                        const maxCards = topRedCards[0].count;
+                        const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
+                        let displayName = stat.name;
+                        if (registrationType === 'team' && stat.teamName) {
+                          const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                            ? ` #${stat.jerseyNumber}` 
+                            : '';
+                          displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                        }
+                        return (
+                          <div key={stat.id}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-medium text-gray-700">
+                                {idx + 1}. {displayName}
+                              </span>
+                              <span className="text-sm font-bold text-red-600">{stat.count} 張</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3">
+                              <div
+                                className="bg-red-500 h-3 rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div
-                              className="bg-red-500 h-3 rounded-full transition-all"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : (
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                    <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
+                    <p className="text-sm text-gray-500">尚無數據</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
