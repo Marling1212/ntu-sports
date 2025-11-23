@@ -367,31 +367,87 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         const player1 = playerMappings[match.player1Name] ? { id: playerMappings[match.player1Name] } : null;
         const player2 = playerMappings[match.player2Name] ? { id: playerMappings[match.player2Name] } : null;
 
-        // Determine winner from score
+        // Parse score
+        let score1: number | null = null;
+        let score2: number | null = null;
         let winnerId: string | null = null;
-        const scoreData = parseScore(match.score);
-        if (scoreData && match.status === "completed") {
-          if (scoreData.score1 > scoreData.score2 && player1) {
-            winnerId = player1.id;
-          } else if (scoreData.score2 > scoreData.score1 && player2) {
-            winnerId = player2.id;
+        
+        if (match.score && match.score !== "-" && match.score.trim() !== "") {
+          const scoreData = parseScore(match.score);
+          if (scoreData) {
+            score1 = scoreData.score1;
+            score2 = scoreData.score2;
+            
+            // Determine winner from score if match is completed
+            if (match.status === "completed") {
+              if (score1 > score2 && player1) {
+                winnerId = player1.id;
+              } else if (score2 > score1 && player2) {
+                winnerId = player2.id;
+              }
+            }
+          } else {
+            // Fallback: try simple split
+            const scoreParts = match.score.split(/[-:]/).map(s => s.trim());
+            if (scoreParts.length >= 2) {
+              const s1 = parseInt(scoreParts[0], 10);
+              const s2 = parseInt(scoreParts[1], 10);
+              if (!Number.isNaN(s1) && !Number.isNaN(s2)) {
+                score1 = s1;
+                score2 = s2;
+                if (match.status === "completed") {
+                  if (score1 > score2 && player1) {
+                    winnerId = player1.id;
+                  } else if (score2 > score1 && player2) {
+                    winnerId = player2.id;
+                  }
+                }
+              }
+            }
           }
         }
 
-        const scoreParts = match.score && match.score !== "-" ? match.score.split(/[-:]/).map(s => s.trim()) : [];
-        const score1 = scoreParts[0] ? parseInt(scoreParts[0], 10) : null;
-        const score2 = scoreParts[1] ? parseInt(scoreParts[1], 10) : null;
-
-        // Parse scheduled time
+        // Parse scheduled time - handle various formats
         let scheduledTime: string | null = null;
-        if (match.scheduledTime && match.scheduledTime !== "TBD") {
+        if (match.scheduledTime && match.scheduledTime !== "TBD" && match.scheduledTime.trim() !== "") {
           try {
-            const date = new Date(match.scheduledTime);
+            let dateStr = match.scheduledTime.trim();
+            // Handle Chinese date format: "2025/11/17 下午12:30:00"
+            // Replace "下午" with PM and "上午" with AM
+            dateStr = dateStr.replace(/下午/g, 'PM').replace(/上午/g, 'AM');
+            // Try to parse with various formats
+            let date = new Date(dateStr);
+            
+            // If parsing failed, try manual parsing for "YYYY/MM/DD HH:MM:SS" format
+            if (isNaN(date.getTime())) {
+              const matchDate = dateStr.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(AM|PM)?\s*(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+              if (matchDate) {
+                const year = parseInt(matchDate[1], 10);
+                const month = parseInt(matchDate[2], 10) - 1; // Month is 0-indexed
+                const day = parseInt(matchDate[3], 10);
+                let hour = parseInt(matchDate[5], 10);
+                const minute = parseInt(matchDate[6], 10);
+                const second = parseInt(matchDate[7], 10);
+                const ampm = matchDate[4];
+                
+                // Handle 12-hour format
+                if (ampm === 'PM' && hour < 12) {
+                  hour += 12;
+                } else if (ampm === 'AM' && hour === 12) {
+                  hour = 0;
+                }
+                
+                date = new Date(year, month, day, hour, minute, second);
+              }
+            }
+            
             if (!isNaN(date.getTime())) {
               scheduledTime = date.toISOString();
+            } else {
+              console.warn(`Could not parse date: ${match.scheduledTime}`);
             }
           } catch (e) {
-            // Ignore invalid dates
+            console.error("Error parsing date:", e, match.scheduledTime);
           }
         }
 
@@ -450,12 +506,18 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
             .eq("id", id);
 
           if (updateError) {
-            console.error(`更新比賽 ${id} 時出錯:`, updateError);
+            console.error(`更新比賽 ${id} 時出錯:`, updateError, updateData);
+          } else {
+            console.log(`成功更新比賽 ${id}:`, updateData);
           }
         }
       }
 
-      toast.success(`✅ 成功導入 ${matchesToInsert.length} 場新比賽，更新 ${matchesToUpdate.length} 場現有比賽！`);
+      const totalImported = matchesToInsert.length + matchesToUpdate.length;
+      const withScore = [...matchesToInsert, ...matchesToUpdate].filter(m => m.score1 !== null || m.score2 !== null).length;
+      const withTime = [...matchesToInsert, ...matchesToUpdate].filter(m => m.scheduled_time).length;
+      
+      toast.success(`✅ 成功導入 ${totalImported} 場比賽！\n其中 ${withScore} 場有比分，${withTime} 場有時間安排`);
       
       setTimeout(() => {
         window.location.reload();
