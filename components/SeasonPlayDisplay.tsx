@@ -318,6 +318,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     goalsFor: number;
     goalsAgainst: number;
     goalDiff: number;
+    yellowCards: number;
+    redCards: number;
     group?: number;
   };
 
@@ -354,6 +356,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           goalsFor: 0,
           goalsAgainst: 0,
           goalDiff: 0,
+          yellowCards: 0,
+          redCards: 0,
         } as any;
       });
 
@@ -389,9 +393,70 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         }
       });
 
+      // Calculate yellow and red cards for each player/team
+      Object.keys(table).forEach(playerId => {
+        const row = table[playerId] as any;
+        let yellowCount = 0;
+        let redCount = 0;
+        
+        matchPlayerStats.forEach(stat => {
+          if (registrationType === 'team') {
+            // For team events, sum cards from all team members
+            if (stat.team_member_id) {
+              const member = teamMembers.find(m => m.id === stat.team_member_id);
+              if (member && member.player_id === playerId) {
+                const isYellowCard = stat.stat_name === 'yellow_card' || 
+                                    stat.stat_name === 'yellow_cards' || 
+                                    stat.stat_name === '黃牌' ||
+                                    stat.stat_name?.toLowerCase().includes('yellow') ||
+                                    stat.stat_name?.includes('黃');
+                const isRedCard = stat.stat_name === 'red_card' || 
+                                  stat.stat_name === 'red_cards' || 
+                                  stat.stat_name === '紅牌' ||
+                                  stat.stat_name?.toLowerCase().includes('red') ||
+                                  stat.stat_name?.includes('紅');
+                
+                if (isYellowCard && stat.stat_value) {
+                  yellowCount += parseInt(stat.stat_value) || 0;
+                }
+                if (isRedCard && stat.stat_value) {
+                  redCount += parseInt(stat.stat_value) || 0;
+                }
+              }
+            }
+          } else {
+            // For individual events
+            if (stat.player_id === playerId) {
+              const isYellowCard = stat.stat_name === 'yellow_card' || 
+                                  stat.stat_name === 'yellow_cards' || 
+                                  stat.stat_name === '黃牌' ||
+                                  stat.stat_name?.toLowerCase().includes('yellow') ||
+                                  stat.stat_name?.includes('黃');
+              const isRedCard = stat.stat_name === 'red_card' || 
+                                stat.stat_name === 'red_cards' || 
+                                stat.stat_name === '紅牌' ||
+                                stat.stat_name?.toLowerCase().includes('red') ||
+                                stat.stat_name?.includes('紅');
+              
+              if (isYellowCard && stat.stat_value) {
+                yellowCount += parseInt(stat.stat_value) || 0;
+              }
+              if (isRedCard && stat.stat_value) {
+                redCount += parseInt(stat.stat_value) || 0;
+              }
+            }
+          }
+        });
+        
+        row.yellowCards = yellowCount;
+        row.redCards = redCount;
+      });
+
       const rows: Array<StandingRow> = Object.values(table).map((r: any) => ({
         ...r,
         goalDiff: (r.goalsFor || 0) - (r.goalsAgainst || 0),
+        yellowCards: r.yellowCards || 0,
+        redCards: r.redCards || 0,
       }));
 
       return rows.sort((a, b) => {
@@ -415,7 +480,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     groupPlayerIds.forEach(playerId => {
       const player = players.find(p => p.id === playerId);
       if (player) {
-        (table as any)[playerId] = { player, wins: 0, losses: 0, draws: 0, points: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0, group: groupNum };
+        (table as any)[playerId] = { player, wins: 0, losses: 0, draws: 0, points: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0, yellowCards: 0, redCards: 0, group: groupNum };
       }
     });
 
@@ -445,6 +510,65 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       }
     });
 
+    // Calculate yellow and red cards for each player/team in this group
+    Object.keys(table).forEach(playerId => {
+      const row = table[playerId] as any;
+      let yellowCount = 0;
+      let redCount = 0;
+      
+      matchPlayerStats.forEach(stat => {
+        if (registrationType === 'team') {
+          // For team events, sum cards from all team members
+          if (stat.team_member_id) {
+            const member = teamMembers.find(m => m.id === stat.team_member_id);
+            if (member && member.player_id === playerId) {
+              const isYellowCard = stat.stat_name === 'yellow_card' || 
+                                  stat.stat_name === 'yellow_cards' || 
+                                  stat.stat_name === '黃牌' ||
+                                  stat.stat_name?.toLowerCase().includes('yellow') ||
+                                  stat.stat_name?.includes('黃');
+              const isRedCard = stat.stat_name === 'red_card' || 
+                                stat.stat_name === 'red_cards' || 
+                                stat.stat_name === '紅牌' ||
+                                stat.stat_name?.toLowerCase().includes('red') ||
+                                stat.stat_name?.includes('紅');
+              
+              if (isYellowCard && stat.stat_value) {
+                yellowCount += parseInt(stat.stat_value) || 0;
+              }
+              if (isRedCard && stat.stat_value) {
+                redCount += parseInt(stat.stat_value) || 0;
+              }
+            }
+          }
+        } else {
+          // For individual events
+          if (stat.player_id === playerId) {
+            const isYellowCard = stat.stat_name === 'yellow_card' || 
+                                stat.stat_name === 'yellow_cards' || 
+                                stat.stat_name === '黃牌' ||
+                                stat.stat_name?.toLowerCase().includes('yellow') ||
+                                stat.stat_name?.includes('黃');
+            const isRedCard = stat.stat_name === 'red_card' || 
+                              stat.stat_name === 'red_cards' || 
+                              stat.stat_name === '紅牌' ||
+                              stat.stat_name?.toLowerCase().includes('red') ||
+                              stat.stat_name?.includes('紅');
+            
+            if (isYellowCard && stat.stat_value) {
+              yellowCount += parseInt(stat.stat_value) || 0;
+            }
+            if (isRedCard && stat.stat_value) {
+              redCount += parseInt(stat.stat_value) || 0;
+            }
+          }
+        }
+      });
+      
+      row.yellowCards = yellowCount;
+      row.redCards = redCount;
+    });
+
     const rows: Array<StandingRow> = Object.values(table).map((r: any) => ({
       player: r.player,
       wins: r.wins || 0,
@@ -454,6 +578,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       goalsFor: r.goalsFor || 0,
       goalsAgainst: r.goalsAgainst || 0,
       goalDiff: (r.goalsFor || 0) - (r.goalsAgainst || 0),
+      yellowCards: r.yellowCards || 0,
+      redCards: r.redCards || 0,
       group: r.group,
     }));
 
@@ -686,10 +812,17 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               <th className="px-4 py-3 text-center">Losses</th>
                               <th className="px-4 py-3 text-center">Points</th>
                               <th className="px-4 py-3 text-center">GD</th>
+                              <th className="px-4 py-3 text-center">Y/R</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {groupStandings.map((standing, idx) => (
+                            {groupStandings.map((standing, idx) => {
+                              const cardDisplay = standing.redCards > 0 
+                                ? `${standing.yellowCards}/${standing.redCards}` 
+                                : standing.yellowCards > 0 
+                                  ? `${standing.yellowCards}` 
+                                  : '-';
+                              return (
                               <tr 
                                 key={standing.player.id} 
                                 className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < qualifiersPerGroup ? 'border-l-4 border-yellow-400' : ''}`}
@@ -709,8 +842,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 <td className="px-4 py-3 text-center font-semibold text-red-600">{standing.losses}</td>
                                 <td className="px-4 py-3 text-center font-bold text-ntu-green">{standing.points}</td>
                                 <td className="px-4 py-3 text-center font-semibold text-gray-700">{standing.goalDiff}</td>
+                                <td className="px-4 py-3 text-center font-semibold text-gray-700">{cardDisplay}</td>
                               </tr>
-                            ))}
+                            )})}
                           </tbody>
                         </table>
                       </div>
@@ -733,10 +867,17 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           <th className="px-4 py-3 text-center">Losses</th>
                           <th className="px-4 py-3 text-center">Points</th>
                           <th className="px-4 py-3 text-center">GD</th>
+                          <th className="px-4 py-3 text-center">Y/R</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {Array.isArray(standings) && standings.map((standing, idx) => (
+                        {Array.isArray(standings) && standings.map((standing, idx) => {
+                          const cardDisplay = standing.redCards > 0 
+                            ? `${standing.yellowCards}/${standing.redCards}` 
+                            : standing.yellowCards > 0 
+                              ? `${standing.yellowCards}` 
+                              : '-';
+                          return (
                           <tr 
                             key={standing.player.id} 
                             className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < qualifiersPerGroup ? 'border-l-4 border-yellow-400' : ''}`}
@@ -755,8 +896,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             <td className="px-4 py-3 text-center font-semibold text-red-600">{standing.losses}</td>
                             <td className="px-4 py-3 text-center font-bold text-ntu-green">{standing.points}</td>
                             <td className="px-4 py-3 text-center font-semibold text-gray-700">{standing.goalDiff}</td>
+                            <td className="px-4 py-3 text-center font-semibold text-gray-700">{cardDisplay}</td>
                           </tr>
-                        ))}
+                        )})}
                       </tbody>
                     </table>
                   </div>
@@ -776,10 +918,17 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       <th className="px-4 py-3 text-center">Losses</th>
                       <th className="px-4 py-3 text-center">Points</th>
                       <th className="px-4 py-3 text-center">GD</th>
+                      <th className="px-4 py-3 text-center">Y/R</th>
                     </tr>
                   </thead>
                   <tbody>
-                            {Array.isArray(standings) && standings.map((standing, idx) => (
+                            {Array.isArray(standings) && standings.map((standing, idx) => {
+                              const cardDisplay = standing.redCards > 0 
+                                ? `${standing.yellowCards}/${standing.redCards}` 
+                                : standing.yellowCards > 0 
+                                  ? `${standing.yellowCards}` 
+                                  : '-';
+                              return (
                       <tr 
                         key={standing.player.id} 
                                 className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < qualifiersPerGroup ? 'border-l-4 border-yellow-400' : ''}`}
@@ -798,8 +947,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         <td className="px-4 py-3 text-center font-semibold text-red-600">{standing.losses}</td>
                         <td className="px-4 py-3 text-center font-bold text-ntu-green">{standing.points}</td>
                         <td className="px-4 py-3 text-center font-semibold text-gray-700">{standing.goalDiff}</td>
+                        <td className="px-4 py-3 text-center font-semibold text-gray-700">{cardDisplay}</td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
