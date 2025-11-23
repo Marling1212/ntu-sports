@@ -58,7 +58,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
       setFileName(file.name);
       const data = await file.arrayBuffer();
       
-      let rows: string[][];
+      let rows: string[][] = [];
       
       // Check if it's CSV or Excel - XLSX library can handle both
       const isCSV = file.name.toLowerCase().endsWith('.csv');
@@ -84,9 +84,10 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
               const sheetName = workbook.SheetNames[0];
               const worksheet = workbook.Sheets[sheetName];
               if (worksheet) {
-                rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+                const parsedRows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
                 // Check if we got meaningful data (not all empty/question marks)
-                if (rows && rows.length > 0 && rows.some(row => row && row.length > 0 && String(row[0] || "").trim() !== "" && !String(row[0] || "").match(/^[?]+$/))) {
+                if (parsedRows && parsedRows.length > 0 && parsedRows.some(row => row && row.length > 0 && String(row[0] || "").trim() !== "" && !String(row[0] || "").match(/^[?]+$/))) {
+                  rows = parsedRows;
                   rowsParsed = true;
                   console.log(`Successfully parsed CSV with ${encoding.name} encoding`);
                   break;
@@ -114,7 +115,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
           }
         }
         
-        if (!rowsParsed || !rows || rows.length === 0) {
+        if (!rowsParsed || rows.length === 0) {
           toast.error("無法讀取 CSV 文件，可能是編碼問題。請將 CSV 轉換為 UTF-8 編碼後再試。");
           setLoading(false);
           return;
