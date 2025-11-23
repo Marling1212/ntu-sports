@@ -64,16 +64,61 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
       const isCSV = file.name.toLowerCase().endsWith('.csv');
       
       if (isCSV) {
-        // Parse CSV using XLSX (it supports CSV)
-        const workbook = XLSX.read(data, { type: "array", codepage: 65001 }); // UTF-8
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        if (!worksheet) {
-          toast.error("無法讀取 CSV 文件");
+        // Try different encodings for CSV
+        let rowsParsed = false;
+        const encodings = [
+          { name: 'UTF-8', value: 'utf-8' },
+          { name: 'Big5', value: 'big5' },
+          { name: 'GB2312', value: 'gb2312' },
+          { name: 'GBK', value: 'gbk' },
+          { name: 'GB18030', value: 'gb18030' },
+        ];
+        
+        for (const encoding of encodings) {
+          try {
+            const text = new TextDecoder(encoding.value, { fatal: false }).decode(data);
+            // Check if we got valid text (not all question marks)
+            if (text && !text.match(/^[?,\s\n\r]*$/)) {
+              // Try to parse with XLSX
+              const workbook = XLSX.read(text, { type: "string", codepage: 65001 });
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              if (worksheet) {
+                rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+                // Check if we got meaningful data (not all empty/question marks)
+                if (rows && rows.length > 0 && rows.some(row => row && row.length > 0 && String(row[0] || "").trim() !== "" && !String(row[0] || "").match(/^[?]+$/))) {
+                  rowsParsed = true;
+                  console.log(`Successfully parsed CSV with ${encoding.name} encoding`);
+                  break;
+                }
+              }
+            }
+          } catch (e) {
+            // Try next encoding
+            continue;
+          }
+        }
+        
+        if (!rowsParsed) {
+          // Fallback: try XLSX directly
+          try {
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            if (worksheet) {
+              rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+              rowsParsed = true;
+            }
+          } catch (e) {
+            // Last resort
+          }
+        }
+        
+        if (!rowsParsed || !rows || rows.length === 0) {
+          toast.error("無法讀取 CSV 文件，可能是編碼問題。請將 CSV 轉換為 UTF-8 編碼後再試。");
           setLoading(false);
           return;
         }
-        rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
       } else {
         // Parse Excel
         const workbook = XLSX.read(data, { type: "array" });
