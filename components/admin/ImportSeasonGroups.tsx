@@ -483,7 +483,18 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
         }
       }
 
-      toast.success(`✅ 成功導入 ${parsedGroups.length} 個組別，生成 ${matchesToInsert.length} 場比賽！`);
+      // Save playoff qualifiers per group setting to event
+      const { error: updateError } = await supabase
+        .from("events")
+        .update({ playoff_qualifiers_per_group: playoffTeams })
+        .eq("id", eventId);
+
+      if (updateError) {
+        console.warn("Failed to update playoff qualifiers setting:", updateError);
+        // Don't fail the import if this fails
+      }
+
+      toast.success(`✅ 成功導入 ${parsedGroups.length} 個組別，生成 ${matchesToInsert.length} 場比賽！\n每組前 ${playoffTeams} 名將進入季後賽。`);
       
       setTimeout(() => {
         window.location.reload();
@@ -632,9 +643,28 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
                 totalMatches += (groupSize * (groupSize - 1)) / 2;
               });
               return (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
                   <p className="text-sm text-blue-800">
                     <strong>預估比賽數：</strong>{totalMatches} 場（每組內單循環制）
+                  </p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <label className="text-sm text-blue-800 font-semibold">
+                      每組前
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={playoffTeams}
+                      onChange={(e) => setPlayoffTeams(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                      className="w-20 px-2 py-1 border border-blue-300 rounded text-sm"
+                    />
+                    <label className="text-sm text-blue-800 font-semibold">
+                      名進入季後賽
+                    </label>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">
+                    💡 常規賽結束後，系統會根據此設定自動選取每組前 {playoffTeams} 名進入季後賽
                   </p>
                 </div>
               );
