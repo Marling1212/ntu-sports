@@ -241,16 +241,110 @@ export default function ImportBracket({ eventId, players }: ImportBracketProps) 
     }
   };
 
+  // Download template Excel file
+  const handleDownloadTemplate = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+      
+      // Calculate bracket size (next power of 2)
+      const bracketSize = players.length >= 2 
+        ? Math.pow(2, Math.ceil(Math.log2(players.length))) 
+        : 16; // Default to 16 if no players
+      const numRounds = Math.log2(bracketSize);
+      
+      // Create template data
+      const data: any[][] = [];
+      
+      // Header section
+      data.push(["籤表範本 - 請填入已抽好的選手分配"]);
+      data.push([]);
+      data.push(["說明：請在「姓名」欄位填入選手姓名，在「系級」欄位填入系級（選填），「種子」欄位填入種子號碼（選填，格式：s1, s2...）"]);
+      data.push(["空的位置請填入「BYE」或留空"]);
+      data.push([]);
+      
+      // Column headers
+      const headers = ["順序", "種子", "姓名", "系級"];
+      for (let i = 1; i <= numRounds; i++) {
+        if (i === 1) headers.push("第一輪");
+        else if (i === 2) headers.push("第二輪");
+        else if (i === 3) headers.push("第三輪");
+        else if (i === 4) headers.push("第四輪");
+        else if (i === 5) headers.push("第五輪");
+        else if (i === 6) headers.push("第六輪");
+        else if (i === 7) headers.push("第七輪");
+      }
+      data.push(headers);
+      
+      // Add empty rows for positions
+      for (let i = 1; i <= bracketSize; i++) {
+        const row: any[] = [i, "", "", ""];
+        for (let j = 0; j < numRounds; j++) {
+          row.push("");
+        }
+        data.push(row);
+      }
+      
+      // Add 3rd place match section
+      data.push([]);
+      data.push(["季軍賽 (3rd Place Match)"]);
+      data.push(["", "", "選手1", ""]);
+      data.push(["", "", "選手2", ""]);
+      
+      // Create worksheet
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      // Set column widths
+      const colWidths = [
+        { wch: 8 },  // 順序
+        { wch: 8 },  // 種子
+        { wch: 15 }, // 姓名
+        { wch: 20 }, // 系級
+      ];
+      for (let i = 0; i < numRounds; i++) {
+        colWidths.push({ wch: 18 });
+      }
+      ws['!cols'] = colWidths;
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "籤表");
+      
+      // Generate filename
+      const filename = `籤表範本_${bracketSize}人.xlsx`;
+      
+      // Download file
+      XLSX.writeFile(wb, filename);
+      
+      toast.success("📥 範本已下載！請填入已抽好的選手分配後再匯入。");
+    } catch (error) {
+      console.error("Template download error:", error);
+      toast.error("下載範本失敗，請稍後再試");
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-2xl font-semibold text-ntu-green mb-2">📤 匯入既有籤表</h2>
-          <p className="text-sm text-gray-600 max-w-2xl">
-            若您已在其他平台完成抽籤，可以將本系統匯出的 Excel 檔案作為範本，填入對應資訊後重新匯入，避免重新輸入選手及對戰資料。
+          <p className="text-sm text-gray-600 max-w-2xl mb-2">
+            若您已在抽籤儀式或其他平台完成抽籤，可以使用以下方式上傳已分好的組別：
           </p>
+          <div className="text-xs text-gray-500 space-y-1 mb-3">
+            <p>• <strong>方式一：</strong>下載空白範本，填入已抽好的選手分配後匯入</p>
+            <p>• <strong>方式二：</strong>使用系統匯出的 Excel 檔案作為範本，修改後重新匯入</p>
+            <p>• <strong>方式三：</strong>使用「手動分配籤表」功能直接在網站上拖曳或選擇選手</p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={handleDownloadTemplate}
+            disabled={loading || players.length < 2}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            title="下載空白範本，填入已抽好的選手分配"
+          >
+            📥 下載空白範本
+          </button>
           <button
             type="button"
             onClick={handleFileButtonClick}
