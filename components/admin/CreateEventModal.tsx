@@ -110,12 +110,15 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               required
             >
-              <option value="tennis">Tennis</option>
-              <option value="basketball">Basketball</option>
-              <option value="volleyball">Volleyball</option>
-              <option value="badminton">Badminton</option>
-              <option value="soccer">Soccer</option>
-              <option value="other">Other</option>
+              <option value="tennis">Tennis (網球)</option>
+              <option value="basketball">Basketball (籃球)</option>
+              <option value="volleyball">Volleyball (排球)</option>
+              <option value="badminton">Badminton (羽球)</option>
+              <option value="soccer">Soccer (足球)</option>
+              <option value="tabletennis">Table Tennis (桌球)</option>
+              <option value="baseball">Baseball (棒球)</option>
+              <option value="softball">Softball (壘球)</option>
+              <option value="other">Other (其他)</option>
             </select>
           </div>
 
