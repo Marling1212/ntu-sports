@@ -36,21 +36,26 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
       // Header section
       data.push(["組別分配範本 - 請填入已抽好的組別分配"]);
       data.push([]);
-      data.push(["說明：請在「組別」欄位填入組別編號（1, 2, 3...），在「選手姓名」欄位填入選手姓名"]);
-      data.push(["同一組的選手請放在連續的行中，組別編號相同"]);
+      data.push(["使用說明："]);
+      data.push(["1. 請在「組別」欄位填入組別編號（數字：1, 2, 3...）"]);
+      data.push(["2. 在「選手姓名」欄位填入選手姓名（必須與系統中的選手姓名完全一致）"]);
+      data.push(["3. 同一組的選手請放在連續的行中，組別編號相同"]);
+      data.push(["4. 系級欄位為選填，不影響匯入"]);
       data.push([]);
       
-      // Column headers
+      // Column headers - make sure these are clear
       data.push(["組別", "選手姓名", "系級（選填）"]);
       
-      // Add example rows
-      data.push([1, "選手A", "系級A"]);
-      data.push([1, "選手B", "系級B"]);
-      data.push([1, "選手C", "系級C"]);
+      // Add example rows with clear format
+      data.push([1, "範例選手A", "範例系級A"]);
+      data.push([1, "範例選手B", "範例系級B"]);
+      data.push([1, "範例選手C", "範例系級C"]);
       data.push([]);
-      data.push([2, "選手D", "系級D"]);
-      data.push([2, "選手E", "系級E"]);
-      data.push([2, "選手F", "系級F"]);
+      data.push([2, "範例選手D", "範例系級D"]);
+      data.push([2, "範例選手E", "範例系級E"]);
+      data.push([2, "範例選手F", "範例系級F"]);
+      data.push([]);
+      data.push(["⚠️ 請刪除以上範例資料，填入實際的組別分配"]);
       
       // Create worksheet
       const ws = XLSX.utils.aoa_to_sheet(data);
