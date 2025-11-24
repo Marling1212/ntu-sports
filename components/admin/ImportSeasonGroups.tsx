@@ -117,66 +117,154 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
         raw: true
       });
 
-      // Find header row
+      // Debug: log first few rows
+      console.log("First 5 rows:", rows.slice(0, 5));
+
+      // Find header row - more flexible matching
       let headerRowIndex = -1;
-      for (let i = 0; i < rows.length; i++) {
+      let groupCol = -1;
+      let playerCol = -1;
+
+      // Try to find header row by checking for column names
+      for (let i = 0; i < Math.min(10, rows.length); i++) {
         const row = rows[i];
-        if (row && row.length > 0) {
-          const rowLower = row.map(cell => String(cell || "").trim().toLowerCase());
-          const hasGroup = rowLower.some(cell => cell.includes("組別") || cell.includes("group"));
-          const hasPlayer = rowLower.some(cell => cell.includes("選手") || cell.includes("姓名") || cell.includes("player") || cell.includes("name"));
-          if (hasGroup && hasPlayer) {
-            headerRowIndex = i;
-            break;
+        if (!row || row.length === 0) continue;
+
+        const rowLower = row.map(cell => String(cell || "").trim().toLowerCase());
+        
+        // Try to find group column
+        const foundGroupCol = rowLower.findIndex(cell => 
+          cell.includes("組別") || 
+          cell.includes("group") || 
+          cell === "組" ||
+          cell === "group"
+        );
+        
+        // Try to find player column
+        const foundPlayerCol = rowLower.findIndex(cell => 
+          cell.includes("選手") || 
+          cell.includes("姓名") || 
+          cell.includes("player") || 
+          cell.includes("name") ||
+          cell === "選手" ||
+          cell === "姓名"
+        );
+
+        if (foundGroupCol !== -1 && foundPlayerCol !== -1) {
+          headerRowIndex = i;
+          groupCol = foundGroupCol;
+          playerCol = foundPlayerCol;
+          break;
+        }
+      }
+
+      // If still not found, try to detect by data pattern (first column has numbers, second has text)
+      if (headerRowIndex === -1) {
+        for (let i = 0; i < Math.min(10, rows.length); i++) {
+          const row = rows[i];
+          if (!row || row.length < 2) continue;
+
+          // Check if first column looks like group numbers and second like player names
+          const firstCell = String(row[0] || "").trim();
+          const secondCell = String(row[1] || "").trim();
+          
+          const firstIsNumber = /^\d+$/.test(firstCell);
+          const secondIsText = secondCell.length > 0 && !/^\d+$/.test(secondCell);
+
+          if (firstIsNumber && secondIsText) {
+            // This might be data, check previous row
+            if (i > 0) {
+              const prevRow = rows[i - 1];
+              const prevFirst = String(prevRow?.[0] || "").trim().toLowerCase();
+              const prevSecond = String(prevRow?.[1] || "").trim().toLowerCase();
+              
+              // If previous row looks like headers
+              if ((prevFirst.includes("組") || prevFirst.includes("group")) &&
+                  (prevSecond.includes("選手") || prevSecond.includes("姓名") || prevSecond.includes("player") || prevSecond.includes("name"))) {
+                headerRowIndex = i - 1;
+                groupCol = 0;
+                playerCol = 1;
+                break;
+              }
+            }
+            
+            // If no header found, assume first row is header and this is data
+            if (headerRowIndex === -1) {
+              headerRowIndex = 0;
+              groupCol = 0;
+              playerCol = 1;
+              break;
+            }
           }
         }
       }
 
-      if (headerRowIndex === -1) {
-        toast.error("找不到標題列（組別、選手姓名）");
+      if (headerRowIndex === -1 || groupCol === -1 || playerCol === -1) {
+        console.error("Could not find header row. First 10 rows:", rows.slice(0, 10));
+        toast.error("無法找到標題列。請確認 Excel 檔案包含「組別」和「選手姓名」欄位。");
         setLoading(false);
         return;
       }
 
-      const headerRow = rows[headerRowIndex].map(cell => String(cell || "").trim().toLowerCase());
-      const groupCol = headerRow.findIndex(h => h.includes("組別") || h.includes("group"));
-      const playerCol = headerRow.findIndex(h => 
-        h.includes("選手") || h.includes("姓名") || h.includes("player") || h.includes("name")
-      );
-
-      if (groupCol === -1 || playerCol === -1) {
-        toast.error("找不到「組別」或「選手姓名」欄位");
-        setLoading(false);
-        return;
-      }
+      console.log(`Found header at row ${headerRowIndex}, groupCol: ${groupCol}, playerCol: ${playerCol}`);
 
       // Parse groups
       const groupsMap = new Map<number, string[]>();
+      let parsedCount = 0;
+      let skippedCount = 0;
       
       for (let i = headerRowIndex + 1; i < rows.length; i++) {
         const row = rows[i];
         if (!row || row.length === 0) continue;
 
+        // Skip rows that look like headers or metadata
+        const firstCell = String(row[0] || "").trim().toLowerCase();
+        if (firstCell.includes("說明") || firstCell.includes("範本") || 
+            firstCell.includes("組別分配") || firstCell === "") {
+          continue;
+        }
+
         const groupValue = String(row[groupCol] || "").trim();
         const playerName = String(row[playerCol] || "").trim();
 
-        if (!groupValue || !playerName) continue;
+        if (!groupValue || !playerName) {
+          skippedCount++;
+          continue;
+        }
 
-        // Parse group number
-        const groupMatch = groupValue.match(/(\d+)/);
-        if (!groupMatch) continue;
+        // Parse group number - more flexible
+        let groupNum: number | null = null;
+        
+        // Try direct number parsing first
+        const directNum = parseInt(groupValue, 10);
+        if (!Number.isNaN(directNum)) {
+          groupNum = directNum;
+        } else {
+          // Try to extract number from text
+          const groupMatch = groupValue.match(/(\d+)/);
+          if (groupMatch) {
+            groupNum = parseInt(groupMatch[1], 10);
+          }
+        }
 
-        const groupNum = parseInt(groupMatch[1], 10);
-        if (Number.isNaN(groupNum)) continue;
+        if (groupNum === null || Number.isNaN(groupNum)) {
+          console.warn(`Skipping row ${i + 1}: invalid group value "${groupValue}"`);
+          skippedCount++;
+          continue;
+        }
 
         if (!groupsMap.has(groupNum)) {
           groupsMap.set(groupNum, []);
         }
         groupsMap.get(groupNum)!.push(playerName);
+        parsedCount++;
       }
 
+      console.log(`Parsed ${parsedCount} players in ${groupsMap.size} groups, skipped ${skippedCount} rows`);
+
       if (groupsMap.size === 0) {
-        toast.error("沒有找到任何組別分配");
+        console.error("No groups found. Parsed rows:", rows.slice(headerRowIndex, headerRowIndex + 10));
+        toast.error("沒有找到任何組別分配。請確認：\n1. Excel 檔案包含「組別」和「選手姓名」欄位\n2. 組別欄位包含數字（如：1, 2, 3）\n3. 選手姓名欄位不為空");
         setLoading(false);
         return;
       }
@@ -213,9 +301,11 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
       setPlayerMappings(mappings);
 
       if (unmatched.length > 0) {
-        toast.error(`找到 ${groups.length} 個組別，但有 ${unmatched.length} 個選手名稱無法自動匹配：${unmatched.slice(0, 5).join(", ")}${unmatched.length > 5 ? "..." : ""}`);
+        const unmatchedList = unmatched.slice(0, 10).join(", ") + (unmatched.length > 10 ? `... (共 ${unmatched.length} 個)` : "");
+        toast.error(`找到 ${groups.length} 個組別，但有 ${unmatched.length} 個選手名稱無法自動匹配：${unmatchedList}\n\n請在下方手動選擇對應的選手。`);
       } else {
-        toast.success(`成功解析 ${groups.length} 個組別！`);
+        const totalPlayers = groups.reduce((sum, g) => sum + g.playerNames.length, 0);
+        toast.success(`✅ 成功解析 ${groups.length} 個組別，共 ${totalPlayers} 位選手！`);
       }
 
     } catch (error) {
