@@ -169,7 +169,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
   const handleAutoFill = () => {
     const remaining = [...unassignedPlayers];
     if (remaining.length === 0) {
-      toast.info("所有選手都已分配完成！");
+      toast.success("所有選手都已分配完成！");
       return;
     }
 
