@@ -131,75 +131,105 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
       let playerCol = -1;
 
       // Try to find header row by checking for column names
-      for (let i = 0; i < Math.min(10, rows.length); i++) {
+      for (let i = 0; i < Math.min(15, rows.length); i++) {
         const row = rows[i];
         if (!row || row.length === 0) continue;
 
         const rowLower = row.map(cell => String(cell || "").trim().toLowerCase());
         
-        // Try to find group column
-        const foundGroupCol = rowLower.findIndex(cell => 
-          cell.includes("組別") || 
-          cell.includes("group") || 
-          cell === "組" ||
-          cell === "group"
-        );
+        // Try to find group column - must be exact match or clear indicator
+        const foundGroupCol = rowLower.findIndex((cell, idx) => {
+          const cellStr = cell.trim();
+          return (
+            cellStr === "組別" || 
+            cellStr === "group" ||
+            cellStr.includes("組別") ||
+            (cellStr.includes("group") && !cellStr.includes("player"))
+          );
+        });
         
-        // Try to find player column
-        const foundPlayerCol = rowLower.findIndex(cell => 
-          cell.includes("選手") || 
-          cell.includes("姓名") || 
-          cell.includes("player") || 
-          cell.includes("name") ||
-          cell === "選手" ||
-          cell === "姓名"
-        );
+        // Try to find player column - must be exact match or clear indicator
+        const foundPlayerCol = rowLower.findIndex((cell, idx) => {
+          const cellStr = cell.trim();
+          return (
+            cellStr === "選手姓名" ||
+            cellStr === "選手" ||
+            cellStr === "姓名" ||
+            cellStr === "player name" ||
+            cellStr === "player" ||
+            cellStr === "name" ||
+            (cellStr.includes("選手") && !cellStr.includes("組別")) ||
+            (cellStr.includes("姓名") && !cellStr.includes("組別")) ||
+            (cellStr.includes("player") && !cellStr.includes("group"))
+          );
+        });
 
-        if (foundGroupCol !== -1 && foundPlayerCol !== -1) {
+        if (foundGroupCol !== -1 && foundPlayerCol !== -1 && foundGroupCol !== foundPlayerCol) {
           headerRowIndex = i;
           groupCol = foundGroupCol;
           playerCol = foundPlayerCol;
+          console.log(`Found header at row ${i}: groupCol=${groupCol}, playerCol=${playerCol}`);
           break;
         }
       }
 
-      // If still not found, try to detect by data pattern (first column has numbers, second has text)
+      // If still not found, try to detect by data pattern
+      // Look for rows where first column has numbers and second column has text (names)
       if (headerRowIndex === -1) {
-        for (let i = 0; i < Math.min(10, rows.length); i++) {
+        console.log("Header not found by column names, trying data pattern detection...");
+        for (let i = 0; i < Math.min(15, rows.length); i++) {
           const row = rows[i];
           if (!row || row.length < 2) continue;
 
-          // Check if first column looks like group numbers and second like player names
-          const firstCell = String(row[0] || "").trim();
-          const secondCell = String(row[1] || "").trim();
+          // Skip rows that look like headers or metadata
+          const firstCell = String(row[0] || "").trim().toLowerCase();
+          if (firstCell.includes("說明") || firstCell.includes("範本") || 
+              firstCell.includes("組別分配") || firstCell === "") {
+            continue;
+          }
+
+          // Check if this row looks like data
+          const cell0 = String(row[0] || "").trim();
+          const cell1 = String(row[1] || "").trim();
           
-          const firstIsNumber = /^\d+$/.test(firstCell);
-          const secondIsText = secondCell.length > 0 && !/^\d+$/.test(secondCell);
+          // First column should be a number (group), second should be text (player name)
+          const firstIsNumber = /^\d+$/.test(cell0);
+          const secondIsText = cell1.length > 0 && !/^\d+$/.test(cell1) && cell1.length > 1;
 
           if (firstIsNumber && secondIsText) {
-            // This might be data, check previous row
-            if (i > 0) {
-              const prevRow = rows[i - 1];
-              const prevFirst = String(prevRow?.[0] || "").trim().toLowerCase();
-              const prevSecond = String(prevRow?.[1] || "").trim().toLowerCase();
+            // Check previous rows for header
+            for (let j = Math.max(0, i - 3); j < i; j++) {
+              const prevRow = rows[j];
+              if (!prevRow) continue;
               
-              // If previous row looks like headers
-              if ((prevFirst.includes("組") || prevFirst.includes("group")) &&
-                  (prevSecond.includes("選手") || prevSecond.includes("姓名") || prevSecond.includes("player") || prevSecond.includes("name"))) {
-                headerRowIndex = i - 1;
+              const prevFirst = String(prevRow[0] || "").trim().toLowerCase();
+              const prevSecond = String(prevRow[1] || "").trim().toLowerCase();
+              
+              // Check if previous row looks like header
+              const looksLikeHeader = (
+                (prevFirst.includes("組") || prevFirst.includes("group")) &&
+                (prevSecond.includes("選手") || prevSecond.includes("姓名") || prevSecond.includes("player") || prevSecond.includes("name"))
+              );
+              
+              if (looksLikeHeader) {
+                headerRowIndex = j;
                 groupCol = 0;
                 playerCol = 1;
+                console.log(`Found header by pattern at row ${j}: groupCol=${groupCol}, playerCol=${playerCol}`);
                 break;
               }
             }
             
-            // If no header found, assume first row is header and this is data
-            if (headerRowIndex === -1) {
+            // If no header found but data pattern is clear, assume first row is header
+            if (headerRowIndex === -1 && i > 0) {
               headerRowIndex = 0;
               groupCol = 0;
               playerCol = 1;
+              console.log(`Assuming first row is header: groupCol=${groupCol}, playerCol=${playerCol}`);
               break;
             }
+            
+            if (headerRowIndex !== -1) break;
           }
         }
       }
@@ -218,6 +248,8 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
       let parsedCount = 0;
       let skippedCount = 0;
       
+      console.log(`Starting to parse from row ${headerRowIndex + 1}, groupCol=${groupCol}, playerCol=${playerCol}`);
+      
       for (let i = headerRowIndex + 1; i < rows.length; i++) {
         const row = rows[i];
         if (!row || row.length === 0) continue;
@@ -225,16 +257,36 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
         // Skip rows that look like headers or metadata
         const firstCell = String(row[0] || "").trim().toLowerCase();
         if (firstCell.includes("說明") || firstCell.includes("範本") || 
-            firstCell.includes("組別分配") || firstCell === "") {
+            firstCell.includes("組別分配") || firstCell.includes("請刪除") ||
+            firstCell === "") {
           continue;
         }
 
+        // Get values from the identified columns
         const groupValue = String(row[groupCol] || "").trim();
         const playerName = String(row[playerCol] || "").trim();
 
+        // Debug log for first few rows
+        if (i <= headerRowIndex + 5) {
+          console.log(`Row ${i + 1}: groupCol[${groupCol}]="${groupValue}", playerCol[${playerCol}]="${playerName}"`);
+        }
+
+        // Validate: group should be a number, player should be text
         if (!groupValue || !playerName) {
           skippedCount++;
           continue;
+        }
+
+        // Check if we're reading the wrong columns
+        // If groupValue looks like a name (long text, not a number) and playerName looks like a number, columns are swapped
+        const groupIsText = groupValue.length > 3 && !/^\d+$/.test(groupValue);
+        const playerIsNumber = /^\d+$/.test(playerName);
+        
+        if (groupIsText && playerIsNumber) {
+          console.error(`⚠️ 可能讀錯列了！Row ${i + 1}: 組別欄位讀到文字 "${groupValue}", 選手欄位讀到數字 "${playerName}"`);
+          toast.error(`讀取錯誤：可能組別和選手欄位搞反了。請確認 Excel 檔案格式正確。`);
+          setLoading(false);
+          return;
         }
 
         // Parse group number - more flexible
@@ -242,18 +294,25 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
         
         // Try direct number parsing first
         const directNum = parseInt(groupValue, 10);
-        if (!Number.isNaN(directNum)) {
+        if (!Number.isNaN(directNum) && directNum > 0) {
           groupNum = directNum;
         } else {
-          // Try to extract number from text
+          // Try to extract number from text (e.g., "組別1" -> 1)
           const groupMatch = groupValue.match(/(\d+)/);
           if (groupMatch) {
             groupNum = parseInt(groupMatch[1], 10);
           }
         }
 
-        if (groupNum === null || Number.isNaN(groupNum)) {
+        if (groupNum === null || Number.isNaN(groupNum) || groupNum <= 0) {
           console.warn(`Skipping row ${i + 1}: invalid group value "${groupValue}"`);
+          skippedCount++;
+          continue;
+        }
+
+        // Validate player name is not just a number
+        if (/^\d+$/.test(playerName)) {
+          console.warn(`Skipping row ${i + 1}: player name looks like a number "${playerName}"`);
           skippedCount++;
           continue;
         }
