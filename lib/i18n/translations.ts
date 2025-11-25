@@ -44,6 +44,10 @@ export const translations = {
       live: '進行中',
       delayed: '延遲',
       upcoming: '即將開始',
+      viewEvent: '查看賽事',
+      tennisEvents: 'NTU Tennis Events',
+      courtLabel: '場地：',
+      vs: 'vs',
     },
     // Footer
     footer: {
@@ -111,6 +115,10 @@ export const translations = {
       live: 'Live',
       delayed: 'Delayed',
       upcoming: 'Upcoming',
+      viewEvent: 'View Event',
+      tennisEvents: 'NTU Tennis Events',
+      courtLabel: 'Court:',
+      vs: 'vs',
     },
     // Footer
     footer: {
