@@ -50,23 +50,29 @@ export default async function Home() {
       {/* Hero Section with Logo and Title */}
       <div className="text-center mb-16">
         <div className="mb-6 flex justify-center">
-          <div className="w-24 h-24 bg-ntu-green rounded-full flex items-center justify-center shadow-lg">
+          <div className="w-24 h-24 bg-ntu-green rounded-full flex items-center justify-center shadow-lg animate-pulse">
             <span className="text-4xl text-white font-bold">NTU</span>
           </div>
         </div>
         <h1 className="text-6xl font-bold text-ntu-green mb-6">
-          NTU Sports
+          🏆 NTU Sports
         </h1>
-        <p className="text-2xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-          Connecting NTU&apos;s athletes, events, and results in one platform.
+        <p className="text-2xl text-gray-700 max-w-3xl mx-auto leading-relaxed mb-6">
+          台大運動賽事管理平台 - 即時賽程、戰績、公告一手掌握
+        </p>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          支援多種運動項目，提供完整的賽事資訊與即時更新
         </p>
       </div>
 
       {/* Sports Cards Section */}
       <div className="mb-12">
-        <h2 className="text-3xl font-semibold text-ntu-green mb-8 text-center">
-          Sports
+        <h2 className="text-3xl font-semibold text-ntu-green mb-4 text-center">
+          運動項目
         </h2>
+        <p className="text-center text-gray-600 mb-8">
+          點擊下方運動項目查看最新賽事資訊
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {sportsToShow.map((sport) => {
             const sportLower = sport.toLowerCase();
@@ -87,8 +93,11 @@ export default async function Home() {
                     {sport}
                   </h3>
                   <p className="text-gray-600 text-sm leading-relaxed">
-                    View tournament draws, schedules, and announcements.
+                    查看籤表、賽程、戰績與最新公告
                   </p>
+                  <div className="mt-4 text-ntu-green font-medium text-sm">
+                    立即查看 →
+                  </div>
                 </div>
               </Link>
             );

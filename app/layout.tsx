@@ -5,8 +5,14 @@ import Footer from "@/components/Footer";
 import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {
-  title: "NTU Sports",
-  description: "National Taiwan University Sports Platform",
+  title: "NTU Sports - 台大運動賽事管理平台",
+  description: "台灣大學多運動賽事管理平台，提供即時賽程、戰績、籤表與公告。支援網球、足球、籃球、排球、羽球、桌球、棒球、壘球等多種運動項目。",
+  keywords: ["NTU", "台大", "運動", "賽事", "網球", "籃球", "足球", "賽程", "戰績"],
+  openGraph: {
+    title: "NTU Sports - 台大運動賽事管理平台",
+    description: "台灣大學多運動賽事管理平台，提供即時賽程、戰績、籤表與公告",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -15,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-TW">
       <body suppressHydrationWarning>
         <Navbar />
         <main className="min-h-screen bg-ntu-gray">

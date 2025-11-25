@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import MarkdownText from "@/components/MarkdownText";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import ShareButton from "@/components/ShareButton";
+import QRCodeShare from "@/components/QRCodeShare";
 
 export default async function TennisPage() {
   const supabase = await createClient();
@@ -81,9 +83,15 @@ export default async function TennisPage() {
     <div className="container mx-auto px-4 py-12">
       {/* Header Section */}
       <div className="text-center mb-12">
-        <h1 className="text-5xl font-bold text-ntu-green mb-4">
-          {singleEvent?.name || "NTU Tennis – 114 Freshman Cup"}
-        </h1>
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <h1 className="text-5xl font-bold text-ntu-green">
+            {singleEvent?.name || "NTU Tennis – 114 Freshman Cup"}
+          </h1>
+        </div>
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <ShareButton title={singleEvent?.name || "NTU Tennis 賽事"} />
+          <QRCodeShare title="掃描 QR Code 分享此賽事" />
+        </div>
       </div>
 
       {/* Tournament Overview */}
