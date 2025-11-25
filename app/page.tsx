@@ -46,35 +46,35 @@ export default async function Home() {
   const sportsToShow = uniqueSports.length > 0 ? uniqueSports : ["Tennis"];
 
   return (
-    <div className="container mx-auto px-4 py-16">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
       {/* Hero Section with Logo and Title */}
-      <div className="text-center mb-16">
-        <div className="mb-6 flex justify-center">
-          <div className="w-24 h-24 bg-ntu-green rounded-full flex items-center justify-center shadow-lg animate-pulse">
-            <span className="text-4xl text-white font-bold">NTU</span>
+      <div className="text-center mb-12 sm:mb-16 animate-fadeIn">
+        <div className="mb-4 sm:mb-6 flex justify-center">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-ntu-green to-green-700 rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110">
+            <span className="text-3xl sm:text-4xl text-white font-bold">NTU</span>
           </div>
         </div>
-        <h1 className="text-6xl font-bold text-ntu-green mb-6">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-ntu-green mb-4 sm:mb-6 leading-tight">
           🏆 NTU Sports
         </h1>
-        <p className="text-2xl text-gray-700 max-w-3xl mx-auto leading-relaxed mb-6">
+        <p className="text-lg sm:text-xl lg:text-2xl text-gray-700 max-w-3xl mx-auto leading-relaxed mb-4 sm:mb-6 px-4">
           台大運動賽事管理平台 - 即時賽程、戰績、公告一手掌握
         </p>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+        <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-2xl mx-auto px-4">
           支援多種運動項目，提供完整的賽事資訊與即時更新
         </p>
       </div>
 
       {/* Sports Cards Section */}
-      <div className="mb-12">
-        <h2 className="text-3xl font-semibold text-ntu-green mb-4 text-center">
+      <div className="mb-12 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+        <h2 className="text-2xl sm:text-3xl font-semibold text-ntu-green mb-3 sm:mb-4 text-center">
           運動項目
         </h2>
-        <p className="text-center text-gray-600 mb-8">
+        <p className="text-center text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 px-4">
           點擊下方運動項目查看最新賽事資訊
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {sportsToShow.map((sport) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          {sportsToShow.map((sport, index) => {
             const sportLower = sport.toLowerCase();
             const icon = sportIcons[sport] || "🏆";
             const colorClass = sportColors[sport] || "bg-ntu-green";
@@ -83,20 +83,21 @@ export default async function Home() {
               <Link
                 key={sport}
                 href={`/sports/${sportLower}`}
-                className="bg-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 border border-gray-100 group"
+                className="bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-gray-100 group p-6 sm:p-8 animate-scaleIn"
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="text-center">
-                  <div className={`w-16 h-16 ${colorClass} rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:opacity-90 transition-opacity`}>
-                    <span className="text-4xl">{icon}</span>
+                  <div className={`w-14 h-14 sm:w-16 sm:h-16 ${colorClass} rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg`}>
+                    <span className="text-3xl sm:text-4xl">{icon}</span>
                   </div>
-                  <h3 className="text-2xl font-semibold text-ntu-green mb-3">
+                  <h3 className="text-xl sm:text-2xl font-semibold text-ntu-green mb-2 sm:mb-3">
                     {sport}
                   </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
                     查看籤表、賽程、戰績與最新公告
                   </p>
-                  <div className="mt-4 text-ntu-green font-medium text-sm">
-                    立即查看 →
+                  <div className="mt-3 sm:mt-4 text-ntu-green font-medium text-xs sm:text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                    立即查看 <span className="group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </div>
               </Link>
