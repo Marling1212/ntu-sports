@@ -74,6 +74,16 @@ export const translations = {
       qrCodeTitle: '掃描 QR Code 分享此賽事',
       close: '關閉',
     },
+    // Announcements
+    announcements: {
+      title: '最新公告',
+      pageTitle: '賽事公告',
+      pageDescription: '重要公告與更新',
+      noAnnouncements: '目前尚無公告',
+      posted: '發布時間',
+      readMore: '閱讀更多',
+      viewAll: '查看所有公告',
+    },
   },
   en: {
     // Navigation
@@ -144,6 +154,16 @@ export const translations = {
       copyFailed: 'Copy failed, please copy manually',
       qrCodeTitle: 'Scan QR Code to share this event',
       close: 'Close',
+    },
+    // Announcements
+    announcements: {
+      title: 'Latest Announcement',
+      pageTitle: 'Event Announcements',
+      pageDescription: 'Important announcements and updates',
+      noAnnouncements: 'No announcements yet.',
+      posted: 'Posted',
+      readMore: 'Read More',
+      viewAll: 'View All Announcements',
     },
   },
 } as const;
