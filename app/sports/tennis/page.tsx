@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
-import MarkdownText from "@/components/MarkdownText";
 import SportsPageClient from "@/components/SportsPageClient";
 import EventsListClient from "@/components/EventsListClient";
+import NavigationButtonsClient from "@/components/NavigationButtonsClient";
 
 export default async function TennisPage() {
   const supabase = await createClient();
@@ -85,6 +84,9 @@ export default async function TennisPage() {
           })
           .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
         
+        const anns = await getSportAnnouncements(singleEvent.id);
+        const latest = (anns || [])[0];
+        
         return (
           <SportsPageClient
             singleEvent={singleEvent}
@@ -92,117 +94,13 @@ export default async function TennisPage() {
             tournamentStartDate={tournamentStartDate}
             matchesToShow={matchesToShow}
             hasUpcomingToday={hasUpcomingToday}
+            latestAnnouncement={latest}
           />
         );
       })()}
 
-      {/* Latest Announcement */}
-      {singleEvent && (async () => {
-        const anns = await getSportAnnouncements(singleEvent.id);
-        const latest = (anns || [])[0];
-        if (!latest) return null;
-        return (
-          <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
-            <div className="flex items-start justify-between mb-3">
-              <h2 className="text-xl font-semibold text-ntu-green">最新公告</h2>
-              <Link href="/sports/tennis/announcements" className="text-ntu-green hover:underline text-sm">
-                查看全部 →
-              </Link>
-            </div>
-            <div className="text-sm text-gray-500 mb-2">
-              {new Date(latest.created_at).toLocaleString("zh-TW")}
-            </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">{latest.title}</h3>
-            <div className="prose max-w-none">
-              <MarkdownText content={latest.content} />
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Navigation Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link
-          href="/sports/tennis/draw"
-          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
-        >
-          <div className="text-center">
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-semibold mb-3">Draw</h3>
-            <p className="text-white text-opacity-90 text-sm">
-              View tournament draw and bracket information
-            </p>
-          </div>
-        </Link>
-
-        <Link
-          href="/sports/tennis/schedule"
-          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
-        >
-          <div className="text-center">
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-semibold mb-3">Schedule</h3>
-            <p className="text-white text-opacity-90 text-sm">
-              View match schedules and timing information
-            </p>
-          </div>
-        </Link>
-
-        <Link
-          href="/sports/tennis/announcements"
-          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
-        >
-          <div className="text-center">
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-semibold mb-3">Announcements</h3>
-            <p className="text-white text-opacity-90 text-sm">
-              Read important announcements and updates
-            </p>
-          </div>
-        </Link>
-      </div>
+      <NavigationButtonsClient />
     </div>
   );
 }

@@ -84,6 +84,15 @@ export const translations = {
       readMore: '閱讀更多',
       viewAll: '查看所有公告',
     },
+    // Navigation
+    navigation: {
+      draw: '籤表',
+      drawDescription: '查看賽事籤表與對戰資訊',
+      schedule: '賽程',
+      scheduleDescription: '查看比賽時間與賽程安排',
+      announcements: '公告',
+      announcementsDescription: '閱讀重要公告與更新',
+    },
   },
   en: {
     // Navigation
@@ -164,6 +173,15 @@ export const translations = {
       posted: 'Posted',
       readMore: 'Read More',
       viewAll: 'View All Announcements',
+    },
+    // Navigation
+    navigation: {
+      draw: 'Draw',
+      drawDescription: 'View tournament draw and bracket information',
+      schedule: 'Schedule',
+      scheduleDescription: 'View match schedules and timing information',
+      announcements: 'Announcements',
+      announcementsDescription: 'Read important announcements and updates',
     },
   },
 } as const;
