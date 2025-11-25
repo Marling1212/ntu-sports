@@ -381,6 +381,25 @@ export default function MatchesTable({
           content: defaultContent,
         }]);
       }
+      
+      // Check for court change
+      const oldCourt = currentMatch.court || "未分配";
+      const newCourt = editForm.court || "未分配";
+      
+      if (oldCourt !== newCourt) {
+        const draftId = `court-${matchId}-${Date.now()}`;
+        const defaultContent = `🏟️ ${matchInfo}\n場地更新：${oldCourt} → ${newCourt}`;
+        
+        setAnnouncementDrafts(prev => [...prev, {
+          id: draftId,
+          matchId,
+          matchInfo,
+          changeType: "court",
+          originalValue: oldCourt,
+          newValue: newCourt,
+          content: defaultContent,
+        }]);
+      }
     }
 
     // If a winner was set, advance them to the next round
