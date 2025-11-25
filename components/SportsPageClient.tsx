@@ -14,6 +14,7 @@ interface SportsPageClientProps {
   tournamentStartDate: Date;
   matchesToShow: any[];
   hasUpcomingToday: boolean;
+  latestAnnouncement?: any;
 }
 
 export default function SportsPageClient({
