@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/context";
+import { useEffect, useState } from "react";
 
 // Sport icons mapping
 const sportIcons: { [key: string]: string } = {
@@ -24,26 +28,29 @@ const sportColors: { [key: string]: string } = {
   Softball: "bg-pink-500",
 };
 
-export default async function Home() {
-  const supabase = await createClient();
-  
-  // Get all unique sports from events
-  const { data: events } = await supabase
-    .from("events")
-    .select("sport")
-    .not("sport", "is", null);
+export default function Home() {
+  const { t } = useI18n();
+  const [sportsToShow, setSportsToShow] = useState<string[]>(["Tennis"]);
+  const supabase = createClient();
 
-  // Get unique sports and normalize them (capitalize first letter)
-  const uniqueSports = Array.from(
-    new Set((events || []).map((e) => {
-      if (!e.sport) return null;
-      // Capitalize first letter
-      return e.sport.charAt(0).toUpperCase() + e.sport.slice(1).toLowerCase();
-    }).filter(Boolean))
-  ).sort();
+  useEffect(() => {
+    async function loadSports() {
+      const { data: events } = await supabase
+        .from("events")
+        .select("sport")
+        .not("sport", "is", null);
 
-  // If no sports found, show at least Tennis as default
-  const sportsToShow = uniqueSports.length > 0 ? uniqueSports : ["Tennis"];
+      const uniqueSports = Array.from(
+        new Set((events || []).map((e) => {
+          if (!e.sport) return null;
+          return e.sport.charAt(0).toUpperCase() + e.sport.slice(1).toLowerCase();
+        }).filter(Boolean))
+      ).sort();
+
+      setSportsToShow(uniqueSports.length > 0 ? uniqueSports : ["Tennis"]);
+    }
+    loadSports();
+  }, []);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -55,23 +62,23 @@ export default async function Home() {
           </div>
         </div>
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-ntu-green mb-4 sm:mb-6 leading-tight">
-          🏆 NTU Sports
+          🏆 {t('home.title')}
         </h1>
         <p className="text-lg sm:text-xl lg:text-2xl text-gray-700 max-w-3xl mx-auto leading-relaxed mb-4 sm:mb-6 px-4">
-          台大運動賽事管理平台 - 即時賽程、戰績、公告一手掌握
+          {t('home.subtitle')}
         </p>
         <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-2xl mx-auto px-4">
-          支援多種運動項目，提供完整的賽事資訊與即時更新
+          {t('home.description')}
         </p>
       </div>
 
       {/* Sports Cards Section */}
       <div className="mb-12 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
         <h2 className="text-2xl sm:text-3xl font-semibold text-ntu-green mb-3 sm:mb-4 text-center">
-          運動項目
+          {t('home.sports')}
         </h2>
         <p className="text-center text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 px-4">
-          點擊下方運動項目查看最新賽事資訊
+          {t('home.sportsDescription')}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {sportsToShow.map((sport, index) => {
@@ -94,10 +101,10 @@ export default async function Home() {
                     {sport}
                   </h3>
                   <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
-                    查看籤表、賽程、戰績與最新公告
+                    {t('home.viewDraw')}
                   </p>
                   <div className="mt-3 sm:mt-4 text-ntu-green font-medium text-xs sm:text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                    立即查看 <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    {t('home.viewDetails')} <span className="group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </div>
               </Link>

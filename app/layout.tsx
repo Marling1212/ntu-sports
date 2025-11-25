@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Analytics } from "@vercel/analytics/react";
+import { I18nProvider } from "@/lib/i18n/context";
 
 export const metadata: Metadata = {
   title: "NTU Sports - 台大運動賽事管理平台",
@@ -21,14 +22,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-TW">
+    <html lang="zh-TW" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <Navbar />
-        <main className="min-h-screen bg-ntu-gray">
-          {children}
-        </main>
-        <Footer />
-        <Analytics />
+        <I18nProvider>
+          <Navbar />
+          <main className="min-h-screen bg-ntu-gray">
+            {children}
+          </main>
+          <Footer />
+          <Analytics />
+        </I18nProvider>
       </body>
     </html>
   );

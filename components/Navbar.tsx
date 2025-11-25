@@ -5,11 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ShareButton from "./ShareButton";
 import QRCodeShare from "./QRCodeShare";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useI18n } from "@/lib/i18n/context";
 
 export default function Navbar() {
   const pathname = usePathname();
   const isHomePage = pathname === "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useI18n();
 
   return (
     <nav className="bg-gradient-to-r from-ntu-green to-green-700 text-white shadow-lg sticky top-0 z-50">
@@ -25,12 +28,13 @@ export default function Navbar() {
           </Link>
           
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
+            <LanguageSwitcher />
             <Link 
               href="/" 
               className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-medium"
             >
-              首頁
+              {t('nav.home')}
             </Link>
             {!isHomePage && (
               <>
@@ -68,12 +72,15 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <div className="md:hidden pb-4 animate-slideIn border-t border-white/20 mt-2 pt-4">
             <div className="flex flex-col gap-3">
+              <div className="px-4">
+                <LanguageSwitcher />
+              </div>
               <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-medium"
               >
-                首頁
+                {t('nav.home')}
               </Link>
               {!isHomePage && (
                 <div className="flex flex-col gap-3 px-4">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useI18n } from "@/lib/i18n/context";
 
 // Dynamically import QRCode to avoid SSR issues
 const QRCodeSVG = dynamic(
@@ -19,14 +20,17 @@ interface QRCodeShareProps {
 }
 
 export default function QRCodeShare({ 
-  title = "掃描 QR Code 分享",
+  title,
   className = ""
 }: QRCodeShareProps) {
+  const { t } = useI18n();
   const [showModal, setShowModal] = useState(false);
   const pathname = usePathname();
   const currentUrl = typeof window !== "undefined" 
     ? `${window.location.origin}${pathname}`
     : "";
+  
+  const displayTitle = title || t('share.qrCodeTitle');
 
   return (
     <>
@@ -47,9 +51,9 @@ export default function QRCodeShare({
             className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-2xl font-bold text-ntu-green mb-4 text-center">
-              {title}
-            </h3>
+          <h3 className="text-2xl font-bold text-ntu-green mb-4 text-center">
+            {displayTitle}
+          </h3>
             <div className="flex justify-center mb-4">
               {typeof window !== "undefined" && currentUrl && (
                 <QRCodeSVG
@@ -71,13 +75,13 @@ export default function QRCodeShare({
                 }}
                 className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                複製連結
+                {t('share.copyLink')}
               </button>
               <button
                 onClick={() => setShowModal(false)}
                 className="flex-1 px-4 py-2 bg-ntu-green text-white rounded-lg hover:bg-green-700 transition-colors"
               >
-                關閉
+                {t('share.close')}
               </button>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";
+import { useI18n } from "@/lib/i18n/context";
 
 interface ShareButtonProps {
   title?: string;
@@ -15,6 +16,7 @@ export default function ShareButton({
   description = "查看最新賽事資訊",
   className = ""
 }: ShareButtonProps) {
+  const { t } = useI18n();
   const [showMenu, setShowMenu] = useState(false);
   const pathname = usePathname();
   const currentUrl = typeof window !== "undefined" 
@@ -36,10 +38,10 @@ export default function ShareButton({
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(currentUrl);
-      toast.success("連結已複製到剪貼簿！");
+      toast.success(t('share.linkCopied'));
       setShowMenu(false);
     } catch (err) {
-      toast.error("複製失敗，請手動複製");
+      toast.error(t('share.copyFailed'));
     }
   };
 
@@ -56,7 +58,7 @@ export default function ShareButton({
         className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-ntu-green to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-xl hover:scale-105 text-sm sm:text-base font-medium"
       >
         <span className="text-base sm:text-lg">📤</span>
-        <span>分享</span>
+        <span>{t('nav.share')}</span>
       </button>
 
       {showMenu && (
@@ -71,28 +73,28 @@ export default function ShareButton({
               className="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors flex items-center gap-3"
             >
               <span className="text-xl">📘</span>
-              <span>分享到 Facebook</span>
+              <span>{t('share.shareToFacebook')}</span>
             </button>
             <button
               onClick={shareToLine}
               className="w-full px-4 py-3 text-left hover:bg-green-50 transition-colors flex items-center gap-3"
             >
               <span className="text-xl">💬</span>
-              <span>分享到 Line</span>
+              <span>{t('share.shareToLine')}</span>
             </button>
             <button
               onClick={shareToTwitter}
               className="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors flex items-center gap-3"
             >
               <span className="text-xl">🐦</span>
-              <span>分享到 Twitter</span>
+              <span>{t('share.shareToTwitter')}</span>
             </button>
             <button
               onClick={copyLink}
               className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 border-t border-gray-200"
             >
               <span className="text-xl">🔗</span>
-              <span>複製連結</span>
+              <span>{t('share.copyLink')}</span>
             </button>
           </div>
         </>
