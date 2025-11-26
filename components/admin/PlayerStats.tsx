@@ -584,7 +584,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
             {/* Top Scorers Chart */}
             {topScorers.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
+                  <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數排名</h3>
                   <div className="space-y-3">
                     {topScorers.map((stat, idx) => {
                       const maxGoals = topScorers[0].goalsFor;
