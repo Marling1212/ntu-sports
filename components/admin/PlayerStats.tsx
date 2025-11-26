@@ -242,7 +242,6 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       });
       return playerGoalsArray
         .sort((a, b) => b.goals - a.goals)
-        .slice(0, 5)
         .filter(s => s.goals > 0)
         .map((item, idx) => ({
           id: `player_${idx}`,
@@ -255,7 +254,6 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       // For player events, show team/player goals
       return [...playerStats]
         .sort((a, b) => b.goalsFor - a.goalsFor)
-        .slice(0, 5)
         .filter(s => s.goalsFor > 0)
         .map(stat => ({
           id: stat.player.id,
@@ -265,7 +263,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
     }
   }, [playerStats, individualPlayerGoals, registrationType]);
 
-  // Calculate yellow cards Top 5
+  // Calculate yellow cards ranking
   const topYellowCards = useMemo(() => {
     const cardsMap = new Map<string, { name: string; cards: number; teamName?: string; jerseyNumber?: number | null }>();
     
@@ -331,7 +329,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       }));
   }, [matchPlayerStats, teamMembers, registrationType, players]);
 
-  // Calculate red cards Top 5
+  // Calculate red cards ranking
   const topRedCards = useMemo(() => {
     const cardsMap = new Map<string, { name: string; cards: number; teamName?: string; jerseyNumber?: number | null }>();
     
@@ -382,7 +380,6 @@ export default function PlayerStats({ players, matches, tournamentType, registra
     
     return Array.from(cardsMap.values())
       .sort((a, b) => b.cards - a.cards)
-      .slice(0, 5)
       .filter(s => s.cards > 0)
       .map((item, idx) => ({
         id: `red_${idx}`,
@@ -620,7 +617,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                 </div>
               ) : (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
+                  <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數排名</h3>
                   <p className="text-sm text-gray-500">尚無數據</p>
                 </div>
               )}
@@ -628,7 +625,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
               {/* Top Yellow Cards Chart */}
               {topYellowCards.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
+                  <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌排名</h3>
                   <div className="space-y-3">
                     {topYellowCards.map((stat, idx) => {
                       const maxCards = topYellowCards[0].count;
@@ -661,7 +658,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                 </div>
               ) : (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
+                  <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌排名</h3>
                   <p className="text-sm text-gray-500">尚無數據</p>
                 </div>
               )}
@@ -669,7 +666,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
             {/* Top Red Cards Chart */}
             {topRedCards.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
+                  <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌排名</h3>
                   <div className="space-y-3">
                     {topRedCards.map((stat, idx) => {
                       const maxCards = topRedCards[0].count;
@@ -702,7 +699,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                 </div>
               ) : (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
+                  <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌排名</h3>
                   <p className="text-sm text-gray-500">尚無數據</p>
                 </div>
               )}
