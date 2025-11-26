@@ -204,21 +204,15 @@ export default function MatchDetailContent({
   const handleSaveStats = async () => {
     setSaving(true);
     try {
-      // Delete all existing stats for this match
-      await supabase
-        .from("match_player_stats")
-        .delete()
-        .eq("match_id", match.id);
-
-      // Insert new stats
-      const statsToInsert: any[] = [];
+      // Build stats to upsert
+      const statsToUpsert: any[] = [];
       
       // Team-level stats (or player event stats)
       Object.keys(playerStats).forEach(playerId => {
         Object.keys(playerStats[playerId]).forEach(statName => {
           const value = playerStats[playerId][statName];
           if (value !== undefined && value !== null && value !== "") {
-            statsToInsert.push({
+            statsToUpsert.push({
               match_id: match.id,
               player_id: playerId,
               stat_name: statName,
@@ -235,7 +229,7 @@ export default function MatchDetailContent({
           Object.keys(teamMemberStats[playerId][teamMemberId]).forEach(statName => {
             const value = teamMemberStats[playerId][teamMemberId][statName];
             if (value !== undefined && value !== null && value !== "") {
-              statsToInsert.push({
+              statsToUpsert.push({
                 match_id: match.id,
                 player_id: playerId,
                 team_member_id: teamMemberId,
@@ -247,12 +241,46 @@ export default function MatchDetailContent({
         });
       });
 
-      if (statsToInsert.length > 0) {
-        const { error } = await supabase
-          .from("match_player_stats")
-          .insert(statsToInsert);
+      // Delete all existing stats for this match first
+      const { error: deleteError } = await supabase
+        .from("match_player_stats")
+        .delete()
+        .eq("match_id", match.id);
 
-        if (error) throw error;
+      if (deleteError) throw deleteError;
+
+      // Then insert new stats
+      if (statsToUpsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from("match_player_stats")
+          .insert(statsToUpsert);
+
+        if (insertError) {
+          // If we get a unique constraint error, it means the constraint hasn't been updated yet
+          // In that case, try to upsert instead
+          if (insertError.code === '23505' || insertError.message.includes('duplicate key')) {
+            // Delete and retry with individual upserts to handle the old constraint
+            for (const stat of statsToUpsert) {
+              // Delete existing stat if any
+              await supabase
+                .from("match_player_stats")
+                .delete()
+                .eq("match_id", stat.match_id)
+                .eq("player_id", stat.player_id)
+                .eq("stat_name", stat.stat_name)
+                .is("team_member_id", stat.team_member_id || null);
+              
+              // Insert new stat
+              const { error: upsertError } = await supabase
+                .from("match_player_stats")
+                .insert(stat);
+              
+              if (upsertError) throw upsertError;
+            }
+          } else {
+            throw insertError;
+          }
+        }
       }
 
       toast.success("統計數據已保存！");
