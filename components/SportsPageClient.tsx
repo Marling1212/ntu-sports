@@ -125,7 +125,12 @@ export default function SportsPageClient({
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{court}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
                         <span className="font-semibold">{p1}</span>
-                        <span className="mx-2 text-gray-400">{t('sports.vs')}</span>
+                        <Link 
+                          href={`/sports/${singleEvent?.sport?.toLowerCase() || 'tennis'}/matches/${m.id}`}
+                          className="mx-2 text-gray-400 hover:text-ntu-green hover:underline cursor-pointer"
+                        >
+                          {t('sports.vs')}
+                        </Link>
                         <span className="font-semibold">{p2}</span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
@@ -174,7 +179,12 @@ export default function SportsPageClient({
                   <div className="text-sm text-gray-600 mb-2">{t('sports.courtLabel')}{court}</div>
                   <div className="text-sm text-gray-800">
                     <span className="font-semibold">{p1}</span>
-                    <span className="mx-2 text-gray-400">{t('sports.vs')}</span>
+                    <Link 
+                      href={`/sports/${singleEvent?.sport?.toLowerCase() || 'tennis'}/matches/${m.id}`}
+                      className="mx-2 text-gray-400 hover:text-ntu-green hover:underline cursor-pointer"
+                    >
+                      {t('sports.vs')}
+                    </Link>
                     <span className="font-semibold">{p2}</span>
                   </div>
                 </div>

@@ -129,13 +129,17 @@ export default function MatchDetailContent({
   const [customStats, setCustomStats] = useState<SportStatDefinition[]>([]);
   const [newCustomStat, setNewCustomStat] = useState({ name: "", label: "", type: "number" as const, level: "team" as const });
   const [selectedTeamMember, setSelectedTeamMember] = useState<Record<string, string>>({}); // { playerId: teamMemberId }
+  const [ownGoals, setOwnGoals] = useState<Record<string, Record<string, boolean>>>({}); // { playerId: { teamMemberId: isOwnGoal } }
   const [saving, setSaving] = useState(false);
   const supabase = createClient();
+  
+  const isSoccer = event?.sport?.toLowerCase() === 'soccer';
 
   // Initialize player stats from existing stats
   useEffect(() => {
     const statsMap: Record<string, Record<string, string>> = {};
     const memberStatsMap: Record<string, Record<string, Record<string, string>>> = {};
+    const ownGoalsMap: Record<string, Record<string, boolean>> = {};
     
     existingStats.forEach(stat => {
       if (stat.team_member_id) {
@@ -146,7 +150,18 @@ export default function MatchDetailContent({
         if (!memberStatsMap[stat.player_id][stat.team_member_id]) {
           memberStatsMap[stat.player_id][stat.team_member_id] = {};
         }
-        memberStatsMap[stat.player_id][stat.team_member_id][stat.stat_name] = stat.stat_value || "";
+        
+        // If it's an own goal stat, mark it as own goal and convert to regular goal for display
+        if (stat.stat_name === 'player_own_goals') {
+          if (!ownGoalsMap[stat.player_id]) {
+            ownGoalsMap[stat.player_id] = {};
+          }
+          ownGoalsMap[stat.player_id][stat.team_member_id] = true;
+          // Store as player_goals for display
+          memberStatsMap[stat.player_id][stat.team_member_id]['player_goals'] = stat.stat_value || "";
+        } else {
+          memberStatsMap[stat.player_id][stat.team_member_id][stat.stat_name] = stat.stat_value || "";
+        }
       } else {
         // Team-level stat or player event stat
         if (!statsMap[stat.player_id]) {
@@ -158,6 +173,7 @@ export default function MatchDetailContent({
     
     setPlayerStats(statsMap);
     setTeamMemberStats(memberStatsMap);
+    setOwnGoals(ownGoalsMap);
   }, [existingStats]);
 
   // Separate default and custom stats
@@ -229,13 +245,25 @@ export default function MatchDetailContent({
           Object.keys(teamMemberStats[playerId][teamMemberId]).forEach(statName => {
             const value = teamMemberStats[playerId][teamMemberId][statName];
             if (value !== undefined && value !== null && value !== "") {
-              statsToUpsert.push({
-                match_id: match.id,
-                player_id: playerId,
-                team_member_id: teamMemberId,
-                stat_name: statName,
-                stat_value: value,
-              });
+              // For soccer, if it's a goal and own goal is checked, save as own_goal stat
+              if (isSoccer && statName === 'player_goals' && ownGoals[playerId]?.[teamMemberId]) {
+                // Save as own_goal stat instead of regular goal
+                statsToUpsert.push({
+                  match_id: match.id,
+                  player_id: playerId,
+                  team_member_id: teamMemberId,
+                  stat_name: 'player_own_goals',
+                  stat_value: value,
+                });
+              } else {
+                statsToUpsert.push({
+                  match_id: match.id,
+                  player_id: playerId,
+                  team_member_id: teamMemberId,
+                  stat_name: statName,
+                  stat_value: value,
+                });
+              }
             }
           });
         });
@@ -359,6 +387,16 @@ export default function MatchDetailContent({
           ...prev[playerId]?.[teamMemberId],
           [statName]: value,
         },
+      },
+    }));
+  };
+
+  const toggleOwnGoal = (playerId: string, teamMemberId: string) => {
+    setOwnGoals(prev => ({
+      ...prev,
+      [playerId]: {
+        ...prev[playerId],
+        [teamMemberId]: !prev[playerId]?.[teamMemberId],
       },
     }));
   };
@@ -734,9 +772,22 @@ export default function MatchDetailContent({
                           <div className="space-y-3">
                             {playerLevelStats.map(stat => (
                               <div key={stat.id}>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  {stat.stat_label}
-                                </label>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="block text-sm font-medium text-gray-700">
+                                    {stat.stat_label}
+                                  </label>
+                                  {isSoccer && stat.stat_name === 'player_goals' && (
+                                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                                      <input
+                                        type="checkbox"
+                                        checked={ownGoals[player1.id]?.[member.id] || false}
+                                        onChange={() => toggleOwnGoal(player1.id, member.id)}
+                                        className="w-4 h-4 text-ntu-green border-gray-300 rounded focus:ring-ntu-green"
+                                      />
+                                      <span>烏龍球</span>
+                                    </label>
+                                  )}
+                                </div>
                                 {stat.stat_type === 'number' ? (
                                   <input
                                     type="number"
@@ -913,9 +964,22 @@ export default function MatchDetailContent({
                           <div className="space-y-3">
                             {playerLevelStats.map(stat => (
                               <div key={stat.id}>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  {stat.stat_label}
-                                </label>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="block text-sm font-medium text-gray-700">
+                                    {stat.stat_label}
+                                  </label>
+                                  {isSoccer && stat.stat_name === 'player_goals' && (
+                                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                                      <input
+                                        type="checkbox"
+                                        checked={ownGoals[player2.id]?.[member.id] || false}
+                                        onChange={() => toggleOwnGoal(player2.id, member.id)}
+                                        className="w-4 h-4 text-ntu-green border-gray-300 rounded focus:ring-ntu-green"
+                                      />
+                                      <span>烏龍球</span>
+                                    </label>
+                                  )}
+                                </div>
                                 {stat.stat_type === 'number' ? (
                                   <input
                                     type="number"

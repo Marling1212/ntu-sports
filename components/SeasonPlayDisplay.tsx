@@ -4,6 +4,7 @@ import { Match, Player } from "@/types/tournament";
 import { useState, useMemo } from "react";
 import TournamentBracket from "./TournamentBracket";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import Link from "next/link";
 
 interface SeasonPlayDisplayProps {
   matches: Match[];
@@ -703,17 +704,30 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           )}
                           <td className="px-4 py-3 font-semibold text-gray-700 hidden">#{match.matchNumber}</td>
                           <td className="px-4 py-3">
-                            <div className={match.winner?.id === match.player1?.id ? 'font-bold text-ntu-green' : ''}>
+                            <Link 
+                              href={`/sports/${sportName.toLowerCase()}/teams/${match.player1?.id}`}
+                              className={match.winner?.id === match.player1?.id ? 'font-bold text-ntu-green hover:underline' : 'hover:text-ntu-green hover:underline'}
+                            >
                               {match.player1?.name || 'TBD'}
                               {match.player1?.seed && <span className="ml-1 text-xs text-gray-500">(Seed {match.player1.seed})</span>}
-                            </div>
+                            </Link>
                           </td>
-                          <td className="px-4 py-3 text-center text-gray-400">vs</td>
+                          <td className="px-4 py-3 text-center">
+                            <Link 
+                              href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
+                              className="text-gray-400 hover:text-ntu-green hover:underline cursor-pointer"
+                            >
+                              vs
+                            </Link>
+                          </td>
                           <td className="px-4 py-3">
-                            <div className={match.winner?.id === match.player2?.id ? 'font-bold text-ntu-green' : ''}>
+                            <Link 
+                              href={`/sports/${sportName.toLowerCase()}/teams/${match.player2?.id}`}
+                              className={match.winner?.id === match.player2?.id ? 'font-bold text-ntu-green hover:underline' : 'hover:text-ntu-green hover:underline'}
+                            >
                               {match.player2?.name || 'TBD'}
                               {match.player2?.seed && <span className="ml-1 text-xs text-gray-500">(Seed {match.player2.seed})</span>}
-                            </div>
+                            </Link>
                           </td>
                           <td className="px-4 py-3 text-center text-sm">
                             <div className="font-medium text-gray-700">
@@ -829,13 +843,16 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               >
                                 <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                                 <td className="px-4 py-3">
-                                  <div className="flex items-center gap-2">
+                                  <Link 
+                                    href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
+                                    className="flex items-center gap-2 hover:text-ntu-green hover:underline"
+                                  >
                                     {idx < qualifiersPerGroup && <span className="text-yellow-500">🏆</span>}
                                     <span className="font-semibold">{standing.player.name}</span>
                                     {standing.player.seed && (
                                       <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>
                                     )}
-                                  </div>
+                                  </Link>
                                 </td>
                                 <td className="px-4 py-3 text-center font-semibold text-green-600">{standing.wins}</td>
                                 <td className="px-4 py-3 text-center font-semibold text-gray-600">{standing.draws || 0}</td>
@@ -884,13 +901,16 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           >
                             <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                             <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
+                              <Link 
+                                href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
+                                className="flex items-center gap-2 hover:text-ntu-green hover:underline"
+                              >
                                 {idx < qualifiersPerGroup && <span className="text-yellow-500">🏆</span>}
                                 <span className="font-semibold">{standing.player.name}</span>
                                 {standing.player.seed && (
                                   <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>
                                 )}
-                              </div>
+                              </Link>
                             </td>
                             <td className="px-4 py-3 text-center font-semibold text-green-600">{standing.wins}</td>
                             <td className="px-4 py-3 text-center font-semibold text-red-600">{standing.losses}</td>
@@ -935,13 +955,16 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       >
                         <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                          <Link 
+                            href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
+                            className="flex items-center gap-2 hover:text-ntu-green hover:underline"
+                          >
                                     {idx < qualifiersPerGroup && <span className="text-yellow-500">🏆</span>}
                             <span className="font-semibold">{standing.player.name}</span>
                             {standing.player.seed && (
                               <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>
                             )}
-                          </div>
+                          </Link>
                         </td>
                         <td className="px-4 py-3 text-center font-semibold text-green-600">{standing.wins}</td>
                         <td className="px-4 py-3 text-center font-semibold text-red-600">{standing.losses}</td>
