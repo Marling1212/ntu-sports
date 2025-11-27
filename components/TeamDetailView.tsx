@@ -46,14 +46,20 @@ export default function TeamDetailView({
   const isTeamEvent = event?.registration_type === 'team';
   const sportParam = event?.sport?.toLowerCase() || "";
 
-  // Organize stats by team member
-  const memberStatsMap: Record<string, Record<string, string>> = {};
+  // Organize stats by team member - SUM values across all matches
+  const memberStatsMap: Record<string, Record<string, number>> = {};
   matchStats.forEach(stat => {
-    if (stat.team_member_id) {
+    if (stat.team_member_id && stat.stat_value) {
       if (!memberStatsMap[stat.team_member_id]) {
         memberStatsMap[stat.team_member_id] = {};
       }
-      memberStatsMap[stat.team_member_id][stat.stat_name] = stat.stat_value || "";
+      
+      // Handle own goals separately - they're stored as player_own_goals but should be counted
+      // For display purposes, we can show them separately or include them in total goals
+      const statName = stat.stat_name;
+      const currentValue = memberStatsMap[stat.team_member_id][statName] || 0;
+      const newValue = parseInt(stat.stat_value) || 0;
+      memberStatsMap[stat.team_member_id][statName] = currentValue + newValue;
     }
   });
 
@@ -64,19 +70,15 @@ export default function TeamDetailView({
   // Calculate individual player statistics
   const playerStats: Array<{
     member: any;
-    stats: Record<string, string>;
+    stats: Record<string, number>;
     totalGoals?: number;
   }> = [];
 
   if (isTeamEvent && teamMembers.length > 0) {
     teamMembers.forEach(member => {
       const stats = memberStatsMap[member.id] || {};
-      const totalGoals = playerLevelStats
-        .filter(s => s.stat_name === 'player_goals')
-        .reduce((sum, s) => {
-          const value = stats[s.stat_name];
-          return sum + (parseInt(value) || 0);
-        }, 0);
+      // Get total goals (sum of player_goals across all matches)
+      const totalGoals = stats['player_goals'] || 0;
 
       if (Object.keys(stats).length > 0 || totalGoals > 0) {
         playerStats.push({
@@ -217,7 +219,7 @@ export default function TeamDetailView({
                     <div className="mt-2 space-y-1">
                       {playerLevelStats.map(stat => {
                         const value = stats[stat.stat_name];
-                        if (!value) return null;
+                        if (value === undefined || value === null || value === 0) return null;
                         return (
                           <div key={stat.id} className="flex justify-between text-xs">
                             <span className="text-gray-600">{stat.stat_label}:</span>
