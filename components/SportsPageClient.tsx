@@ -127,7 +127,7 @@ export default function SportsPageClient({
                         <span className="font-semibold">{p1}</span>
                         <Link 
                           href={`/sports/${singleEvent?.sport?.toLowerCase() || 'tennis'}/matches/${m.id}`}
-                          className="mx-2 text-gray-400 hover:text-ntu-green hover:underline cursor-pointer"
+                          className="mx-3 text-lg font-bold text-ntu-green hover:text-green-700 hover:underline cursor-pointer transition-colors"
                         >
                           {t('sports.vs')}
                         </Link>
@@ -181,7 +181,7 @@ export default function SportsPageClient({
                     <span className="font-semibold">{p1}</span>
                     <Link 
                       href={`/sports/${singleEvent?.sport?.toLowerCase() || 'tennis'}/matches/${m.id}`}
-                      className="mx-2 text-gray-400 hover:text-ntu-green hover:underline cursor-pointer"
+                      className="mx-3 text-lg font-bold text-ntu-green hover:text-green-700 hover:underline cursor-pointer transition-colors"
                     >
                       {t('sports.vs')}
                     </Link>

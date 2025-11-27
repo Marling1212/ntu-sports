@@ -715,7 +715,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           <td className="px-4 py-3 text-center">
                             <Link 
                               href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
-                              className="text-gray-400 hover:text-ntu-green hover:underline cursor-pointer"
+                              className="text-lg font-bold text-ntu-green hover:text-green-700 hover:underline cursor-pointer transition-colors"
                             >
                               vs
                             </Link>
