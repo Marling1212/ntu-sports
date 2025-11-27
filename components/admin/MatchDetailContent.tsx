@@ -514,16 +514,19 @@ export default function MatchDetailContent({
         if (playerStat && stat.stat_type === 'number') {
           // Sum up all player stats for this team
           let total = 0;
-          teamMembers[player.id].forEach((member: any) => {
-            const value = teamMemberStats[player.id]?.[member.id]?.[playerStatName];
-            if (value) {
-              total += parseFloat(value) || 0;
-            }
-          });
           
-          // For goals: also add goals from opponent's own goals
-          // (Own goals scored by opponent count as goals for this team)
           if (stat.stat_name === 'goals' && isSoccer) {
+            // For goals: only count regular goals (NOT own goals from this team)
+            teamMembers[player.id].forEach((member: any) => {
+              const value = teamMemberStats[player.id]?.[member.id]?.[playerStatName];
+              // Only count if it's NOT an own goal
+              if (value && !ownGoals[player.id]?.[member.id]) {
+                total += parseFloat(value) || 0;
+              }
+            });
+            
+            // Add goals from opponent's own goals
+            // (Own goals scored by opponent count as goals for this team)
             const opponentId = player.id === match.player1_id ? match.player2_id : match.player1_id;
             if (opponentId && teamMemberStats[opponentId]) {
               // Sum up opponent's own goals - these count as goals for this team
@@ -537,6 +540,14 @@ export default function MatchDetailContent({
                 }
               });
             }
+          } else {
+            // For other stats, sum normally
+            teamMembers[player.id].forEach((member: any) => {
+              const value = teamMemberStats[player.id]?.[member.id]?.[playerStatName];
+              if (value) {
+                total += parseFloat(value) || 0;
+              }
+            });
           }
           
           teamStats[player.id][stat.stat_name] = total > 0 ? total.toString() : "";
