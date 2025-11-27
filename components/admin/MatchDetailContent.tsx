@@ -369,26 +369,63 @@ export default function MatchDetailContent({
   };
 
   const updatePlayerStat = (playerId: string, statName: string, value: string) => {
-    setPlayerStats(prev => ({
-      ...prev,
-      [playerId]: {
-        ...prev[playerId],
-        [statName]: value,
-      },
-    }));
+    setPlayerStats(prev => {
+      const newStats = { ...prev };
+      if (!newStats[playerId]) {
+        newStats[playerId] = {};
+      }
+      
+      // If value is empty, remove the key entirely instead of setting to empty string
+      if (value === "" || value === null || value === undefined) {
+        const { [statName]: _, ...rest } = newStats[playerId];
+        newStats[playerId] = rest;
+        // If player has no stats left, remove the player entry
+        if (Object.keys(newStats[playerId]).length === 0) {
+          const { [playerId]: __, ...restPlayers } = newStats;
+          return restPlayers;
+        }
+      } else {
+        newStats[playerId] = {
+          ...newStats[playerId],
+          [statName]: value,
+        };
+      }
+      return newStats;
+    });
   };
 
   const updateTeamMemberStat = (playerId: string, teamMemberId: string, statName: string, value: string) => {
-    setTeamMemberStats(prev => ({
-      ...prev,
-      [playerId]: {
-        ...prev[playerId],
-        [teamMemberId]: {
-          ...prev[playerId]?.[teamMemberId],
+    setTeamMemberStats(prev => {
+      const newStats = { ...prev };
+      if (!newStats[playerId]) {
+        newStats[playerId] = {};
+      }
+      if (!newStats[playerId][teamMemberId]) {
+        newStats[playerId][teamMemberId] = {};
+      }
+      
+      // If value is empty, remove the key entirely instead of setting to empty string
+      if (value === "" || value === null || value === undefined) {
+        const { [statName]: _, ...rest } = newStats[playerId][teamMemberId];
+        newStats[playerId][teamMemberId] = rest;
+        // If team member has no stats left, remove the team member entry
+        if (Object.keys(newStats[playerId][teamMemberId]).length === 0) {
+          const { [teamMemberId]: __, ...restMembers } = newStats[playerId];
+          newStats[playerId] = restMembers;
+          // If player has no team members left, remove the player entry
+          if (Object.keys(newStats[playerId]).length === 0) {
+            const { [playerId]: ___, ...restPlayers } = newStats;
+            return restPlayers;
+          }
+        }
+      } else {
+        newStats[playerId][teamMemberId] = {
+          ...newStats[playerId][teamMemberId],
           [statName]: value,
-        },
-      },
-    }));
+        };
+      }
+      return newStats;
+    });
   };
 
   const toggleOwnGoal = (playerId: string, teamMemberId: string) => {
@@ -407,7 +444,7 @@ export default function MatchDetailContent({
     return teamMembers[playerId].filter((member: any) => {
       // Check if this member has any stats entered for THIS match only
       const memberStats = teamMemberStats[playerId]?.[member.id];
-      if (!memberStats) return false;
+      if (!memberStats || Object.keys(memberStats).length === 0) return false;
       return Object.keys(memberStats).some(key => {
         const value = memberStats[key];
         return value !== undefined && value !== null && value !== "";

@@ -268,7 +268,7 @@ export default function MatchDetailView({
                               <div className="space-y-2">
                                 {playerLevelStats.map(stat => {
                                   const value = memberStats[stat.stat_name];
-                                  if (!value) return null;
+                                  if (!value || value === "" || value === null || value === undefined) return null;
                                   return (
                                     <div key={stat.id} className="flex justify-between text-sm">
                                       <span className="text-gray-600">{stat.stat_label}:</span>
@@ -291,7 +291,7 @@ export default function MatchDetailView({
                     <div className="space-y-2">
                       {teamLevelStats.map(stat => {
                         const value = player1Stats[stat.stat_name];
-                        if (!value) return null;
+                        if (!value || value === "" || value === null || value === undefined) return null;
                         return (
                           <div key={stat.id} className="flex justify-between text-sm">
                             <span className="text-gray-600">{stat.stat_label}:</span>
@@ -308,7 +308,7 @@ export default function MatchDetailView({
                   <div className="space-y-2">
                     {allStats.map(stat => {
                       const value = player1Stats[stat.stat_name];
-                      if (!value) return null;
+                      if (!value || value === "" || value === null || value === undefined) return null;
                       return (
                         <div key={stat.id} className="flex justify-between text-sm">
                           <span className="text-gray-600">{stat.stat_label}:</span>
@@ -361,7 +361,7 @@ export default function MatchDetailView({
                               <div className="space-y-2">
                                 {playerLevelStats.map(stat => {
                                   const value = memberStats[stat.stat_name];
-                                  if (!value) return null;
+                                  if (!value || value === "" || value === null || value === undefined) return null;
                                   return (
                                     <div key={stat.id} className="flex justify-between text-sm">
                                       <span className="text-gray-600">{stat.stat_label}:</span>
@@ -384,7 +384,7 @@ export default function MatchDetailView({
                     <div className="space-y-2">
                       {teamLevelStats.map(stat => {
                         const value = player2Stats[stat.stat_name];
-                        if (!value) return null;
+                        if (!value || value === "" || value === null || value === undefined) return null;
                         return (
                           <div key={stat.id} className="flex justify-between text-sm">
                             <span className="text-gray-600">{stat.stat_label}:</span>
@@ -401,7 +401,7 @@ export default function MatchDetailView({
                   <div className="space-y-2">
                     {allStats.map(stat => {
                       const value = player2Stats[stat.stat_name];
-                      if (!value) return null;
+                      if (!value || value === "" || value === null || value === undefined) return null;
                       return (
                         <div key={stat.id} className="flex justify-between text-sm">
                           <span className="text-gray-600">{stat.stat_label}:</span>
