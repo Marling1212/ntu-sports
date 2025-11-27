@@ -247,7 +247,7 @@ export default function MatchDetailContent({
             if (value !== undefined && value !== null && value !== "") {
               // For soccer, if it's a goal and own goal is checked, save as own_goal stat
               if (isSoccer && statName === 'player_goals' && ownGoals[playerId]?.[teamMemberId]) {
-                // Save as own_goal stat instead of regular goal
+                // Save as own_goal stat for the player (for individual stats tracking)
                 statsToUpsert.push({
                   match_id: match.id,
                   player_id: playerId,
@@ -255,6 +255,20 @@ export default function MatchDetailContent({
                   stat_name: 'player_own_goals',
                   stat_value: value,
                 });
+                
+                // IMPORTANT: Own goal from Team A counts as a goal FOR Team B
+                // Add a team-level goal stat for the OPPOSING team
+                const opposingTeamId = playerId === match.player1_id ? match.player2_id : match.player1_id;
+                if (opposingTeamId) {
+                  // Add this as a team-level goal for the opposing team
+                  statsToUpsert.push({
+                    match_id: match.id,
+                    player_id: opposingTeamId,
+                    stat_name: 'goals',
+                    stat_value: value,
+                    team_member_id: null, // Team-level stat
+                  });
+                }
               } else {
                 statsToUpsert.push({
                   match_id: match.id,
@@ -506,6 +520,25 @@ export default function MatchDetailContent({
               total += parseFloat(value) || 0;
             }
           });
+          
+          // For goals: also add goals from opponent's own goals
+          // (Own goals scored by opponent count as goals for this team)
+          if (stat.stat_name === 'goals' && isSoccer) {
+            const opponentId = player.id === match.player1_id ? match.player2_id : match.player1_id;
+            if (opponentId && teamMemberStats[opponentId]) {
+              // Sum up opponent's own goals - these count as goals for this team
+              Object.keys(teamMemberStats[opponentId]).forEach(opponentMemberId => {
+                // Check if this opponent member has own goals
+                if (ownGoals[opponentId]?.[opponentMemberId]) {
+                  const ownGoalValue = teamMemberStats[opponentId][opponentMemberId]['player_goals'];
+                  if (ownGoalValue) {
+                    total += parseFloat(ownGoalValue) || 0;
+                  }
+                }
+              });
+            }
+          }
+          
           teamStats[player.id][stat.stat_name] = total > 0 ? total.toString() : "";
         } else if (stat.stat_type === 'boolean') {
           // For boolean stats, check if any player has it set to true
@@ -522,7 +555,7 @@ export default function MatchDetailContent({
     });
     
     return teamStats;
-  }, [teamMemberStats, teamMembers, teamLevelStats, playerLevelStats, isTeamEvent, player1, player2]);
+  }, [teamMemberStats, teamMembers, teamLevelStats, playerLevelStats, isTeamEvent, player1, player2, match, ownGoals, isSoccer]);
 
   return (
     <>
