@@ -50,6 +50,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   const [view, setView] = useState<"regular" | "playoffs" | "standings">(initialView);
   const [selectedGroup, setSelectedGroup] = useState<number | "all">("all");
   const [expandedScorers, setExpandedScorers] = useState(false);
+  const [expandedYellowCards, setExpandedYellowCards] = useState(false);
+  const [expandedRedCards, setExpandedRedCards] = useState(false);
 
   // Separate regular season (round 0) and playoff matches (round >= 1)
   // Get all groups from regular season matches
@@ -198,7 +200,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     
     return Array.from(cardsMap.values())
       .sort((a, b) => b.cards - a.cards)
-      .slice(0, 5)
       .filter(s => s.cards > 0)
       .map((item, idx) => ({
         id: `yellow_${idx}`,
@@ -208,6 +209,10 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         jerseyNumber: item.jerseyNumber
       }));
   }, [matchPlayerStats, teamMembers, registrationType, players]);
+  
+  // Get top 5 and all yellow cards
+  const top5YellowCards = topYellowCards.slice(0, 5);
+  const allYellowCards = topYellowCards;
 
   // Calculate red cards Top 5
   const topRedCards = useMemo(() => {
@@ -260,7 +265,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     
     return Array.from(cardsMap.values())
       .sort((a, b) => b.cards - a.cards)
-      .slice(0, 5)
       .filter(s => s.cards > 0)
       .map((item, idx) => ({
         id: `red_${idx}`,
@@ -270,6 +274,10 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         jerseyNumber: item.jerseyNumber
       }));
   }, [matchPlayerStats, teamMembers, registrationType, players]);
+  
+  // Get top 5 and all red cards
+  const top5RedCards = topRedCards.slice(0, 5);
+  const allRedCards = topRedCards;
 
   // Derive number of qualifiers (top X) from existing playoff round-1 participants if available.
   // Fallback to 4 if no playoffs yet.
@@ -1045,12 +1053,22 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                 )}
 
                 {/* Top Yellow Cards Chart */}
-                {topYellowCards.length > 0 ? (
+                {allYellowCards.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-yellow-600">🟨 黃牌 Top 5</h3>
+                      {allYellowCards.length > 5 && (
+                        <button
+                          onClick={() => setExpandedYellowCards(!expandedYellowCards)}
+                          className="text-sm text-yellow-600 hover:text-yellow-700 font-medium underline"
+                        >
+                          {expandedYellowCards ? '收起' : `查看全部 (${allYellowCards.length})`}
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-3">
-                      {topYellowCards.map((stat, idx) => {
-                        const maxCards = topYellowCards[0].count;
+                      {(expandedYellowCards ? allYellowCards : top5YellowCards).map((stat, idx) => {
+                        const maxCards = allYellowCards[0].count;
                         const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
                         let displayName = stat.name;
                         if (registrationType === 'team' && stat.teamName) {
@@ -1086,12 +1104,22 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                 )}
 
                 {/* Top Red Cards Chart */}
-                {topRedCards.length > 0 ? (
+                {allRedCards.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-red-600">🟥 紅牌 Top 5</h3>
+                      {allRedCards.length > 5 && (
+                        <button
+                          onClick={() => setExpandedRedCards(!expandedRedCards)}
+                          className="text-sm text-red-600 hover:text-red-700 font-medium underline"
+                        >
+                          {expandedRedCards ? '收起' : `查看全部 (${allRedCards.length})`}
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-3">
-                      {topRedCards.map((stat, idx) => {
-                        const maxCards = topRedCards[0].count;
+                      {(expandedRedCards ? allRedCards : top5RedCards).map((stat, idx) => {
+                        const maxCards = allRedCards[0].count;
                         const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
                         let displayName = stat.name;
                         if (registrationType === 'team' && stat.teamName) {
