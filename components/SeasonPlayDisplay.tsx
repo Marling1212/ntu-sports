@@ -49,6 +49,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     defaultView && tabs[defaultView] ? defaultView : (tabs.regular ? "regular" : tabs.standings ? "standings" : "playoffs");
   const [view, setView] = useState<"regular" | "playoffs" | "standings">(initialView);
   const [selectedGroup, setSelectedGroup] = useState<number | "all">("all");
+  const [expandedScorers, setExpandedScorers] = useState(false);
 
   // Separate regular season (round 0) and playoff matches (round >= 1)
   // Get all groups from regular season matches
@@ -132,7 +133,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     
     return playerGoalsArray
       .sort((a, b) => b.goals - a.goals)
-      .slice(0, 5)
       .filter(s => s.goals > 0)
       .map((item, idx) => ({
         id: `player_${idx}`,
@@ -142,6 +142,10 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         jerseyNumber: item.jerseyNumber
       }));
   }, [matchPlayerStats, teamMembers, registrationType, players]);
+  
+  // Get top 5 and all scorers
+  const top5Scorers = topScorers.slice(0, 5);
+  const allScorers = topScorers;
 
   // Calculate yellow cards Top 5
   const topYellowCards = useMemo(() => {
@@ -990,12 +994,22 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               {/* Top Performers: Goals, Yellow Cards, Red Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Top Scorers Chart */}
-                {topScorers.length > 0 ? (
+                {allScorers.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-ntu-green">⚽ 進球數 Top 5</h3>
+                      {allScorers.length > 5 && (
+                        <button
+                          onClick={() => setExpandedScorers(!expandedScorers)}
+                          className="text-sm text-ntu-green hover:text-green-700 font-medium underline"
+                        >
+                          {expandedScorers ? '收起' : `查看全部 (${allScorers.length})`}
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-3">
-                      {topScorers.map((stat, idx) => {
-                        const maxGoals = topScorers[0].goalsFor;
+                      {(expandedScorers ? allScorers : top5Scorers).map((stat, idx) => {
+                        const maxGoals = allScorers[0].goalsFor;
                         const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
                         let displayName = stat.name;
                         if (registrationType === 'team' && 'teamName' in stat && stat.teamName) {
