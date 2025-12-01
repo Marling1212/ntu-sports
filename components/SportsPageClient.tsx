@@ -151,7 +151,7 @@ export default function SportsPageClient({
             </table>
           </div>
           
-          {/* Mobile Card View */}
+          {/* Mobile Card View - Fully Clickable */}
           <div className="md:hidden space-y-3">
             {matchesToShow.map((m: any) => {
               const timeStr = new Intl.DateTimeFormat(locale === 'zh' ? "zh-TW" : "en-US", {
@@ -163,7 +163,11 @@ export default function SportsPageClient({
               const p1 = m.player1?.name || "TBD";
               const p2 = m.player2?.name || "TBD";
               return (
-                <div key={m.id} className="bg-white rounded-lg p-4 shadow-sm border border-yellow-200">
+                <Link
+                  key={m.id}
+                  href={`/sports/${singleEvent?.sport?.toLowerCase() || 'tennis'}/matches/${m.id}`}
+                  className="block bg-white rounded-lg p-4 shadow-sm border border-yellow-200 hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.98]"
+                >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-gray-700">{timeStr}</span>
                     {m.status === "completed" ? (
@@ -179,15 +183,12 @@ export default function SportsPageClient({
                   <div className="text-sm text-gray-600 mb-2">{t('sports.courtLabel')}{court}</div>
                   <div className="text-sm text-gray-800">
                     <span className="font-semibold">{p1}</span>
-                    <Link 
-                      href={`/sports/${singleEvent?.sport?.toLowerCase() || 'tennis'}/matches/${m.id}`}
-                      className="mx-3 text-lg font-bold text-ntu-green hover:text-green-700 hover:underline cursor-pointer transition-colors"
-                    >
+                    <span className="mx-3 text-lg font-bold text-ntu-green">
                       {t('sports.vs')}
-                    </Link>
+                    </span>
                     <span className="font-semibold">{p2}</span>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

@@ -88,7 +88,8 @@ export default async function TennisSchedulePage() {
                   )}
                 </div>
               
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
@@ -129,6 +130,43 @@ export default async function TennisSchedulePage() {
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden divide-y divide-gray-200">
+                  {day.items.map((item, index) => {
+                    // Calculate global order number
+                    let globalOrder = index + 1;
+                    for (let i = 0; i < dayIndex; i++) {
+                      globalOrder += scheduleByDay[i].items.length;
+                    }
+                    
+                    return (
+                      <div key={item.id} className="p-4 bg-white hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-gray-500">#{globalOrder}</span>
+                            <span className="text-sm font-semibold text-ntu-green">{item.round_name}</span>
+                          </div>
+                          <span className="text-sm font-semibold text-ntu-green">{item.scheduled_time}</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          {item.group_name && (
+                            <span className="flex items-center gap-1">
+                              <span className="text-gray-500">組別:</span>
+                              <span className="font-medium">{item.group_name}</span>
+                            </span>
+                          )}
+                          {item.match_count && (
+                            <span className="flex items-center gap-1">
+                              <span className="text-gray-500">場數:</span>
+                              <span className="font-medium">{item.match_count}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )

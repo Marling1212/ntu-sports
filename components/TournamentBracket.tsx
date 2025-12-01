@@ -170,7 +170,7 @@ export default function TournamentBracket({
     
     return (
       <div
-        className={`rounded-lg border-2 shadow-sm p-3 w-[200px] transition-all duration-500 ${
+        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 w-[150px] md:w-[200px] transition-all duration-500 ${
           isBye
             ? "border-gray-200 bg-gray-50"
             : isWinner
@@ -188,18 +188,18 @@ export default function TournamentBracket({
           height: `${blockHeight}px`,
         }}
       >
-        <div className="flex items-center gap-2 h-full">
+        <div className="flex items-center gap-1.5 md:gap-2 h-full">
           {player?.seed && (
-            <span className="text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded flex-shrink-0">
+            <span className="text-xs font-bold text-white bg-ntu-green px-1 md:px-1.5 py-0.5 rounded flex-shrink-0">
               {player.seed}
             </span>
           )}
           <div className="flex-1 min-w-0">
-            <div className={`text-sm font-medium truncate leading-tight ${isBye ? 'text-gray-400 italic' : ''}`}>
+            <div className={`text-xs md:text-sm font-medium truncate leading-tight ${isBye ? 'text-gray-400 italic' : ''}`}>
               {displayText}
             </div>
             {player?.school && (
-              <div className="text-xs text-gray-500 truncate mt-0.5 leading-tight">
+              <div className="text-[10px] md:text-xs text-gray-500 truncate mt-0.5 leading-tight">
                 {player.school}
               </div>
             )}
@@ -269,11 +269,11 @@ export default function TournamentBracket({
               return (
                 <div key={round} className="flex flex-col relative">
                   {/* Round Header */}
-                  <div className="mb-4 text-center sticky top-0 bg-white z-10 pb-2 border-b border-gray-200 w-[200px]">
-                    <h3 className="text-base font-semibold text-ntu-green">
+                  <div className="mb-4 text-center sticky top-0 bg-white z-10 pb-2 border-b border-gray-200 w-[150px] md:w-[200px]">
+                    <h3 className="text-sm md:text-base font-semibold text-ntu-green">
                       {roundNames[roundIndex]}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-[10px] md:text-xs text-gray-500 mt-1">
                       {displayMatches.length} {displayMatches.length === 1 ? "match" : "matches"}
                     </p>
                   </div>

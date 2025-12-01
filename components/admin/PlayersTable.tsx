@@ -147,7 +147,8 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       name: editingMember.name.trim(),
     };
 
-    if (editingMember.jerseyNumber) {
+    // Allow jersey number to be 0 - check if field has a value (including "0")
+    if (editingMember.jerseyNumber !== undefined && editingMember.jerseyNumber !== null && editingMember.jerseyNumber !== '') {
       const jerseyNum = parseInt(editingMember.jerseyNumber);
       if (!isNaN(jerseyNum)) {
         memberData.jersey_number = jerseyNum;
@@ -509,6 +510,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                                     <input
                                       type="number"
                                       placeholder="背號 (選填)"
+                                      min="0"
                                       value={editingMember.jerseyNumber}
                                       onChange={(e) => setEditingMember({ ...editingMember, jerseyNumber: e.target.value })}
                                       className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
@@ -694,6 +696,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                               <input
                                 type="number"
                                 placeholder="背號 (選填)"
+                                min="0"
                                 value={editingMember.jerseyNumber}
                                 onChange={(e) => setEditingMember({ ...editingMember, jerseyNumber: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"

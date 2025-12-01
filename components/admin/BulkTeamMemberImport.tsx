@@ -33,7 +33,8 @@ export default function BulkTeamMemberImport({ teamId, onImportComplete }: BulkT
         const name = parts[0];
         let jerseyNumber: number | null = null;
 
-        if (parts.length > 1 && parts[1]) {
+        // Allow jersey number to be 0 - check if the field exists (not empty after trimming)
+        if (parts.length > 1 && parts[1] !== undefined && parts[1] !== null && parts[1].trim() !== '') {
           const num = parseInt(parts[1]);
           if (!isNaN(num)) {
             jerseyNumber = num;

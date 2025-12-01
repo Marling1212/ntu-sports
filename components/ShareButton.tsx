@@ -55,7 +55,7 @@ export default function ShareButton({
     <div className={`relative ${className}`}>
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-ntu-green to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-xl hover:scale-105 text-sm sm:text-base font-medium"
+        className="flex items-center gap-2 px-3 sm:px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-ntu-green to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-xl hover:scale-105 text-sm sm:text-base font-medium"
       >
         <span className="text-base sm:text-lg">📤</span>
         <span>{t('nav.share')}</span>

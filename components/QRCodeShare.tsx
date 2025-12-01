@@ -36,7 +36,7 @@ export default function QRCodeShare({
     <>
       <button
         onClick={() => setShowModal(true)}
-        className={`flex items-center gap-2 px-3 sm:px-4 py-2 bg-white text-ntu-green rounded-lg hover:bg-gray-50 transition-all duration-300 border-2 border-ntu-green shadow-md hover:shadow-xl hover:scale-105 text-sm sm:text-base font-medium ${className}`}
+        className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 min-h-[44px] bg-white text-ntu-green rounded-lg hover:bg-gray-50 transition-all duration-300 border-2 border-ntu-green shadow-md hover:shadow-xl hover:scale-105 text-sm sm:text-base font-medium ${className}`}
       >
         <span className="text-base sm:text-lg">📱</span>
         <span>QR Code</span>

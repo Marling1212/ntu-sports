@@ -32,7 +32,7 @@ export default function Navbar() {
             <LanguageSwitcher />
             <Link 
               href="/" 
-              className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-medium"
+              className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-medium min-h-[44px] flex items-center"
             >
               {t('nav.home')}
             </Link>
@@ -78,7 +78,7 @@ export default function Navbar() {
               <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-medium"
+                className="px-4 py-3 rounded-lg hover:bg-white/10 transition-colors font-medium min-h-[44px] flex items-center"
               >
                 {t('nav.home')}
               </Link>
