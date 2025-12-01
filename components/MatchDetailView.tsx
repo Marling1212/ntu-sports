@@ -42,6 +42,9 @@ export default function MatchDetailView({
   const player2Stats: Record<string, string> = {};
   const player1MemberStats: Record<string, Record<string, string>> = {};
   const player2MemberStats: Record<string, Record<string, string>> = {};
+  
+  // Track own goals: { playerId: { teamMemberId: true } }
+  const ownGoalsMap: Record<string, Record<string, boolean>> = {};
 
   matchStats.forEach(stat => {
     if (stat.player_id === match.player1_id) {
@@ -49,7 +52,17 @@ export default function MatchDetailView({
         if (!player1MemberStats[stat.team_member_id]) {
           player1MemberStats[stat.team_member_id] = {};
         }
-        player1MemberStats[stat.team_member_id][stat.stat_name] = stat.stat_value || "";
+        
+        // If it's an own goal, store as player_goals for display and track as own goal
+        if (stat.stat_name === 'player_own_goals' && stat.stat_value) {
+          player1MemberStats[stat.team_member_id]['player_goals'] = stat.stat_value || "";
+          if (!ownGoalsMap[match.player1_id]) {
+            ownGoalsMap[match.player1_id] = {};
+          }
+          ownGoalsMap[match.player1_id][stat.team_member_id] = true;
+        } else {
+          player1MemberStats[stat.team_member_id][stat.stat_name] = stat.stat_value || "";
+        }
       } else {
         player1Stats[stat.stat_name] = stat.stat_value || "";
       }
@@ -58,7 +71,17 @@ export default function MatchDetailView({
         if (!player2MemberStats[stat.team_member_id]) {
           player2MemberStats[stat.team_member_id] = {};
         }
-        player2MemberStats[stat.team_member_id][stat.stat_name] = stat.stat_value || "";
+        
+        // If it's an own goal, store as player_goals for display and track as own goal
+        if (stat.stat_name === 'player_own_goals' && stat.stat_value) {
+          player2MemberStats[stat.team_member_id]['player_goals'] = stat.stat_value || "";
+          if (!ownGoalsMap[match.player2_id]) {
+            ownGoalsMap[match.player2_id] = {};
+          }
+          ownGoalsMap[match.player2_id][stat.team_member_id] = true;
+        } else {
+          player2MemberStats[stat.team_member_id][stat.stat_name] = stat.stat_value || "";
+        }
       } else {
         player2Stats[stat.stat_name] = stat.stat_value || "";
       }
@@ -264,6 +287,9 @@ export default function MatchDetailView({
                                 {(member.jersey_number !== null && member.jersey_number !== undefined) && (
                                   <span className="text-sm text-gray-500 ml-2">#{member.jersey_number}</span>
                                 )}
+                                {ownGoalsMap[match.player1_id]?.[member.id] && (
+                                  <span className="text-xs font-semibold text-red-600 ml-2 bg-red-100 px-2 py-0.5 rounded">OG</span>
+                                )}
                               </h5>
                               <div className="space-y-2">
                                 {playerLevelStats.map(stat => {
@@ -356,6 +382,9 @@ export default function MatchDetailView({
                                 {member.name}
                                 {(member.jersey_number !== null && member.jersey_number !== undefined) && (
                                   <span className="text-sm text-gray-500 ml-2">#{member.jersey_number}</span>
+                                )}
+                                {ownGoalsMap[match.player2_id]?.[member.id] && (
+                                  <span className="text-xs font-semibold text-red-600 ml-2 bg-red-100 px-2 py-0.5 rounded">OG</span>
                                 )}
                               </h5>
                               <div className="space-y-2">
