@@ -97,6 +97,90 @@ export default function MatchDetailView({
   const teamLevelStats = allStats.filter(s => s.stat_level === 'team' || !s.stat_level);
   const playerLevelStats = allStats.filter(s => s.stat_level === 'player');
 
+  // Calculate team-level stats from player-level stats (for team events)
+  // This ensures own goals are correctly counted for the opposing team
+  const calculatedTeamStats: Record<string, Record<string, string>> = {
+    [match.player1_id || '']: { ...player1Stats },
+    [match.player2_id || '']: { ...player2Stats },
+  };
+
+  if (isTeamEvent && (player1 || player2)) {
+    const isSoccer = event?.sport?.toLowerCase() === 'soccer' || event?.sport?.toLowerCase() === 'football';
+    
+    [player1, player2].forEach((player) => {
+      if (!player) return;
+      
+      teamLevelStats.forEach(stat => {
+        // Find corresponding player-level stat name
+        const playerStatName = `player_${stat.stat_name}`;
+        
+        if (stat.stat_type === 'number') {
+          let total = 0;
+          
+          if (stat.stat_name === 'goals' && isSoccer) {
+            // For goals: only count regular goals (NOT own goals from this team)
+            const playerId = player.id === match.player1_id ? match.player1_id : match.player2_id;
+            const memberStats = playerId === match.player1_id ? player1MemberStats : player2MemberStats;
+            
+            if (teamMembers[player.id]) {
+              teamMembers[player.id].forEach((member: any) => {
+                const value = memberStats[member.id]?.[playerStatName];
+                // Only count if it's NOT an own goal
+                if (value && !ownGoalsMap[player.id]?.[member.id]) {
+                  total += parseFloat(value) || 0;
+                }
+              });
+            }
+            
+            // Add goals from opponent's own goals
+            // (Own goals scored by opponent count as goals for this team)
+            const opponentId = player.id === match.player1_id ? match.player2_id : match.player1_id;
+            if (opponentId && ownGoalsMap[opponentId] && teamMembers[opponentId]) {
+              const opponentMemberStats = opponentId === match.player1_id ? player1MemberStats : player2MemberStats;
+              teamMembers[opponentId].forEach((member: any) => {
+                // Check if this opponent member has own goals
+                if (ownGoalsMap[opponentId]?.[member.id]) {
+                  // Get the own goal value (stored as player_goals in stats, but it's actually an own goal)
+                  const ownGoalValue = opponentMemberStats[member.id]?.[playerStatName];
+                  // Actually, own goals are stored as player_own_goals, so we need to check that
+                  // But we excluded them from opponent's stats, so we need to get them from the original matchStats
+                  // Let's find the own goal value from matchStats
+                  const ownGoalStat = matchStats.find(s => 
+                    s.player_id === opponentId && 
+                    s.team_member_id === member.id && 
+                    s.stat_name === 'player_own_goals'
+                  );
+                  if (ownGoalStat && ownGoalStat.stat_value) {
+                    total += parseFloat(ownGoalStat.stat_value) || 0;
+                  }
+                }
+              });
+            }
+          } else {
+            // For other stats, sum normally
+            const playerId = player.id === match.player1_id ? match.player1_id : match.player2_id;
+            const memberStats = playerId === match.player1_id ? player1MemberStats : player2MemberStats;
+            
+            if (teamMembers[player.id]) {
+              teamMembers[player.id].forEach((member: any) => {
+                const value = memberStats[member.id]?.[playerStatName];
+                if (value) {
+                  total += parseFloat(value) || 0;
+                }
+              });
+            }
+          }
+          
+          calculatedTeamStats[player.id][stat.stat_name] = total > 0 ? total.toString() : "";
+        }
+      });
+    });
+  }
+
+  // Use calculated stats for team events, fallback to database stats
+  const displayPlayer1Stats = isTeamEvent ? calculatedTeamStats[match.player1_id || ''] || player1Stats : player1Stats;
+  const displayPlayer2Stats = isTeamEvent ? calculatedTeamStats[match.player2_id || ''] || player2Stats : player2Stats;
+
   // Get sport name for URL
   const sportParam = event?.sport?.toLowerCase() || "";
 
@@ -320,7 +404,7 @@ export default function MatchDetailView({
                     <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計</h4>
                     <div className="space-y-2">
                       {teamLevelStats.map(stat => {
-                        const value = player1Stats[stat.stat_name];
+                        const value = displayPlayer1Stats[stat.stat_name];
                         if (!value || value === "" || value === null || value === undefined) return null;
                         return (
                           <div key={stat.id} className="flex justify-between text-sm">
@@ -416,7 +500,7 @@ export default function MatchDetailView({
                     <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計</h4>
                     <div className="space-y-2">
                       {teamLevelStats.map(stat => {
-                        const value = player2Stats[stat.stat_name];
+                        const value = displayPlayer2Stats[stat.stat_name];
                         if (!value || value === "" || value === null || value === undefined) return null;
                         return (
                           <div key={stat.id} className="flex justify-between text-sm">
