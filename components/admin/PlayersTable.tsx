@@ -548,7 +548,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                                     <tbody>
                                       {members.map((member) => (
                                         <tr key={member.id} className="border-b border-gray-200">
-                                          <td className="px-3 py-2">{member.jersey_number || '—'}</td>
+                                          <td className="px-3 py-2">{member.jersey_number !== null && member.jersey_number !== undefined ? member.jersey_number : '—'}</td>
                                           <td className="px-3 py-2">{member.name}</td>
                                           <td className="px-3 py-2 text-right">
                                             <button
@@ -727,7 +727,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                               <div key={member.id} className="bg-white p-3 rounded border border-gray-200 flex justify-between items-center">
                                 <div>
                                   <span className="font-medium">{member.name}</span>
-                                  {member.jersey_number && (
+                                  {member.jersey_number !== null && member.jersey_number !== undefined && (
                                     <span className="text-gray-500 ml-2">#{member.jersey_number}</span>
                                   )}
                                 </div>
