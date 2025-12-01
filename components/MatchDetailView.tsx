@@ -53,13 +53,15 @@ export default function MatchDetailView({
           player1MemberStats[stat.team_member_id] = {};
         }
         
-        // If it's an own goal, store as player_goals for display and track as own goal
+        // If it's an own goal, track it but DON'T add it to player1's stats
+        // Own goals count FOR the opposing team, so the goal will show under player2's team stats
         if (stat.stat_name === 'player_own_goals' && stat.stat_value) {
-          player1MemberStats[stat.team_member_id]['player_goals'] = stat.stat_value || "";
+          // Track which player scored the own goal (for OG badge display)
           if (!ownGoalsMap[match.player1_id]) {
             ownGoalsMap[match.player1_id] = {};
           }
           ownGoalsMap[match.player1_id][stat.team_member_id] = true;
+          // Don't add the goal to player1's stats - it counts for the opposing team
         } else {
           player1MemberStats[stat.team_member_id][stat.stat_name] = stat.stat_value || "";
         }
@@ -72,13 +74,15 @@ export default function MatchDetailView({
           player2MemberStats[stat.team_member_id] = {};
         }
         
-        // If it's an own goal, store as player_goals for display and track as own goal
+        // If it's an own goal, track it but DON'T add it to player2's stats
+        // Own goals count FOR the opposing team, so the goal will show under player1's team stats
         if (stat.stat_name === 'player_own_goals' && stat.stat_value) {
-          player2MemberStats[stat.team_member_id]['player_goals'] = stat.stat_value || "";
+          // Track which player scored the own goal (for OG badge display)
           if (!ownGoalsMap[match.player2_id]) {
             ownGoalsMap[match.player2_id] = {};
           }
           ownGoalsMap[match.player2_id][stat.team_member_id] = true;
+          // Don't add the goal to player2's stats - it counts for the opposing team
         } else {
           player2MemberStats[stat.team_member_id][stat.stat_name] = stat.stat_value || "";
         }
