@@ -394,6 +394,36 @@ export default function MatchDetailView({
                             </div>
                           );
                         })}
+                      {/* Show goals from opponent's own goals */}
+                      {(() => {
+                        const opponentId = match.player2_id;
+                        let opponentOwnGoalsTotal = 0;
+                        if (opponentId && ownGoalsMap[opponentId] && teamMembers[opponentId]) {
+                          teamMembers[opponentId].forEach((member: any) => {
+                            if (ownGoalsMap[opponentId]?.[member.id]) {
+                              const ownGoalStat = matchStats.find(s => 
+                                s.player_id === opponentId && 
+                                s.team_member_id === member.id && 
+                                s.stat_name === 'player_own_goals'
+                              );
+                              if (ownGoalStat && ownGoalStat.stat_value) {
+                                opponentOwnGoalsTotal += parseFloat(ownGoalStat.stat_value) || 0;
+                              }
+                            }
+                          });
+                        }
+                        if (opponentOwnGoalsTotal > 0) {
+                          return (
+                            <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">來自對手烏龍球:</span>
+                                <span className="font-semibold text-green-700">{opponentOwnGoalsTotal}</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 )}
@@ -490,6 +520,36 @@ export default function MatchDetailView({
                             </div>
                           );
                         })}
+                      {/* Show goals from opponent's own goals */}
+                      {(() => {
+                        const opponentId = match.player1_id;
+                        let opponentOwnGoalsTotal = 0;
+                        if (opponentId && ownGoalsMap[opponentId] && teamMembers[opponentId]) {
+                          teamMembers[opponentId].forEach((member: any) => {
+                            if (ownGoalsMap[opponentId]?.[member.id]) {
+                              const ownGoalStat = matchStats.find(s => 
+                                s.player_id === opponentId && 
+                                s.team_member_id === member.id && 
+                                s.stat_name === 'player_own_goals'
+                              );
+                              if (ownGoalStat && ownGoalStat.stat_value) {
+                                opponentOwnGoalsTotal += parseFloat(ownGoalStat.stat_value) || 0;
+                              }
+                            }
+                          });
+                        }
+                        if (opponentOwnGoalsTotal > 0) {
+                          return (
+                            <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">來自對手烏龍球:</span>
+                                <span className="font-semibold text-green-700">{opponentOwnGoalsTotal}</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 )}
