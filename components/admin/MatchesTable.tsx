@@ -1258,7 +1258,7 @@ export default function MatchesTable({
                         <td className="px-3 py-4">
                           <select
                             value={editForm.winner_id || ""}
-                            onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value || null })}
+                            onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value })}
                             className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
                           >
                             <option value="">No winner</option>
@@ -1713,7 +1713,7 @@ export default function MatchesTable({
                       </div>
                       <select
                         value={editForm.winner_id || ""}
-                        onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value || null })}
+                        onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                       >
                         <option value="">No winner</option>

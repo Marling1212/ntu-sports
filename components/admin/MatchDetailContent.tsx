@@ -678,7 +678,7 @@ export default function MatchDetailContent({
             <label className="block text-sm font-medium text-gray-700 mb-2">獲勝者</label>
             <select
               value={matchForm.winner_id || ""}
-              onChange={(e) => setMatchForm({ ...matchForm, winner_id: e.target.value || null })}
+              onChange={(e) => setMatchForm({ ...matchForm, winner_id: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
             >
               <option value="">無</option>
