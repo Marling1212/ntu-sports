@@ -387,7 +387,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             // Check for draw (equal scores or explicitly set as draw)
             const matchWinnerId = (m as any).winner_id;
             const matchStatus = (m as any).status;
-            const isMatchDraw = isDrawMatch(matchWinnerId, matchStatus, sc.a.toString(), sc.b.toString()) || sc.a === sc.b;
+            const isMatchDraw = isDrawMatch(matchWinnerId, matchStatus, sc.a.toString(), sc.b.toString());
             if (isMatchDraw) {
               p1.draws += 1; p1.points += 1;
               p2.draws += 1; p2.points += 1;
@@ -513,7 +513,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           // Check for draw (equal scores or explicitly set as draw)
           const matchWinnerId = (m as any).winner_id;
           const matchStatus = (m as any).status;
-          const isMatchDraw = isDrawMatch(matchWinnerId, matchStatus, sc.a.toString(), sc.b.toString()) || sc.a === sc.b;
+          const isMatchDraw = isDrawMatch(matchWinnerId, matchStatus, sc.a.toString(), sc.b.toString());
           if (isMatchDraw) {
             p1.draws += 1; p1.points += 1;
             p2.draws += 1; p2.points += 1;
@@ -900,6 +900,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           <th className="px-4 py-3 text-center">#</th>
                           <th className="px-4 py-3 text-left">Player</th>
                           <th className="px-4 py-3 text-center">Wins</th>
+                          <th className="px-4 py-3 text-center">Draws</th>
                           <th className="px-4 py-3 text-center">Losses</th>
                           <th className="px-4 py-3 text-center">Points</th>
                           <th className="px-4 py-3 text-center">GD</th>
@@ -932,6 +933,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               </Link>
                             </td>
                             <td className="px-4 py-3 text-center font-semibold text-green-600">{standing.wins}</td>
+                            <td className="px-4 py-3 text-center font-semibold text-gray-600">{standing.draws || 0}</td>
                             <td className="px-4 py-3 text-center font-semibold text-red-600">{standing.losses}</td>
                             <td className="px-4 py-3 text-center font-bold text-ntu-green">{standing.points}</td>
                             <td className="px-4 py-3 text-center font-semibold text-gray-700">{standing.goalDiff}</td>
@@ -954,6 +956,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       <th className="px-4 py-3 text-center">#</th>
                       <th className="px-4 py-3 text-left">Player</th>
                       <th className="px-4 py-3 text-center">Wins</th>
+                      <th className="px-4 py-3 text-center">Draws</th>
                       <th className="px-4 py-3 text-center">Losses</th>
                       <th className="px-4 py-3 text-center">Points</th>
                       <th className="px-4 py-3 text-center">GD</th>
@@ -986,6 +989,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           </Link>
                         </td>
                         <td className="px-4 py-3 text-center font-semibold text-green-600">{standing.wins}</td>
+                        <td className="px-4 py-3 text-center font-semibold text-gray-600">{standing.draws || 0}</td>
                         <td className="px-4 py-3 text-center font-semibold text-red-600">{standing.losses}</td>
                         <td className="px-4 py-3 text-center font-bold text-ntu-green">{standing.points}</td>
                         <td className="px-4 py-3 text-center font-semibold text-gray-700">{standing.goalDiff}</td>

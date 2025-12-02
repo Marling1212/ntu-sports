@@ -63,7 +63,10 @@ export default async function SportDrawPage(context: any) {
       player1: m.player1 ? { id: m.player1.id, name: m.player1.name, seed: m.player1.seed, school: m.player1.department } : null,
       player2: m.player2 ? { id: m.player2.id, name: m.player2.name, seed: m.player2.seed, school: m.player2.department } : null,
       winner: m.winner ? { id: m.winner.id, name: m.winner.name, seed: m.winner.seed, school: m.winner.department } : null,
+      winner_id: m.winner_id, // Pass through winner_id for draw detection
       score: m.score1 && m.score2 ? `${m.score1}-${m.score2}` : undefined,
+      score1: m.score1, // Pass through score1 for draw detection
+      score2: m.score2, // Pass through score2 for draw detection
       status: m.status as "upcoming" | "live" | "completed" | "bye" | "delayed",
       scheduled_time: m.scheduled_time, // Pass through scheduled_time for sorting
       slot_code: m.slot?.code, // Pass through slot code if available
