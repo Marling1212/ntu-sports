@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx';
 import Link from "next/link";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { DRAW_WINNER_ID, isDraw } from "@/lib/constants/matchConstants";
 
 interface SlotOption {
   id: string;
@@ -402,8 +403,8 @@ export default function MatchesTable({
       }
     }
 
-    // If a winner was set, advance them to the next round
-    if (editForm.winner_id && currentMatch.round) {
+    // If a winner was set (and it's not a draw), advance them to the next round
+    if (editForm.winner_id && !isDraw(editForm.winner_id) && currentMatch.round) {
       console.log("=== Winner Advancement Debug ===");
       console.log("Current match:", currentMatch);
       console.log("Winner ID:", editForm.winner_id);
@@ -1243,11 +1244,12 @@ export default function MatchesTable({
                         <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player2?.name || "TBD"}</td>
                         <td className="px-3 py-4">
                           <select
-                            value={editForm.winner_id}
-                            onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value })}
+                            value={editForm.winner_id || ""}
+                            onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value || null })}
                             className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
                           >
                             <option value="">No winner</option>
+                            <option value={DRAW_WINNER_ID}>Draw</option>
                             {match.player1_id && <option value={match.player1_id}>{match.player1?.name}</option>}
                             {match.player2_id && <option value={match.player2_id}>{match.player2?.name}</option>}
                           </select>
@@ -1399,7 +1401,9 @@ export default function MatchesTable({
                           <span className="text-sm">{match.player2?.name || "TBD"}</span>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
-                          {(match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "—"}
+                          {isDraw(match.winner_id) ? (
+                            <span className="text-gray-600 font-semibold">Draw</span>
+                          ) : (match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "—"}
                         </td>
                         <td className="px-3 py-4 text-sm min-w-[120px]">
                           {match.slot ? (
@@ -1606,6 +1610,13 @@ export default function MatchesTable({
                   )}
 
                   {match.winner_id && (() => {
+                    if (isDraw(match.winner_id)) {
+                      return (
+                        <div className="text-center text-sm">
+                          <span className="text-gray-600 font-semibold">Draw</span>
+                        </div>
+                      );
+                    }
                     const winner = players.find(p => p.id === match.winner_id);
                     return winner ? (
                       <div className="text-center text-sm">
@@ -1688,11 +1699,12 @@ export default function MatchesTable({
                         />
                       </div>
                       <select
-                        value={editForm.winner_id}
-                        onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value })}
+                        value={editForm.winner_id || ""}
+                        onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value || null })}
                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                       >
                         <option value="">No winner</option>
+                        <option value={DRAW_WINNER_ID}>Draw</option>
                         {match.player1_id && <option value={match.player1_id}>{match.player1?.name}</option>}
                         {match.player2_id && <option value={match.player2_id}>{match.player2?.name}</option>}
                       </select>

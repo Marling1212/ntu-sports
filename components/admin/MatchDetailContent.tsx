@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player, SportStatDefinition, MatchPlayerStat, Event } from "@/types/database";
 import Link from "next/link";
+import { DRAW_WINNER_ID, isDraw } from "@/lib/constants/matchConstants";
 
 interface Match {
   id: string;
@@ -663,11 +664,12 @@ export default function MatchDetailContent({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">獲勝者</label>
             <select
-              value={matchForm.winner_id}
-              onChange={(e) => setMatchForm({ ...matchForm, winner_id: e.target.value })}
+              value={matchForm.winner_id || ""}
+              onChange={(e) => setMatchForm({ ...matchForm, winner_id: e.target.value || null })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
             >
               <option value="">無</option>
+              <option value={DRAW_WINNER_ID}>平局 (Draw)</option>
               {player1 && <option value={player1.id}>{player1.name}</option>}
               {player2 && <option value={player2.id}>{player2.name}</option>}
             </select>
