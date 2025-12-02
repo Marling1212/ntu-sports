@@ -318,7 +318,6 @@ export default function PlayerStats({ players, matches, tournamentType, registra
     
     return Array.from(cardsMap.values())
       .sort((a, b) => b.cards - a.cards)
-      .slice(0, 5)
       .filter(s => s.cards > 0)
       .map((item, idx) => ({
         id: `yellow_${idx}`,
