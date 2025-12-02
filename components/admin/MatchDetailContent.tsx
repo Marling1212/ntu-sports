@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player, SportStatDefinition, MatchPlayerStat, Event } from "@/types/database";
 import Link from "next/link";
-import { DRAW_WINNER_ID, isDraw } from "@/lib/constants/matchConstants";
+import { DRAW_WINNER_ID, isDrawOption } from "@/lib/constants/matchConstants";
 
 interface Match {
   id: string;
@@ -115,10 +115,15 @@ export default function MatchDetailContent({
   courts,
   slots,
 }: MatchDetailContentProps) {
+  // Initialize form - check if match is a draw (completed, no winner, equal scores)
+  const isMatchDraw = match.status === "completed" && !match.winner_id && 
+                     match.score1 && match.score2 && match.score1 === match.score2;
+  const initialWinnerId = isMatchDraw ? DRAW_WINNER_ID : (match.winner_id || "");
+  
   const [matchForm, setMatchForm] = useState({
     score1: match.score1 || "",
     score2: match.score2 || "",
-    winner_id: match.winner_id || "",
+    winner_id: initialWinnerId,
     court: match.court || "",
     status: match.status || "upcoming",
     scheduled_time: toLocalInputValue(match.scheduled_time),
@@ -194,16 +199,24 @@ export default function MatchDetailContent({
         scheduledIso = deriveIsoFromSlot(selectedSlot);
       }
 
+      // Convert DRAW_WINNER_ID to null for database storage
+      const winnerIdValue = matchForm.winner_id === DRAW_WINNER_ID ? null : (matchForm.winner_id || null);
+      
+      // If Draw is selected, ensure status is completed
+      const finalStatus = matchForm.winner_id === DRAW_WINNER_ID && matchForm.status !== "completed" 
+        ? "completed" 
+        : matchForm.status;
+
       const { error } = await supabase
         .from("matches")
         .update({
           score1: matchForm.score1 || null,
           score2: matchForm.score2 || null,
-          winner_id: matchForm.winner_id || null,
+          winner_id: winnerIdValue,
           court: matchForm.court || null,
           scheduled_time: scheduledIso,
           slot_id: slotIdValue,
-          status: matchForm.status,
+          status: finalStatus,
           updated_at: new Date().toISOString(),
         })
         .eq("id", match.id);

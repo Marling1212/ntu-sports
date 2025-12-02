@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
-import { isDraw } from "@/lib/constants/matchConstants";
+import { isDrawMatch } from "@/lib/constants/matchConstants";
 
 interface MatchDetailViewProps {
   match: any;
@@ -274,7 +274,7 @@ export default function MatchDetailView({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">獲勝者</label>
             <div className="px-4 py-2 bg-gray-50 rounded-lg">
-              {isDraw(match.winner_id) ? (
+              {isDrawMatch(match.winner_id, match.status, match.score1, match.score2) ? (
                 <span className="font-semibold text-gray-600">平局 (Draw)</span>
               ) : match.winner ? (
                 <Link 

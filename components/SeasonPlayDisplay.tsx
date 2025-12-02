@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 import TournamentBracket from "./TournamentBracket";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import Link from "next/link";
-import { isDraw } from "@/lib/constants/matchConstants";
+import { isDrawMatch } from "@/lib/constants/matchConstants";
 
 interface SeasonPlayDisplayProps {
   matches: Match[];
@@ -386,11 +386,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             
             // Check for draw (equal scores or explicitly set as draw)
             const matchWinnerId = (m as any).winner_id;
-            const isMatchDraw = sc.a === sc.b || (matchWinnerId && isDraw(matchWinnerId));
+            const matchStatus = (m as any).status;
+            const isMatchDraw = isDrawMatch(matchWinnerId, matchStatus, sc.a.toString(), sc.b.toString()) || sc.a === sc.b;
             if (isMatchDraw) {
               p1.draws += 1; p1.points += 1;
               p2.draws += 1; p2.points += 1;
-            } else if (m.winner && !(matchWinnerId && isDraw(matchWinnerId))) {
+            } else if (m.winner && !isMatchDraw) {
               // Has winner, not a draw
               if (m.winner.id === m.player1.id) {
                 p1.wins += 1; p1.points += 3; p2.losses += 1;
@@ -511,11 +512,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           
           // Check for draw (equal scores or explicitly set as draw)
           const matchWinnerId = (m as any).winner_id;
-          const isMatchDraw = sc.a === sc.b || (matchWinnerId && isDraw(matchWinnerId));
+          const matchStatus = (m as any).status;
+          const isMatchDraw = isDrawMatch(matchWinnerId, matchStatus, sc.a.toString(), sc.b.toString()) || sc.a === sc.b;
           if (isMatchDraw) {
             p1.draws += 1; p1.points += 1;
             p2.draws += 1; p2.points += 1;
-          } else if (m.winner && !(matchWinnerId && isDraw(matchWinnerId))) {
+          } else if (m.winner && !isMatchDraw) {
             // Has winner, not a draw
             if (m.winner.id === m.player1?.id) { p1.wins += 1; p1.points += 3; p2.losses += 1; }
             else if (m.winner.id === m.player2?.id) { p2.wins += 1; p2.points += 3; p1.losses += 1; }

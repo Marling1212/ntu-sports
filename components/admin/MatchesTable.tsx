@@ -9,7 +9,7 @@ import * as XLSX from 'xlsx';
 import Link from "next/link";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
-import { DRAW_WINNER_ID, isDraw } from "@/lib/constants/matchConstants";
+import { DRAW_WINNER_ID, isDrawOption, isDrawMatch } from "@/lib/constants/matchConstants";
 
 interface SlotOption {
   id: string;
@@ -259,7 +259,12 @@ export default function MatchesTable({
     setEditForm({
       score1: match.score1 || "",
       score2: match.score2 || "",
-      winner_id: match.winner_id || "",
+      winner_id: (() => {
+        // Check if match is a draw (completed, no winner, equal scores)
+        const isMatchDraw = match.status === "completed" && !match.winner_id && 
+                           match.score1 && match.score2 && match.score1 === match.score2;
+        return isMatchDraw ? DRAW_WINNER_ID : (match.winner_id || "");
+      })(),
       court: match.court || "",
       status: match.status || "upcoming",
       scheduled_time: toLocalInputValue(scheduledSource),
@@ -278,17 +283,25 @@ export default function MatchesTable({
       scheduledIso = deriveIsoFromSlot(selectedSlot);
     }
 
+    // Convert DRAW_WINNER_ID to null for database storage
+    const winnerIdValue = editForm.winner_id === DRAW_WINNER_ID ? null : (editForm.winner_id || null);
+    
+    // If Draw is selected, ensure status is completed
+    const finalStatus = editForm.winner_id === DRAW_WINNER_ID && editForm.status !== "completed" 
+      ? "completed" 
+      : editForm.status;
+
     // Update current match
     const { data, error } = await supabase
       .from("matches")
       .update({
         score1: editForm.score1 || null,
         score2: editForm.score2 || null,
-        winner_id: editForm.winner_id || null,
+        winner_id: winnerIdValue,
         court: editForm.court || null,
         scheduled_time: scheduledIso,
         slot_id: slotIdValue,
-        status: editForm.status,
+        status: finalStatus,
         updated_at: new Date().toISOString(),
       })
       .eq("id", matchId)
@@ -404,7 +417,7 @@ export default function MatchesTable({
     }
 
     // If a winner was set (and it's not a draw), advance them to the next round
-    if (editForm.winner_id && !isDraw(editForm.winner_id) && currentMatch.round) {
+    if (editForm.winner_id && !isDrawOption(editForm.winner_id) && currentMatch.round) {
       console.log("=== Winner Advancement Debug ===");
       console.log("Current match:", currentMatch);
       console.log("Winner ID:", editForm.winner_id);
@@ -1401,7 +1414,7 @@ export default function MatchesTable({
                           <span className="text-sm">{match.player2?.name || "TBD"}</span>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">
-                          {isDraw(match.winner_id) ? (
+                          {isDrawMatch(match.winner_id, match.status, match.score1, match.score2) ? (
                             <span className="text-gray-600 font-semibold">Draw</span>
                           ) : (match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "—"}
                         </td>
@@ -1609,8 +1622,8 @@ export default function MatchesTable({
                     </div>
                   )}
 
-                  {match.winner_id && (() => {
-                    if (isDraw(match.winner_id)) {
+                  {(match.winner_id || isDrawMatch(match.winner_id, match.status, match.score1, match.score2)) && (() => {
+                    if (isDrawMatch(match.winner_id, match.status, match.score1, match.score2)) {
                       return (
                         <div className="text-center text-sm">
                           <span className="text-gray-600 font-semibold">Draw</span>
