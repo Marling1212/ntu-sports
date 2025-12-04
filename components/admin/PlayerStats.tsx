@@ -36,6 +36,7 @@ interface PlayerStat {
   matchesPlayed: number;
   yellowCards: number;
   redCards: number;
+  fairPlayPoints: number; // Negative value: more negative = worse (more cards)
 }
 
 const parseScore = (score?: string): { score1: number; score2: number } | null => {
@@ -67,6 +68,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
         matchesPlayed: 0,
         yellowCards: 0,
         redCards: 0,
+        fairPlayPoints: 0,
       });
     });
 
@@ -190,13 +192,103 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       
       stat.yellowCards = yellowCount;
       stat.redCards = redCount;
+      // Calculate fair play points (negative value: more negative = worse)
+      stat.fairPlayPoints = -(yellowCount + redCount * 3);
     });
 
-    // Sort by points, then goal difference, then goals for
-    return Array.from(statsMap.values()).sort((a, b) => {
+    // Enhanced sorting with head-to-head and fair play tiebreakers
+    const sortedStats = Array.from(statsMap.values());
+    
+    // Helper function to calculate head-to-head between two players
+    const calculateHeadToHead = (player1Id: string, player2Id: string): {
+      player1Points: number;
+      player2Points: number;
+      player1GoalDiff: number;
+      player2GoalDiff: number;
+      player1GoalsFor: number;
+      player2GoalsFor: number;
+    } => {
+      let p1Points = 0, p2Points = 0;
+      let p1GoalsFor = 0, p2GoalsFor = 0;
+      let p1GoalsAgainst = 0, p2GoalsAgainst = 0;
+
+      const headToHeadMatches = matches.filter(m => {
+        if (m.status !== "completed") return false;
+        const hasP1 = (m.player1_id === player1Id || m.player1_id === player2Id);
+        const hasP2 = (m.player2_id === player1Id || m.player2_id === player2Id);
+        return hasP1 && hasP2;
+      });
+
+      headToHeadMatches.forEach(m => {
+        const score = parseScore(m.score1 && m.score2 ? `${m.score1}-${m.score2}` : undefined);
+        if (!score) return;
+
+        const isP1First = m.player1_id === player1Id;
+        const p1Score = isP1First ? score.score1 : score.score2;
+        const p2Score = isP1First ? score.score2 : score.score1;
+
+        p1GoalsFor += p1Score;
+        p2GoalsFor += p2Score;
+        p1GoalsAgainst += p2Score;
+        p2GoalsAgainst += p1Score;
+
+        if (p1Score > p2Score) {
+          p1Points += 3;
+        } else if (p1Score < p2Score) {
+          p2Points += 3;
+        } else {
+          p1Points += 1;
+          p2Points += 1;
+        }
+      });
+
+      return {
+        player1Points: p1Points,
+        player2Points: p2Points,
+        player1GoalDiff: p1GoalsFor - p1GoalsAgainst,
+        player2GoalDiff: p2GoalsFor - p2GoalsAgainst,
+        player1GoalsFor: p1GoalsFor,
+        player2GoalsFor: p2GoalsFor,
+      };
+    };
+
+    return sortedStats.sort((a, b) => {
+      // 1. Points (highest first)
       if (b.points !== a.points) return b.points - a.points;
+      
+      // 2. Goal Difference (highest first)
       if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
-      return b.goalsFor - a.goalsFor;
+      
+      // 3. Goals For (highest first)
+      if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+      
+      // 4. Head-to-Head Points
+      const h2h = calculateHeadToHead(a.player.id, b.player.id);
+      if (h2h.player1Points !== h2h.player2Points) {
+        const aIsPlayer1 = a.player.id < b.player.id;
+        const aH2hPoints = aIsPlayer1 ? h2h.player1Points : h2h.player2Points;
+        const bH2hPoints = aIsPlayer1 ? h2h.player2Points : h2h.player1Points;
+        if (bH2hPoints !== aH2hPoints) return bH2hPoints - aH2hPoints;
+      }
+      
+      // 5. Head-to-Head Goal Difference
+      const aIsPlayer1 = a.player.id < b.player.id;
+      const aH2hGoalDiff = aIsPlayer1 ? h2h.player1GoalDiff : h2h.player2GoalDiff;
+      const bH2hGoalDiff = aIsPlayer1 ? h2h.player2GoalDiff : h2h.player1GoalDiff;
+      if (bH2hGoalDiff !== aH2hGoalDiff) return bH2hGoalDiff - aH2hGoalDiff;
+      
+      // 6. Head-to-Head Goals For
+      const aH2hGoalsFor = aIsPlayer1 ? h2h.player1GoalsFor : h2h.player2GoalsFor;
+      const bH2hGoalsFor = aIsPlayer1 ? h2h.player2GoalsFor : h2h.player1GoalsFor;
+      if (bH2hGoalsFor !== aH2hGoalsFor) return bH2hGoalsFor - aH2hGoalsFor;
+      
+      // 7. Fair Play Points (highest/most positive first = fewer cards)
+      if (b.fairPlayPoints !== a.fairPlayPoints) {
+        return b.fairPlayPoints - a.fairPlayPoints;
+      }
+      
+      // 8. Final tiebreaker: alphabetical by name
+      return a.player.name.localeCompare(b.player.name);
     });
   }, [players, matches, matchPlayerStats, teamMembers, registrationType]);
 

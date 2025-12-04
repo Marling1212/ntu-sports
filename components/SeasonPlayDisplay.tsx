@@ -334,7 +334,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     goalDiff: number;
     yellowCards: number;
     redCards: number;
+    fairPlayPoints: number; // Negative value: more negative = worse (more cards)
     group?: number;
+    // Head-to-head statistics (only calculated for tied teams)
+    headToHeadPoints?: number;
+    headToHeadGoalDiff?: number;
+    headToHeadGoalsFor?: number;
   };
 
   const parseScorePair = (s?: string): { a: number; b: number } | null => {
@@ -345,6 +350,88 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     const b = parseInt(m[2], 10);
     if (Number.isNaN(a) || Number.isNaN(b)) return null;
     return { a, b };
+  };
+
+  // Calculate fair play points (negative value: more negative = worse)
+  // Yellow card = -1, Red card = -3
+  const calculateFairPlayPoints = (yellowCards: number, redCards: number): number => {
+    return -(yellowCards + redCards * 3);
+  };
+
+  // Calculate head-to-head statistics between two teams
+  const calculateHeadToHead = (
+    player1Id: string,
+    player2Id: string,
+    matches: Match[]
+  ): {
+    player1Points: number;
+    player2Points: number;
+    player1GoalDiff: number;
+    player2GoalDiff: number;
+    player1GoalsFor: number;
+    player2GoalsFor: number;
+  } => {
+    let p1Points = 0;
+    let p2Points = 0;
+    let p1GoalsFor = 0;
+    let p2GoalsFor = 0;
+    let p1GoalsAgainst = 0;
+    let p2GoalsAgainst = 0;
+
+    // Find all matches between these two players/teams
+    const headToHeadMatches = matches.filter((m) => {
+      if (m.status !== "completed") return false;
+      const hasPlayer1 = m.player1?.id === player1Id || m.player1?.id === player2Id;
+      const hasPlayer2 = m.player2?.id === player1Id || m.player2?.id === player2Id;
+      return hasPlayer1 && hasPlayer2;
+    });
+
+    headToHeadMatches.forEach((m) => {
+      const sc = parseScorePair(m.score);
+      const matchWinnerId = (m as any).winner_id;
+      const matchStatus = (m as any).status;
+      
+      // Determine which player is which in this match
+      const isP1First = m.player1?.id === player1Id;
+      const p1Score = isP1First ? (sc?.a || 0) : (sc?.b || 0);
+      const p2Score = isP1First ? (sc?.b || 0) : (sc?.a || 0);
+
+      p1GoalsFor += p1Score;
+      p2GoalsFor += p2Score;
+      p1GoalsAgainst += p2Score;
+      p2GoalsAgainst += p1Score;
+
+      if (sc) {
+        const isMatchDraw = isDrawMatch(matchWinnerId, matchStatus, p1Score.toString(), p2Score.toString());
+        
+        if (isMatchDraw) {
+          p1Points += 1;
+          p2Points += 1;
+        } else if (m.winner) {
+          if (m.winner.id === player1Id) {
+            p1Points += 3;
+          } else if (m.winner.id === player2Id) {
+            p2Points += 3;
+          }
+        }
+      } else if (m.winner) {
+        // No score but has winner
+        if (m.winner.id === player1Id) {
+          p1Points += 3;
+        } else if (m.winner.id === player2Id) {
+          p2Points += 3;
+        }
+      }
+    });
+
+    return {
+      player1Points: p1Points,
+      player2Points: p2Points,
+      player1GoalDiff: p1GoalsFor - p1GoalsAgainst,
+      player2GoalDiff: p2GoalsFor - p2GoalsAgainst,
+      player1GoalsFor: p1GoalsFor,
+      player2GoalsFor: p2GoalsFor,
+    };
   };
 
   // Calculate standings from regular season (per group if groups exist)
@@ -372,6 +459,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           goalDiff: 0,
           yellowCards: 0,
           redCards: 0,
+          fairPlayPoints: 0,
         } as any;
       });
 
@@ -467,6 +555,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         
         row.yellowCards = yellowCount;
         row.redCards = redCount;
+        row.fairPlayPoints = calculateFairPlayPoints(yellowCount, redCount);
       });
 
       const rows: Array<StandingRow> = Object.values(table).map((r: any) => ({
@@ -474,12 +563,48 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         goalDiff: (r.goalsFor || 0) - (r.goalsAgainst || 0),
         yellowCards: r.yellowCards || 0,
         redCards: r.redCards || 0,
+        fairPlayPoints: r.fairPlayPoints || 0,
       }));
 
+      // Enhanced sorting with head-to-head and fair play tiebreakers
       return rows.sort((a, b) => {
+        // 1. Points (highest first)
         if (b.points !== a.points) return b.points - a.points;
+        
+        // 2. Goal Difference (highest first)
         if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
-        return (b.goalsFor || 0) - (a.goalsFor || 0);
+        
+        // 3. Goals For (highest first)
+        if ((b.goalsFor || 0) !== (a.goalsFor || 0)) return (b.goalsFor || 0) - (a.goalsFor || 0);
+        
+        // 4. Head-to-Head Points (calculate on-the-fly for tied teams)
+        const h2h = calculateHeadToHead(a.player.id, b.player.id, regularSeasonMatches);
+        if (h2h.player1Points !== h2h.player2Points) {
+          // Determine which is player1 in our comparison
+          const aIsPlayer1 = a.player.id < b.player.id;
+          const aH2hPoints = aIsPlayer1 ? h2h.player1Points : h2h.player2Points;
+          const bH2hPoints = aIsPlayer1 ? h2h.player2Points : h2h.player1Points;
+          if (bH2hPoints !== aH2hPoints) return bH2hPoints - aH2hPoints;
+        }
+        
+        // 5. Head-to-Head Goal Difference
+        const aIsPlayer1 = a.player.id < b.player.id;
+        const aH2hGoalDiff = aIsPlayer1 ? h2h.player1GoalDiff : h2h.player2GoalDiff;
+        const bH2hGoalDiff = aIsPlayer1 ? h2h.player2GoalDiff : h2h.player1GoalDiff;
+        if (bH2hGoalDiff !== aH2hGoalDiff) return bH2hGoalDiff - aH2hGoalDiff;
+        
+        // 6. Head-to-Head Goals For
+        const aH2hGoalsFor = aIsPlayer1 ? h2h.player1GoalsFor : h2h.player2GoalsFor;
+        const bH2hGoalsFor = aIsPlayer1 ? h2h.player2GoalsFor : h2h.player1GoalsFor;
+        if (bH2hGoalsFor !== aH2hGoalsFor) return bH2hGoalsFor - aH2hGoalsFor;
+        
+        // 7. Fair Play Points (highest/most positive first = fewer cards)
+        if ((b.fairPlayPoints || 0) !== (a.fairPlayPoints || 0)) {
+          return (b.fairPlayPoints || 0) - (a.fairPlayPoints || 0);
+        }
+        
+        // 8. Final tiebreaker: alphabetical by name (or ID)
+        return a.player.name.localeCompare(b.player.name);
       });
     }
   };
@@ -497,7 +622,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     groupPlayerIds.forEach(playerId => {
       const player = players.find(p => p.id === playerId);
       if (player) {
-        (table as any)[playerId] = { player, wins: 0, losses: 0, draws: 0, points: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0, yellowCards: 0, redCards: 0, group: groupNum };
+        (table as any)[playerId] = { player, wins: 0, losses: 0, draws: 0, points: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0, yellowCards: 0, redCards: 0, fairPlayPoints: 0, group: groupNum };
       }
     });
 
@@ -587,6 +712,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       
       row.yellowCards = yellowCount;
       row.redCards = redCount;
+      row.fairPlayPoints = calculateFairPlayPoints(yellowCount, redCount);
     });
 
     const rows: Array<StandingRow> = Object.values(table).map((r: any) => ({
@@ -600,13 +726,48 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       goalDiff: (r.goalsFor || 0) - (r.goalsAgainst || 0),
       yellowCards: r.yellowCards || 0,
       redCards: r.redCards || 0,
+      fairPlayPoints: r.fairPlayPoints || 0,
       group: r.group,
     }));
 
+    // Enhanced sorting with head-to-head and fair play tiebreakers
     return rows.sort((a, b) => {
+      // 1. Points (highest first)
       if (b.points !== a.points) return b.points - a.points;
+      
+      // 2. Goal Difference (highest first)
       if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
-      return (b.goalsFor || 0) - (a.goalsFor || 0);
+      
+      // 3. Goals For (highest first)
+      if ((b.goalsFor || 0) !== (a.goalsFor || 0)) return (b.goalsFor || 0) - (a.goalsFor || 0);
+      
+      // 4. Head-to-Head Points (calculate on-the-fly for tied teams)
+      const h2h = calculateHeadToHead(a.player.id, b.player.id, groupMatches);
+      if (h2h.player1Points !== h2h.player2Points) {
+        const aIsPlayer1 = a.player.id < b.player.id;
+        const aH2hPoints = aIsPlayer1 ? h2h.player1Points : h2h.player2Points;
+        const bH2hPoints = aIsPlayer1 ? h2h.player2Points : h2h.player1Points;
+        if (bH2hPoints !== aH2hPoints) return bH2hPoints - aH2hPoints;
+      }
+      
+      // 5. Head-to-Head Goal Difference
+      const aIsPlayer1 = a.player.id < b.player.id;
+      const aH2hGoalDiff = aIsPlayer1 ? h2h.player1GoalDiff : h2h.player2GoalDiff;
+      const bH2hGoalDiff = aIsPlayer1 ? h2h.player2GoalDiff : h2h.player1GoalDiff;
+      if (bH2hGoalDiff !== aH2hGoalDiff) return bH2hGoalDiff - aH2hGoalDiff;
+      
+      // 6. Head-to-Head Goals For
+      const aH2hGoalsFor = aIsPlayer1 ? h2h.player1GoalsFor : h2h.player2GoalsFor;
+      const bH2hGoalsFor = aIsPlayer1 ? h2h.player2GoalsFor : h2h.player1GoalsFor;
+      if (bH2hGoalsFor !== aH2hGoalsFor) return bH2hGoalsFor - aH2hGoalsFor;
+      
+      // 7. Fair Play Points (highest/most positive first = fewer cards)
+      if ((b.fairPlayPoints || 0) !== (a.fairPlayPoints || 0)) {
+        return (b.fairPlayPoints || 0) - (a.fairPlayPoints || 0);
+      }
+      
+      // 8. Final tiebreaker: alphabetical by name
+      return a.player.name.localeCompare(b.player.name);
     });
   };
 
