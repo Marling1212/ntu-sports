@@ -1,57 +1,41 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import SportsPageClient from "@/components/SportsPageClient";
-import EventsListClient from "@/components/EventsListClient";
 import NavigationButtonsClient from "@/components/NavigationButtonsClient";
+import { notFound } from "next/navigation";
 
-export default async function TennisPage() {
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export default async function TennisEventPage({
+  params,
+}: {
+  params: Promise<{ eventId: string }>;
+}) {
+  const { eventId } = await params;
   const supabase = await createClient();
   
-  // Get all active Tennis events (DB stores sport in lowercase)
-  const { data: events } = await supabase
+  // Get the specific event
+  const { data: event, error } = await supabase
     .from("events")
     .select("*")
+    .eq("id", eventId)
     .eq("sport", "tennis")
-    .order("start_date", { ascending: false });
+    .maybeSingle();
 
-  const activeEvents = events || [];
+  // If event not found or not a tennis event, show 404
+  if (error || !event) {
+    notFound();
+  }
 
-  // If only one event, show it directly
-  // If multiple events, show event list
-  const singleEvent = activeEvents.length === 1 ? activeEvents[0] : null;
-
-  // Tournament start date: November 8, 2025 at 08:00 AM Taiwan time (114 academic year)
-  // Format: YYYY-MM-DDTHH:MM:SS with explicit timezone (+08:00 for Taiwan)
-  const tournamentStartDate = singleEvent?.start_date 
-    ? new Date(singleEvent.start_date) 
+  // Tournament start date
+  const tournamentStartDate = event.start_date 
+    ? new Date(event.start_date) 
     : new Date("2025-11-08T08:00:00+08:00");
   const hasStarted = new Date() >= tournamentStartDate;
 
-  // Multiple events - show event list
-  if (activeEvents.length > 1) {
-    return (
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <EventsListClient events={activeEvents} />
-      </div>
-    );
-  }
-
-  // Single event - show event intro page
-  // Handle case when no events exist
-  if (!singleEvent) {
-    return (
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">No Tennis Events Found</h1>
-          <p className="text-gray-600">There are currently no active tennis events.</p>
-        </div>
-        <NavigationButtonsClient />
-      </div>
-    );
-  }
-
-  // Fetch data for single event
-  const matches = await getSportMatches(singleEvent.id);
+  // Fetch data for the event
+  const matches = await getSportMatches(event.id);
   const tz = "Asia/Taipei";
   const now = new Date();
   const nowTz = new Date(now.toLocaleString("en-US", { timeZone: tz }));
@@ -95,13 +79,13 @@ export default async function TennisPage() {
     })
     .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
   
-  const anns = await getSportAnnouncements(singleEvent.id);
+  const anns = await getSportAnnouncements(event.id);
   const latest = (anns || [])[0];
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <SportsPageClient
-        singleEvent={singleEvent}
+        singleEvent={event}
         hasStarted={hasStarted}
         tournamentStartDate={tournamentStartDate}
         matchesToShow={matchesToShow}
@@ -110,7 +94,7 @@ export default async function TennisPage() {
       />
 
       {/* Navigation Buttons */}
-      <NavigationButtonsClient eventId={singleEvent.id} sport="tennis" />
+      <NavigationButtonsClient eventId={event.id} sport="tennis" />
     </div>
   );
 }

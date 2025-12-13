@@ -3,13 +3,24 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
 
-export default function NavigationButtonsClient() {
+interface NavigationButtonsClientProps {
+  eventId?: string;
+  sport?: string;
+}
+
+export default function NavigationButtonsClient({ eventId, sport = "tennis" }: NavigationButtonsClientProps) {
   const { t } = useI18n();
+  
+  // Build URLs - if eventId is provided, link to event-specific pages
+  const basePath = `/sports/${sport}`;
+  const drawUrl = eventId ? `${basePath}/events/${eventId}/draw` : `${basePath}/draw`;
+  const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule` : `${basePath}/schedule`;
+  const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements` : `${basePath}/announcements`;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
       <Link
-        href="/sports/tennis/draw"
+        href={drawUrl}
         className="bg-ntu-green text-white rounded-xl shadow-md p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
       >
         <div className="text-center">
@@ -36,7 +47,7 @@ export default function NavigationButtonsClient() {
       </Link>
 
       <Link
-        href="/sports/tennis/schedule"
+        href={scheduleUrl}
         className="bg-ntu-green text-white rounded-xl shadow-md p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
       >
         <div className="text-center">
@@ -63,7 +74,7 @@ export default function NavigationButtonsClient() {
       </Link>
 
       <Link
-        href="/sports/tennis/announcements"
+        href={announcementsUrl}
         className="bg-ntu-green text-white rounded-xl shadow-md p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
       >
         <div className="text-center">

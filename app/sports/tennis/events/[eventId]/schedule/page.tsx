@@ -1,40 +1,44 @@
 import { createClient } from "@/lib/supabase/server";
-import { getTennisEvent } from "@/lib/utils/getTennisEvent";
 import MarkdownText from "@/components/MarkdownText";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function TennisSchedulePage() {
+export default async function TennisEventSchedulePage({
+  params,
+}: {
+  params: Promise<{ eventId: string }>;
+}) {
+  const { eventId } = await params;
   const supabase = await createClient();
   
-  // Check if there are multiple events
-  const { data: events } = await supabase
+  // Get the specific event
+  const { data: event, error } = await supabase
     .from("events")
-    .select("id")
-    .eq("sport", "tennis");
-  
-  // If multiple events exist, redirect to event list
-  if (events && events.length > 1) {
-    redirect("/sports/tennis");
+    .select("*")
+    .eq("id", eventId)
+    .eq("sport", "tennis")
+    .maybeSingle();
+
+  // If event not found or not a tennis event, show 404
+  if (error || !event) {
+    notFound();
   }
-  
-  const event = await getTennisEvent();
   
   // Get tournament rules
   const { data: rules } = await supabase
     .from("tournament_rules")
     .select("*")
-    .eq("event_id", event?.id || "")
+    .eq("event_id", event.id)
     .order("order_number", { ascending: true });
 
   // Get schedule items
   const { data: scheduleItems } = await supabase
     .from("schedule_items")
     .select("*")
-    .eq("event_id", event?.id || "")
+    .eq("event_id", event.id)
     .order("day_number", { ascending: true })
     .order("order_number", { ascending: true });
 
@@ -48,11 +52,11 @@ export default async function TennisSchedulePage() {
 
   return (
     <>
-      <TennisNavbarClient eventName={event?.name} tournamentType={event?.tournament_type} />
+      <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
       <div className="container mx-auto px-4 py-12">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-ntu-green mb-4">
-          NTU Tennis – 114 Freshman Cup Schedule
+          {event.name || "NTU Tennis – 114 Freshman Cup Schedule"}
         </h1>
         <p className="text-lg text-gray-600">
           比賽賽程時間表 Match Schedule
@@ -188,7 +192,7 @@ export default async function TennisSchedulePage() {
       )}
 
       {/* Notes Section */}
-      {(event?.schedule_notes || event?.schedule_updated_at || event?.contact_info) && (
+      {(event.schedule_notes || event.schedule_updated_at || event.contact_info) && (
         <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-lg">
           <div className="flex">
             <div className="flex-shrink-0">

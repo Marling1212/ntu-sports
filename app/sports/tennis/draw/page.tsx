@@ -6,12 +6,27 @@ import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getTennisEvent, getTennisMatches, getTennisPlayers } from "@/lib/utils/getTennisEvent";
 import { generateTennisPlayers, seedPlayers, generateMatches } from "@/data/tennisDraw";
 import { Toaster } from "react-hot-toast";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 // Disable caching to always fetch fresh data
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function TennisDrawPage() {
+  const supabase = await createClient();
+  
+  // Check if there are multiple events
+  const { data: events } = await supabase
+    .from("events")
+    .select("id")
+    .eq("sport", "tennis");
+  
+  // If multiple events exist, redirect to event list
+  if (events && events.length > 1) {
+    redirect("/sports/tennis");
+  }
+  
   // Try to get data from Supabase
   const event = await getTennisEvent();
   

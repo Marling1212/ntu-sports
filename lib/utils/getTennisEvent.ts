@@ -5,13 +5,18 @@ export async function getTennisEvent() {
   
   // Get the tennis event (assuming there's one main tennis event)
   // You can filter by sport='tennis' and name or other criteria
-  const { data: event } = await supabase
+  const { data: event, error } = await supabase
     .from("events")
     .select("*")
     .eq("sport", "tennis")
     .order("created_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle(); // Use maybeSingle() instead of single() to avoid errors when no event exists
+
+  // If there's an error or no event, return null
+  if (error || !event) {
+    return null;
+  }
 
   return event;
 }
