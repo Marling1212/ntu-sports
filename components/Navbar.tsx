@@ -35,7 +35,7 @@ export default function Navbar() {
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-medium min-h-[44px] flex items-center"
             >
-              Rent PE
+              Venue
             </a>
             <a
               href="https://matchup-platform.vercel.app/"
@@ -95,7 +95,7 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-4 py-3 rounded-lg hover:bg-white/10 transition-colors font-medium min-h-[44px] flex items-center"
               >
-                Rent PE
+                Venue
               </a>
               <a
                 href="https://matchup-platform.vercel.app/"
