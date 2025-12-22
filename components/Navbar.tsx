@@ -30,7 +30,7 @@ export default function Navbar() {
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-3">
             <a
-              href="https://rent.pe.ntu.edu.tw/member/"
+              href="https://ntu-venue.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-medium min-h-[44px] flex items-center"
@@ -89,7 +89,7 @@ export default function Navbar() {
           <div className="md:hidden pb-4 animate-slideIn border-t border-white/20 mt-2 pt-4">
             <div className="flex flex-col gap-3">
               <a
-                href="https://rent.pe.ntu.edu.tw/member/"
+                href="https://ntu-venue.vercel.app/"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setMobileMenuOpen(false)}
