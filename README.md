@@ -64,36 +64,146 @@
 
 ## 🚀 快速開始
 
-### 本地開發
+### 本地開發（Localhost 安裝與測試）
 
-1. **安裝依賴**
+**重要：助教/老師會完全按照此步驟執行安裝，請務必確保步驟完整且可執行。**
+
+#### 前置需求
+
+- Node.js 18.0 或更高版本
+- npm 或 yarn 套件管理器
+- Supabase 帳號（用於資料庫）
+
+#### 安裝步驟
+
+1. **Clone 專案**
+   ```bash
+   git clone <your-repo-url>
+   cd final-project
+   ```
+
+2. **安裝依賴套件**
+   
+   使用 npm：
    ```bash
    npm install
    ```
-
-2. **設定環境變數**
    
-   創建 `.env.local` 檔案：
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   或使用 yarn（推薦，符合課程要求）：
+   ```bash
+   yarn install
    ```
 
-3. **執行開發伺服器**
+3. **設定環境變數**
+   
+   - 複製 `.env.example` 檔案為 `.env.local`：
+     ```bash
+     cp .env.example .env.local
+     ```
+   
+   - 編輯 `.env.local` 檔案，填入你的 Supabase 專案資訊：
+     ```env
+     NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+     NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+     ```
+   
+   - 取得 Supabase 資訊的方式：
+     1. 前往 [Supabase Dashboard](https://app.supabase.com)
+     2. 選擇或創建專案
+     3. 進入 **Settings** → **API**
+     4. 複製 **Project URL** → 填入 `NEXT_PUBLIC_SUPABASE_URL`
+     5. 複製 **anon public** key → 填入 `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+4. **設定資料庫（Supabase Migration）**
+   
+   在 **Supabase Dashboard** → **SQL Editor** 中，依序執行以下 migration 檔案：
+   
+   ```sql
+   -- 依序執行以下檔案（位於 supabase/migrations/ 目錄）：
+   001_initial_schema.sql
+   002_seed_tennis_event.sql
+   003_fix_organizer.sql
+   004_fix_organizer_policy.sql
+   005_fix_organizer_select_policy.sql
+   006_disable_rls_organizers.sql
+   007_add_bye_status.sql
+   008_add_event_content.sql
+   009_round_announcements_tracking.sql
+   010_add_third_place_match.sql
+   011_add_tournament_type.sql
+   012_add_scheduling_tables.sql
+   013_add_scheduling_templates.sql
+   014_add_slot_codes.sql
+   015_fix_slot_code_unique_constraint.sql
+   016_add_delayed_match_status.sql
+   017_add_group_to_matches.sql
+   018_add_player_email_and_match_reminder.sql
+   019_add_event_reminder_config.sql
+   020_create_push_subscriptions.sql
+   021_add_event_playoff_qualifiers.sql
+   022_add_team_support.sql
+   023_add_match_player_stats.sql
+   024_add_stat_level_support.sql
+   025_fix_match_player_stats_unique_constraint.sql
+   ```
+   
+   **注意**：請按照編號順序執行，每個 migration 檔案都包含完整的 SQL 語句，直接複製貼上執行即可。
+
+5. **執行開發伺服器**
+   
+   使用 yarn（符合課程要求）：
+   ```bash
+   yarn dev
+   ```
+   
+   或使用 npm：
    ```bash
    npm run dev
    ```
 
-4. **開啟瀏覽器**
+6. **開啟瀏覽器**
+   
+   開發伺服器啟動後，開啟瀏覽器前往：
    ```
    http://localhost:3000
    ```
 
+#### 測試帳號與使用方式
+
+**管理員註冊與登入：**
+1. 前往 `http://localhost:3000/admin/login`
+2. 使用 Email 註冊（Supabase 會發送 Magic Link）
+3. 點擊 Email 中的連結完成登入
+4. 首次登入後，系統會自動將你設為管理員
+
+**測試功能：**
+- 創建賽事：Dashboard → Create New Event
+- 匯入選手：Players → Bulk Import（可匯入 Excel 或手動新增）
+- 生成籤表：Players → Generate Bracket（單淘汰賽）或 Generate Regular Season（賽季模式）
+- 管理比賽：Matches → 更新比分、分配場地
+- 查看公開頁面：`/sports/[運動名稱]`（如 `/sports/tennis`）
+
+**注意事項：**
+- 如果遇到編譯錯誤，請確認 Node.js 版本是否為 18.0 以上
+- 如果資料庫連線失敗，請檢查 `.env.local` 中的 Supabase 設定是否正確
+- 如果頁面顯示錯誤，請檢查瀏覽器 Console (F12) 的錯誤訊息
+
 ---
 
-## 📦 部署到 Vercel
+## 📦 雲端部署
 
-### 方法 1: 透過 GitHub（推薦）
+### 部署連結
+
+**Deployed Service URL:** [請填入你的部署連結]
+
+**注意事項：**
+- 本服務已部署至 Vercel
+- 如需測試帳號，請參考下方「測試帳號與使用方式」章節
+- 如有流量或開啟時間限制，請在此說明
+
+### 部署到 Vercel
+
+#### 方法 1: 透過 GitHub（推薦）
 
 1. **推送到 GitHub**
    ```bash
@@ -109,7 +219,7 @@
    - 設定環境變數（見下方）
    - 點擊 "Deploy"
 
-### 方法 2: Vercel CLI
+#### 方法 2: Vercel CLI
 
 ```bash
 # 安裝 Vercel CLI
@@ -125,7 +235,7 @@ vercel
 vercel --prod
 ```
 
-### 環境變數設定
+#### 環境變數設定
 
 在 Vercel Dashboard → Settings → Environment Variables：
 
@@ -134,30 +244,54 @@ NEXT_PUBLIC_SUPABASE_URL = [你的 Supabase URL]
 NEXT_PUBLIC_SUPABASE_ANON_KEY = [你的 Supabase Anon Key]
 ```
 
+**重要：** 雲端部署使用的資料庫可以與 localhost 相同（共用 Supabase 專案），或各自獨立。建議使用相同的 Supabase 專案以便資料同步，但若擔心開發時影響生產資料，可建立獨立的 Supabase 專案。
+
 ---
 
 ## 🗄️ 資料庫設定
 
-### Supabase 遷移
+### Supabase 遷移（詳細步驟）
 
-在 **Supabase Dashboard** → **SQL Editor** 依序執行所有遷移檔案：
+本專案使用 Supabase (PostgreSQL) 作為資料庫。所有 migration 檔案位於 `supabase/migrations/` 目錄。
 
-1. `001_initial_schema.sql` - 基本架構
-2. `007_add_bye_status.sql` - BYE 狀態
-3. `008_add_event_content.sql` - 賽事內容
-4. `009_round_announcements_tracking.sql` - 公告追蹤
-5. `010_add_third_place_match.sql` - 季軍賽
-6. `011_add_season_play_tables.sql` - 賽季模式支援
-7. `012_add_scheduling_tables.sql` - 排程系統
-8. `013_add_delayed_status.sql` - 延賽狀態
-9. `014_add_event_courts.sql` - 場地管理
-10. `015_add_announcements_table.sql` - 公告系統
-11. `016_add_delayed_match_status.sql` - 延賽狀態修正
-12. `017_add_event_sport_column.sql` - 多運動支援
-13. `018_add_player_email_and_match_reminder.sql` - Email 提醒
-14. `019_add_event_reminder_config.sql` - 提醒設定
-15. `020_create_push_subscriptions.sql` - 推播訂閱（已棄用）
-16. `021_add_event_playoff_qualifiers.sql` - 季後賽資格設定
+**執行方式：**
+1. 前往 [Supabase Dashboard](https://app.supabase.com)
+2. 選擇你的專案
+3. 進入 **SQL Editor**
+4. 依序執行以下 migration 檔案（按照編號順序）：
+
+| 編號 | 檔案名稱 | 說明 |
+|------|---------|------|
+| 001 | `001_initial_schema.sql` | 基本資料庫架構（events, players, matches, organizers 等） |
+| 002 | `002_seed_tennis_event.sql` | 初始網球賽事資料（可選） |
+| 003 | `003_fix_organizer.sql` | 修正 organizers 表結構 |
+| 004 | `004_fix_organizer_policy.sql` | 修正 RLS 政策 |
+| 005 | `005_fix_organizer_select_policy.sql` | 修正查詢政策 |
+| 006 | `006_disable_rls_organizers.sql` | 調整 RLS 設定 |
+| 007 | `007_add_bye_status.sql` | 新增 BYE 輪空狀態 |
+| 008 | `008_add_event_content.sql` | 新增賽事內容欄位 |
+| 009 | `009_round_announcements_tracking.sql` | 公告追蹤系統 |
+| 010 | `010_add_third_place_match.sql` | 季軍賽支援 |
+| 011 | `011_add_tournament_type.sql` | 賽事類型（單淘汰/賽季） |
+| 012 | `012_add_scheduling_tables.sql` | 排程系統表 |
+| 013 | `013_add_scheduling_templates.sql` | 排程模板 |
+| 014 | `014_add_slot_codes.sql` | 時段代碼 |
+| 015 | `015_fix_slot_code_unique_constraint.sql` | 修正時段代碼唯一性 |
+| 016 | `016_add_delayed_match_status.sql` | 延賽狀態 |
+| 017 | `017_add_group_to_matches.sql` | 分組支援（賽季模式） |
+| 018 | `018_add_player_email_and_match_reminder.sql` | Email 提醒功能 |
+| 019 | `019_add_event_reminder_config.sql` | 提醒設定 |
+| 020 | `020_create_push_subscriptions.sql` | 推播訂閱（已棄用，可選） |
+| 021 | `021_add_event_playoff_qualifiers.sql` | 季後賽資格設定 |
+| 022 | `022_add_team_support.sql` | 隊伍支援 |
+| 023 | `023_add_match_player_stats.sql` | 選手統計資料 |
+| 024 | `024_add_stat_level_support.sql` | 統計層級支援 |
+| 025 | `025_fix_match_player_stats_unique_constraint.sql` | 修正統計唯一性約束 |
+
+**重要提醒：**
+- 必須按照編號順序執行，後面的 migration 可能依賴前面的結構
+- 每個 migration 檔案都是完整的 SQL 語句，直接複製貼上執行即可
+- 執行前建議先備份資料庫（Supabase Dashboard → Settings → Database → Backups）
 
 ---
 
@@ -199,20 +333,88 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY = [你的 Supabase Anon Key]
 
 ---
 
-## 🛠️ 技術架構
+## 🛠️ 技術架構與使用技術
 
-- **框架**：Next.js 15 (App Router)
-- **語言**：TypeScript
-- **樣式**：TailwindCSS
+### 核心技術棧
+
+- **前端框架**：Next.js 15 (App Router)
+  - 使用最新的 App Router 架構
+  - Server Components 與 Client Components 分離
+  - 支援 SSR (Server-Side Rendering) 與 SSG (Static Site Generation)
+  
+- **程式語言**：TypeScript
+  - 完整的型別檢查與推斷
+  - 提升程式碼可維護性與開發體驗
+  
+- **樣式框架**：TailwindCSS
+  - 響應式設計（RWD）
+  - 行動裝置優先設計
+  - 自訂主題與色彩系統
+  
 - **資料庫**：Supabase (PostgreSQL)
-- **認證**：Supabase Auth (Email Magic Link)
-- **部署**：Vercel (自動部署)
-- **時區處理**：Asia/Taipei
-- **套件**：
-  - `react-hot-toast` - 通知提示
-  - `react-markdown` - Markdown 支援
-  - `xlsx` - Excel 匯出
-  - `date-fns` - 日期處理
+  - 關聯式資料庫設計
+  - Row Level Security (RLS) 實作
+  - 即時資料同步（Real-time Subscriptions）
+  
+- **認證系統**：Supabase Auth
+  - Email Magic Link 登入
+  - Session 管理
+  - 管理員權限控制
+  
+- **部署平台**：Vercel
+  - 自動 CI/CD
+  - 邊緣網路加速
+  - 自動 HTTPS
+
+### 第三方套件與框架
+
+| 套件名稱 | 版本 | 用途 |
+|---------|------|------|
+| `@supabase/ssr` | ^0.5.1 | Supabase Server-Side Rendering 支援 |
+| `@supabase/supabase-js` | ^2.39.0 | Supabase JavaScript 客戶端 |
+| `react-hot-toast` | ^2.4.1 | 使用者通知提示 |
+| `react-markdown` | ^10.1.0 | Markdown 內容渲染 |
+| `xlsx` | ^0.18.5 | Excel 檔案讀寫（匯入/匯出） |
+| `html2canvas` | ^1.4.1 | HTML 轉圖片（PDF 匯出） |
+| `jspdf` | ^3.0.3 | PDF 生成 |
+| `jspdf-autotable` | ^5.0.2 | PDF 表格生成 |
+| `qrcode.react` | ^4.2.0 | QR Code 生成 |
+| `date-fns` | (內建於 Next.js) | 日期時間處理 |
+
+### 程式碼架構說明
+
+**專案結構：**
+- `app/` - Next.js App Router 路由與頁面
+  - `admin/` - 管理後台（需要認證）
+  - `sports/` - 公開運動賽事頁面
+  - `api/` - API 路由（Server Actions）
+- `components/` - React 元件
+  - `admin/` - 管理後台專用元件
+  - 公開頁面共用元件
+- `lib/` - 工具函數與設定
+  - `supabase/` - Supabase 客戶端設定
+  - `utils/` - 通用工具函數
+- `supabase/migrations/` - 資料庫遷移檔案
+- `types/` - TypeScript 型別定義
+
+**設計模式：**
+- Server Components 優先，減少客戶端 JavaScript 大小
+- Client Components 僅用於需要互動的元件
+- 使用 Server Actions 處理表單提交與資料變更
+- RLS (Row Level Security) 確保資料安全性
+
+### 使用與參考之框架/模組/原始碼
+
+- **Next.js 官方文件**：https://nextjs.org/docs
+- **Supabase 官方文件**：https://supabase.com/docs
+- **TailwindCSS 官方文件**：https://tailwindcss.com/docs
+- **React 官方文件**：https://react.dev
+
+**參考專案：**
+- Next.js App Router 範例專案
+- Supabase 官方範例與模板
+
+**注意：** 本專題為從零開始開發，未使用任何現成的專案模板或範例程式碼作為基礎。
 
 ---
 
@@ -308,6 +510,210 @@ MIT License - 台大校網 NTU tennis
 - [ ] Email 提醒系統（已實作，待啟用）
 - [ ] 行動 App
 - [ ] 多語言支援
+
+---
+
+---
+
+## 📹 Demo 影片
+
+**Demo 影片連結：** [請填入你的 Demo 影片連結]
+
+**影片內容：**
+- 簡單自介（組別、組員姓名、題目名稱）
+- 三句話內介紹專題功能
+- Project Demo（完整功能展示）
+- 程式碼架構/使用技術介紹
+
+---
+
+## 👥 組員負責項目
+
+**組別：** [39]
+
+| 學號 | 姓名 | 負責項目 | 說明 |
+|------|------|---------|------|
+| [b12901094] | [安馬林] | [ntu-sports] | [ntu-sports的前端與後端] |
+| [D11222008] | [許婷] | [ntu-venue] | [ntu-venue的前端與後端] |
+| [B10204007] | [趙華杉] | [matchup-platform] | [matchup-platform的前端與後端] |
+
+**負責項目範例：**
+- 前端 UI/UX 設計與實作
+- 後端 API 開發與資料庫設計
+- 系統架構設計與技術選型
+- 部署與 DevOps
+- 測試與除錯
+- 文件撰寫
+
+**注意：** 如果有找外掛（非修課成員），請務必特別註明，並說明原因與各自貢獻。
+
+---
+
+## 🔗 相關專案
+
+本專題為團隊合作專案，包含三個相互關聯的運動平台，已整合至本網站導航欄：
+
+### 1. 🏆 NTU Sports（本專案）
+**負責人：** 安馬林 (b12901094)  
+**部署連結：** [https://ntu-sports.vercel.app/](https://ntu-sports.vercel.app/)  
+**GitHub：** [https://github.com/Marling1212/ntu-sports](https://github.com/Marling1212/ntu-sports)
+
+**功能概述：**
+- 多運動賽事管理系統（網球、足球、籃球、排球、羽球、桌球、棒球、壘球）
+- 支援單淘汰賽與賽季模式
+- 完整的籤表管理、比賽追蹤、即時公告系統
+- 管理後台與公開頁面
+
+**技術棧：**
+- Next.js 15 (App Router) + TypeScript
+- Supabase (PostgreSQL)
+- TailwindCSS
+- Vercel 部署
+
+---
+
+### 2. 🏟️ NTU Venue
+**負責人：** 許婷 (D11222008)  
+**部署連結：** [https://ntu-venue.vercel.app/](https://ntu-venue.vercel.app/)
+
+**功能概述：**
+NTU Venue 是一個整合場地Dashboard和場地交換功能的平台，包含：
+
+**場地Dashboard：**
+- 即時人數統計（游泳池、健身房）
+- 今日人數折線圖
+- 場地使用情況（籃球場、排球場）
+- 自動化爬蟲系統（每10分鐘更新即時人數，每天更新場地時間表）
+
+**場地交換平台：**
+- Google OAuth 登入
+- 場地上架功能（提供場地、日期、時間、運動項目）
+- 交換請求系統（完整的狀態管理：pending → accepted/rejected → completed）
+- 即時對話功能（使用 Pusher 實現即時訊息推送）
+- 即時通知系統
+
+**技術棧：**
+- Next.js 15+ (App Router) + TypeScript
+- NextAuth.js (Google OAuth)
+- MongoDB Atlas + Mongoose ODM
+- Pusher（即時通訊）
+- Recharts（圖表）
+- Tailwind CSS
+- Vercel 部署
+
+**特色功能：**
+- 自動化爬蟲系統（GitHub Actions 定時觸發）
+- 即時數據更新（無需重新整理頁面）
+- 完整的交換請求狀態管理
+- 雙方確認完成機制
+
+---
+
+### 3. 🎯 Match Point - 運動約戰平台
+**負責人：** 趙華杉 (B10204007)  
+**部署連結：** [https://matchup-platform.vercel.app/](https://matchup-platform.vercel.app/)
+
+**功能概述：**
+一個專為運動愛好者設計的約戰與組隊平台，包含：
+
+**找隊伍（Team Match）：**
+- 建立隊伍對戰，邀請其他隊伍一對一較量
+- 瀏覽所有公開對戰，找到合適的對手
+- 一鍵報名，系統自動交換聯絡資訊
+
+**找隊員（Player Recruitment）：**
+- 發布招募貼文，尋找志同道合的隊友
+- 瀏覽招募資訊，加入心儀的隊伍
+- 填寫自我介紹，讓隊長認識你
+
+**報名管理：**
+- 建立者可查看所有報名者清單
+- 顯示報名者聯絡方式（Email、電話）
+- 接受或拒絕報名，自動更新隊伍人數
+
+**使用者系統：**
+- 安全的註冊/登入功能
+- 忘記密碼？透過 Email 重設
+- 編輯個人資訊、刪除帳號
+
+**篩選與搜尋：**
+- 按運動類別篩選（籃球、足球、羽球...）
+- 按地區篩選（北部、中部、南部）
+- 按時間篩選（週一到週日）
+- 關鍵字全文搜尋
+
+**技術棧：**
+- **前端：** React 18 + TypeScript + Vite
+- **狀態管理：** Zustand
+- **樣式：** Tailwind CSS
+- **後端：** Express.js (部署為 Vercel Serverless Functions)
+- **資料庫：** Supabase (PostgreSQL) + Row Level Security
+- **郵件：** Resend API（密碼重設）
+- **部署：** Vercel
+
+**系統架構：**
+- React SPA（單頁應用程式）
+- Vercel Serverless Functions（後端 API）
+- Supabase Cloud（PostgreSQL 資料庫）
+- Row Level Security（資料安全機制）
+
+---
+
+### 專案整合
+
+三個專案已整合至 NTU Sports 導航欄，使用者可以輕鬆切換：
+- **Venue** → NTU Venue（場地資訊與交換平台）
+- **matchup** → Match Point（運動約戰平台）
+- **首頁** → NTU Sports（賽事管理系統）
+
+三個平台共同構成完整的台大運動生態系統，涵蓋賽事管理、場地資訊與交換、以及約戰組隊等全方位功能。
+
+---
+
+## 📝 專題製作心得
+
+[請在此填入專題製作心得，包含：]
+- 開發過程中的挑戰與解決方式
+- 學到的技術與經驗
+- 團隊合作的心得
+- 未來改進方向
+
+---
+
+## 💡 對於此課程的建議
+
+[請在此填入對於課程的建議與回饋]
+
+---
+
+## 📋 專題延伸說明
+
+**本專題是否為之前作品/專題的延伸？**
+
+[-] 否，本專題為本學期從零開始開發
+
+[ ] 是，延伸自 [請說明來源專題/作品]
+
+
+
+**GitHub Commit 記錄說明：**
+- [請提供 commit 記錄截圖或說明，明確指出修課學生在本學期的貢獻]
+
+---
+
+## 🔗 相關連結
+
+### NTU Sports（本專案）
+- **Deployed Service URL:** [https://ntu-sports.vercel.app/](https://ntu-sports.vercel.app/)
+- **GitHub Repo URL:** [https://github.com/Marling1212/ntu-sports](https://github.com/Marling1212/ntu-sports)
+
+### 相關專案
+- **NTU Venue:** [https://ntu-venue.vercel.app/](https://ntu-venue.vercel.app/)
+- **Match Point (matchup-platform):** [https://matchup-platform.vercel.app/](https://matchup-platform.vercel.app/)
+
+### 其他連結
+- **Demo 影片 URL:** [請填入]
+- **FB 社團貼文 URL:** [請填入]
 
 ---
 
