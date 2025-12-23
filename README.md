@@ -574,7 +574,8 @@ MIT License - 台大校網 NTU tennis
 
 ### 2. 🏟️ NTU Venue
 **負責人：** 許婷 (D11222008)  
-**部署連結：** [https://ntu-venue.vercel.app/](https://ntu-venue.vercel.app/)
+**部署連結：** [https://ntu-venue.vercel.app/](https://ntu-venue.vercel.app/)  
+**GitHub：** [https://github.com/Kyrielee02/wp1141/tree/main/final-project](https://github.com/Kyrielee02/wp1141/tree/main/final-project)
 
 **功能概述：**
 NTU Venue 是一個整合場地Dashboard和場地交換功能的平台，包含：
@@ -611,7 +612,8 @@ NTU Venue 是一個整合場地Dashboard和場地交換功能的平台，包含�
 
 ### 3. 🎯 Match Point - 運動約戰平台
 **負責人：** 趙華杉 (B10204007)  
-**部署連結：** [https://matchup-platform.vercel.app/](https://matchup-platform.vercel.app/)
+**部署連結：** [https://matchup-platform.vercel.app/](https://matchup-platform.vercel.app/)  
+**GitHub：** [https://github.com/MaxChaohs/matchup-platform](https://github.com/MaxChaohs/matchup-platform)
 
 **功能概述：**
 一個專為運動愛好者設計的約戰與組隊平台，包含：
@@ -672,17 +674,70 @@ NTU Venue 是一個整合場地Dashboard和場地交換功能的平台，包含�
 
 ## 📝 專題製作心得
 
-[請在此填入專題製作心得，包含：]
-- 開發過程中的挑戰與解決方式
-- 學到的技術與經驗
-- 團隊合作的心得
-- 未來改進方向
+本專題為團隊合作專案，包含三個相互關聯的運動平台（NTU Sports、NTU Venue、Match Point）。在開發過程中，我們遇到了許多挑戰，但也學到了寶貴的技術與經驗。
+
+### 開發過程中的挑戰與解決方式
+
+**技術挑戰：**
+- **Next.js App Router 架構**：初次接觸 Next.js 15 的 App Router，Server Components 與 Client Components 的分離概念需要時間理解。透過深入研究官方文檔和實際專案練習，逐漸掌握其設計理念。
+- **Supabase RLS 權限設定**：Row Level Security 的實作比預期複雜，需要仔細設計政策以確保資料安全性。透過逐步測試和調整，最終建立了完整的權限系統。
+- **三個專案的整合**：將三個獨立開發的專案整合到統一的導航系統是一大挑戰。我們建立了共用的導航元件，確保使用者可以無縫切換不同平台。
+
+**解決方式：**
+- 善用 AI 工具（Cursor Pro）協助開發，大幅提升開發效率
+- 參考官方文檔和社群資源，逐步解決技術難題
+- 團隊成員互相協助，分享解決方案
+
+### 學到的技術與經驗
+
+這門課程讓我見識到現代網頁開發的強大能力。從前端到後端、從資料庫到部署，每個環節都有豐富的工具和框架可以選擇。特別是在實作過程中，我深刻體會到：
+
+- **全端開發的完整流程**：從需求分析、系統設計、實作開發到部署上線，每個階段都有其重要性
+- **現代框架的威力**：Next.js 15 的 App Router、Supabase 的即時資料庫、Vercel 的自動部署，這些工具讓開發變得更加高效
+- **AI 輔助開發的價值**：使用 Cursor Pro 等 AI 工具，不僅加速了開發速度，也幫助我們學習和理解複雜的技術概念
+
+### 團隊合作的心得
+
+三個專案各自獨立開發，最後整合的過程讓我們學到了：
+- **分工合作的重要性**：每個成員專注於自己的專案，可以更深入地實作功能
+- **溝通協調的關鍵**：定期開會討論整合方案，確保三個平台可以無縫銜接
+- **互相學習的價值**：不同專案使用不同的技術棧（Next.js、React + Vite、MongoDB、Supabase），讓我們有機會接觸更多技術
+
+### 實際應用的價值
+
+這個專題的靈感來自於實際需求——體育主任（我的教練）希望有一個網站來管理賽事。這門課程給了我們實現這個想法的藍圖和工具。從最初的概念到最終的實作，我們不僅完成了期末專題，也創造了一個真正可以使用的系統。
+
+**實際使用情況：**
+目前系統已經在實際運作中，網球隊和足球隊基本上已經開始使用這個平台來管理他們的賽事。棒球隊也即將加入使用。看到自己開發的系統真正被使用，並且能夠解決實際問題，這是最有成就感的部分。這也證明了這門課程的價值——不只是完成作業，而是創造出真正有用的工具。
+
+### 未來改進方向
+
+- **統一設計風格**：三個平台目前有各自的設計風格，未來可以建立統一的設計系統
+- **加強即時通知功能**：整合三個平台的通知系統，提供更好的使用者體驗
+- **優化行動裝置體驗**：進一步改善響應式設計，確保在手機上也有良好的使用體驗
+- **擴展功能**：根據實際使用回饋，持續改進和新增功能
+
+### 結語
+
+這門課程不僅教會了我們技術，更重要的是給了我們實現想法的能力。從「想要一個網站」到「真的做出來了」，這個過程充滿挑戰但也非常有成就感。特別感謝 Cursor Pro 等 AI 工具的協助，讓開發過程更加順暢。接下來沒有它感覺會活不下去！期待未來能繼續運用這些技術，創造更多有價值的專案。
 
 ---
 
 ## 💡 對於此課程的建議
 
-[請在此填入對於課程的建議與回饋]
+本課程提供了完整的網路服務開發知識，從前端到後端、從資料庫到部署都有涵蓋，內容非常實用且直接應用到專題開發中。老師的教學非常認真，講解清晰，提供了多種技術選項（如 Next.js、Supabase 等），讓我們有機會選擇適合自己專題的技術棧。
+
+**建議增加實作練習：**
+在學習過程中，我發現大部分真正學到的東西都是在做作業和專題時，透過實際動手操作才真正理解的。動手操作真的學得比較快，也更能加深印象。因此建議可以在上課時增加更多實作練習的機會，例如：
+- 在講解新技術時，可以安排 10-15 分鐘的實作時間，讓同學跟著老師一起寫程式碼
+- 可以設計一些小型的實作練習，讓同學在課堂上完成
+- 這樣不僅能讓同學更專注於課堂內容，也能讓學習效果更好
+
+**關於課堂專注度的問題：**
+目前因為上課主要是講解理論，同學們可能因為沒有立即的實作需求而比較不專注，這對認真教學的老師來說確實不太尊重。如果能在課堂中加入更多互動和實作環節，相信能提升同學的參與度和專注度，也能讓老師的用心教學得到更好的回應。
+
+**整體評價：**
+整體而言，這是一門非常實用的課程，不僅教會了我們技術，更重要的是給了我們實現想法的能力。課程內容與實際應用結合得很好，讓我們能夠將所學直接應用到專題開發中。非常感謝老師的認真教學，也期待未來課程能持續改進，讓更多同學受益。
 
 ---
 
@@ -697,7 +752,14 @@ NTU Venue 是一個整合場地Dashboard和場地交換功能的平台，包含�
 
 
 **GitHub Commit 記錄說明：**
-- [請提供 commit 記錄截圖或說明，明確指出修課學生在本學期的貢獻]
+
+本專題為本學期從零開始開發，所有 commit 記錄皆為本學期修課學生所貢獻。三個專案（NTU Sports、NTU Venue、Match Point）各自有獨立的 GitHub repository，所有開發工作皆在本學期完成。
+
+**NTU Sports (本專案) GitHub：**
+- Repository: https://github.com/Marling1212/ntu-sports
+- 所有 commit 記錄可在 GitHub 上查看，皆為本學期開發過程中的實際貢獻
+
+**注意：** 由於本專題為本學期從零開始開發，且所有組員皆為修課學生，因此無需提供額外的 commit 記錄截圖或說明。
 
 ---
 
@@ -708,8 +770,12 @@ NTU Venue 是一個整合場地Dashboard和場地交換功能的平台，包含�
 - **GitHub Repo URL:** [https://github.com/Marling1212/ntu-sports](https://github.com/Marling1212/ntu-sports)
 
 ### 相關專案
-- **NTU Venue:** [https://ntu-venue.vercel.app/](https://ntu-venue.vercel.app/)
-- **Match Point (matchup-platform):** [https://matchup-platform.vercel.app/](https://matchup-platform.vercel.app/)
+- **NTU Venue:** 
+  - 部署連結：[https://ntu-venue.vercel.app/](https://ntu-venue.vercel.app/)
+  - GitHub：[https://github.com/Kyrielee02/wp1141/tree/main/final-project](https://github.com/Kyrielee02/wp1141/tree/main/final-project)
+- **Match Point (matchup-platform):** 
+  - 部署連結：[https://matchup-platform.vercel.app/](https://matchup-platform.vercel.app/)
+  - GitHub：[https://github.com/MaxChaohs/matchup-platform](https://github.com/MaxChaohs/matchup-platform)
 
 ### 其他連結
 - **Demo 影片 URL:** [請填入]
