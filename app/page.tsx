@@ -38,6 +38,7 @@ export default function Home() {
       const { data: events } = await supabase
         .from("events")
         .select("sport")
+        .eq("is_visible", true)
         .not("sport", "is", null);
 
       const uniqueSports = Array.from(

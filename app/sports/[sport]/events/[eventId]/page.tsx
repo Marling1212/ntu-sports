@@ -32,15 +32,16 @@ export default async function SportEventPage({
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const sportIcon = sportIcons[sportName] || "🏆";
   
-  // Get the specific event
+  // Get the specific event (only visible events for public)
   const { data: event, error } = await supabase
     .from("events")
     .select("*")
     .eq("id", eventId)
     .eq("sport", sportParam)
+    .eq("is_visible", true)
     .maybeSingle();
 
-  // If event not found or doesn't match the sport, show 404
+  // If event not found, doesn't match the sport, or not visible, show 404
   if (error || !event) {
     notFound();
   }

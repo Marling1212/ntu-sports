@@ -42,6 +42,7 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
           owner_id: userId,
           tournament_type: formData.tournamentType,
           registration_type: formData.registrationType,
+          is_visible: false, // New events are hidden by default
         })
         .select()
         .single();

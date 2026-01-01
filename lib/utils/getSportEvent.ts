@@ -8,10 +8,12 @@ export async function getSportEvent(sport: string) {
   const sportLower = sport.toLowerCase();
   
   // Query for lowercase version (as stored in DB)
+  // Only get visible events for public display
   const { data: event } = await supabase
     .from("events")
     .select("*")
     .eq("sport", sportLower)
+    .eq("is_visible", true)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

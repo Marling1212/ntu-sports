@@ -33,6 +33,7 @@ interface SettingsContentProps {
   scheduleUpdatedAt: string;
   contactInfo: string;
   initialRegistrationType?: 'player' | 'team';
+  initialIsVisible?: boolean;
 }
 
 export default function SettingsContent({ 
@@ -43,7 +44,8 @@ export default function SettingsContent({
   scheduleNotes: initialScheduleNotes,
   scheduleUpdatedAt: initialScheduleUpdatedAt,
   contactInfo: initialContactInfo,
-  initialRegistrationType = 'player'
+  initialRegistrationType = 'player',
+  initialIsVisible = false
 }: SettingsContentProps) {
   const [rules, setRules] = useState<TournamentRule[]>(initialRules);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(initialScheduleItems);
@@ -51,6 +53,7 @@ export default function SettingsContent({
   const [scheduleUpdatedAt, setScheduleUpdatedAt] = useState<string>(initialScheduleUpdatedAt);
   const [contactInfo, setContactInfo] = useState<string>(initialContactInfo);
   const [registrationType, setRegistrationType] = useState<'player' | 'team'>(initialRegistrationType);
+  const [isVisible, setIsVisible] = useState<boolean>(initialIsVisible);
   const [activeTab, setActiveTab] = useState<"basic" | "rules" | "schedule">("basic");
   const supabase = createClient();
 
@@ -301,7 +304,8 @@ export default function SettingsContent({
       const { error } = await supabase
         .from("events")
         .update({
-          registration_type: registrationType
+          registration_type: registrationType,
+          is_visible: isVisible
         })
         .eq("id", eventId);
 
@@ -406,6 +410,35 @@ export default function SettingsContent({
           <h2 className="text-2xl font-semibold text-ntu-green mb-6">基本資訊設定</h2>
           
           <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                公開顯示 (Public Visibility)
+              </label>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isVisible}
+                    onChange={(e) => setIsVisible(e.target.checked)}
+                    className="w-5 h-5 text-ntu-green border-gray-300 rounded focus:ring-ntu-green"
+                  />
+                  <span className="text-sm text-gray-700">
+                    {isVisible ? '顯示在公開網站上' : '隱藏在公開網站上'}
+                  </span>
+                </label>
+                <span className={`text-xs px-2 py-1 rounded ${
+                  isVisible 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {isVisible ? '✓ 可見' : '✗ 隱藏'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                隱藏的賽事不會在公開網站上顯示，但仍可在管理後台進行編輯和管理。
+              </p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 報名類型 (Registration Type) *

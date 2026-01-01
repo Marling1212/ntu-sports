@@ -72,6 +72,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
           scheduleUpdatedAt={event?.schedule_updated_at || ""}
           contactInfo={event?.contact_info || ""}
           initialRegistrationType={event?.registration_type as 'player' | 'team' | undefined}
+          initialIsVisible={event?.is_visible ?? false}
         />
       </div>
     </>

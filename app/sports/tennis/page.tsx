@@ -8,10 +8,12 @@ export default async function TennisPage() {
   const supabase = await createClient();
   
   // Get all active Tennis events (DB stores sport in lowercase)
+  // Only get visible events for public display
   const { data: events } = await supabase
     .from("events")
     .select("*")
     .eq("sport", "tennis")
+    .eq("is_visible", true)
     .order("start_date", { ascending: false });
 
   const activeEvents = events || [];

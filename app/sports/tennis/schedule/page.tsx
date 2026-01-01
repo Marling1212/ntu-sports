@@ -10,11 +10,12 @@ export const revalidate = 0;
 export default async function TennisSchedulePage() {
   const supabase = await createClient();
   
-  // Check if there are multiple events
+  // Check if there are multiple events (only visible ones)
   const { data: events } = await supabase
     .from("events")
     .select("id")
-    .eq("sport", "tennis");
+    .eq("sport", "tennis")
+    .eq("is_visible", true);
   
   // If multiple events exist, redirect to event list
   if (events && events.length > 1) {

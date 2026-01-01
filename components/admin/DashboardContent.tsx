@@ -6,6 +6,90 @@ import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/admin/LogoutButton";
 import CreateEventModal from "@/components/admin/CreateEventModal";
 import toast, { Toaster } from "react-hot-toast";
+import { createClient } from "@/lib/supabase/client";
+
+interface EventCardProps {
+  event: any;
+  onVisibilityChange: (eventId: string, newVisibility: boolean) => void;
+}
+
+function EventCard({ event, onVisibilityChange }: EventCardProps) {
+  const [isVisible, setIsVisible] = useState(event.is_visible ?? false);
+  const [isToggling, setIsToggling] = useState(false);
+  const supabase = createClient();
+
+  const toggleVisibility = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsToggling(true);
+    
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ is_visible: !isVisible })
+        .eq("id", event.id);
+
+      if (error) {
+        toast.error(`Error: ${error.message}`);
+      } else {
+        const newVisibility = !isVisible;
+        setIsVisible(newVisibility);
+        onVisibilityChange(event.id, newVisibility);
+        toast.success(`Event is now ${newVisibility ? 'visible' : 'hidden'} on public site`);
+      }
+    } catch (err: any) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border border-gray-100 relative">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-2xl font-semibold text-ntu-green">
+          {event.name}
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase font-semibold px-2 py-1 bg-ntu-green bg-opacity-10 text-ntu-green rounded">
+            {event.sport}
+          </span>
+          <button
+            onClick={toggleVisibility}
+            disabled={isToggling}
+            className={`text-xs uppercase font-semibold px-2 py-1 rounded transition-colors ${
+              isVisible 
+                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            title={isVisible ? 'Click to hide from public' : 'Click to show on public'}
+          >
+            {isToggling ? '...' : (isVisible ? 'Visible' : 'Hidden')}
+          </button>
+        </div>
+      </div>
+      <div className="space-y-2 text-sm text-gray-600">
+        <p><span className="font-semibold">Venue:</span> {event.venue}</p>
+        <p>
+          <span className="font-semibold">Dates:</span>{" "}
+          {new Date(event.start_date).toLocaleDateString()} -{" "}
+          {new Date(event.end_date).toLocaleDateString()}
+        </p>
+        {event.description && (
+          <p className="text-xs text-gray-500 line-clamp-2 mt-3">
+            {event.description}
+          </p>
+        )}
+      </div>
+      <Link
+        href={`/admin/${event.id}/players`}
+        className="mt-4 text-ntu-green font-medium text-sm block hover:underline"
+      >
+        Manage →
+      </Link>
+    </div>
+  );
+}
 
 interface DashboardContentProps {
   user: any;
@@ -61,36 +145,15 @@ export default function DashboardContent({ user, initialEvents }: DashboardConte
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event: any) => (
-              <Link
+              <EventCard
                 key={event.id}
-                href={`/admin/${event.id}/players`}
-                className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border border-gray-100"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-2xl font-semibold text-ntu-green">
-                    {event.name}
-                  </h2>
-                  <span className="text-xs uppercase font-semibold px-2 py-1 bg-ntu-green bg-opacity-10 text-ntu-green rounded">
-                    {event.sport}
-                  </span>
-                </div>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p><span className="font-semibold">Venue:</span> {event.venue}</p>
-                  <p>
-                    <span className="font-semibold">Dates:</span>{" "}
-                    {new Date(event.start_date).toLocaleDateString()} -{" "}
-                    {new Date(event.end_date).toLocaleDateString()}
-                  </p>
-                  {event.description && (
-                    <p className="text-xs text-gray-500 line-clamp-2 mt-3">
-                      {event.description}
-                    </p>
-                  )}
-                </div>
-                <div className="mt-4 text-ntu-green font-medium text-sm">
-                  Manage →
-                </div>
-              </Link>
+                event={event}
+                onVisibilityChange={(eventId, newVisibility) => {
+                  setEvents(events.map(e => 
+                    e.id === eventId ? { ...e, is_visible: newVisibility } : e
+                  ));
+                }}
+              />
             ))}
           </div>
         )}

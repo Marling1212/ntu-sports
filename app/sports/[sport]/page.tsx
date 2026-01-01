@@ -31,11 +31,13 @@ export default async function SportPage(context: any) {
   
   // Get all active events for this sport (case-insensitive)
   // Database stores sport names in lowercase, so normalize the input
+  // Only get visible events for public display
   const sportLower = sportParam;
   const { data: events } = await supabase
     .from("events")
     .select("*")
     .eq("sport", sportLower)
+    .eq("is_visible", true)
     .order("start_date", { ascending: false });
 
   const activeEvents = events || [];

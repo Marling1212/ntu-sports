@@ -15,15 +15,16 @@ export default async function TennisEventPage({
   const { eventId } = await params;
   const supabase = await createClient();
   
-  // Get the specific event
+  // Get the specific event (only visible events for public)
   const { data: event, error } = await supabase
     .from("events")
     .select("*")
     .eq("id", eventId)
     .eq("sport", "tennis")
+    .eq("is_visible", true)
     .maybeSingle();
 
-  // If event not found or not a tennis event, show 404
+  // If event not found, not a tennis event, or not visible, show 404
   if (error || !event) {
     notFound();
   }

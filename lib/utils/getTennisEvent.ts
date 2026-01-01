@@ -4,11 +4,12 @@ export async function getTennisEvent() {
   const supabase = await createClient();
   
   // Get the tennis event (assuming there's one main tennis event)
-  // You can filter by sport='tennis' and name or other criteria
+  // Only get visible events for public display
   const { data: event, error } = await supabase
     .from("events")
     .select("*")
     .eq("sport", "tennis")
+    .eq("is_visible", true)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle(); // Use maybeSingle() instead of single() to avoid errors when no event exists
