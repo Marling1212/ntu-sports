@@ -28,6 +28,16 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
   const sportIcon = sportIcons[sport.toLowerCase()] || "🏆";
   const basePath = `/sports/${sport}`;
 
+  // Check if we're on an event-specific page (e.g., /sports/tennis/events/[eventId]/draw)
+  // If segments are: ["sports", "tennis", "events", "eventId", "draw"]
+  const eventIdIndex = segments.indexOf("events");
+  const eventId = eventIdIndex !== -1 && segments[eventIdIndex + 1] ? segments[eventIdIndex + 1] : null;
+  
+  // Build URLs - use event-specific paths if eventId exists, otherwise use old structure
+  const drawUrl = eventId ? `${basePath}/events/${eventId}/draw` : `${basePath}/draw`;
+  const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule` : `${basePath}/schedule`;
+  const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements` : `${basePath}/announcements`;
+
   const isActive = (path: string) => pathname === path;
 
   return (
@@ -55,9 +65,9 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
           {/* Navigation Links - Full width buttons on mobile */}
           <div className="grid grid-cols-3 gap-2">
             <Link
-              href={`${basePath}/draw`}
+              href={drawUrl}
               className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
-                isActive(`${basePath}/draw`)
+                isActive(drawUrl)
                   ? "bg-ntu-green text-white"
                   : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
               }`}
@@ -65,9 +75,9 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
               {tournamentType === 'season_play' ? '戰績' : '籤表'}
             </Link>
             <Link
-              href={`${basePath}/schedule`}
+              href={scheduleUrl}
               className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
-                isActive(`${basePath}/schedule`)
+                isActive(scheduleUrl)
                   ? "bg-ntu-green text-white"
                   : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
               }`}
@@ -75,9 +85,9 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
               賽程
             </Link>
             <Link
-              href={`${basePath}/announcements`}
+              href={announcementsUrl}
               className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
-                isActive(`${basePath}/announcements`)
+                isActive(announcementsUrl)
                   ? "bg-ntu-green text-white"
                   : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
               }`}
@@ -118,9 +128,9 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
           {/* Navigation Links */}
           <div className="flex gap-1">
             <Link
-              href={`${basePath}/draw`}
+              href={drawUrl}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center ${
-                isActive(`${basePath}/draw`)
+                isActive(drawUrl)
                   ? "bg-ntu-green text-white"
                   : "text-gray-700 hover:bg-ntu-green hover:text-white"
               }`}
@@ -128,9 +138,9 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
               {tournamentType === 'season_play' ? '戰績' : '籤表'}
             </Link>
             <Link
-              href={`${basePath}/schedule`}
+              href={scheduleUrl}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center ${
-                isActive(`${basePath}/schedule`)
+                isActive(scheduleUrl)
                   ? "bg-ntu-green text-white"
                   : "text-gray-700 hover:bg-ntu-green hover:text-white"
               }`}
@@ -138,9 +148,9 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
               賽程
             </Link>
             <Link
-              href={`${basePath}/announcements`}
+              href={announcementsUrl}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center ${
-                isActive(`${basePath}/announcements`)
+                isActive(announcementsUrl)
                   ? "bg-ntu-green text-white"
                   : "text-gray-700 hover:bg-ntu-green hover:text-white"
               }`}
