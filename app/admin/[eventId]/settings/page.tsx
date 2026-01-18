@@ -66,6 +66,15 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
         <SettingsContent 
           eventId={eventId}
           eventName={event?.name || ""}
+          initialEventData={{
+            name: event?.name || "",
+            sport: event?.sport || "",
+            startDate: event?.start_date || "",
+            endDate: event?.end_date || "",
+            venue: event?.venue || "",
+            description: event?.description || "",
+            tournamentType: event?.tournament_type || "single_elimination",
+          }}
           initialRules={rules || []}
           initialScheduleItems={scheduleItems || []}
           scheduleNotes={event?.schedule_notes || ""}

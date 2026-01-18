@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -24,9 +24,31 @@ interface ScheduleItem {
   scheduled_time: string;
 }
 
+interface EventData {
+  name: string;
+  sport: string;
+  startDate: string;
+  endDate: string;
+  venue: string;
+  description: string;
+  tournamentType: string;
+}
+
+interface Game {
+  id: string;
+  name: string;
+  code: string;
+  icon: string | null;
+  color: string | null;
+  description: string | null;
+  is_active: boolean;
+  is_system: boolean;
+}
+
 interface SettingsContentProps {
   eventId: string;
   eventName: string;
+  initialEventData: EventData;
   initialRules: TournamentRule[];
   initialScheduleItems: ScheduleItem[];
   scheduleNotes: string;
@@ -39,6 +61,7 @@ interface SettingsContentProps {
 export default function SettingsContent({ 
   eventId, 
   eventName,
+  initialEventData,
   initialRules, 
   initialScheduleItems,
   scheduleNotes: initialScheduleNotes,
@@ -54,8 +77,43 @@ export default function SettingsContent({
   const [contactInfo, setContactInfo] = useState<string>(initialContactInfo);
   const [registrationType, setRegistrationType] = useState<'player' | 'team'>(initialRegistrationType);
   const [isVisible, setIsVisible] = useState<boolean>(initialIsVisible);
-  const [activeTab, setActiveTab] = useState<"basic" | "rules" | "schedule">("basic");
+  
+  // Event metadata state
+  const [eventData, setEventData] = useState<EventData>(initialEventData);
+  
+  // Games management state
+  const [games, setGames] = useState<Game[]>([]);
+  const [loadingGames, setLoadingGames] = useState(false);
+  const [showCreateGame, setShowCreateGame] = useState(false);
+  const [newGame, setNewGame] = useState({ name: "", code: "", icon: "", color: "", description: "" });
+  
+  const [activeTab, setActiveTab] = useState<"basic" | "rules" | "schedule" | "games">("basic");
   const supabase = createClient();
+
+  // Load games when games tab is selected
+  useEffect(() => {
+    if (activeTab === "games") {
+      loadGames();
+    }
+  }, [activeTab]);
+
+  const loadGames = async () => {
+    setLoadingGames(true);
+    try {
+      const { data, error } = await supabase
+        .from("games")
+        .select("*")
+        .order("is_system", { ascending: false })
+        .order("name", { ascending: true });
+      
+      if (error) throw error;
+      setGames(data || []);
+    } catch (error: any) {
+      toast.error(`Error loading games: ${error.message}`);
+    } finally {
+      setLoadingGames(false);
+    }
+  };
 
   // Rules Management
   const addRule = () => {
@@ -301,9 +359,24 @@ export default function SettingsContent({
         }
       }
 
+      // Format dates properly
+      const startDate = eventData.startDate.includes('T') 
+        ? eventData.startDate 
+        : `${eventData.startDate}T08:00:00`;
+      const endDate = eventData.endDate.includes('T')
+        ? eventData.endDate
+        : `${eventData.endDate}T18:00:00`;
+
       const { error } = await supabase
         .from("events")
         .update({
+          name: eventData.name,
+          sport: eventData.sport,
+          start_date: startDate,
+          end_date: endDate,
+          venue: eventData.venue,
+          description: eventData.description || null,
+          tournament_type: eventData.tournamentType,
           registration_type: registrationType,
           is_visible: isVisible
         })
@@ -326,6 +399,36 @@ export default function SettingsContent({
 
       toast.success("基本資訊已保存！");
       setTimeout(() => window.location.reload(), 1000);
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`);
+    }
+  };
+
+  const createGame = async () => {
+    if (!newGame.name || !newGame.code) {
+      toast.error("請填寫遊戲名稱和代碼");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("games")
+        .insert({
+          name: newGame.name,
+          code: newGame.code.toLowerCase(),
+          icon: newGame.icon || null,
+          color: newGame.color || null,
+          description: newGame.description || null,
+          is_system: false,
+          is_active: true
+        });
+
+      if (error) throw error;
+
+      toast.success("遊戲已創建！");
+      setShowCreateGame(false);
+      setNewGame({ name: "", code: "", icon: "", color: "", description: "" });
+      loadGames();
     } catch (error: any) {
       toast.error(`Error: ${error.message}`);
     }
@@ -401,6 +504,16 @@ export default function SettingsContent({
           >
             📅 比賽行程
           </button>
+          <button
+            onClick={() => setActiveTab("games")}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "games"
+                ? "border-ntu-green text-ntu-green"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            🎮 運動/遊戲管理
+          </button>
         </nav>
       </div>
 
@@ -410,6 +523,120 @@ export default function SettingsContent({
           <h2 className="text-2xl font-semibold text-ntu-green mb-6">基本資訊設定</h2>
           
           <div className="space-y-6">
+            {/* Event Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                賽事名稱 (Event Name) *
+              </label>
+              <input
+                type="text"
+                value={eventData.name}
+                onChange={(e) => setEventData({ ...eventData, name: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                placeholder="例如：NTU Tennis – 114 Freshman Cup"
+              />
+            </div>
+
+            {/* Sport Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                運動類型 (Sport/Game) *
+              </label>
+              <select
+                value={eventData.sport}
+                onChange={(e) => setEventData({ ...eventData, sport: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              >
+                <option value="tennis">Tennis (網球)</option>
+                <option value="basketball">Basketball (籃球)</option>
+                <option value="volleyball">Volleyball (排球)</option>
+                <option value="badminton">Badminton (羽球)</option>
+                <option value="soccer">Soccer (足球)</option>
+                <option value="tabletennis">Table Tennis (桌球)</option>
+                <option value="baseball">Baseball (棒球)</option>
+                <option value="softball">Softball (壘球)</option>
+                <option value="other">Other (其他)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                可在「運動/遊戲管理」標籤中查看和創建自訂運動類型
+              </p>
+            </div>
+
+            {/* Tournament Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                賽事模式 (Tournament Type) *
+              </label>
+              <select
+                value={eventData.tournamentType}
+                onChange={(e) => setEventData({ ...eventData, tournamentType: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              >
+                <option value="single_elimination">Single Elimination (單淘汰賽)</option>
+                <option value="season_play">Season Play (賽季模式)</option>
+              </select>
+            </div>
+
+            {/* Dates */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  開始日期 (Start Date) *
+                </label>
+                <input
+                  type="date"
+                  value={eventData.startDate.split('T')[0] || ''}
+                  onChange={(e) => {
+                    const time = eventData.startDate.includes('T') ? eventData.startDate.split('T')[1] : '08:00';
+                    setEventData({ ...eventData, startDate: `${e.target.value}T${time}` });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  結束日期 (End Date) *
+                </label>
+                <input
+                  type="date"
+                  value={eventData.endDate.split('T')[0] || ''}
+                  onChange={(e) => {
+                    const time = eventData.endDate.includes('T') ? eventData.endDate.split('T')[1] : '18:00';
+                    setEventData({ ...eventData, endDate: `${e.target.value}T${time}` });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                />
+              </div>
+            </div>
+
+            {/* Venue */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                比賽場地 (Venue) *
+              </label>
+              <input
+                type="text"
+                value={eventData.venue}
+                onChange={(e) => setEventData({ ...eventData, venue: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                placeholder="例如：國立台灣大學新生網球場（5-8場）"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                賽事描述 (Description)
+              </label>
+              <textarea
+                value={eventData.description}
+                onChange={(e) => setEventData({ ...eventData, description: e.target.value })}
+                rows={4}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                placeholder="賽事描述、規則或額外資訊..."
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 公開顯示 (Public Visibility)
@@ -730,6 +957,168 @@ export default function SettingsContent({
               💾 保存行程與說明
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Games Management Tab */}
+      {activeTab === "games" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-ntu-green">運動/遊戲管理</h2>
+                <p className="text-sm text-gray-600 mt-1">管理可用的運動類型，可創建自訂運動供賽事使用</p>
+              </div>
+              <button
+                onClick={() => setShowCreateGame(true)}
+                className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+              >
+                ➕ 創建新運動
+              </button>
+            </div>
+
+            {loadingGames ? (
+              <div className="text-center py-8 text-gray-500">載入中...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {games.map((game) => (
+                  <div
+                    key={game.id}
+                    className={`border rounded-lg p-4 ${
+                      game.is_system ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-2xl">{game.icon || '🎮'}</span>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{game.name}</h3>
+                        <p className="text-xs text-gray-500">代碼: {game.code}</p>
+                      </div>
+                      {game.is_system && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">系統</span>
+                      )}
+                    </div>
+                    {game.description && (
+                      <p className="text-sm text-gray-600 mb-2">{game.description}</p>
+                    )}
+                    {game.color && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">顏色:</span>
+                        <div className={`w-6 h-6 rounded ${game.color}`}></div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Create Game Modal */}
+          {showCreateGame && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold text-ntu-green">創建新運動</h3>
+                  <button
+                    onClick={() => {
+                      setShowCreateGame(false);
+                      setNewGame({ name: "", code: "", icon: "", color: "", description: "" });
+                    }}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      名稱 (Name) *
+                    </label>
+                    <input
+                      type="text"
+                      value={newGame.name}
+                      onChange={(e) => setNewGame({ ...newGame, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="例如：籃球"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      代碼 (Code) *
+                    </label>
+                    <input
+                      type="text"
+                      value={newGame.code}
+                      onChange={(e) => setNewGame({ ...newGame, code: e.target.value.toLowerCase() })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
+                      placeholder="例如：basketball"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">小寫英文字母，用於內部識別</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      圖示 (Icon)
+                    </label>
+                    <input
+                      type="text"
+                      value={newGame.icon}
+                      onChange={(e) => setNewGame({ ...newGame, icon: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="例如：🏀 (emoji)"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      顏色 (Color Class)
+                    </label>
+                    <input
+                      type="text"
+                      value={newGame.color}
+                      onChange={(e) => setNewGame({ ...newGame, color: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="例如：bg-orange-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Tailwind CSS 顏色類別</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      描述 (Description)
+                    </label>
+                    <textarea
+                      value={newGame.description}
+                      onChange={(e) => setNewGame({ ...newGame, description: e.target.value })}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="運動描述..."
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        setShowCreateGame(false);
+                        setNewGame({ name: "", code: "", icon: "", color: "", description: "" });
+                      }}
+                      className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={createGame}
+                      className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90"
+                    >
+                      創建
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

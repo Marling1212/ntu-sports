@@ -778,8 +778,8 @@ NTU Venue 是一個整合場地Dashboard和場地交換功能的平台，包含�
   - GitHub：[https://github.com/MaxChaohs/matchup-platform](https://github.com/MaxChaohs/matchup-platform)
 
 ### 其他連結
-- **Demo 影片 URL:** [https://youtu.be/Zqlyg5DRICM](https://youtu.be/Zqlyg5DRICM)
-- **FB 社團貼文 URL:** [https://www.facebook.com/groups/NTURicWebProg/posts/2643916065956297](https://www.facebook.com/groups/NTURicWebProg/posts/2643916065956297)
+- **Demo 影片 URL:** [請填入]
+- **FB 社團貼文 URL:** [請填入]
 
 ---
 
