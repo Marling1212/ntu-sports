@@ -34,27 +34,36 @@ const sportColors: { [key: string]: string } = {
 export default function Home() {
   const { t } = useI18n();
   const [sportsToShow, setSportsToShow] = useState<string[]>(["Tennis"]);
+  const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
     async function loadSports() {
-      const { data: events } = await supabase
-        .from("events")
-        .select("sport")
-        .eq("is_visible", true)
-        .not("sport", "is", null);
+      setIsLoading(true);
+      try {
+        const { data: events } = await supabase
+          .from("events")
+          .select("sport")
+          .eq("is_visible", true)
+          .not("sport", "is", null);
 
-      const uniqueSports = Array.from(
-        new Set((events || []).map((e) => {
-          if (!e.sport) return null;
-          return e.sport.charAt(0).toUpperCase() + e.sport.slice(1).toLowerCase();
-        }).filter(Boolean))
-      ).sort();
+        const uniqueSports = Array.from(
+          new Set((events || []).map((e) => {
+            if (!e.sport) return null;
+            return e.sport.charAt(0).toUpperCase() + e.sport.slice(1).toLowerCase();
+          }).filter(Boolean))
+        ).sort();
 
-      setSportsToShow(uniqueSports.length > 0 ? uniqueSports : ["Tennis"]);
+        setSportsToShow(uniqueSports.length > 0 ? uniqueSports : ["Tennis"]);
+      } catch (error) {
+        console.error("Error loading sports:", error);
+        setSportsToShow(["Tennis"]);
+      } finally {
+        setIsLoading(false);
+      }
     }
     loadSports();
-  }, []);
+  }, [supabase]);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
