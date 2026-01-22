@@ -430,7 +430,7 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
         return;
       }
 
-      toast.success(`✅ 季後賽籤表已生成！\n共 ${playoffMatches.filter(m => m.status !== 'bye').length} 場比賽\n${groupNumbers.length} 組，每組前 ${playoffTeams} 名，共 ${totalPlayoffPlayers} 名選手`);
+      toast.success(`✅ 季後賽籤表已生成！\n共 ${playoffMatches.filter(m => m.status !== 'bye').length} 場比賽\n${groupNumbers.length} 組，每組前 ${playoffTeams} 名，共 ${totalPlayoffPlayers} 名選手\n\n💡 提示：您可以在「管理籤表」中手動調整選手位置`);
       
       setTimeout(() => {
         window.location.reload();

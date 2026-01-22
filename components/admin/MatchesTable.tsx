@@ -10,6 +10,7 @@ import Link from "next/link";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { DRAW_WINNER_ID, isDrawOption, isDrawMatch } from "@/lib/constants/matchConstants";
+import CreateMatchModal from "@/components/admin/CreateMatchModal";
 
 interface SlotOption {
   id: string;
@@ -151,6 +152,9 @@ export default function MatchesTable({
 
   // Announcement draft states
   const [announcementDrafts, setAnnouncementDrafts] = useState<AnnouncementDraft[]>([]);
+
+  // Create match modal state
+  const [showCreateMatch, setShowCreateMatch] = useState(false);
 
   const slotMap = useMemo(() => {
     const map = new Map<string, SlotOption>();
@@ -944,8 +948,16 @@ export default function MatchesTable({
                 💡 Click the <span className="font-semibold text-ntu-green">&quot;Edit&quot;</span> button on any match to update scores, winner, and court.
               </p>
             </div>
-            <div className="text-sm text-gray-500">
-              顯示 {filteredMatches.length} / {matches.length} 場比賽
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowCreateMatch(true)}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
+              >
+                ➕ 創建比賽
+              </button>
+              <div className="text-sm text-gray-500">
+                顯示 {filteredMatches.length} / {matches.length} 場比賽
+              </div>
             </div>
           </div>
 
@@ -1763,6 +1775,18 @@ export default function MatchesTable({
         onPublish={handlePublishAnnouncements}
         eventId={eventId}
       />
+
+      {/* Create Match Modal */}
+      {showCreateMatch && (
+        <CreateMatchModal
+          eventId={eventId}
+          players={players}
+          onMatchCreated={() => {
+            window.location.reload();
+          }}
+          onClose={() => setShowCreateMatch(false)}
+        />
+      )}
     </>
   );
 }

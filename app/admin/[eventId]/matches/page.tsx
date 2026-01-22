@@ -4,6 +4,7 @@ import AdminNavbar from "@/components/admin/Navbar";
 import MatchesTable from "@/components/admin/MatchesTable";
 import PlayerStats from "@/components/admin/PlayerStats";
 import MatchHistory from "@/components/admin/MatchHistory";
+import BracketSeedingManager from "@/components/admin/BracketSeedingManager";
 
 export default async function MatchesPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
@@ -108,6 +109,17 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           <h1 className="text-4xl font-bold text-ntu-green mb-2">Manage Matches</h1>
           <p className="text-lg text-gray-600">{event?.name}</p>
         </div>
+
+        {/* Bracket Seeding Manager - show for single elimination or season play */}
+        {(event?.tournament_type === "single_elimination" || event?.tournament_type === "season_play") && (
+          <BracketSeedingManager
+            eventId={eventId}
+            players={players || []}
+            matches={matches || []}
+            tournamentType={event?.tournament_type as "single_elimination" | "season_play" | null}
+            onSeedingUpdated={() => window.location.reload()}
+          />
+        )}
 
         <MatchesTable 
           eventId={eventId} 
