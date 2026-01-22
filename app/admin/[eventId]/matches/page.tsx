@@ -117,11 +117,6 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
             players={players || []}
             matches={matches || []}
             tournamentType={event?.tournament_type as "single_elimination" | "season_play" | null}
-            onSeedingUpdated={() => {
-              if (typeof window !== 'undefined') {
-                window.location.reload();
-              }
-            }}
           />
         )}
 

@@ -8,7 +8,6 @@ interface BracketSeedingManagerWrapperProps {
   players: Player[];
   matches: any[];
   tournamentType: "single_elimination" | "season_play" | null;
-  onSeedingUpdated: () => void;
 }
 
 // Dynamically import BracketSeedingManager with SSR disabled

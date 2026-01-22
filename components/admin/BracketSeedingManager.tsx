@@ -10,7 +10,6 @@ interface BracketSeedingManagerProps {
   players: Player[];
   matches: any[];
   tournamentType: "single_elimination" | "season_play" | null;
-  onSeedingUpdated: () => void;
 }
 
 export default function BracketSeedingManager({
@@ -18,7 +17,6 @@ export default function BracketSeedingManager({
   players,
   matches,
   tournamentType,
-  onSeedingUpdated,
 }: BracketSeedingManagerProps) {
   const [loading, setLoading] = useState(false);
   const [showManager, setShowManager] = useState(false);
@@ -273,8 +271,13 @@ export default function BracketSeedingManager({
       if (error) throw error;
 
       toast.success("籤表已更新！");
-      onSeedingUpdated();
       setShowManager(false);
+      // Reload page after a short delay
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      }, 1000);
     } catch (error: any) {
       toast.error(`錯誤: ${error.message}`);
     } finally {
