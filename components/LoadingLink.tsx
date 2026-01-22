@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, ReactNode, CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import LoadingSpinner from "./LoadingSpinner";
@@ -9,6 +9,7 @@ interface LoadingLinkProps {
   href: string;
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
   onClick?: () => void;
   prefetch?: boolean;
 }
@@ -17,6 +18,7 @@ export default function LoadingLink({
   href,
   children,
   className = "",
+  style,
   onClick,
   prefetch = true,
 }: LoadingLinkProps) {
@@ -48,6 +50,7 @@ export default function LoadingLink({
       onClick={handleClick}
       prefetch={prefetch}
       className={`relative inline-flex items-center ${className} ${isNavigating ? "opacity-70 cursor-wait" : ""} transition-opacity`}
+      style={style}
     >
       {isNavigating && (
         <span className="ml-2">
