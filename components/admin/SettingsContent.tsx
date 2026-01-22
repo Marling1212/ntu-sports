@@ -106,10 +106,23 @@ export default function SettingsContent({
         .order("is_system", { ascending: false })
         .order("name", { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        // If table doesn't exist yet, just show empty list
+        if (error.code === '42P01' || error.message.includes('does not exist')) {
+          console.warn("Games table not found - migration may not have been run yet");
+          setGames([]);
+          return;
+        }
+        throw error;
+      }
       setGames(data || []);
     } catch (error: any) {
-      toast.error(`Error loading games: ${error.message}`);
+      console.error("Error loading games:", error);
+      // Don't show error toast if table doesn't exist - just set empty array
+      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+        toast.error(`Error loading games: ${error.message}`);
+      }
+      setGames([]);
     } finally {
       setLoadingGames(false);
     }
@@ -423,7 +436,13 @@ export default function SettingsContent({
           is_active: true
         });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '42P01' || error.message.includes('does not exist')) {
+          toast.error("Games 表格尚未建立，請先執行資料庫遷移");
+          return;
+        }
+        throw error;
+      }
 
       toast.success("遊戲已創建！");
       setShowCreateGame(false);

@@ -26,17 +26,17 @@ export default function BracketSeedingManager({
   const [groupStandings, setGroupStandings] = useState<any[]>([]);
   const supabase = createClient();
 
-  // Get playoff matches (round >= 1)
-  const playoffMatches = matches.filter(m => m.round >= 1);
-  const firstRoundMatches = playoffMatches.filter(m => m.round === 1);
+  // Get playoff matches (round >= 1) - handle null/undefined matches
+  const playoffMatches = (matches || []).filter(m => m && m.round >= 1);
+  const firstRoundMatches = playoffMatches.filter(m => m && m.round === 1);
   
   // Calculate bracket size - if no matches exist, use a default or calculate from available players
   let bracketSize = firstRoundMatches.length * 2;
   if (bracketSize === 0) {
     // Default to next power of 2 based on available players
     const availableCount = tournamentType === "season_play" 
-      ? groupStandings.length 
-      : players.length;
+      ? (groupStandings.length || 0)
+      : (players.length || 0);
     bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(availableCount, 2))));
   }
 
@@ -53,10 +53,12 @@ export default function BracketSeedingManager({
       if (firstRoundMatches.length > 0) {
         const positions = new Map<number, string>();
         firstRoundMatches.forEach((match, index) => {
-          const pos1 = index * 2;
-          const pos2 = index * 2 + 1;
-          if (match.player1_id) positions.set(pos1, match.player1_id);
-          if (match.player2_id) positions.set(pos2, match.player2_id);
+          if (match) {
+            const pos1 = index * 2;
+            const pos2 = index * 2 + 1;
+            if (match.player1_id) positions.set(pos1, match.player1_id);
+            if (match.player2_id) positions.set(pos2, match.player2_id);
+          }
         });
         setBracketPositions(positions);
       } else {

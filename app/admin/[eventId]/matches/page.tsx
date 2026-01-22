@@ -111,7 +111,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
         </div>
 
         {/* Bracket Seeding Manager - show for single elimination or season play */}
-        {(event?.tournament_type === "single_elimination" || event?.tournament_type === "season_play") && (
+        {(event?.tournament_type === "single_elimination" || event?.tournament_type === "season_play") && players && (
           <BracketSeedingManager
             eventId={eventId}
             players={players || []}
