@@ -4,6 +4,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Analytics } from "@vercel/analytics/react";
 import { I18nProvider } from "@/lib/i18n/context";
+import { LoadingProvider } from "@/components/LoadingProvider";
+import PageLoader from "@/components/PageLoader";
 
 export const metadata: Metadata = {
   title: "NTU Sports - 台大運動賽事管理平台",
@@ -25,12 +27,15 @@ export default function RootLayout({
     <html lang="zh-TW" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <I18nProvider>
-          <Navbar />
-          <main className="min-h-screen bg-ntu-gray">
-            {children}
-          </main>
-          <Footer />
-          <Analytics />
+          <LoadingProvider>
+            <Navbar />
+            <main className="min-h-screen bg-ntu-gray">
+              {children}
+            </main>
+            <Footer />
+            <PageLoader />
+            <Analytics />
+          </LoadingProvider>
         </I18nProvider>
       </body>
     </html>

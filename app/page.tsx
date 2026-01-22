@@ -4,6 +4,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/context";
 import { useEffect, useState } from "react";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import SkeletonLoader from "@/components/SkeletonLoader";
+import LoadingLink from "@/components/LoadingLink";
 
 // Sport icons mapping
 const sportIcons: { [key: string]: string } = {
@@ -81,37 +84,49 @@ export default function Home() {
         <p className="text-center text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 px-4">
           {t('home.sportsDescription')}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {sportsToShow.map((sport, index) => {
-            const sportLower = sport.toLowerCase();
-            const icon = sportIcons[sport] || "🏆";
-            const colorClass = sportColors[sport] || "bg-ntu-green";
-            
-            return (
-              <Link
-                key={sport}
-                href={`/sports/${sportLower}`}
-                className="bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-gray-100 group p-6 sm:p-8 animate-scaleIn"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="text-center">
-                  <div className={`w-14 h-14 sm:w-16 sm:h-16 ${colorClass} rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg`}>
-                    <span className="text-3xl sm:text-4xl">{icon}</span>
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <SkeletonLoader
+                key={index}
+                variant="card"
+                className="animate-pulse"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {sportsToShow.map((sport, index) => {
+              const sportLower = sport.toLowerCase();
+              const icon = sportIcons[sport] || "🏆";
+              const colorClass = sportColors[sport] || "bg-ntu-green";
+              
+              return (
+                <LoadingLink
+                  key={sport}
+                  href={`/sports/${sportLower}`}
+                  className="bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-gray-100 group p-6 sm:p-8 animate-scaleIn active:scale-[0.98]"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="text-center">
+                    <div className={`w-14 h-14 sm:w-16 sm:h-16 ${colorClass} rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg`}>
+                      <span className="text-3xl sm:text-4xl">{icon}</span>
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-semibold text-ntu-green mb-2 sm:mb-3">
+                      {sport}
+                    </h3>
+                    <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                      {t('home.viewDraw')}
+                    </p>
+                    <div className="mt-3 sm:mt-4 text-ntu-green font-medium text-xs sm:text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                      {t('home.viewDetails')} <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </div>
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-semibold text-ntu-green mb-2 sm:mb-3">
-                    {sport}
-                  </h3>
-                  <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
-                    {t('home.viewDraw')}
-                  </p>
-                  <div className="mt-3 sm:mt-4 text-ntu-green font-medium text-xs sm:text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                    {t('home.viewDetails')} <span className="group-hover:translate-x-1 transition-transform">→</span>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                </LoadingLink>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
