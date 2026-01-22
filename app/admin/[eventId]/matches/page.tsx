@@ -4,13 +4,7 @@ import AdminNavbar from "@/components/admin/Navbar";
 import MatchesTable from "@/components/admin/MatchesTable";
 import PlayerStats from "@/components/admin/PlayerStats";
 import MatchHistory from "@/components/admin/MatchHistory";
-import dynamic from "next/dynamic";
-
-// Dynamically import BracketSeedingManager to avoid SSR issues
-const BracketSeedingManager = dynamic(
-  () => import("@/components/admin/BracketSeedingManager"),
-  { ssr: false }
-);
+import BracketSeedingManagerWrapper from "@/components/admin/BracketSeedingManagerWrapper";
 
 export default async function MatchesPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
@@ -118,7 +112,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
 
         {/* Bracket Seeding Manager - show for single elimination or season play */}
         {(event?.tournament_type === "single_elimination" || event?.tournament_type === "season_play") && players && players.length > 0 && (
-          <BracketSeedingManager
+          <BracketSeedingManagerWrapper
             eventId={eventId}
             players={players || []}
             matches={matches || []}
