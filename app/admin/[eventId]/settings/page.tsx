@@ -69,8 +69,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
           initialEventData={{
             name: event?.name || "",
             sport: event?.sport || "",
-            startDate: event?.start_date || "",
-            endDate: event?.end_date || "",
+            startDate: event?.start_date ? (typeof event.start_date === 'string' ? event.start_date : event.start_date.toISOString()) : "",
+            endDate: event?.end_date ? (typeof event.end_date === 'string' ? event.end_date : event.end_date.toISOString()) : "",
             venue: event?.venue || "",
             description: event?.description || "",
             tournamentType: event?.tournament_type || "single_elimination",
