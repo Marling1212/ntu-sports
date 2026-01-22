@@ -36,8 +36,13 @@ export default function BracketSeedingManager({
     // Default to next power of 2 based on available players
     const availableCount = tournamentType === "season_play" 
       ? (groupStandings.length || 0)
-      : (players.length || 0);
+      : (players?.length || 0);
     bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(availableCount, 2))));
+  }
+  
+  // Ensure bracketSize is valid
+  if (!bracketSize || bracketSize < 2) {
+    bracketSize = 2; // Minimum bracket size
   }
 
   // Load group standings for season play

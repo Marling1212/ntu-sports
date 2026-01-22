@@ -4,7 +4,13 @@ import AdminNavbar from "@/components/admin/Navbar";
 import MatchesTable from "@/components/admin/MatchesTable";
 import PlayerStats from "@/components/admin/PlayerStats";
 import MatchHistory from "@/components/admin/MatchHistory";
-import BracketSeedingManager from "@/components/admin/BracketSeedingManager";
+import dynamic from "next/dynamic";
+
+// Dynamically import BracketSeedingManager to avoid SSR issues
+const BracketSeedingManager = dynamic(
+  () => import("@/components/admin/BracketSeedingManager"),
+  { ssr: false }
+);
 
 export default async function MatchesPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
