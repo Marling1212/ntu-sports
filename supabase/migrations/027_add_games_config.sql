@@ -33,6 +33,12 @@ ON CONFLICT (code) DO NOTHING;
 -- Enable Row Level Security
 ALTER TABLE games ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (for idempotency)
+DROP POLICY IF EXISTS "Games are viewable by everyone" ON games;
+DROP POLICY IF EXISTS "Authenticated users can create custom games" ON games;
+DROP POLICY IF EXISTS "Users can update custom games" ON games;
+DROP POLICY IF EXISTS "Users can delete custom games" ON games;
+
 -- Everyone can view active games
 CREATE POLICY "Games are viewable by everyone"
   ON games FOR SELECT
