@@ -111,13 +111,17 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
         </div>
 
         {/* Bracket Seeding Manager - show for single elimination or season play */}
-        {(event?.tournament_type === "single_elimination" || event?.tournament_type === "season_play") && players && (
+        {(event?.tournament_type === "single_elimination" || event?.tournament_type === "season_play") && players && players.length > 0 && (
           <BracketSeedingManager
             eventId={eventId}
             players={players || []}
             matches={matches || []}
             tournamentType={event?.tournament_type as "single_elimination" | "season_play" | null}
-            onSeedingUpdated={() => window.location.reload()}
+            onSeedingUpdated={() => {
+              if (typeof window !== 'undefined') {
+                window.location.reload();
+              }
+            }}
           />
         )}
 

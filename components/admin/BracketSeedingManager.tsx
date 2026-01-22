@@ -138,8 +138,13 @@ export default function BracketSeedingManager({
     if (!confirm("確定要隨機化籤表嗎？這將清除所有現有的位置分配。")) return;
 
     const availablePlayers = tournamentType === "season_play" 
-      ? groupStandings.map(s => s.player.id)
-      : players.map(p => p.id);
+      ? (groupStandings.length > 0 ? groupStandings.map(s => s.player.id) : [])
+      : (players.length > 0 ? players.map(p => p.id) : []);
+
+    if (availablePlayers.length === 0) {
+      toast.error("沒有可用的選手");
+      return;
+    }
 
     // Shuffle players
     const shuffled = [...availablePlayers].sort(() => Math.random() - 0.5);
@@ -232,7 +237,13 @@ export default function BracketSeedingManager({
       }
 
       // Calculate number of rounds needed
-      const numRounds = Math.ceil(Math.log2(bracketSize));
+      if (bracketSize <= 0) {
+        toast.error("籤表大小無效");
+        setLoading(false);
+        return;
+      }
+      
+      const numRounds = Math.ceil(Math.log2(Math.max(bracketSize, 2)));
       
       // Create placeholder matches for later rounds
       for (let round = 2; round <= numRounds; round++) {
@@ -288,8 +299,8 @@ export default function BracketSeedingManager({
   }
 
   const availablePlayers = tournamentType === "season_play" 
-    ? groupStandings.map(s => s.player)
-    : players;
+    ? (groupStandings.length > 0 ? groupStandings.map(s => s.player) : [])
+    : (players || []);
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 mb-6">
