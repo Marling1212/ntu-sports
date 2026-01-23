@@ -228,32 +228,43 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
         // 有 BYE：種子優先獲得 BYE，但需要確保所有非種子選手都被分配
         console.log(`有 BYE 情況：種子優先獲得 BYE，剩餘非種子填充其他空位`);
         
-        // 先計算種子對手位置（這些位置應該保持為 BYE）
-        const seedOpponentPositions = new Set<number>();
-        for (let i = 0; i < bracketSize; i++) {
-          const player = positions[i];
-          if (player && player.seed) {
-            const matchPos = Math.floor(i / 2) * 2;
-            const opponentPos = i % 2 === 0 ? matchPos + 1 : matchPos;
-            if (!positions[opponentPos]) {
-              seedOpponentPositions.add(opponentPos);
-            }
-          }
-        }
-        
-        // 計算需要多少個 BYE 給種子
+        // 計算需要多少個 BYE 給種子（優先給前幾個種子）
         const seedByesNeeded = Math.min(seeded.length, numByes);
         const remainingByes = numByes - seedByesNeeded;
         
-        // 填充非種子對手位置（優先填充，確保非種子選手都能參賽）
+        // 找出所有種子位置，按種子號碼排序
+        const seedPositions: number[] = [];
+        for (let i = 0; i < bracketSize; i++) {
+          const player = positions[i];
+          if (player && player.seed) {
+            seedPositions.push(i);
+          }
+        }
+        seedPositions.sort((a, b) => {
+          const seedA = positions[a]?.seed || 999;
+          const seedB = positions[b]?.seed || 999;
+          return seedA - seedB;
+        });
+        
+        // 只為前 seedByesNeeded 個種子保留對手位置為 BYE
+        const seedOpponentPositionsForBye = new Set<number>();
+        for (let i = 0; i < seedByesNeeded && i < seedPositions.length; i++) {
+          const seedPos = seedPositions[i];
+          const matchPos = Math.floor(seedPos / 2) * 2;
+          const opponentPos = seedPos % 2 === 0 ? matchPos + 1 : matchPos;
+          if (!positions[opponentPos]) {
+            seedOpponentPositionsForBye.add(opponentPos);
+            console.log(`  為種子 ${positions[seedPos]?.seed} (位置 ${seedPos}) 保留對手位置 ${opponentPos} 為 BYE`);
+          }
+        }
+        
+        console.log(`  總共為 ${seedOpponentPositionsForBye.size} 個種子保留 BYE，剩餘 ${remainingByes} 個 BYE 給非種子`);
+        
+        // 填充所有空位，但跳過為種子保留的 BYE 位置
         for (let i = 0; i < bracketSize; i++) {
           if (!positions[i] && unseededIndex < shuffledUnseeded.length) {
-            const opponentIdx = i % 2 === 0 ? i + 1 : i - 1;
-            const isOpponentOfSeed = positions[opponentIdx] && positions[opponentIdx].seed;
-            
-            // 如果是種子對手位置，且還有 BYE 配額給種子，則跳過（保持 BYE）
-            if (isOpponentOfSeed && seedOpponentPositions.has(i) && seedByesNeeded > 0) {
-              // 這個位置保留為 BYE（給種子）
+            // 如果這個位置是為種子保留的 BYE 位置，則跳過
+            if (seedOpponentPositionsForBye.has(i)) {
               continue;
             }
             
@@ -262,19 +273,30 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
           }
         }
         
-        // 如果還有剩餘的非種子選手和剩餘的 BYE，可以分配給非種子
-        // （但這通常不會發生，因為我們已經優先填充了）
-        if (unseededIndex < shuffledUnseeded.length && remainingByes > 0) {
-          console.log(`警告：還有 ${shuffledUnseeded.length - unseededIndex} 個非種子選手未分配，但理論上應該都已分配`);
+        // 驗證：確保所有非種子選手都被分配（除了保留的 BYE 位置）
+        const totalByePositions = seedOpponentPositionsForBye.size + remainingByes;
+        const expectedFilledPositions = bracketSize - totalByePositions;
+        const actualFilledPositions = positions.filter(p => p !== null).length;
+        
+        if (unseededIndex < shuffledUnseeded.length) {
+          console.log(`警告：還有 ${shuffledUnseeded.length - unseededIndex} 個非種子選手未分配`);
+          console.log(`  已填充位置: ${actualFilledPositions} / ${bracketSize}, BYE 位置: ${totalByePositions}`);
         }
       }
       
       console.log(`總共使用 ${unseededIndex} / ${shuffledUnseeded.length} 非種子選手`);
       
-      // 驗證：確保所有非種子選手都被分配（當 numByes = 0 時）
-      if (numByes === 0 && unseededIndex < shuffledUnseeded.length) {
+      // 驗證：確保所有非種子選手都被分配
+      // 當 numByes = 0 時，所有非種子都必須被分配
+      // 當 numByes > 0 時，所有非種子也應該被分配（BYE 位置不應該占用非種子名額）
+      const expectedUnseededUsed = numByes === 0 
+        ? shuffledUnseeded.length 
+        : shuffledUnseeded.length; // 無論如何，所有非種子都應該被分配
+      
+      if (unseededIndex < shuffledUnseeded.length) {
         console.error(`❌ 錯誤：還有 ${shuffledUnseeded.length - unseededIndex} 個非種子選手未分配！`);
-        toast.error(`籤表生成錯誤：無法分配所有選手。請檢查選手數量。`);
+        console.error(`  預期使用: ${expectedUnseededUsed}, 實際使用: ${unseededIndex}`);
+        toast.error(`籤表生成錯誤：無法分配所有非種子選手（${unseededIndex}/${shuffledUnseeded.length}）。`);
         setLoading(false);
         return;
       }
@@ -335,6 +357,23 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
       if (numByes === 0 && (seedByeCount > 0 || unseededByeCount > 0)) {
         console.error(`❌ 錯誤：當無 BYE 時，不應該有任何 BYE，但發現 ${seedByeCount + unseededByeCount} 個 BYE`);
         toast.error(`籤表生成失敗：無 BYE 情況下不應該出現 BYE。`);
+        setLoading(false);
+        return;
+      }
+      
+      // 驗證：當 numByes > 0 時，BYE 總數應該等於 numByes
+      const totalByes = seedByeCount + unseededByeCount;
+      if (numByes > 0 && totalByes !== numByes) {
+        console.error(`❌ 錯誤：應該有 ${numByes} 個 BYE，但發現 ${totalByes} 個 BYE`);
+        toast.error(`籤表生成失敗：BYE 數量不正確（應有 ${numByes} 個，實際 ${totalByes} 個）。`);
+        setLoading(false);
+        return;
+      }
+      
+      // 驗證：種子 BYE 數量不應該超過種子數量
+      if (seedByeCount > seeded.length) {
+        console.error(`❌ 錯誤：種子 BYE 數量 ${seedByeCount} 超過種子數量 ${seeded.length}`);
+        toast.error(`籤表生成失敗：種子 BYE 數量異常。`);
         setLoading(false);
         return;
       }
