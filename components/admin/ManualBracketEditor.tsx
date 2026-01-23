@@ -94,7 +94,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
             if (player1 && pos1Index < newPositions.length) {
               newPositions[pos1Index] = { 
                 position: pos1Index, 
-                player: player1 
+                player: player1 as Player | null
               };
             }
           }
@@ -103,7 +103,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
             if (player2 && pos2Index < newPositions.length) {
               newPositions[pos2Index] = { 
                 position: pos2Index, 
-                player: player2 
+                player: player2 as Player | null
               };
             }
           }
