@@ -28,7 +28,7 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
     const totalMatches = bracketSize - 1;
 
     const seededCount = players.filter(p => p.seed).length;
-    const confirmText = `確定要生成籤表嗎？\n\n選手數: ${players.length}\n- 種子選手: ${seededCount}\n- 非種子選手: ${players.length - seededCount}\n\n籤表大小: ${bracketSize}\n輪數: ${numRounds}\n總比賽數: ${totalMatches}\n${numByes > 0 ? `輪空（Bye）: ${numByes} 個\n\n分配規則：\n✓ Seed 1-2: 固定位置\n✓ Seed 3-4, 5-8: 隨機\n✓ 種子優先獲得 BYE（輪空）\n✓ 非種子選手互相對打\n✓ 多出來的非種子才對種子` : '\n✓ 所有選手隨機配對'}`;
+    const confirmText = `確定要生成籤表嗎？\n\n選手數: ${players.length}\n- 種子選手: ${seededCount}\n- 非種子選手: ${players.length - seededCount}\n\n籤表大小: ${bracketSize}\n輪數: ${numRounds}\n總比賽數: ${totalMatches}\n${numByes > 0 ? `輪空（Bye）: ${numByes} 個\n\n分配規則：\n✓ Seed 1-2: 固定位置\n✓ Seed 3-4, 5-8: 隨機\n✓ 種子優先獲得 BYE（輪空）\n✓ 非種子選手互相對打\n✓ 多出來的非種子才對種子` : '\n分配規則：\n✓ 所有選手都會參賽（無 BYE）\n✓ Seed 1-2: 固定位置\n✓ Seed 3-4, 5-8: 隨機\n✓ 非種子選手隨機配對'}`;
     if (!confirm(confirmText)) return;
 
     setLoading(true);
@@ -213,26 +213,78 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
       
       // Phase 2: 用剩餘的非種子填充空位
       console.log(`\nPhase 2: 填充剩餘空位`);
-      for (let i = 0; i < bracketSize; i++) {
-        if (!positions[i] && unseededIndex < shuffledUnseeded.length) {
-          // 檢查這個位置是否是種子的對手位置
-          const opponentIdx = i % 2 === 0 ? i + 1 : i - 1;
-          const isOpponentOfSeed = positions[opponentIdx] && positions[opponentIdx].seed;
-          
-          // 如果是種子對手位置，跳過（保持BYE）
-          if (!isOpponentOfSeed) {
+      
+      // 關鍵修正：當 numByes = 0 時，所有位置都必須填滿，包括種子對手位置
+      // 當 numByes > 0 時，種子優先獲得 BYE（跳過種子對手位置）
+      if (numByes === 0) {
+        // 沒有 BYE：填充所有空位，確保所有選手都參賽
+        console.log(`無 BYE 情況：填充所有空位（包括種子對手位置）`);
+        for (let i = 0; i < bracketSize; i++) {
+          if (!positions[i] && unseededIndex < shuffledUnseeded.length) {
             positions[i] = shuffledUnseeded[unseededIndex++];
           }
+        }
+      } else {
+        // 有 BYE：種子優先獲得 BYE，但需要確保所有非種子選手都被分配
+        console.log(`有 BYE 情況：種子優先獲得 BYE，剩餘非種子填充其他空位`);
+        
+        // 先計算種子對手位置（這些位置應該保持為 BYE）
+        const seedOpponentPositions = new Set<number>();
+        for (let i = 0; i < bracketSize; i++) {
+          if (positions[i] && positions[i].seed) {
+            const matchPos = Math.floor(i / 2) * 2;
+            const opponentPos = i % 2 === 0 ? matchPos + 1 : matchPos;
+            if (!positions[opponentPos]) {
+              seedOpponentPositions.add(opponentPos);
+            }
+          }
+        }
+        
+        // 計算需要多少個 BYE 給種子
+        const seedByesNeeded = Math.min(seeded.length, numByes);
+        const remainingByes = numByes - seedByesNeeded;
+        
+        // 填充非種子對手位置（優先填充，確保非種子選手都能參賽）
+        for (let i = 0; i < bracketSize; i++) {
+          if (!positions[i] && unseededIndex < shuffledUnseeded.length) {
+            const opponentIdx = i % 2 === 0 ? i + 1 : i - 1;
+            const isOpponentOfSeed = positions[opponentIdx] && positions[opponentIdx].seed;
+            
+            // 如果是種子對手位置，且還有 BYE 配額給種子，則跳過（保持 BYE）
+            if (isOpponentOfSeed && seedOpponentPositions.has(i) && seedByesNeeded > 0) {
+              // 這個位置保留為 BYE（給種子）
+              continue;
+            }
+            
+            // 否則填充這個位置
+            positions[i] = shuffledUnseeded[unseededIndex++];
+          }
+        }
+        
+        // 如果還有剩餘的非種子選手和剩餘的 BYE，可以分配給非種子
+        // （但這通常不會發生，因為我們已經優先填充了）
+        if (unseededIndex < shuffledUnseeded.length && remainingByes > 0) {
+          console.log(`警告：還有 ${shuffledUnseeded.length - unseededIndex} 個非種子選手未分配，但理論上應該都已分配`);
         }
       }
       
       console.log(`總共使用 ${unseededIndex} / ${shuffledUnseeded.length} 非種子選手`);
+      
+      // 驗證：確保所有非種子選手都被分配（當 numByes = 0 時）
+      if (numByes === 0 && unseededIndex < shuffledUnseeded.length) {
+        console.error(`❌ 錯誤：還有 ${shuffledUnseeded.length - unseededIndex} 個非種子選手未分配！`);
+        toast.error(`籤表生成錯誤：無法分配所有選手。請檢查選手數量。`);
+        setLoading(false);
+        return;
+      }
       
       // Step 3: 驗證
       let byeVsByeCount = 0;
       let seedByeCount = 0;
       let unseededByeCount = 0;
       let unseededMatchCount = 0;
+      let seedVsUnseededCount = 0;
+      let filledPositions = 0;
       
       for (let i = 0; i < bracketSize; i += 2) {
         const player1 = positions[i];
@@ -243,20 +295,48 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
           console.error(`❌ BYE vs BYE at position ${i}-${i+1}`);
         } else if (player1?.seed && !player2) {
           seedByeCount++;
+          filledPositions++;
         } else if (player2?.seed && !player1) {
           seedByeCount++;
+          filledPositions++;
         } else if ((player1 && !player1.seed && !player2) || (player2 && !player2.seed && !player1)) {
           unseededByeCount++;
-        } else if (player1 && !player1.seed && player2 && !player2.seed) {
-          unseededMatchCount++;
+          filledPositions++;
+        } else if (player1 && player2) {
+          filledPositions += 2;
+          if (player1.seed && !player2.seed) {
+            seedVsUnseededCount++;
+          } else if (!player1.seed && player2.seed) {
+            seedVsUnseededCount++;
+          } else if (player1 && !player1.seed && player2 && !player2.seed) {
+            unseededMatchCount++;
+          }
         }
       }
       
       console.log(`\n=== 籤表檢查 ===`);
+      console.log(`已填充位置: ${filledPositions} / ${bracketSize}`);
       console.log(`✓ 種子 vs BYE: ${seedByeCount} 場`);
+      console.log(`✓ 種子 vs 非種子: ${seedVsUnseededCount} 場`);
       console.log(`✓ 非種子 vs BYE: ${unseededByeCount} 場`);
       console.log(`✓ 非種子 vs 非種子: ${unseededMatchCount} 場`);
       console.log(`${byeVsByeCount === 0 ? '✓' : '❌'} BYE vs BYE: ${byeVsByeCount} 場`);
+      
+      // 驗證：當 numByes = 0 時，所有位置都應該被填充
+      if (numByes === 0 && filledPositions !== bracketSize) {
+        console.error(`❌ 錯誤：當無 BYE 時，應該填充 ${bracketSize} 個位置，但只填充了 ${filledPositions} 個`);
+        toast.error(`籤表生成失敗：無法填充所有位置。請檢查邏輯。`);
+        setLoading(false);
+        return;
+      }
+      
+      // 驗證：當 numByes = 0 時，不應該有任何 BYE
+      if (numByes === 0 && (seedByeCount > 0 || unseededByeCount > 0)) {
+        console.error(`❌ 錯誤：當無 BYE 時，不應該有任何 BYE，但發現 ${seedByeCount + unseededByeCount} 個 BYE`);
+        toast.error(`籤表生成失敗：無 BYE 情況下不應該出現 BYE。`);
+        setLoading(false);
+        return;
+      }
       
       if (byeVsByeCount > 0) {
         toast.error(`籤表生成失敗：出現 ${byeVsByeCount} 場 BYE vs BYE！這不應該發生。`);
