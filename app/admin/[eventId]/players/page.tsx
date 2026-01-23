@@ -64,8 +64,16 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
           <p className="text-lg text-gray-600">{event?.name}</p>
         </div>
 
+        {/* Step 1: 添加選手/隊伍 - 這是創建比賽的第一步 */}
+        <PlayersTable 
+          eventId={eventId} 
+          initialPlayers={players || []} 
+          registrationType={event?.registration_type as 'player' | 'team' | undefined}
+        />
+
+        {/* Step 2: 生成籤表/賽季 - 需要先有選手才能生成 */}
         {event?.tournament_type === 'season_play' ? (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-8">
             <GenerateSeasonPlay 
               eventId={eventId}
               players={players || []}
@@ -80,7 +88,7 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
             />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-8">
             <GenerateBracket 
               eventId={eventId}
               players={players || []}
@@ -95,12 +103,6 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
             />
           </div>
         )}
-
-        <PlayersTable 
-          eventId={eventId} 
-          initialPlayers={players || []} 
-          registrationType={event?.registration_type as 'player' | 'team' | undefined}
-        />
       </div>
     </>
   );
