@@ -92,19 +92,21 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
           if (match.player1_id) {
             const player1 = players.find(p => p.id === match.player1_id);
             if (player1 && pos1Index < newPositions.length) {
-              newPositions[pos1Index] = { 
+              const position: BracketPosition = { 
                 position: pos1Index, 
-                player: player1 as Player | null
+                player: player1
               };
+              newPositions[pos1Index] = position;
             }
           }
           if (match.player2_id) {
             const player2 = players.find(p => p.id === match.player2_id);
             if (player2 && pos2Index < newPositions.length) {
-              newPositions[pos2Index] = { 
+              const position: BracketPosition = { 
                 position: pos2Index, 
-                player: player2 as Player | null
+                player: player2
               };
+              newPositions[pos2Index] = position;
             }
           }
         });
