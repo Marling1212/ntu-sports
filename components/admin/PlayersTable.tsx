@@ -17,7 +17,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [isAdding, setIsAdding] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [newPlayer, setNewPlayer] = useState({ name: "", department: "", seed: "" });
+  const [newPlayer, setNewPlayer] = useState({ name: "", department: "", email: "", seed: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSeed, setFilterSeed] = useState<string>("all");
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
@@ -102,7 +102,9 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
         event_id: eventId,
         name: newPlayer.name,
         department: newPlayer.department || null,
+        email: newPlayer.email || null,
         seed: newPlayer.seed ? parseInt(newPlayer.seed) : null,
+        email_opt_in: true,
         type: registrationType, // Set type based on registration type
       })
       .select()
@@ -112,7 +114,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       toast.error(`Error: ${error.message}`);
     } else {
       setPlayers([...players, data]);
-      setNewPlayer({ name: "", department: "", seed: "" });
+      setNewPlayer({ name: "", department: "", email: "", seed: "" });
       setIsAdding(false);
       const entityName = registrationType === 'team' ? 'Team' : 'Player';
       toast.success(`${entityName} added successfully!`);
@@ -344,35 +346,63 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
 
         {isAdding && (
           <form onSubmit={handleAddPlayer} className="p-6 bg-gray-50 border-b border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-medium text-gray-800 mb-3">
+                新增{registrationType === 'team' ? '隊伍' : '選手'}
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                名稱為必填欄位，其他欄位可選填
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <input
                 type="text"
-                placeholder={registrationType === 'team' ? "Team Name" : "Player Name"}
+                placeholder={registrationType === 'team' ? "隊伍名稱 *" : "選手名稱 *"}
                 value={newPlayer.name}
                 onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green focus:border-ntu-green"
                 required
               />
               <input
                 type="text"
-                placeholder="Department (optional)"
+                placeholder="系所（選填）"
                 value={newPlayer.department}
                 onChange={(e) => setNewPlayer({ ...newPlayer, department: e.target.value })}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               />
               <input
-                type="number"
-                placeholder="Seed (optional)"
-                value={newPlayer.seed}
-                onChange={(e) => setNewPlayer({ ...newPlayer, seed: e.target.value })}
+                type="email"
+                placeholder="Email（選填）"
+                value={newPlayer.email}
+                onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               />
-              <button
-                type="submit"
-                className="bg-ntu-green text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity"
-              >
-                Add {registrationType === 'team' ? 'Team' : 'Player'}
-              </button>
+              <input
+                type="number"
+                placeholder="種子序號（選填）"
+                value={newPlayer.seed}
+                onChange={(e) => setNewPlayer({ ...newPlayer, seed: e.target.value })}
+                min="1"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="bg-ntu-green text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity flex-1"
+                >
+                  新增
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdding(false);
+                    setNewPlayer({ name: "", department: "", email: "", seed: "" });
+                  }}
+                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  取消
+                </button>
+              </div>
             </div>
           </form>
         )}
