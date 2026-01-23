@@ -12,13 +12,6 @@ interface BulkPlayerImportProps {
   registrationType?: 'player' | 'team';
 }
 
-interface FieldConfig {
-  name: string;
-  key: string;
-  required: boolean;
-  enabled: boolean;
-}
-
 interface ParsedPlayer {
   name: string;
   department?: string | null;
