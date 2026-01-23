@@ -231,7 +231,8 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
         // 先計算種子對手位置（這些位置應該保持為 BYE）
         const seedOpponentPositions = new Set<number>();
         for (let i = 0; i < bracketSize; i++) {
-          if (positions[i] && positions[i].seed) {
+          const player = positions[i];
+          if (player && player.seed) {
             const matchPos = Math.floor(i / 2) * 2;
             const opponentPos = i % 2 === 0 ? matchPos + 1 : matchPos;
             if (!positions[opponentPos]) {
