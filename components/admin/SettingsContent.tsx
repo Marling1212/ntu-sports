@@ -1034,9 +1034,9 @@ export default function SettingsContent({
 
           {/* Create Game Modal */}
           {showCreateGame && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-                <div className="flex justify-between items-center mb-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full my-8 max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0 sticky top-0 bg-white rounded-t-xl">
                   <h3 className="text-xl font-semibold text-ntu-green">創建新運動</h3>
                   <button
                     onClick={() => {
@@ -1049,7 +1049,7 @@ export default function SettingsContent({
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       名稱 (Name) *
@@ -1117,23 +1117,24 @@ export default function SettingsContent({
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={() => {
-                        setShowCreateGame(false);
-                        setNewGame({ name: "", code: "", icon: "", color: "", description: "" });
-                      }}
-                      className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300"
-                    >
-                      取消
-                    </button>
-                    <button
-                      onClick={createGame}
-                      className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90"
-                    >
-                      創建
-                    </button>
-                  </div>
+                </div>
+
+                <div className="p-6 border-t border-gray-200 flex gap-3 flex-shrink-0 sticky bottom-0 bg-white rounded-b-xl">
+                  <button
+                    onClick={() => {
+                      setShowCreateGame(false);
+                      setNewGame({ name: "", code: "", icon: "", color: "", description: "" });
+                    }}
+                    className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={createGame}
+                    className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90"
+                  >
+                    創建
+                  </button>
                 </div>
               </div>
             </div>
