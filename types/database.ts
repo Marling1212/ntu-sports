@@ -32,6 +32,7 @@ export interface Player {
   email?: string;
   email_opt_in?: boolean;
   type?: 'player' | 'team';
+  custom_fields?: Record<string, any>; // JSON object for custom field values
   created_at: string;
   updated_at: string;
 }

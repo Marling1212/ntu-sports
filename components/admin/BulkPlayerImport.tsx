@@ -193,6 +193,11 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
           email_opt_in: true,
         };
 
+        // Initialize custom_fields object
+        if (!playerData.custom_fields) {
+          playerData.custom_fields = {};
+        }
+
         // Add enabled fields
         enabledFields.forEach(field => {
           if (field.key === 'name') return; // Already set
@@ -204,9 +209,17 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
             // Convert 0 or null to null (no seed), otherwise use the seed number
             playerData.seed = (player.seed === 0 || player.seed === null || player.seed === undefined) ? null : player.seed;
           } else {
-            // Custom field - store in a JSON field or handle separately
-            // For now, we'll skip custom fields in the database insert
-            // You can extend the database schema to support custom fields if needed
+            // Custom field - store in custom_fields JSON object
+            const customValue = player[field.key];
+            if (customValue !== null && customValue !== undefined && customValue !== '') {
+              // Try to parse as number if it looks like a number
+              const numValue = typeof customValue === 'string' ? parseFloat(customValue) : customValue;
+              if (!isNaN(numValue) && isFinite(numValue)) {
+                playerData.custom_fields[field.key] = numValue;
+              } else {
+                playerData.custom_fields[field.key] = customValue;
+              }
+            }
           }
         });
 

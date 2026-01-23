@@ -131,7 +131,12 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       .order("name", { ascending: true });
     
     if (data) {
-      setPlayers(data);
+      // Ensure custom_fields is always an object (not null)
+      const normalizedData = data.map(player => ({
+        ...player,
+        custom_fields: player.custom_fields || {}
+      }));
+      setPlayers(normalizedData);
     }
   };
 
@@ -143,6 +148,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       name: newPlayer.name,
       email_opt_in: true,
       type: registrationType,
+      custom_fields: {},
     };
 
     // Only add enabled fields - explicitly set each field
@@ -162,8 +168,19 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
         } else {
           playerData.seed = null;
         }
+      } else {
+        // Custom field - store in custom_fields JSON object
+        const customValue = newPlayer[field.key];
+        if (customValue !== null && customValue !== undefined && customValue !== '') {
+          // Try to parse as number if it looks like a number
+          const numValue = typeof customValue === 'string' ? parseFloat(customValue) : customValue;
+          if (!isNaN(numValue) && isFinite(numValue)) {
+            playerData.custom_fields[field.key] = numValue;
+          } else {
+            playerData.custom_fields[field.key] = customValue;
+          }
+        }
       }
-      // Custom fields are not stored in database yet
     });
     
     const { data, error } = await supabase
@@ -181,6 +198,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
         department: data.department || null,
         email: data.email || null,
         seed: data.seed || null,
+        custom_fields: data.custom_fields || {},
       };
       setPlayers([...players, newPlayerData]);
       // Reset form based on enabled fields
@@ -602,10 +620,14 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                               </td>
                             );
                           } else {
-                            // Custom field - not stored in database yet, show placeholder
+                            // Custom field - read from custom_fields JSON object
+                            const customValue = player.custom_fields?.[field.key];
+                            const displayValue = customValue !== null && customValue !== undefined && customValue !== '' 
+                              ? String(customValue) 
+                              : null;
                             return (
-                              <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-400 text-sm">
-                                —
+                              <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
+                                {displayValue ? displayValue : "—"}
                               </td>
                             );
                           }
