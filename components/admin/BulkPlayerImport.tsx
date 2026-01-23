@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import LoadingButton from "@/components/LoadingButton";
+import { getFieldConfig, saveFieldConfig, getCustomFields, saveCustomFields, getDefaultFieldConfig, type FieldConfig } from "@/lib/utils/fieldConfig";
 
 interface BulkPlayerImportProps {
   eventId: string;
@@ -34,23 +35,25 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
   const [customFieldName, setCustomFieldName] = useState("");
   const supabase = createClient();
 
-  // Field configuration - name is always required and enabled
-  const [fieldConfig, setFieldConfig] = useState<FieldConfig[]>([
-    { name: '名稱', key: 'name', required: true, enabled: true },
-    { name: '系所', key: 'department', required: false, enabled: false },
-    { name: 'Email', key: 'email', required: false, enabled: false },
-    { name: '種子序號', key: 'seed', required: false, enabled: false },
-  ]);
-
+  // Load field configuration from storage
+  const [fieldConfig, setFieldConfig] = useState<FieldConfig[]>(getDefaultFieldConfig());
   const [customFields, setCustomFields] = useState<FieldConfig[]>([]);
+
+  useEffect(() => {
+    // Load saved configuration
+    const savedConfig = getFieldConfig(eventId);
+    const savedCustomFields = getCustomFields(eventId);
+    setFieldConfig(savedConfig);
+    setCustomFields(savedCustomFields);
+  }, [eventId]);
 
   const handleFieldToggle = (key: string) => {
     if (key === 'name') return; // Name cannot be disabled
-    setFieldConfig(prev => 
-      prev.map(field => 
-        field.key === key ? { ...field, enabled: !field.enabled } : field
-      )
+    const newConfig = fieldConfig.map(field => 
+      field.key === key ? { ...field, enabled: !field.enabled } : field
     );
+    setFieldConfig(newConfig);
+    saveFieldConfig(eventId, newConfig);
   };
 
   const handleAddCustomField = () => {
@@ -58,21 +61,25 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
       toast.error("請輸入自訂欄位名稱");
       return;
     }
-    if (customFields.some(f => f.key === customFieldName.trim().toLowerCase())) {
+    if (customFields.some(f => f.key === customFieldName.trim().toLowerCase().replace(/\s+/g, '_'))) {
       toast.error("此欄位已存在");
       return;
     }
-    setCustomFields(prev => [...prev, {
+    const newCustomFields = [...customFields, {
       name: customFieldName.trim(),
       key: customFieldName.trim().toLowerCase().replace(/\s+/g, '_'),
       required: false,
       enabled: true,
-    }]);
+    }];
+    setCustomFields(newCustomFields);
+    saveCustomFields(eventId, newCustomFields);
     setCustomFieldName("");
   };
 
   const handleRemoveCustomField = (key: string) => {
-    setCustomFields(prev => prev.filter(f => f.key !== key));
+    const newCustomFields = customFields.filter(f => f.key !== key);
+    setCustomFields(newCustomFields);
+    saveCustomFields(eventId, newCustomFields);
   };
 
   const parseInput = () => {
@@ -171,6 +178,8 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
 
     setParsedPlayers(parsed);
     setStep('import');
+    // Trigger storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
     toast.success(`成功解析 ${parsed.length} 筆資料，請檢查預覽`);
   };
 
@@ -293,32 +302,32 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
               ))}
 
               {/* Custom Fields */}
-              {customFields.map((field) => (
-                <div
-                  key={field.key}
-                  className="flex items-center gap-3 p-3 rounded-lg border-2 bg-ntu-green/10 border-ntu-green"
-                >
-                  <input
-                    type="checkbox"
-                    checked={field.enabled}
-                    onChange={() => {
-                      setCustomFields(prev =>
-                        prev.map(f =>
-                          f.key === field.key ? { ...f, enabled: !f.enabled } : f
-                        )
-                      );
-                    }}
-                    className="w-5 h-5 text-ntu-green focus:ring-ntu-green rounded"
-                  />
-                  <span className="flex-1 font-medium">{field.name}</span>
-                  <button
-                    onClick={() => handleRemoveCustomField(field.key)}
-                    className="text-red-500 hover:text-red-700 text-sm"
-                  >
-                    移除
-                  </button>
-                </div>
-              ))}
+                    {customFields.map((field) => (
+                      <div
+                        key={field.key}
+                        className="flex items-center gap-3 p-3 rounded-lg border-2 bg-ntu-green/10 border-ntu-green"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={field.enabled}
+                          onChange={() => {
+                            const newCustomFields = customFields.map(f =>
+                              f.key === field.key ? { ...f, enabled: !f.enabled } : f
+                            );
+                            setCustomFields(newCustomFields);
+                            saveCustomFields(eventId, newCustomFields);
+                          }}
+                          className="w-5 h-5 text-ntu-green focus:ring-ntu-green rounded"
+                        />
+                        <span className="flex-1 font-medium">{field.name}</span>
+                        <button
+                          onClick={() => handleRemoveCustomField(field.key)}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          移除
+                        </button>
+                      </div>
+                    ))}
 
               {/* Add Custom Field */}
               <div className="flex gap-2 pt-2 border-t border-gray-200">

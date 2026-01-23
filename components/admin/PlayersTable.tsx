@@ -6,6 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { Player, TeamMember } from "@/types/database";
 import BulkPlayerImport from "./BulkPlayerImport";
 import BulkTeamMemberImport from "./BulkTeamMemberImport";
+import { getEnabledFields, getFieldConfig, getCustomFields, type FieldConfig } from "@/lib/utils/fieldConfig";
 
 interface PlayersTableProps {
   eventId: string;
@@ -17,14 +18,36 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [isAdding, setIsAdding] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [newPlayer, setNewPlayer] = useState({ name: "", department: "", email: "", seed: "" });
+  const [newPlayer, setNewPlayer] = useState<any>({ name: "", department: "", email: "", seed: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSeed, setFilterSeed] = useState<string>("all");
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [teamMembers, setTeamMembers] = useState<Record<string, TeamMember[]>>({});
   const [editingMember, setEditingMember] = useState<{ teamId: string; memberId?: string; name: string; jerseyNumber: string } | null>(null);
   const [showBulkMemberImport, setShowBulkMemberImport] = useState<Record<string, boolean>>({});
+  const [enabledFields, setEnabledFields] = useState<FieldConfig[]>([]);
   const supabase = createClient();
+
+  // Load field configuration
+  useEffect(() => {
+    const updateFields = () => {
+      const fields = getEnabledFields(eventId);
+      setEnabledFields(fields);
+    };
+    
+    updateFields();
+    // Listen for storage changes (when bulk import updates config)
+    const handleStorageChange = () => updateFields();
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically (for same-tab updates)
+    const interval = setInterval(updateFields, 500);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [eventId]);
 
   // Load team members for all teams
   useEffect(() => {
@@ -96,17 +119,29 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const playerData: any = {
+      event_id: eventId,
+      name: newPlayer.name,
+      email_opt_in: true,
+      type: registrationType,
+    };
+
+    // Only add enabled fields
+    enabledFields.forEach(field => {
+      if (field.key === 'name') return; // Already set
+      if (field.key === 'department') {
+        playerData.department = newPlayer.department || null;
+      } else if (field.key === 'email') {
+        playerData.email = newPlayer.email || null;
+      } else if (field.key === 'seed') {
+        playerData.seed = newPlayer.seed && newPlayer.seed !== "0" ? parseInt(newPlayer.seed) : null;
+      }
+      // Custom fields are not stored in database yet
+    });
+    
     const { data, error } = await supabase
       .from("players")
-      .insert({
-        event_id: eventId,
-        name: newPlayer.name,
-        department: newPlayer.department || null,
-        email: newPlayer.email || null,
-        seed: newPlayer.seed && newPlayer.seed !== "0" ? parseInt(newPlayer.seed) : null,
-        email_opt_in: true,
-        type: registrationType, // Set type based on registration type
-      })
+      .insert(playerData)
       .select()
       .single();
 
@@ -114,7 +149,14 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       toast.error(`Error: ${error.message}`);
     } else {
       setPlayers([...players, data]);
-      setNewPlayer({ name: "", department: "", email: "", seed: "" });
+      // Reset form based on enabled fields
+      const resetPlayer: any = { name: "", department: "", email: "", seed: "" };
+      enabledFields.forEach(field => {
+        if (field.key !== 'name') {
+          resetPlayer[field.key] = "";
+        }
+      });
+      setNewPlayer(resetPlayer);
       setIsAdding(false);
       const entityName = registrationType === 'team' ? 'Team' : 'Player';
       toast.success(`${entityName} added successfully!`);
@@ -351,40 +393,71 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                 新增{registrationType === 'team' ? '隊伍' : '選手'}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                名稱為必填欄位，其他欄位可選填
+                名稱為必填欄位，其他欄位根據您的設定顯示
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <input
-                type="text"
-                placeholder={registrationType === 'team' ? "隊伍名稱 *" : "選手名稱 *"}
-                value={newPlayer.name}
-                onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
-                className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green focus:border-ntu-green"
-                required
-              />
-              <input
-                type="text"
-                placeholder="系所（選填）"
-                value={newPlayer.department}
-                onChange={(e) => setNewPlayer({ ...newPlayer, department: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              />
-              <input
-                type="email"
-                placeholder="Email（選填）"
-                value={newPlayer.email}
-                onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              />
-              <input
-                type="number"
-                placeholder="種子序號（選填，0=無種子）"
-                value={newPlayer.seed}
-                onChange={(e) => setNewPlayer({ ...newPlayer, seed: e.target.value })}
-                min="0"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              />
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${Math.min(enabledFields.length + 1, 5)} gap-4`}>
+              {enabledFields.map((field) => {
+                if (field.key === 'name') {
+                  return (
+                    <input
+                      key={field.key}
+                      type="text"
+                      placeholder={registrationType === 'team' ? "隊伍名稱 *" : "選手名稱 *"}
+                      value={newPlayer.name}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
+                      className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green focus:border-ntu-green"
+                      required
+                    />
+                  );
+                } else if (field.key === 'department') {
+                  return (
+                    <input
+                      key={field.key}
+                      type="text"
+                      placeholder="系所（選填）"
+                      value={newPlayer.department}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, department: e.target.value })}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                    />
+                  );
+                } else if (field.key === 'email') {
+                  return (
+                    <input
+                      key={field.key}
+                      type="email"
+                      placeholder="Email（選填）"
+                      value={newPlayer.email}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                    />
+                  );
+                } else if (field.key === 'seed') {
+                  return (
+                    <input
+                      key={field.key}
+                      type="number"
+                      placeholder="種子序號（選填，0=無種子）"
+                      value={newPlayer.seed}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, seed: e.target.value })}
+                      min="0"
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                    />
+                  );
+                } else {
+                  // Custom field
+                  return (
+                    <input
+                      key={field.key}
+                      type="text"
+                      placeholder={`${field.name}（選填）`}
+                      value={newPlayer[field.key] || ""}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, [field.key]: e.target.value })}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                    />
+                  );
+                }
+              })}
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -412,15 +485,11 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Seed
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Department
-                </th>
+                {enabledFields.map((field) => (
+                  <th key={field.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {field.name}
+                  </th>
+                ))}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
@@ -432,7 +501,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={enabledFields.length + 2} className="px-6 py-12 text-center text-gray-500">
                     {players.length === 0 
                       ? `No ${registrationType === 'team' ? 'teams' : 'players'} added yet. Click "Add ${registrationType === 'team' ? 'Team' : 'Player'}" to get started.`
                       : `No ${registrationType === 'team' ? 'teams' : 'players'} match your search. Try adjusting your search criteria.`}
@@ -447,36 +516,61 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                   return (
                     <>
                       <tr key={player.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {player.seed ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
-                              {player.seed}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                          <div className="flex items-center gap-2">
-                            {isTeam && (
-                              <button
-                                onClick={() => setExpandedTeam(isExpanded ? null : player.id)}
-                                className="text-ntu-green hover:text-ntu-green-dark"
-                              >
-                                {isExpanded ? '▼' : '▶'}
-                              </button>
-                            )}
-                            {player.name}
-                            {isTeam && (
-                              <span className="text-xs text-gray-500">
-                                ({members.length} 位球員)
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                          {player.department || "—"}
-                        </td>
+                        {enabledFields.map((field) => {
+                          if (field.key === 'name') {
+                            return (
+                              <td key={field.key} className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                <div className="flex items-center gap-2">
+                                  {isTeam && (
+                                    <button
+                                      onClick={() => setExpandedTeam(isExpanded ? null : player.id)}
+                                      className="text-ntu-green hover:text-ntu-green-dark"
+                                    >
+                                      {isExpanded ? '▼' : '▶'}
+                                    </button>
+                                  )}
+                                  {player.name}
+                                  {isTeam && (
+                                    <span className="text-xs text-gray-500">
+                                      ({members.length} 位球員)
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            );
+                          } else if (field.key === 'department') {
+                            return (
+                              <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
+                                {player.department || "—"}
+                              </td>
+                            );
+                          } else if (field.key === 'email') {
+                            return (
+                              <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
+                                {player.email || "—"}
+                              </td>
+                            );
+                          } else if (field.key === 'seed') {
+                            return (
+                              <td key={field.key} className="px-6 py-4 whitespace-nowrap">
+                                {player.seed ? (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
+                                    {player.seed}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </td>
+                            );
+                          } else {
+                            // Custom field - not stored in database yet, show placeholder
+                            return (
+                              <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-400 text-sm">
+                                —
+                              </td>
+                            );
+                          }
+                        })}
                         <td className="px-6 py-4 whitespace-nowrap">
                           {player.eliminated_round ? (
                             <span className="text-red-600 text-sm">
@@ -497,7 +591,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                       </tr>
                       {isTeam && isExpanded && (
                         <tr>
-                          <td colSpan={5} className="px-6 py-4 bg-gray-50">
+                          <td colSpan={enabledFields.length + 2} className="px-6 py-4 bg-gray-50">
                             <div className="space-y-4">
                               <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-gray-700">隊伍成員</h3>
@@ -636,7 +730,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                   <div className="bg-white border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           {isTeam && (
                             <button
                               onClick={() => setExpandedTeam(isExpanded ? null : player.id)}
@@ -645,7 +739,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                               {isExpanded ? '▼' : '▶'}
                             </button>
                           )}
-                          {player.seed && (
+                          {enabledFields.find(f => f.key === 'seed' && f.enabled) && player.seed && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
                               Seed {player.seed}
                             </span>
@@ -657,10 +751,10 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                             </span>
                           )}
                         </div>
-                        {player.department && (
+                        {enabledFields.find(f => f.key === 'department' && f.enabled) && player.department && (
                           <div className="text-sm text-gray-600">{player.department}</div>
                         )}
-                        {player.email && (
+                        {enabledFields.find(f => f.key === 'email' && f.enabled) && player.email && (
                           <div className="text-xs text-gray-500 mt-1">{player.email}</div>
                         )}
                       </div>
