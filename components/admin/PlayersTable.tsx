@@ -6,7 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { Player, TeamMember } from "@/types/database";
 import BulkPlayerImport from "./BulkPlayerImport";
 import BulkTeamMemberImport from "./BulkTeamMemberImport";
-import { getEnabledFields, getFieldConfig, getCustomFields, type FieldConfig } from "@/lib/utils/fieldConfig";
+import { getEnabledFields, getFieldConfig, getCustomFields, getDefaultFieldConfig, type FieldConfig } from "@/lib/utils/fieldConfig";
 
 interface PlayersTableProps {
   eventId: string;
@@ -32,6 +32,15 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
   useEffect(() => {
     const updateFields = () => {
       const fields = getEnabledFields(eventId);
+      // Ensure at least name field is always included
+      if (fields.length === 0 || !fields.some(f => f.key === 'name')) {
+        const defaultConfig = getDefaultFieldConfig();
+        const nameField = defaultConfig.find(f => f.key === 'name');
+        if (nameField) {
+          setEnabledFields([nameField]);
+          return;
+        }
+      }
       setEnabledFields(fields);
     };
     
@@ -526,7 +535,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                   return (
                     <>
                       <tr key={player.id} className="hover:bg-gray-50">
-                        {enabledFields.map((field) => {
+                        {enabledFields.length > 0 ? enabledFields.map((field) => {
                           if (field.key === 'name') {
                             return (
                               <td key={field.key} className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
@@ -539,7 +548,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                                       {isExpanded ? '▼' : '▶'}
                                     </button>
                                   )}
-                                  {player.name}
+                                  {player.name || "—"}
                                   {isTeam && (
                                     <span className="text-xs text-gray-500">
                                       ({members.length} 位球員)
@@ -580,7 +589,12 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                               </td>
                             );
                           }
-                        })}
+                        }) : (
+                          // Fallback: show at least name if no fields configured
+                          <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                            {player.name || "—"}
+                          </td>
+                        )}
                         <td className="px-6 py-4 whitespace-nowrap">
                           {player.eliminated_round ? (
                             <span className="text-red-600 text-sm">
