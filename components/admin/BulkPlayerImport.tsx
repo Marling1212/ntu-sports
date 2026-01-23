@@ -124,8 +124,9 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
           }
         } else if (fieldKey === 'seed') {
           const seedNum = parseInt(value);
-          if (!isNaN(seedNum) && seedNum > 0) {
-            player.seed = seedNum;
+          if (!isNaN(seedNum) && seedNum >= 0) {
+            // Allow 0 to represent "no seed", will be converted to null when saving
+            player.seed = seedNum === 0 ? null : seedNum;
           }
         } else if (fieldKey === 'department') {
           player.department = value || null;
@@ -147,11 +148,12 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
       }
 
       // Additional seed detection if seed field is enabled but not found in position
-      if (fieldConfig.find(f => f.key === 'seed' && f.enabled) && !player.seed) {
+      if (fieldConfig.find(f => f.key === 'seed' && f.enabled) && player.seed === undefined) {
         for (let i = 1; i < parts.length; i++) {
           const seedNum = parseInt(parts[i]);
-          if (!isNaN(seedNum) && seedNum > 0 && parts[i] !== player.email) {
-            player.seed = seedNum;
+          if (!isNaN(seedNum) && seedNum >= 0 && parts[i] !== player.email) {
+            // Allow 0 to represent "no seed", will be converted to null when saving
+            player.seed = seedNum === 0 ? null : seedNum;
             break;
           }
         }
@@ -193,7 +195,8 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
           } else if (field.key === 'email') {
             playerData.email = player.email || null;
           } else if (field.key === 'seed') {
-            playerData.seed = player.seed || null;
+            // Convert 0 or null to null (no seed), otherwise use the seed number
+            playerData.seed = (player.seed === 0 || player.seed === null || player.seed === undefined) ? null : player.seed;
           } else {
             // Custom field - store in a JSON field or handle separately
             // For now, we'll skip custom fields in the database insert
@@ -431,7 +434,7 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
                         <th className="px-3 py-2 text-left border-b">Email</th>
                       )}
                       {fieldConfig.find(f => f.key === 'seed' && f.enabled) && (
-                        <th className="px-3 py-2 text-left border-b">種子</th>
+                        <th className="px-3 py-2 text-left border-b">種子（0=無）</th>
                       )}
                       {customFields.filter(f => f.enabled).map(field => (
                         <th key={field.key} className="px-3 py-2 text-left border-b">{field.name}</th>
@@ -449,7 +452,7 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
                           <td className="px-3 py-2">{player.email || '-'}</td>
                         )}
                         {fieldConfig.find(f => f.key === 'seed' && f.enabled) && (
-                          <td className="px-3 py-2">{player.seed || '-'}</td>
+                          <td className="px-3 py-2">{player.seed === null || player.seed === undefined ? '-' : player.seed === 0 ? '0 (無種子)' : player.seed}</td>
                         )}
                         {customFields.filter(f => f.enabled).map(field => (
                           <td key={field.key} className="px-3 py-2">{player[field.key] || '-'}</td>

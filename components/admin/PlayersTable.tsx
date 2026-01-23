@@ -103,7 +103,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
         name: newPlayer.name,
         department: newPlayer.department || null,
         email: newPlayer.email || null,
-        seed: newPlayer.seed ? parseInt(newPlayer.seed) : null,
+        seed: newPlayer.seed && newPlayer.seed !== "0" ? parseInt(newPlayer.seed) : null,
         email_opt_in: true,
         type: registrationType, // Set type based on registration type
       })
@@ -379,10 +379,10 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
               />
               <input
                 type="number"
-                placeholder="種子序號（選填）"
+                placeholder="種子序號（選填，0=無種子）"
                 value={newPlayer.seed}
                 onChange={(e) => setNewPlayer({ ...newPlayer, seed: e.target.value })}
-                min="1"
+                min="0"
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               />
               <div className="flex gap-2">
