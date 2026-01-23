@@ -103,9 +103,9 @@ export default function CreateMatchModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-        <div className="flex justify-between items-center mb-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full my-8 max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0 sticky top-0 bg-white rounded-t-xl">
           <h2 className="text-xl font-semibold text-ntu-green">創建新比賽</h2>
           <button
             onClick={onClose}
@@ -115,7 +115,7 @@ export default function CreateMatchModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="create-match-form" onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               輪次 (Round) *
@@ -232,24 +232,33 @@ export default function CreateMatchModal({
             </select>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300"
-              disabled={loading}
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
-            >
-              {loading ? "創建中..." : "創建比賽"}
-            </button>
-          </div>
         </form>
+
+        <div className="p-6 border-t border-gray-200 flex gap-3 flex-shrink-0 sticky bottom-0 bg-white rounded-b-xl">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300"
+            disabled={loading}
+          >
+            取消
+          </button>
+          <button
+            type="submit"
+            form="create-match-form"
+            disabled={loading}
+            className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+            onClick={(e) => {
+              e.preventDefault();
+              const form = document.getElementById('create-match-form') as HTMLFormElement;
+              if (form) {
+                form.requestSubmit();
+              }
+            }}
+          >
+            {loading ? "創建中..." : "創建比賽"}
+          </button>
+        </div>
       </div>
     </div>
   );
