@@ -145,15 +145,23 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       type: registrationType,
     };
 
-    // Only add enabled fields
+    // Only add enabled fields - explicitly set each field
     enabledFields.forEach(field => {
       if (field.key === 'name') return; // Already set
       if (field.key === 'department') {
-        playerData.department = newPlayer.department || null;
+        // Only set if there's a value, otherwise explicitly set to null
+        playerData.department = newPlayer.department?.trim() || null;
       } else if (field.key === 'email') {
-        playerData.email = newPlayer.email || null;
+        playerData.email = newPlayer.email?.trim() || null;
       } else if (field.key === 'seed') {
-        playerData.seed = newPlayer.seed && newPlayer.seed !== "0" ? parseInt(newPlayer.seed) : null;
+        // Handle seed: "0" means no seed (null), empty string also means null
+        const seedValue = newPlayer.seed?.trim();
+        if (seedValue && seedValue !== "0") {
+          const parsed = parseInt(seedValue);
+          playerData.seed = !isNaN(parsed) ? parsed : null;
+        } else {
+          playerData.seed = null;
+        }
       }
       // Custom fields are not stored in database yet
     });
@@ -161,13 +169,20 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
     const { data, error } = await supabase
       .from("players")
       .insert(playerData)
-      .select()
+      .select("*")
       .single();
 
     if (error) {
       toast.error(`Error: ${error.message}`);
-    } else {
-      setPlayers([...players, data]);
+    } else if (data) {
+      // Ensure the returned data has all fields properly set
+      const newPlayerData: Player = {
+        ...data,
+        department: data.department || null,
+        email: data.email || null,
+        seed: data.seed || null,
+      };
+      setPlayers([...players, newPlayerData]);
       // Reset form based on enabled fields
       const resetPlayer: any = { name: "", department: "", email: "", seed: "" };
       enabledFields.forEach(field => {
@@ -179,6 +194,8 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       setIsAdding(false);
       const entityName = registrationType === 'team' ? 'Team' : 'Player';
       toast.success(`${entityName} added successfully!`);
+    } else {
+      toast.error("Failed to add player - no data returned");
     }
   };
 
@@ -558,23 +575,26 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                               </td>
                             );
                           } else if (field.key === 'department') {
+                            const deptValue = player.department?.trim();
                             return (
                               <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
-                                {player.department || "—"}
+                                {deptValue ? deptValue : "—"}
                               </td>
                             );
                           } else if (field.key === 'email') {
+                            const emailValue = player.email?.trim();
                             return (
                               <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
-                                {player.email || "—"}
+                                {emailValue ? emailValue : "—"}
                               </td>
                             );
                           } else if (field.key === 'seed') {
+                            const seedValue = player.seed;
                             return (
                               <td key={field.key} className="px-6 py-4 whitespace-nowrap">
-                                {player.seed ? (
+                                {seedValue !== null && seedValue !== undefined ? (
                                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
-                                    {player.seed}
+                                    {seedValue}
                                   </span>
                                 ) : (
                                   <span className="text-gray-400">—</span>
