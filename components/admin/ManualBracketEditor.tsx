@@ -79,7 +79,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
       if (matches && matches.length > 0) {
         // Load Round 1 matches into bracket positions
         const round1Matches = matches.filter(m => m.round === 1);
-        const newPositions = Array.from({ length: bracketSize }, (_, i) => ({
+        const newPositions: BracketPosition[] = Array.from({ length: bracketSize }, (_, i) => ({
           position: i,
           player: null,
         }));
