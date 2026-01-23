@@ -54,6 +54,8 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
     );
     setFieldConfig(newConfig);
     saveFieldConfig(eventId, newConfig);
+    // Notify other components
+    window.dispatchEvent(new CustomEvent('fieldConfigUpdated'));
   };
 
   const handleAddCustomField = () => {
@@ -73,6 +75,7 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
     }];
     setCustomFields(newCustomFields);
     saveCustomFields(eventId, newCustomFields);
+    window.dispatchEvent(new CustomEvent('fieldConfigUpdated'));
     setCustomFieldName("");
   };
 
@@ -80,6 +83,7 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
     const newCustomFields = customFields.filter(f => f.key !== key);
     setCustomFields(newCustomFields);
     saveCustomFields(eventId, newCustomFields);
+    window.dispatchEvent(new CustomEvent('fieldConfigUpdated'));
   };
 
   const parseInput = () => {
@@ -316,6 +320,7 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
                             );
                             setCustomFields(newCustomFields);
                             saveCustomFields(eventId, newCustomFields);
+                            window.dispatchEvent(new CustomEvent('fieldConfigUpdated'));
                           }}
                           className="w-5 h-5 text-ntu-green focus:ring-ntu-green rounded"
                         />

@@ -36,15 +36,25 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
     };
     
     updateFields();
-    // Listen for storage changes (when bulk import updates config)
-    const handleStorageChange = () => updateFields();
+    
+    // Listen for storage changes (when bulk import updates config in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.startsWith('player_field_config_') && e.key.includes(eventId)) {
+        updateFields();
+      }
+    };
     window.addEventListener('storage', handleStorageChange);
     
-    // Also check periodically (for same-tab updates)
-    const interval = setInterval(updateFields, 500);
+    // Listen for custom event (when bulk import updates config in same tab)
+    const handleConfigUpdate = () => updateFields();
+    window.addEventListener('fieldConfigUpdated', handleConfigUpdate);
+    
+    // Also check periodically as fallback
+    const interval = setInterval(updateFields, 1000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('fieldConfigUpdated', handleConfigUpdate);
       clearInterval(interval);
     };
   }, [eventId]);
