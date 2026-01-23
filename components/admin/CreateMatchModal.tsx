@@ -244,10 +244,7 @@ export default function CreateMatchModal({
             取消
           </button>
           <button
-            type="submit"
-            form="create-match-form"
-            disabled={loading}
-            className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+            type="button"
             onClick={(e) => {
               e.preventDefault();
               const form = document.getElementById('create-match-form') as HTMLFormElement;
@@ -255,6 +252,8 @@ export default function CreateMatchModal({
                 form.requestSubmit();
               }
             }}
+            disabled={loading}
+            className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
           >
             {loading ? "創建中..." : "創建比賽"}
           </button>
