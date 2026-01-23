@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { Player } from "@/types/database";
+import { Player, Event } from "@/types/database";
 
 interface ManualBracketEditorProps {
   eventId: string;
@@ -22,6 +22,11 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
   const [draggedPlayer, setDraggedPlayer] = useState<Player | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
   const [dragOverPosition, setDragOverPosition] = useState<number | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [unlockReason, setUnlockReason] = useState("");
+  const [loadingExisting, setLoadingExisting] = useState(true);
 
   // Calculate bracket size (next power of 2)
   const bracketSize = useMemo(() => {
@@ -45,6 +50,70 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
       player: null,
     }));
   });
+
+  // Load event info and existing matches
+  useEffect(() => {
+    const loadEventAndMatches = async () => {
+      setLoadingExisting(true);
+      
+      // Load event info
+      const { data: eventData } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .single();
+      
+      if (eventData) {
+        setEvent(eventData);
+        setIsLocked(eventData.bracket_locked || false);
+      }
+
+      // Load existing matches
+      const { data: matches } = await supabase
+        .from("matches")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("round", { ascending: true })
+        .order("match_number", { ascending: true });
+
+      if (matches && matches.length > 0) {
+        // Load Round 1 matches into bracket positions
+        const round1Matches = matches.filter(m => m.round === 1);
+        const newPositions = Array.from({ length: bracketSize }, (_, i) => ({
+          position: i,
+          player: null,
+        }));
+
+        round1Matches.forEach((match) => {
+          const matchIndex = match.match_number - 1;
+          const pos1Index = matchIndex * 2;
+          const pos2Index = matchIndex * 2 + 1;
+
+          if (match.player1_id) {
+            const player1 = players.find(p => p.id === match.player1_id);
+            if (player1 && pos1Index < newPositions.length) {
+              newPositions[pos1Index] = { ...newPositions[pos1Index], player: player1 };
+            }
+          }
+          if (match.player2_id) {
+            const player2 = players.find(p => p.id === match.player2_id);
+            if (player2 && pos2Index < newPositions.length) {
+              newPositions[pos2Index] = { ...newPositions[pos2Index], player: player2 };
+            }
+          }
+        });
+
+        setBracketPositions(newPositions);
+        toast.success(`已載入現有籤表（${round1Matches.length} 場第一輪比賽）`);
+      }
+      
+      setLoadingExisting(false);
+    };
+
+    if (eventId && bracketSize > 0) {
+      loadEventAndMatches();
+    }
+  }, [eventId, bracketSize, players]);
 
   // Get unassigned players
   const unassignedPlayers = useMemo(() => {
@@ -84,7 +153,12 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
 
   // Handle drop
   const handleDrop = (positionIndex: number) => {
-    if (!draggedPlayer) return;
+    if (!draggedPlayer || isLocked) {
+      if (isLocked) {
+        toast.error("籤表已鎖定，請先解鎖才能編輯");
+      }
+      return;
+    }
 
     setBracketPositions((prev) => {
       const newPositions = [...prev];
@@ -121,6 +195,11 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
   // Handle player selection from dropdown
   const handlePlayerSelect = (playerId: string) => {
     if (selectedPosition === null) return;
+    if (isLocked) {
+      toast.error("籤表已鎖定，請先解鎖才能編輯");
+      setSelectedPosition(null);
+      return;
+    }
 
     const player = players.find((p) => p.id === playerId);
     if (!player) return;
@@ -147,6 +226,10 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
 
   // Remove player from position
   const handleRemovePlayer = (positionIndex: number) => {
+    if (isLocked) {
+      toast.error("籤表已鎖定，請先解鎖才能編輯");
+      return;
+    }
     setBracketPositions((prev) => {
       const newPositions = [...prev];
       newPositions[positionIndex] = { ...newPositions[positionIndex], player: null };
@@ -156,6 +239,10 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
 
   // Clear all positions
   const handleClearAll = () => {
+    if (isLocked) {
+      toast.error("籤表已鎖定，請先解鎖才能編輯");
+      return;
+    }
     if (!confirm("確定要清除所有已分配的選手嗎？")) return;
     setBracketPositions(
       Array.from({ length: bracketSize }, (_, i) => ({
@@ -167,6 +254,10 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
 
   // Auto-fill remaining positions with unassigned players
   const handleAutoFill = () => {
+    if (isLocked) {
+      toast.error("籤表已鎖定，請先解鎖才能編輯");
+      return;
+    }
     const remaining = [...unassignedPlayers];
     if (remaining.length === 0) {
       toast.success("所有選手都已分配完成！");
@@ -190,6 +281,77 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
     toast.success(`已自動分配 ${Math.min(remaining.length, bracketSize - players.length + remaining.length)} 位選手`);
   };
 
+  // Handle unlock
+  const handleUnlock = async () => {
+    if (!unlockReason.trim()) {
+      toast.error("請填寫解鎖原因");
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("無法取得使用者資訊");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("events")
+      .update({ bracket_locked: false })
+      .eq("id", eventId);
+
+    if (error) {
+      toast.error(`解鎖失敗: ${error.message}`);
+      return;
+    }
+
+    // Record unlock in history
+    await supabase
+      .from("bracket_edit_history")
+      .insert({
+        event_id: eventId,
+        admin_id: user.id,
+        action: 'unlock',
+        reason: unlockReason.trim(),
+      });
+
+    setIsLocked(false);
+    setShowUnlockModal(false);
+    setUnlockReason("");
+    toast.success("籤表已解鎖，現在可以編輯");
+  };
+
+  // Handle lock
+  const handleLock = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("無法取得使用者資訊");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("events")
+      .update({ bracket_locked: true })
+      .eq("id", eventId);
+
+    if (error) {
+      toast.error(`鎖定失敗: ${error.message}`);
+      return;
+    }
+
+    // Record lock in history
+    await supabase
+      .from("bracket_edit_history")
+      .insert({
+        event_id: eventId,
+        admin_id: user.id,
+        action: 'lock',
+        reason: '手動鎖定籤表',
+      });
+
+    setIsLocked(true);
+    toast.success("籤表已鎖定");
+  };
+
   // Save bracket to database
   const handleSave = async () => {
     if (players.length < 2) {
@@ -210,6 +372,14 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
     setLoading(true);
 
     try {
+      // Get current user for history tracking
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("無法取得使用者資訊");
+        setLoading(false);
+        return;
+      }
+
       // Check for existing matches
       const { count } = await supabase
         .from("matches")
@@ -227,6 +397,17 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
 
         // Delete existing matches
         await supabase.from("matches").delete().eq("event_id", eventId);
+        
+        // Record deletion in history
+        await supabase
+          .from("bracket_edit_history")
+          .insert({
+            event_id: eventId,
+            admin_id: user.id,
+            action: 'edit',
+            changes: { action: 'delete_all_matches' },
+            reason: '刪除現有比賽以重新生成',
+          });
       }
 
       // Generate matches
@@ -326,6 +507,31 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
         throw insertError;
       }
 
+      // Update event with bracket generation method
+      await supabase
+        .from("events")
+        .update({
+          bracket_generation_method: 'manual',
+          bracket_generated_at: new Date().toISOString(),
+        })
+        .eq("id", eventId);
+
+      // Record save in history
+      await supabase
+        .from("bracket_edit_history")
+        .insert({
+          event_id: eventId,
+          admin_id: user.id,
+          action: 'save',
+          changes: {
+            method: 'manual',
+            matches_created: matches.length,
+            bracket_size: bracketSize,
+            rounds: numRounds,
+          },
+          reason: '手動分配並儲存籤表',
+        });
+
       // Create 3rd place match if enabled
       if (hasThirdPlaceMatch && numRounds >= 2) {
         const thirdPlaceMatch = {
@@ -372,8 +578,115 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
     );
   }
 
+  if (loadingExisting) {
+    return (
+      <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+        <p className="text-gray-600">載入中...</p>
+      </div>
+    );
+  }
+
+  const getGenerationMethodText = () => {
+    if (!event?.bracket_generation_method) return null;
+    const methods = {
+      auto: '自動生成',
+      manual: '手動建立',
+      imported: '匯入',
+    };
+    return methods[event.bracket_generation_method];
+  };
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleString('zh-TW');
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      {/* Bracket Status Banner */}
+      {event && (event.bracket_generation_method || event.bracket_generated_at) && (
+        <div className={`mb-6 p-4 rounded-lg border-2 ${
+          isLocked 
+            ? 'bg-red-50 border-red-200' 
+            : 'bg-blue-50 border-blue-200'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isLocked ? (
+                <span className="text-2xl">🔒</span>
+              ) : (
+                <span className="text-2xl">🔓</span>
+              )}
+              <div>
+                <p className="font-semibold text-gray-800">
+                  籤表狀態：{getGenerationMethodText() || '未生成'}
+                  {isLocked && <span className="ml-2 text-red-600">（已鎖定）</span>}
+                </p>
+                {event.bracket_generated_at && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    生成時間：{formatDate(event.bracket_generated_at)}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {isLocked ? (
+                <button
+                  onClick={() => setShowUnlockModal(true)}
+                  className="px-4 py-2 bg-ntu-green text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
+                >
+                  🔓 解鎖編輯
+                </button>
+              ) : (
+                <button
+                  onClick={handleLock}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+                >
+                  🔒 鎖定籤表
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unlock Modal */}
+      {showUnlockModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">解鎖籤表</h3>
+            <p className="text-gray-600 mb-4">
+              解鎖後可以編輯籤表。請填寫解鎖原因以記錄在審計日誌中。
+            </p>
+            <textarea
+              value={unlockReason}
+              onChange={(e) => setUnlockReason(e.target.value)}
+              placeholder="例如：需要調整選手位置、修正錯誤等..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green mb-4"
+              rows={4}
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowUnlockModal(false);
+                  setUnlockReason("");
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleUnlock}
+                disabled={!unlockReason.trim()}
+                className="px-4 py-2 bg-ntu-green text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                確認解鎖
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-start justify-between mb-6">
         <div>
           <h3 className="text-xl font-semibold text-ntu-green mb-2">
@@ -381,18 +694,20 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
           </h3>
           <p className="text-sm text-gray-600">
             拖曳選手到籤表位置，或點擊位置後從下拉選單選擇選手
+            {isLocked && <span className="text-red-600 ml-2">（目前鎖定中）</span>}
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleClearAll}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            disabled={isLocked}
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             清除全部
           </button>
           <button
             onClick={handleAutoFill}
-            disabled={unassignedPlayers.length === 0}
+            disabled={unassignedPlayers.length === 0 || isLocked}
             className="px-4 py-2 text-sm border border-ntu-green text-ntu-green rounded-lg hover:bg-ntu-green hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             自動填充
@@ -641,10 +956,10 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
       <div className="mt-6 flex justify-end">
         <button
           onClick={handleSave}
-          disabled={loading}
-          className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+          disabled={loading || isLocked}
+          className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "儲存中..." : "💾 儲存籤表"}
+          {loading ? "儲存中..." : isLocked ? "🔒 籤表已鎖定" : "💾 儲存籤表"}
         </button>
       </div>
     </div>

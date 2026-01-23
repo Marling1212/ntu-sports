@@ -10,6 +10,9 @@ export interface Event {
   tournament_type?: 'single_elimination' | 'season_play';
   registration_type?: 'player' | 'team';
   blackout_limit?: number | null;
+  bracket_generation_method?: 'auto' | 'manual' | 'imported' | null;
+  bracket_generated_at?: string | null;
+  bracket_locked?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -158,5 +161,15 @@ export interface MatchPlayerStat {
   stat_value?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface BracketEditHistory {
+  id: string;
+  event_id: string;
+  admin_id: string;
+  action: 'generate' | 'edit' | 'lock' | 'unlock' | 'save';
+  changes?: Record<string, any>;
+  reason?: string;
+  created_at: string;
 }
 

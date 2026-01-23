@@ -514,6 +514,42 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
         return;
       }
 
+      // Get current user for history tracking
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Update event with bracket generation info
+      const { error: updateError } = await supabase
+        .from("events")
+        .update({
+          bracket_generation_method: 'auto',
+          bracket_generated_at: new Date().toISOString(),
+          bracket_locked: true, // Auto-lock generated brackets
+        })
+        .eq("id", eventId);
+
+      if (updateError) {
+        console.error("Failed to update event bracket info:", updateError);
+      }
+
+      // Record in edit history
+      if (user) {
+        await supabase
+          .from("bracket_edit_history")
+          .insert({
+            event_id: eventId,
+            admin_id: user.id,
+            action: 'generate',
+            changes: {
+              method: 'auto',
+              matches_created: matches.length,
+              bracket_size: bracketSize,
+              rounds: numRounds,
+              byes: numByes,
+            },
+            reason: '自動生成籤表',
+          });
+      }
+
       // Create 3rd place match if enabled (for semifinals losers)
       if (hasThirdPlaceMatch && numRounds >= 2) {
         console.log("\n=== 創建季軍賽 ===");
@@ -578,11 +614,27 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
       const confirm = window.confirm("已有比賽存在。是否要刪除現有比賽並重新生成？");
       if (!confirm) return;
       
+      // Get current user for history tracking
+      const { data: { user } } = await supabase.auth.getUser();
+      
       // Delete existing matches
       await supabase
         .from("matches")
         .delete()
         .eq("event_id", eventId);
+      
+      // Record deletion in history
+      if (user) {
+        await supabase
+          .from("bracket_edit_history")
+          .insert({
+            event_id: eventId,
+            admin_id: user.id,
+            action: 'edit',
+            changes: { action: 'delete_all_matches' },
+            reason: '刪除現有比賽以重新生成',
+          });
+      }
     }
     
     generateBracket();
