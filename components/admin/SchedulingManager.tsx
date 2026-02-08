@@ -675,6 +675,23 @@ export default function SchedulingManager({
     }
   };
 
+  const downloadSlotTemplateSample = () => {
+    const header = "code,weekday,start_time,end_time,court,capacity,notes";
+    const rows = [
+      "Mon-18,1,18:00,20:00,,,",
+      "Wed-18,3,18:00,20:00,,,",
+      "Fri-14,5,14:00,17:00,,1,週五下午場",
+    ];
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "每週時段模板範例.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleSlotTemplateImport = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -982,21 +999,36 @@ export default function SchedulingManager({
           <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">每週比賽時段模板</h2>
             <p className="text-sm text-gray-600 mt-1">
-              設定每週固定的可用時段後，就能一次生成整個賽季的時段，僅需針對少數例外手動調整。
+              定義「每週哪些時段可以排比賽」（例如週一 18:00–20:00、週三 18:00–20:00）。同一套時段會作為<strong>選手頁「不可出賽」</strong>的選項；建立後可在此頁用「依模板生成時段」產出下面的「所有可用時段」。
             </p>
           </div>
         </div>
 
         <div className="border-2 border-dashed border-purple-300 rounded-lg p-4 mb-6 bg-purple-50/30">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
+            <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-800">📥 匯入每週模板（含代號）</h3>
               <p className="text-sm text-gray-600">
-                CSV 欄位順序：<span className="font-mono">code,weekday,start_time,end_time,court,capacity,notes</span>。
-                星期可使用 0-6、Mon、週一 等表示。時間採 <span className="font-mono">HH:MM</span> 格式。
+                <strong>資料結構（7 欄，前 4 欄必填）：</strong>
+              </p>
+              <ul className="text-sm text-gray-600 list-disc list-inside space-y-0.5">
+                <li><span className="font-mono">code</span> — 時段代號（同一活動內不可重複，選手頁「不可出賽」會用此代號）</li>
+                <li><span className="font-mono">weekday</span> — 星期：0=週日～6=週六，或 週一、Mon、一 等</li>
+                <li><span className="font-mono">start_time, end_time</span> — 時間 HH:MM 或 HH:MM:SS</li>
+                <li><span className="font-mono">court, capacity, notes</span> — 選填：場地名（須先建好）、同時可打場數、備註</li>
+              </ul>
+              <p className="text-xs text-gray-500">
+                第一列可為標題列（含 code），有標題時會自動略過。同一 <span className="font-mono">code</span> 重複時以最後一筆為準。
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={downloadSlotTemplateSample}
+                className="text-sm font-medium text-purple-700 hover:text-purple-800 underline"
+              >
+                下載範例 CSV
+              </button>
               <label className="flex items-center gap-2 text-sm text-gray-600">
                 <input
                   type="checkbox"
@@ -1247,7 +1279,7 @@ export default function SchedulingManager({
           <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">所有可用時段</h2>
             <p className="text-sm text-gray-600 mt-1">
-              自動生成後仍可針對個別時段調整或刪除，確保最終排程精準。
+              由上方「每週時段模板」依日期區間<strong>生成</strong>的實際日曆時段（例如 2025/3/10 18:00–20:00），或手動新增。排程演算法會用這些 slot 來排比賽。
             </p>
           </div>
         </div>

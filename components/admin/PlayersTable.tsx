@@ -843,7 +843,11 @@ export default function PlayersTable({
                                   </button>
                                 </div>
                               ) : (
-                                <p className="text-xs text-gray-500">請先在 Scheduling 頁面建立「每週比賽時段模板」後，即可在此選擇不可出賽時段。</p>
+                                <div className="text-xs text-gray-500 space-y-1">
+                                  <p>設定不可出賽前，請先到 <strong>排程（Scheduling）</strong> 頁建立「每週比賽時段模板」。</p>
+                                  <p className="text-gray-400">流程：排程頁 → 每週時段模板（定義週一～週日哪些時段可打）→ 回到選手頁即可在此選擇各隊不能打的時段。</p>
+                                  <a href={`/admin/${eventId}/scheduling#slot-templates`} className="text-ntu-green hover:underline block mt-1">前往排程頁建立時段模板 →</a>
+                                </div>
                               )}
                             </div>
                           </td>
