@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { Player, Event } from "@/types/database";
+import { Player, Event, BracketEditHistory } from "@/types/database";
 
 interface ManualBracketEditorProps {
   eventId: string;
@@ -27,6 +27,9 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockReason, setUnlockReason] = useState("");
   const [loadingExisting, setLoadingExisting] = useState(true);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyList, setHistoryList] = useState<BracketEditHistory[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Calculate bracket size (next power of 2)
   const bracketSize = useMemo(() => {
@@ -361,6 +364,31 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
     toast.success("籤表已鎖定");
   };
 
+  // Load and show edit history
+  const loadAndShowHistory = async () => {
+    setShowHistoryModal(true);
+    setLoadingHistory(true);
+    const { data } = await supabase
+      .from("bracket_edit_history")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setHistoryList(data || []);
+    setLoadingHistory(false);
+  };
+
+  const getActionLabel = (action: string) => {
+    const labels: Record<string, string> = {
+      generate: "生成籤表",
+      edit: "編輯",
+      lock: "鎖定",
+      unlock: "解鎖",
+      save: "儲存籤表",
+    };
+    return labels[action] || action;
+  };
+
   // Save bracket to database
   const handleSave = async () => {
     if (players.length < 2) {
@@ -639,6 +667,12 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
               </div>
             </div>
             <div className="flex gap-2">
+              <button
+                onClick={loadAndShowHistory}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium border border-gray-300"
+              >
+                📋 查看歷史
+              </button>
               {isLocked ? (
                 <button
                   onClick={() => setShowUnlockModal(true)}
@@ -654,6 +688,44 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
                   🔒 鎖定籤表
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 max-h-[80vh] flex flex-col">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">籤表編輯記錄</h3>
+            {loadingHistory ? (
+              <p className="text-gray-500 py-4">載入中...</p>
+            ) : historyList.length === 0 ? (
+              <p className="text-gray-500 py-4">尚無編輯記錄</p>
+            ) : (
+              <ul className="space-y-3 overflow-y-auto flex-1 pr-2">
+                {historyList.map((item) => (
+                  <li key={item.id} className="border-b border-gray-100 pb-3 last:border-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-ntu-green">{getActionLabel(item.action)}</span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(item.created_at).toLocaleString("zh-TW")}
+                      </span>
+                    </div>
+                    {item.reason && (
+                      <p className="text-sm text-gray-600 mt-1">{item.reason}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                關閉
+              </button>
             </div>
           </div>
         </div>
