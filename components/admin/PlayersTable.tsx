@@ -73,6 +73,7 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
     if (registrationType === 'team') {
       loadTeamMembers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registrationType, players]);
 
   const loadTeamMembers = async () => {

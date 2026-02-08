@@ -48,6 +48,7 @@ export default function BracketSeedingManager({
     if (tournamentType === "season_play" && showManager) {
       loadGroupStandings();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournamentType, showManager]);
 
   // Initialize bracket positions from existing matches
@@ -186,16 +187,24 @@ export default function BracketSeedingManager({
         .eq("event_id", eventId)
         .gte("round", 1);
 
-      // Create new first round matches
+      // Create new first round matches and track BYE winners for Round 2
       const newMatches: any[] = [];
+      const round2Advances: Map<string, string> = new Map();
       let matchNumber = 1;
 
       for (let i = 0; i < bracketSize; i += 2) {
         const player1Id = bracketPositions.get(i) || null;
         const player2Id = bracketPositions.get(i + 1) || null;
+        const currentMatchNum = matchNumber;
+
+        // Calculate which Round 2 slot this match feeds into
+        const nextRoundMatch = Math.ceil(currentMatchNum / 2);
+        const feedsPlayer1 = currentMatchNum % 2 === 1;
+        const slotKey = `${nextRoundMatch}-${feedsPlayer1 ? "1" : "2"}`;
 
         if (player1Id && !player2Id) {
-          // BYE for player1
+          // BYE for player1 - advance to Round 2
+          round2Advances.set(slotKey, player1Id);
           newMatches.push({
             event_id: eventId,
             round: 1,
@@ -206,7 +215,8 @@ export default function BracketSeedingManager({
             winner_id: player1Id,
           });
         } else if (!player1Id && player2Id) {
-          // BYE for player2
+          // BYE for player2 - advance to Round 2
+          round2Advances.set(slotKey, player2Id);
           newMatches.push({
             event_id: eventId,
             round: 1,
@@ -248,16 +258,26 @@ export default function BracketSeedingManager({
       
       const numRounds = Math.ceil(Math.log2(Math.max(bracketSize, 2)));
       
-      // Create placeholder matches for later rounds
+      // Create matches for Round 2+ with BYE winners pre-populated in Round 2
       for (let round = 2; round <= numRounds; round++) {
         const matchesInRound = Math.pow(2, numRounds - round);
         for (let i = 1; i <= matchesInRound; i++) {
+          const matchNum = i;
+          let player1Id: string | null = null;
+          let player2Id: string | null = null;
+
+          if (round === 2) {
+            // Populate Round 2 with BYE winners from Round 1
+            player1Id = round2Advances.get(`${matchNum}-1`) || null;
+            player2Id = round2Advances.get(`${matchNum}-2`) || null;
+          }
+
           newMatches.push({
             event_id: eventId,
             round,
-            match_number: i,
-            player1_id: null,
-            player2_id: null,
+            match_number: matchNum,
+            player1_id: player1Id,
+            player2_id: player2Id,
             status: "upcoming",
           });
         }

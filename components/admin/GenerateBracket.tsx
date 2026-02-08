@@ -81,12 +81,13 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
       });
       
       // Place Seeds 5-8 (randomized between their designated positions)
+      // Only use valid positions (avoid -1 when bracketSize < 4)
       const pos58 = [
         Math.floor(bracketSize / 4),
         bracketSize - 1 - Math.floor(bracketSize / 4),
         Math.floor(bracketSize / 2) + Math.floor(bracketSize / 4),
         Math.floor(bracketSize / 4) - 1
-      ];
+      ].filter(p => p >= 0 && p < bracketSize);
       shuffled58.forEach((player, index) => {
         if (pos58[index] !== undefined) {
           positions[pos58[index]] = player;

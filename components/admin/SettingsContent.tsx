@@ -95,6 +95,7 @@ export default function SettingsContent({
     if (activeTab === "games") {
       loadGames();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const loadGames = async () => {
