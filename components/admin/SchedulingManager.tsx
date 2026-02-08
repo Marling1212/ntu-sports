@@ -243,6 +243,8 @@ export default function SchedulingManager({
   const [slotTemplateImporting, setSlotTemplateImporting] = useState(false);
   const [slotTemplateImportSummary, setSlotTemplateImportSummary] = useState<string | null>(null);
   const [slotTemplateImportReplace, setSlotTemplateImportReplace] = useState(false);
+  const [autoScheduling, setAutoScheduling] = useState(false);
+  const [autoScheduleClearExisting, setAutoScheduleClearExisting] = useState(false);
 
   const slotTemplateFileRef = useRef<HTMLInputElement | null>(null);
 
@@ -877,6 +879,30 @@ export default function SchedulingManager({
     }
   };
 
+  const handleAutoSchedule = async () => {
+    setAutoScheduling(true);
+    try {
+      const res = await fetch(`/api/admin/events/${eventId}/auto-schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearExisting: autoScheduleClearExisting }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message || "自動排程失敗");
+        return;
+      }
+      toast.success(data.message);
+      if (data.assigned > 0) {
+        window.location.href = `/admin/${eventId}/matches`;
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "自動排程失敗");
+    } finally {
+      setAutoScheduling(false);
+    }
+  };
+
   return (
     <div className="space-y-10">
       {/* Navigation Menu */}
@@ -900,6 +926,12 @@ export default function SchedulingManager({
             className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-500 rounded-lg hover:opacity-90 transition-opacity"
           >
             可用時段
+          </a>
+          <a
+            href="#auto-schedule"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            一鍵排程
           </a>
         </div>
       </nav>
@@ -1413,6 +1445,40 @@ export default function SchedulingManager({
             ))}
           </div>
         )}
+      </section>
+
+      <section id="auto-schedule" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
+        <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-gray-200">
+          <div className="w-1 h-8 bg-emerald-600 rounded"></div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-semibold text-ntu-green">一鍵排程</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              依「所有可用時段」與各時段的<strong>場地數（capacity）</strong>、選手頁設定的<strong>不可出賽</strong>，自動為尚未排程的比賽分配時段；同一時段內每場地最多排一場，且不會把隊伍排進其不可出賽時段。
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={autoScheduleClearExisting}
+              onChange={(e) => setAutoScheduleClearExisting(e.target.checked)}
+              className="h-4 w-4"
+            />
+            清除既有排程後重排（勾選會先清空所有比賽的時段再重新分配）
+          </label>
+          <button
+            type="button"
+            onClick={handleAutoSchedule}
+            disabled={autoScheduling}
+            className="bg-emerald-600 text-white px-5 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {autoScheduling ? "排程中…" : "開始自動排程"}
+          </button>
+        </div>
+        <p className="mt-3 text-xs text-gray-500">
+          完成後會導向賽程頁檢視結果。若部分比賽無法排入，請增加「所有可用時段」或調整不可出賽後再執行一次。
+        </p>
       </section>
     </div>
   );

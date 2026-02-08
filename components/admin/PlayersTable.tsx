@@ -486,6 +486,13 @@ export default function PlayersTable({
           </div>
         </div>
 
+        <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 text-sm text-slate-600">
+          <span className="font-medium text-slate-700">設定好不可出賽後：</span>
+          {" "}到 <a href={`/admin/${eventId}/scheduling#slot-templates`} className="text-ntu-green hover:underline">排程頁</a> 用「依模板生成時段」產出「所有可用時段」；
+          {" "}產生對戰後到排程頁 <a href={`/admin/${eventId}/scheduling#auto-schedule`} className="text-ntu-green hover:underline">一鍵排程</a> 自動分配時段（會考慮場地數與不可出賽）。
+          {" "}完整步驟見專案內 <code className="text-xs bg-slate-200 px-1 rounded">SCHEDULING_STEPS.md</code>。
+        </div>
+
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold text-ntu-green">
