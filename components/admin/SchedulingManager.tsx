@@ -7,25 +7,16 @@ import {
   EventCourt,
   EventSlot,
   EventSlotTemplate,
-  Player,
-  TeamBlackout,
-  TeamBlackoutTemplate,
 } from "@/types/database";
 
 type SlotRecord = EventSlot & { court?: EventCourt | null };
-type BlackoutRecord = TeamBlackout & { player?: Player | null };
 type SlotTemplateRecord = EventSlotTemplate & { court?: EventCourt | null };
-type BlackoutTemplateRecord = TeamBlackoutTemplate & { player?: Player | null };
 
 interface SchedulingManagerProps {
   eventId: string;
   initialCourts: EventCourt[];
   initialSlots: SlotRecord[];
-  initialBlackouts: BlackoutRecord[];
   initialSlotTemplates: SlotTemplateRecord[];
-  initialBlackoutTemplates: BlackoutTemplateRecord[];
-  players: Player[];
-  initialBlackoutLimit?: number | null;
 }
 
 interface SlotFormState {
@@ -58,17 +49,6 @@ interface SlotTemplateGenerateFormState {
   startDate: string;
   endDate: string;
   includeExisting: boolean;
-}
-
-interface BlackoutTemplateFormState {
-  playerId: string;
-  slotTemplateId: string;
-}
-
-interface BlackoutTemplateGenerateFormState {
-  startDate: string;
-  endDate: string;
-  overwrite: boolean;
 }
 
 const WEEKDAY_LABELS = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
@@ -106,17 +86,6 @@ const emptySlotTemplateGenerateForm: SlotTemplateGenerateFormState = {
   includeExisting: false,
 };
 
-const emptyBlackoutTemplateForm: BlackoutTemplateFormState = {
-  playerId: "",
-  slotTemplateId: "",
-};
-
-const emptyBlackoutTemplateGenerateForm: BlackoutTemplateGenerateFormState = {
-  startDate: "",
-  endDate: "",
-  overwrite: false,
-};
-
 const parseTime = (value: string) => {
   if (!value) return "";
   return value.length === 5 ? `${value}:00` : value;
@@ -145,29 +114,6 @@ const toISODateTime = (date: Date, time: string) => {
     Number(ss),
   );
   return isoDate.toISOString();
-};
-
-const getWeekKey = (date: Date) => {
-  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const dayNr = (target.getDay() + 6) % 7;
-  target.setDate(target.getDate() - dayNr + 3);
-  const firstThursday = new Date(target.getFullYear(), 0, 4);
-  const week =
-    1 + Math.round(((target.getTime() - firstThursday.getTime()) / 86400000 - 3) / 7);
-  return `${target.getFullYear()}-W${String(week).padStart(2, "0")}`;
-};
-
-const buildExistingWeekCounts = (items: BlackoutRecord[]) => {
-  const counts = new Map<string, Map<string, number>>();
-  items.forEach((item) => {
-    const playerId = item.player_id || "";
-    if (!playerId) return;
-    const week = getWeekKey(new Date(item.start_time));
-    if (!counts.has(playerId)) counts.set(playerId, new Map());
-    const playerMap = counts.get(playerId)!;
-    playerMap.set(week, (playerMap.get(week) || 0) + 1);
-  });
-  return counts;
 };
 
 const normalizeTimeInput = (value: string): string | null => {
@@ -273,41 +219,23 @@ export default function SchedulingManager({
   eventId,
   initialCourts,
   initialSlots,
-  initialBlackouts,
   initialSlotTemplates,
-  initialBlackoutTemplates,
-  players,
-  initialBlackoutLimit,
 }: SchedulingManagerProps) {
   const supabase = createClient();
 
   const [courts, setCourts] = useState<EventCourt[]>(initialCourts);
   const [slots, setSlots] = useState<SlotRecord[]>(initialSlots);
-  const [blackouts, setBlackouts] = useState<BlackoutRecord[]>(initialBlackouts);
   const [slotTemplates, setSlotTemplates] = useState<SlotTemplateRecord[]>(initialSlotTemplates);
-  const [blackoutTemplates, setBlackoutTemplates] = useState<BlackoutTemplateRecord[]>(initialBlackoutTemplates);
-  const [blackoutLimit, setBlackoutLimit] = useState<string>(
-    initialBlackoutLimit !== null && initialBlackoutLimit !== undefined
-      ? String(initialBlackoutLimit)
-      : ""
-  );
 
   const [slotForm, setSlotForm] = useState<SlotFormState>(emptySlotForm);
   const [courtForm, setCourtForm] = useState<CourtFormState>(emptyCourtForm);
   const [slotTemplateForm, setSlotTemplateForm] = useState<SlotTemplateFormState>(emptySlotTemplateForm);
   const [slotTemplateGenerateForm, setSlotTemplateGenerateForm] = useState<SlotTemplateGenerateFormState>(emptySlotTemplateGenerateForm);
-  const [blackoutTemplateForm, setBlackoutTemplateForm] = useState<BlackoutTemplateFormState>(emptyBlackoutTemplateForm);
-  const [blackoutTemplateGenerateForm, setBlackoutTemplateGenerateForm] = useState<BlackoutTemplateGenerateFormState>(emptyBlackoutTemplateGenerateForm);
 
-  const [savingLimit, setSavingLimit] = useState(false);
   const [submittingSlot, setSubmittingSlot] = useState(false);
   const [submittingCourt, setSubmittingCourt] = useState(false);
   const [submittingSlotTemplate, setSubmittingSlotTemplate] = useState(false);
-  const [submittingBlackoutTemplate, setSubmittingBlackoutTemplate] = useState(false);
   const [generatingSlots, setGeneratingSlots] = useState(false);
-  const [generatingBlackouts, setGeneratingBlackouts] = useState(false);
-  const [bulkImporting, setBulkImporting] = useState(false);
-  const [bulkImportSummary, setBulkImportSummary] = useState<string | null>(null);
   const [slotCodePrefix, setSlotCodePrefix] = useState("S");
   const [slotCodeDigits, setSlotCodeDigits] = useState("3");
   const [slotCodeStart, setSlotCodeStart] = useState("1");
@@ -315,23 +243,8 @@ export default function SchedulingManager({
   const [slotTemplateImporting, setSlotTemplateImporting] = useState(false);
   const [slotTemplateImportSummary, setSlotTemplateImportSummary] = useState<string | null>(null);
   const [slotTemplateImportReplace, setSlotTemplateImportReplace] = useState(false);
-  const [bulkImportReplaceTemplates, setBulkImportReplaceTemplates] = useState(false);
-  const [bulkImportGenerateAfter, setBulkImportGenerateAfter] = useState(true);
 
-  const bulkFileRef = useRef<HTMLInputElement | null>(null);
   const slotTemplateFileRef = useRef<HTMLInputElement | null>(null);
-
-  const playersById = useMemo(() => {
-    const map = new Map<string, Player>();
-    players.forEach((player) => map.set(player.id, player));
-    return map;
-  }, [players]);
-
-  const playersByName = useMemo(() => {
-    const map = new Map<string, Player>();
-    players.forEach((player) => map.set(player.name.trim().toLowerCase(), player));
-    return map;
-  }, [players]);
 
   const courtsByName = useMemo(() => {
     const map = new Map<string, EventCourt>();
@@ -342,12 +255,6 @@ export default function SchedulingManager({
     });
     return map;
   }, [courts]);
-
-  const slotTemplatesById = useMemo(() => {
-    const map = new Map<string, SlotTemplateRecord>();
-    slotTemplates.forEach((template) => map.set(template.id, template));
-    return map;
-  }, [slotTemplates]);
 
   const slotTemplatesByKey = useMemo(() => {
     const map = new Map<string, SlotTemplateRecord>();
@@ -390,24 +297,6 @@ export default function SchedulingManager({
     return map;
   }, [slotTemplates]);
 
-  const blackoutTemplatesGrouped = useMemo(() => {
-    const map = new Map<string, BlackoutTemplateRecord[]>();
-    blackoutTemplates
-      .slice()
-      .sort((a, b) =>
-        a.player_id === b.player_id
-          ? a.day_of_week === b.day_of_week
-            ? a.start_time.localeCompare(b.start_time)
-            : a.day_of_week - b.day_of_week
-          : a.player_id.localeCompare(b.player_id),
-      )
-      .forEach((template) => {
-        if (!map.has(template.player_id)) map.set(template.player_id, []);
-        map.get(template.player_id)!.push(template);
-      });
-    return map;
-  }, [blackoutTemplates]);
-
   const dateFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat("zh-TW", {
@@ -421,54 +310,14 @@ export default function SchedulingManager({
 
   const formatDateHeader = (date: string) => dateFormatter.format(parseDateOnly(date));
 
-  const getSlotCodeFromDate = useCallback(
-    (date: Date, start: string, end: string) => {
-      const key = `${date.getDay()}-${start}-${end}`;
-      const template = slotTemplatesByKey.get(key);
-      return template?.code || `${start}-${end}`;
-    },
-    [slotTemplatesByKey],
-  );
-
   const getSlotCodeFromTemplate = useCallback(
-    (
-      template:
-        | Pick<SlotTemplateRecord, "day_of_week" | "start_time" | "end_time">
-        | Pick<BlackoutTemplateRecord, "day_of_week" | "start_time" | "end_time">
-    ) => {
+    (template: Pick<SlotTemplateRecord, "day_of_week" | "start_time" | "end_time">) => {
       const key = `${template.day_of_week}-${template.start_time.slice(0, 5)}-${template.end_time.slice(0, 5)}`;
       const match = slotTemplatesByKey.get(key);
       return match?.code || WEEKDAY_LABELS[template.day_of_week];
     },
     [slotTemplatesByKey],
   );
-
-  const handleSaveBlackoutLimit = async () => {
-    setSavingLimit(true);
-    try {
-      const value = blackoutLimit.trim();
-      const parsed = value ? Number(value) : null;
-      if (parsed !== null && (Number.isNaN(parsed) || parsed < 0)) {
-        toast.error("黑名單上限必須是 0 或正整數");
-        setSavingLimit(false);
-        return;
-      }
-
-      const { error } = await supabase
-        .from("events")
-        .update({ blackout_limit: parsed })
-        .eq("id", eventId);
-
-      if (error) throw error;
-
-      toast.success("已更新每隊可申報的不可出賽時段上限");
-    } catch (error: any) {
-      console.error("Save blackout limit error", error);
-      toast.error(error?.message || "更新失敗");
-    } finally {
-      setSavingLimit(false);
-    }
-  };
 
   const handleAddCourt = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -770,421 +619,6 @@ export default function SchedulingManager({
     }
   };
 
-  const handleAddBlackoutTemplate = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!blackoutTemplateForm.playerId || !blackoutTemplateForm.slotTemplateId) {
-      toast.error("請選擇選手和時段代號");
-      return;
-    }
-
-    const template = slotTemplatesById.get(blackoutTemplateForm.slotTemplateId);
-    if (!template) {
-      toast.error("找不到對應的時段代號");
-      return;
-    }
-
-    setSubmittingBlackoutTemplate(true);
-    try {
-      const now = new Date().toISOString();
-      const payload = {
-        event_id: eventId,
-        player_id: blackoutTemplateForm.playerId,
-        day_of_week: template.day_of_week,
-        start_time: template.start_time,
-        end_time: template.end_time,
-        reason: null,
-        created_at: now,
-        updated_at: now,
-      };
-
-      const { data, error } = await supabase
-        .from("team_blackout_templates")
-        .insert(payload)
-        .select("*, player:players(id, name, department, seed)")
-        .single();
-
-      if (error) throw error;
-
-      setBlackoutTemplates([...blackoutTemplates, data as BlackoutTemplateRecord]);
-      setBlackoutTemplateForm(emptyBlackoutTemplateForm);
-      toast.success("已新增每週黑名單模板");
-    } catch (error: any) {
-      console.error("Add blackout template error", error);
-      toast.error(error?.message || "新增失敗");
-    } finally {
-      setSubmittingBlackoutTemplate(false);
-    }
-  };
-
-  const handleDeleteBlackoutTemplate = async (templateId: string) => {
-    if (!confirm("確定要刪除此模板嗎？")) return;
-    try {
-      const { error } = await supabase
-        .from("team_blackout_templates")
-        .delete()
-        .eq("id", templateId);
-
-      if (error) throw error;
-
-      setBlackoutTemplates(blackoutTemplates.filter((template) => template.id !== templateId));
-      toast.success("模板已刪除");
-    } catch (error: any) {
-      console.error("Delete blackout template error", error);
-      toast.error(error?.message || "刪除失敗");
-    }
-  };
-
-  const handleDeleteBlackout = async (blackoutId: string) => {
-    if (!confirm("確定要刪除此不可出賽時段嗎？")) return;
-    try {
-      const { error } = await supabase.from("team_blackouts").delete().eq("id", blackoutId);
-      if (error) throw error;
-      setBlackouts(blackouts.filter((b) => b.id !== blackoutId));
-      toast.success("已刪除");
-    } catch (error: any) {
-      console.error("Delete blackout error", error);
-      toast.error(error?.message || "刪除失敗");
-    }
-  };
-
-  const handleGenerateBlackoutsFromTemplates = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!blackoutTemplateGenerateForm.startDate || !blackoutTemplateGenerateForm.endDate) {
-      toast.error("請選擇起訖日期");
-      return;
-    }
-
-    if (blackoutTemplates.length === 0) {
-      toast.error("請先建立每週黑名單模板");
-      return;
-    }
-
-    const startDate = parseDateOnly(blackoutTemplateGenerateForm.startDate);
-    const endDate = parseDateOnly(blackoutTemplateGenerateForm.endDate);
-    if (startDate > endDate) {
-      toast.error("結束日期必須晚於開始日期");
-      return;
-    }
-
-    const existingWeekCounts = buildExistingWeekCounts(blackouts);
-    const limit = blackoutLimit.trim() ? Number(blackoutLimit.trim()) : null;
-    const records: any[] = [];
-    const skipped: string[] = [];
-    const seenKeys = new Set(
-      blackouts.map((item) => `${item.player_id || ""}#${item.start_time}#${item.end_time}`),
-    );
-
-    for (
-      let cursor = new Date(startDate.getTime());
-      cursor <= endDate;
-      cursor.setDate(cursor.getDate() + 1)
-    ) {
-      const day = cursor.getDay();
-      blackoutTemplates
-        .filter((template) => template.day_of_week === day)
-        .forEach((template) => {
-          const playerId = template.player_id;
-          const weekKey = getWeekKey(cursor);
-          if (limit !== null) {
-            if (!existingWeekCounts.has(playerId)) {
-              existingWeekCounts.set(playerId, new Map([[weekKey, 0]]));
-            }
-            const playerMap = existingWeekCounts.get(playerId)!;
-            const currentCount = playerMap.get(weekKey) || 0;
-            if (currentCount >= limit) {
-              skipped.push(`${playersById.get(playerId)?.name || "玩家"} 在 ${weekKey}`);
-              return;
-            }
-            playerMap.set(weekKey, currentCount + 1);
-          }
-
-          const dateKey = formatDateKey(cursor);
-          const startIso = toISODateTime(cursor, template.start_time);
-          const endIso = toISODateTime(cursor, template.end_time);
-          const uniqueness = `${playerId}#${startIso}#${endIso}`;
-          if (!blackoutTemplateGenerateForm.overwrite && seenKeys.has(uniqueness)) {
-            return;
-          }
-          seenKeys.add(uniqueness);
-
-          records.push({
-            event_id: eventId,
-            player_id: playerId,
-            start_time: startIso,
-            end_time: endIso,
-            reason: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-        });
-    }
-
-    if (records.length === 0) {
-      toast("沒有新增任何黑名單，可能是已存在或超過上限", { icon: "ℹ️" });
-      if (skipped.length > 0) {
-        console.info("Skipped due to limits:", skipped.join(", "));
-      }
-      return;
-    }
-
-    setGeneratingBlackouts(true);
-    try {
-      const chunkSize = 50;
-      const inserted: BlackoutRecord[] = [];
-      for (let i = 0; i < records.length; i += chunkSize) {
-        const chunk = records.slice(i, i + chunkSize);
-        const { data, error } = await supabase
-          .from("team_blackouts")
-          .insert(chunk)
-          .select("*, player:players(id, name, department, seed)");
-        if (error) throw error;
-        inserted.push(...((data as BlackoutRecord[]) || []));
-      }
-
-      setBlackouts([...blackouts, ...inserted]);
-      setBlackoutTemplateGenerateForm(emptyBlackoutTemplateGenerateForm);
-      toast.success(`已新增 ${inserted.length} 筆不可出賽時段`);
-      if (skipped.length > 0) {
-        toast(() => (
-          <div className="text-sm">
-            <div className="font-semibold">部分隊伍已達每週上限，以下時段未新增：</div>
-            <ul className="list-disc list-inside text-xs text-gray-600">
-              {skipped.slice(0, 5).map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-              {skipped.length > 5 && <li>…等 {skipped.length - 5} 項</li>}
-            </ul>
-          </div>
-        ));
-      }
-    } catch (error: any) {
-      console.error("Generate blackouts error", error);
-      toast.error(error?.message || "生成失敗");
-    } finally {
-      setGeneratingBlackouts(false);
-    }
-  };
-
-  const handleBulkImportBlackouts = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setBulkImporting(true);
-    setBulkImportSummary(null);
-
-    try {
-      const text = await file.text();
-      const lines = text
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
-
-      if (lines.length === 0) {
-        toast.error("檔案內容為空");
-        return;
-      }
-
-      const dataLines = lines[0].toLowerCase().includes("player") ? lines.slice(1) : lines;
-      if (dataLines.length === 0) {
-        toast.error("沒有資料列");
-        return;
-      }
-
-      if (bulkImportReplaceTemplates) {
-        const { error: deleteError } = await supabase
-          .from("team_blackout_templates")
-          .delete()
-          .eq("event_id", eventId);
-        if (deleteError) throw deleteError;
-        setBlackoutTemplates([]);
-      }
-
-      const rowsByPlayer = new Map<string, Set<string>>();
-      const errors: string[] = [];
-
-      dataLines.forEach((line, index) => {
-        const parts = splitCsvLine(line);
-        const rowIndex = lines[0].toLowerCase().includes("player") ? index + 2 : index + 1;
-
-        if (parts.length < 2) {
-          errors.push(`第 ${rowIndex} 行欄位不足（需要選手姓名與代號）`);
-          return;
-        }
-
-        const [playerRaw, codeRaw] = parts;
-        const playerName = playerRaw.trim();
-        const slotCode = codeRaw.trim();
-
-        if (!playerName) {
-          errors.push(`第 ${rowIndex} 行缺少選手姓名`);
-          return;
-        }
-        if (!slotCode) {
-          errors.push(`第 ${rowIndex} 行缺少時段代號`);
-          return;
-        }
-
-        const player = playersByName.get(playerName.toLowerCase());
-        if (!player) {
-          errors.push(`第 ${rowIndex} 行找不到選手：${playerName}`);
-          return;
-        }
-
-        const template = slotTemplates.find((item) => item.code?.toLowerCase() === slotCode.toLowerCase());
-        if (!template) {
-          errors.push(`第 ${rowIndex} 行找不到時段代號：${slotCode}`);
-          return;
-        }
-
-        if (!rowsByPlayer.has(player.id)) {
-          rowsByPlayer.set(player.id, new Set());
-        }
-        rowsByPlayer.get(player.id)!.add(template.id);
-      });
-
-      if (rowsByPlayer.size === 0) {
-        toast.error("匯入失敗：沒有有效的代號資料。");
-        if (errors.length) setBulkImportSummary(errors.slice(0, 10).join("\n"));
-        return;
-      }
-
-      const nowIso = new Date().toISOString();
-      const templatePayload: any[] = [];
-
-      rowsByPlayer.forEach((templateIds, playerId) => {
-        templateIds.forEach((templateId) => {
-          const template = slotTemplatesById.get(templateId);
-          if (!template) return;
-          templatePayload.push({
-            event_id: eventId,
-            player_id: playerId,
-            day_of_week: template.day_of_week,
-            start_time: template.start_time,
-            end_time: template.end_time,
-            reason: null,
-            created_at: nowIso,
-            updated_at: nowIso,
-            code: template.code ?? null,
-          });
-        });
-      });
-
-      if (templatePayload.length === 0) {
-        toast.error("匯入失敗：選手代號皆無對應的模板。");
-        if (errors.length) setBulkImportSummary(errors.slice(0, 10).join("\n"));
-        return;
-      }
-
-      const chunkSize = 100;
-      for (let i = 0; i < templatePayload.length; i += chunkSize) {
-        const chunk = templatePayload.slice(i, i + chunkSize);
-        const { error } = await supabase
-          .from("team_blackout_templates")
-          .upsert(chunk, { onConflict: "event_id, player_id, day_of_week, start_time, end_time" });
-        if (error) throw error;
-      }
-
-      const { data: refreshedTemplates, error: refreshTemplatesError } = await supabase
-        .from("team_blackout_templates")
-        .select("*, player:players(id, name, department, seed)")
-        .eq("event_id", eventId)
-        .order("player_id", { ascending: true })
-        .order("day_of_week", { ascending: true })
-        .order("start_time", { ascending: true });
-
-      if (refreshTemplatesError) throw refreshTemplatesError;
-
-      setBlackoutTemplates((refreshedTemplates as BlackoutTemplateRecord[]) || []);
-
-      if (bulkImportGenerateAfter) {
-        const generatePayload: any[] = [];
-        const limit = blackoutLimit.trim() ? Number(blackoutLimit.trim()) : null;
-        const weekCounts = buildExistingWeekCounts(blackouts);
-        const skipped: string[] = [];
-        const inserted: BlackoutRecord[] = [];
-
-        const startDate = parseDateOnly(slotTemplateGenerateForm.startDate || formatDateKey(new Date()));
-        const endDate = parseDateOnly(slotTemplateGenerateForm.endDate || formatDateKey(new Date(new Date().setMonth(new Date().getMonth() + 3))));
-
-        const templatesForGeneration = ((refreshedTemplates as BlackoutTemplateRecord[]) || []).filter((template) =>
-          rowsByPlayer.has(template.player_id),
-        );
-
-        for (let cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
-          const day = cursor.getDay();
-          templatesForGeneration
-            .filter((template) => template.day_of_week === day)
-            .forEach((template) => {
-              const playerId = template.player_id;
-              if (!rowsByPlayer.has(playerId)) return;
-              const weekKey = getWeekKey(cursor);
-              if (limit !== null) {
-                if (!weekCounts.has(playerId)) weekCounts.set(playerId, new Map());
-                const playerMap = weekCounts.get(playerId)!;
-                const count = playerMap.get(weekKey) || 0;
-                if (count >= limit) {
-                  skipped.push(`${playersById.get(playerId)?.name || "選手"} @ ${weekKey}`);
-                  return;
-                }
-                playerMap.set(weekKey, count + 1);
-              }
-
-              const startIso = toISODateTime(cursor, template.start_time);
-              const endIso = toISODateTime(cursor, template.end_time);
-
-              generatePayload.push({
-                event_id: eventId,
-                player_id: playerId,
-                start_time: startIso,
-                end_time: endIso,
-                reason: null,
-                created_at: nowIso,
-                updated_at: nowIso,
-              });
-            });
-        }
-
-        for (let i = 0; i < generatePayload.length; i += chunkSize) {
-          const chunk = generatePayload.slice(i, i + chunkSize);
-          const { data, error } = await supabase
-            .from("team_blackouts")
-            .insert(chunk)
-            .select("*, player:players(id, name, department, seed)");
-
-          if (error) throw error;
-          inserted.push(...((data as BlackoutRecord[]) || []));
-        }
-
-        if (inserted.length > 0) {
-          setBlackouts([...blackouts, ...inserted]);
-        }
-
-        if (skipped.length > 0) {
-          console.warn("自動生成黑名單因每週上限略過：", skipped);
-        }
-      }
-
-      const summaryMessage = `已匯入 ${templatePayload.length} 筆黑名單模板`;
-      let combinedMessage = summaryMessage;
-      if (errors.length) {
-        combinedMessage += `，另有 ${errors.length} 筆失敗\n` + errors.slice(0, 10).join("\n");
-        if (errors.length > 10) {
-          combinedMessage += `\n… 其餘 ${errors.length - 10} 筆請檢查檔案`;
-        }
-      }
-      setBulkImportSummary(combinedMessage);
-      toast.success(summaryMessage);
-    } catch (error: any) {
-      console.error("Bulk import error", error);
-      toast.error(error?.message || "匯入失敗");
-    } finally {
-      setBulkImporting(false);
-      if (bulkFileRef.current) bulkFileRef.current.value = "";
-    }
-  };
-
   const handleAutoAssignSlotCodes = async () => {
     if (slots.length === 0) {
       toast("目前沒有任何時段可以編號。", { icon: "ℹ️" });
@@ -1426,25 +860,12 @@ export default function SchedulingManager({
     }
   };
 
-  const applySlotTemplateToBlackoutTemplateForm = (templateId: string) => {
-    setBlackoutTemplateForm((prev) => ({
-      ...prev,
-      slotTemplateId: templateId,
-    }));
-  };
-
   return (
     <div className="space-y-10">
       {/* Navigation Menu */}
       <nav className="sticky top-4 z-10 bg-white rounded-xl shadow-lg p-4 border-2 border-gray-200">
         <div className="flex flex-wrap items-center gap-2 md:gap-4">
           <span className="text-sm font-semibold text-gray-700 mr-2">快速導航：</span>
-          <a
-            href="#blackout-limit"
-            className="px-3 py-1.5 text-sm font-medium text-white bg-ntu-green rounded-lg hover:opacity-90 transition-opacity"
-          >
-            上限設定
-          </a>
           <a
             href="#courts"
             className="px-3 py-1.5 text-sm font-medium text-white bg-blue-500 rounded-lg hover:opacity-90 transition-opacity"
@@ -1463,43 +884,8 @@ export default function SchedulingManager({
           >
             可用時段
           </a>
-          <a
-            href="#team-blackouts"
-            className="px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            不可出賽
-          </a>
         </div>
       </nav>
-
-      <section id="blackout-limit" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
-        <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-gray-200">
-          <div className="w-1 h-8 bg-ntu-green rounded"></div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-ntu-green">不可出賽時段上限</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              主辦方可以限制每個隊伍可提交的不可出賽時段數量（每週）。若留空則不限制。
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <input
-            type="number"
-            min={0}
-            value={blackoutLimit}
-            onChange={(e) => setBlackoutLimit(e.target.value)}
-            className="w-full sm:w-40 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-            placeholder="不限"
-          />
-          <button
-            onClick={handleSaveBlackoutLimit}
-            disabled={savingLimit}
-            className="bg-ntu-green text-white px-5 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {savingLimit ? "儲存中..." : "儲存設定"}
-          </button>
-        </div>
-      </section>
 
       <section id="courts" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
         <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-gray-200">
@@ -1993,267 +1379,6 @@ export default function SchedulingManager({
                 </div>
               </div>
             ))}
-          </div>
-        )}
-      </section>
-
-      <section id="team-blackouts" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 space-y-8 scroll-mt-24">
-        <div className="flex items-center gap-3 pb-3 border-b-2 border-gray-200">
-          <div className="w-1 h-8 bg-orange-500 rounded"></div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-ntu-green">隊伍不可出賽時段</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              每週模板 + 大量匯入，快速蒐集各隊的不能出賽時間，排程器會自動避開。
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-lg border-2 border-dashed border-orange-300 p-4 bg-orange-50/30">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800">📥 大量匯入不可出賽代號</h3>
-              <p className="text-sm text-gray-600">
-                CSV 欄位順序：<span className="font-mono">player_name,slot_code</span>。每一列代表該選手每週同時段皆不可比賽，slot code 需對應到「每週時段模板」中的代號。
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <input
-                ref={bulkFileRef}
-                type="file"
-                accept=".csv,.txt"
-                onChange={handleBulkImportBlackouts}
-                disabled={bulkImporting}
-                className="text-sm"
-              />
-            </div>
-          </div>
-          <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-600">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={bulkImportReplaceTemplates}
-                onChange={(e) => setBulkImportReplaceTemplates(e.target.checked)}
-                className="h-4 w-4"
-              />
-              匯入前清空現有的黑名單模板
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={bulkImportGenerateAfter}
-                onChange={(e) => setBulkImportGenerateAfter(e.target.checked)}
-                className="h-4 w-4"
-              />
-              匯入後立即套用至整個賽季
-            </label>
-          </div>
-          {bulkImportSummary && (
-            <div className="mt-3 text-sm text-gray-600 whitespace-pre-wrap">
-              {bulkImportSummary}
-            </div>
-          )}
-        </div>
-
-        <form onSubmit={handleAddBlackoutTemplate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">選手/隊伍 *</label>
-            <select
-              value={blackoutTemplateForm.playerId}
-              onChange={(e) => setBlackoutTemplateForm({ ...blackoutTemplateForm, playerId: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              required
-            >
-              <option value="">請選擇</option>
-              {players.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.name}
-                  {player.department ? `｜${player.department}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">時段代號 *</label>
-            <select
-              value={blackoutTemplateForm.slotTemplateId}
-              onChange={(e) => applySlotTemplateToBlackoutTemplateForm(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              required
-            >
-              <option value="">請選擇</option>
-              {slotTemplates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.code || WEEKDAY_LABELS[template.day_of_week]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-1 flex items-end">
-            <button
-              type="submit"
-              disabled={submittingBlackoutTemplate}
-              className="w-full bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {submittingBlackoutTemplate ? "新增中..." : "新增模板"}
-            </button>
-          </div>
-        </form>
-
-        {blackoutTemplates.length === 0 ? (
-          <p className="text-sm text-gray-500">尚未建立任何模板。</p>
-        ) : (
-          <div className="space-y-4">
-            {Array.from(blackoutTemplatesGrouped.entries()).map(([playerId, templates]) => (
-              <div key={playerId} className="border border-gray-200 rounded-lg">
-                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 font-semibold text-gray-700">
-                  {playersById.get(playerId)?.name || "未知選手"}
-                </div>
-                <div className="divide-y divide-gray-200">
-                  {templates.map((template) => (
-                    <div key={template.id} className="px-4 py-3 flex items-center justify-between text-sm">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
-                          代號：{getSlotCodeFromTemplate(template)}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteBlackoutTemplate(template.id)}
-                        className="text-red-600 hover:text-red-700 font-semibold"
-                      >
-                        刪除
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <form onSubmit={handleGenerateBlackoutsFromTemplates} className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end">
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">套用日期（開始）*</label>
-            <input
-              type="date"
-              value={blackoutTemplateGenerateForm.startDate}
-              onChange={(e) => setBlackoutTemplateGenerateForm({ ...blackoutTemplateGenerateForm, startDate: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              required
-            />
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">套用日期（結束）*</label>
-            <input
-              type="date"
-              value={blackoutTemplateGenerateForm.endDate}
-              onChange={(e) => setBlackoutTemplateGenerateForm({ ...blackoutTemplateGenerateForm, endDate: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              required
-            />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input
-              type="checkbox"
-              checked={blackoutTemplateGenerateForm.overwrite}
-              onChange={(e) => setBlackoutTemplateGenerateForm({ ...blackoutTemplateGenerateForm, overwrite: e.target.checked })}
-              className="h-4 w-4"
-            />
-            若遇相同時段，仍覆蓋新增
-          </label>
-          <button
-            type="submit"
-            disabled={generatingBlackouts}
-            className="bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {generatingBlackouts ? "產生中..." : "依模板生成黑名單"}
-          </button>
-        </form>
-
-        <form onSubmit={handleAddBlackoutTemplate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-8">
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">選手 *</label>
-            <select
-              value={blackoutTemplateForm.playerId}
-              onChange={(e) => setBlackoutTemplateForm({ ...blackoutTemplateForm, playerId: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              required
-            >
-              <option value="">請選擇</option>
-              {players.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.name}
-                  {player.department ? `｜${player.department}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">時段代號 *</label>
-            <select
-              value={blackoutTemplateForm.slotTemplateId}
-              onChange={(e) => applySlotTemplateToBlackoutTemplateForm(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              required
-            >
-              <option value="">請選擇</option>
-              {slotTemplates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.code || WEEKDAY_LABELS[template.day_of_week]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-1 flex items-end">
-            <button
-              type="submit"
-              disabled={submittingBlackoutTemplate}
-              className="w-full sm:w-auto bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {submittingBlackoutTemplate ? "新增中..." : "新增黑名單"}
-            </button>
-          </div>
-        </form>
-
-        {blackouts.length === 0 ? (
-          <p className="text-sm text-gray-500">目前沒有任何不可出賽時段。</p>
-        ) : (
-          <div className="overflow-x-auto mt-6">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 text-gray-700 uppercase">
-                <tr>
-                  <th className="px-4 py-2 text-left">選手</th>
-                  <th className="px-4 py-2 text-left">時段代號</th>
-                  <th className="px-4 py-2 text-left">日期</th>
-                  <th className="px-4 py-2 text-right">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {blackouts
-                  .slice()
-                  .sort((a, b) => a.start_time.localeCompare(b.start_time))
-                  .map((item, index) => (
-                    <tr key={item.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                      <td className="px-4 py-2 font-semibold text-gray-700">
-                        {item.player?.name || playersById.get(item.player_id || "")?.name || "未找到"}
-                      </td>
-                      <td className="px-4 py-2 text-gray-600">
-                        {getSlotCodeFromDate(new Date(item.start_time), item.start_time.slice(11, 16), item.end_time.slice(11, 16))}
-                      </td>
-                      <td className="px-4 py-2 text-gray-600">
-                        {new Date(item.start_time).toLocaleDateString("zh-TW")}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <button
-                          onClick={() => handleDeleteBlackout(item.id)}
-                          className="text-red-600 hover:text-red-700 font-semibold"
-                        >
-                          刪除
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
           </div>
         )}
       </section>

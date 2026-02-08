@@ -3,18 +3,30 @@
 import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
-import { Player, TeamMember } from "@/types/database";
+import { Player, TeamMember, EventSlotTemplate, TeamBlackoutTemplate } from "@/types/database";
 import BulkPlayerImport from "./BulkPlayerImport";
 import BulkTeamMemberImport from "./BulkTeamMemberImport";
 import { getEnabledFields, getFieldConfig, getCustomFields, getDefaultFieldConfig, type FieldConfig } from "@/lib/utils/fieldConfig";
+
+const WEEKDAY_LABELS = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
 
 interface PlayersTableProps {
   eventId: string;
   initialPlayers: Player[];
   registrationType?: 'player' | 'team';
+  initialBlackoutLimit?: number | null;
+  initialSlotTemplates?: EventSlotTemplate[];
+  initialBlackoutTemplates?: TeamBlackoutTemplate[];
 }
 
-export default function PlayersTable({ eventId, initialPlayers, registrationType = 'player' }: PlayersTableProps) {
+export default function PlayersTable({
+  eventId,
+  initialPlayers,
+  registrationType = 'player',
+  initialBlackoutLimit = null,
+  initialSlotTemplates = [],
+  initialBlackoutTemplates = [],
+}: PlayersTableProps) {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [isAdding, setIsAdding] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -26,6 +38,13 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
   const [editingMember, setEditingMember] = useState<{ teamId: string; memberId?: string; name: string; jerseyNumber: string } | null>(null);
   const [showBulkMemberImport, setShowBulkMemberImport] = useState<Record<string, boolean>>({});
   const [enabledFields, setEnabledFields] = useState<FieldConfig[]>([]);
+  const [blackoutLimit, setBlackoutLimit] = useState<string>(
+    initialBlackoutLimit != null ? String(initialBlackoutLimit) : ""
+  );
+  const [blackoutTemplates, setBlackoutTemplates] = useState<TeamBlackoutTemplate[]>(initialBlackoutTemplates);
+  const [expandedBlackout, setExpandedBlackout] = useState<string | null>(null);
+  const [savingBlackoutLimit, setSavingBlackoutLimit] = useState(false);
+  const [addingBlackoutForPlayer, setAddingBlackoutForPlayer] = useState<string | null>(null);
   const supabase = createClient();
 
   // Load field configuration
@@ -67,6 +86,85 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       clearInterval(interval);
     };
   }, [eventId]);
+
+  useEffect(() => {
+    setBlackoutLimit(initialBlackoutLimit != null ? String(initialBlackoutLimit) : "");
+    setBlackoutTemplates(initialBlackoutTemplates);
+  }, [initialBlackoutLimit, initialBlackoutTemplates]);
+
+  const handleSaveBlackoutLimit = async () => {
+    setSavingBlackoutLimit(true);
+    try {
+      const parsed = blackoutLimit.trim() ? parseInt(blackoutLimit, 10) : null;
+      if (parsed !== null && (isNaN(parsed) || parsed < 0)) {
+        toast.error("請輸入有效數字");
+        return;
+      }
+      const { error } = await supabase
+        .from("events")
+        .update({ blackout_limit: parsed })
+        .eq("id", eventId);
+      if (error) throw error;
+      toast.success("已更新不可出賽時段上限");
+    } catch (e: any) {
+      toast.error(e?.message || "儲存失敗");
+    } finally {
+      setSavingBlackoutLimit(false);
+    }
+  };
+
+  const handleAddBlackoutTemplate = async (playerId: string, slotTemplateId: string) => {
+    const template = initialSlotTemplates.find((t) => t.id === slotTemplateId);
+    if (!template) {
+      toast.error("請選擇時段");
+      return;
+    }
+    setAddingBlackoutForPlayer(playerId);
+    try {
+      const { data, error } = await supabase
+        .from("team_blackout_templates")
+        .insert({
+          event_id: eventId,
+          player_id: playerId,
+          day_of_week: template.day_of_week,
+          start_time: template.start_time,
+          end_time: template.end_time,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setBlackoutTemplates((prev) => [...prev, data]);
+      toast.success("已新增不可出賽時段");
+    } catch (e: any) {
+      toast.error(e?.message || "新增失敗");
+    } finally {
+      setAddingBlackoutForPlayer(null);
+    }
+  };
+
+  const handleDeleteBlackoutTemplate = async (templateId: string) => {
+    if (!confirm("確定要刪除此不可出賽時段嗎？")) return;
+    try {
+      const { error } = await supabase
+        .from("team_blackout_templates")
+        .delete()
+        .eq("id", templateId);
+      if (error) throw error;
+      setBlackoutTemplates((prev) => prev.filter((t) => t.id !== templateId));
+      toast.success("已刪除");
+    } catch (e: any) {
+      toast.error(e?.message || "刪除失敗");
+    }
+  };
+
+  const blackoutsByPlayer = useMemo(() => {
+    const map: Record<string, TeamBlackoutTemplate[]> = {};
+    blackoutTemplates.forEach((t) => {
+      if (!map[t.player_id]) map[t.player_id] = [];
+      map[t.player_id].push(t);
+    });
+    return map;
+  }, [blackoutTemplates]);
 
   // Load team members for all teams
   useEffect(() => {
@@ -365,6 +463,29 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
       )}
 
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        {/* 不可出賽時段上限 - 以周為單位，每隊可申報的上限 */}
+        <div className="px-6 py-4 bg-amber-50 border-b border-amber-100">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-gray-800">不可出賽時段上限（每隊每週）：</span>
+            <input
+              type="number"
+              min={0}
+              value={blackoutLimit}
+              onChange={(e) => setBlackoutLimit(e.target.value)}
+              className="w-24 px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+              placeholder="不限"
+            />
+            <button
+              onClick={handleSaveBlackoutLimit}
+              disabled={savingBlackoutLimit}
+              className="bg-ntu-green text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              {savingBlackoutLimit ? "儲存中..." : "儲存"}
+            </button>
+            <span className="text-xs text-gray-500">留空表示不限制筆數</span>
+          </div>
+        </div>
+
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold text-ntu-green">
@@ -548,15 +669,18 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  不可出賽
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPlayers.length === 0 ? (
+              {                filteredPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan={enabledFields.length + 2} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={enabledFields.length + 3} className="px-6 py-12 text-center text-gray-500">
                     {players.length === 0 
                       ? `No ${registrationType === 'team' ? 'teams' : 'players'} added yet. Click "Add ${registrationType === 'team' ? 'Team' : 'Player'}" to get started.`
                       : `No ${registrationType === 'team' ? 'teams' : 'players'} match your search. Try adjusting your search criteria.`}
@@ -647,6 +771,15 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                             <span className="text-green-600 text-sm">Active</span>
                           )}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedBlackout(expandedBlackout === player.id ? null : player.id)}
+                            className="text-ntu-green hover:underline text-sm font-medium"
+                          >
+                            設定 ({(blackoutsByPlayer[player.id] || []).length})
+                          </button>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
                             onClick={() => handleDeletePlayer(player.id)}
@@ -656,9 +789,69 @@ export default function PlayersTable({ eventId, initialPlayers, registrationType
                           </button>
                         </td>
                       </tr>
+                      {expandedBlackout === player.id && (
+                        <tr>
+                          <td colSpan={enabledFields.length + 3} className="px-6 py-4 bg-gray-50">
+                            <div className="space-y-3">
+                              <h4 className="font-semibold text-gray-800 text-sm">每週不可出賽時段</h4>
+                              <ul className="space-y-2">
+                                {(blackoutsByPlayer[player.id] || []).map((bt) => (
+                                  <li key={bt.id} className="flex items-center justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
+                                    <span className="text-sm text-gray-700">
+                                      {WEEKDAY_LABELS[bt.day_of_week]} {bt.start_time.slice(0, 5)}–{bt.end_time.slice(0, 5)}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteBlackoutTemplate(bt.id)}
+                                      className="text-red-600 hover:text-red-800 text-sm"
+                                    >
+                                      刪除
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                              {initialSlotTemplates.length > 0 ? (
+                                <div className="flex flex-wrap items-center gap-2 pt-2">
+                                  <select
+                                    id={`blackout-slot-${player.id}`}
+                                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                  >
+                                    <option value="">選擇時段…</option>
+                                    {initialSlotTemplates.map((st) => (
+                                      <option key={st.id} value={st.id}>
+                                        {WEEKDAY_LABELS[st.day_of_week]} {st.start_time.slice(0, 5)}–{st.end_time.slice(0, 5)}
+                                        {st.code ? ` (${st.code})` : ""}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    type="button"
+                                    disabled={addingBlackoutForPlayer === player.id}
+                                    onClick={() => {
+                                      const sel = document.getElementById(`blackout-slot-${player.id}`) as HTMLSelectElement;
+                                      const v = sel?.value;
+                                      if (v) {
+                                        handleAddBlackoutTemplate(player.id, v);
+                                        sel.value = "";
+                                      } else {
+                                        toast.error("請選擇時段");
+                                      }
+                                    }}
+                                    className="bg-ntu-green text-white px-3 py-1.5 rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                                  >
+                                    {addingBlackoutForPlayer === player.id ? "新增中…" : "新增"}
+                                  </button>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-gray-500">請先在 Scheduling 頁面建立「每週比賽時段模板」後，即可在此選擇不可出賽時段。</p>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                       {isTeam && isExpanded && (
                         <tr>
-                          <td colSpan={enabledFields.length + 2} className="px-6 py-4 bg-gray-50">
+                          <td colSpan={enabledFields.length + 3} className="px-6 py-4 bg-gray-50">
                             <div className="space-y-4">
                               <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-gray-700">隊伍成員</h3>

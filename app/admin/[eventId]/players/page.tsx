@@ -53,6 +53,22 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
     .order("seed", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
 
+  // For 不可出賽: slot templates (weekly) and blackout templates per player
+  const { data: slotTemplates } = await supabase
+    .from("event_slot_templates")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("day_of_week", { ascending: true })
+    .order("start_time", { ascending: true });
+
+  const { data: blackoutTemplates } = await supabase
+    .from("team_blackout_templates")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("player_id", { ascending: true })
+    .order("day_of_week", { ascending: true })
+    .order("start_time", { ascending: true });
+
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
@@ -69,6 +85,9 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
           eventId={eventId} 
           initialPlayers={players || []} 
           registrationType={event?.registration_type as 'player' | 'team' | undefined}
+          initialBlackoutLimit={event?.blackout_limit ?? null}
+          initialSlotTemplates={slotTemplates || []}
+          initialBlackoutTemplates={blackoutTemplates || []}
         />
 
         {/* Step 2: 生成籤表/賽季 - 需要先有選手才能生成 */}
