@@ -112,11 +112,14 @@ export default function BracketSeedingManager({
         }
       });
 
-      // Convert to array and sort
+      // Convert to array and sort (wins desc, then losses asc for tie-breaker)
       const standings: any[] = [];
       Object.keys(standingsMap).forEach(groupNum => {
         const groupStandings = Object.values(standingsMap[parseInt(groupNum)]);
-        const sorted = groupStandings.sort((a, b) => b.wins - a.wins);
+        const sorted = groupStandings.sort((a, b) => {
+          if (b.wins !== a.wins) return b.wins - a.wins;
+          return a.losses - b.losses; // fewer losses = better
+        });
         sorted.forEach((standing, rank) => {
           standings.push({
             ...standing,

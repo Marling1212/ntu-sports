@@ -55,7 +55,7 @@ export async function checkAndAnnounceRoundCompletion(
       .eq("event_id", eventId);
 
     const totalRounds = allMatches 
-      ? Math.max(...allMatches.map((m: any) => m.round)) 
+      ? Math.max(...allMatches.map((m: { round: number }) => m.round)) 
       : round;
 
     // Get dynamic round name

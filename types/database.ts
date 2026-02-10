@@ -35,7 +35,7 @@ export interface Player {
   email?: string;
   email_opt_in?: boolean;
   type?: 'player' | 'team';
-  custom_fields?: Record<string, any>; // JSON object for custom field values
+  custom_fields?: Record<string, unknown>; // JSON object for custom field values
   created_at: string;
   updated_at: string;
 }
@@ -168,7 +168,7 @@ export interface BracketEditHistory {
   event_id: string;
   admin_id: string;
   action: 'generate' | 'edit' | 'lock' | 'unlock' | 'save';
-  changes?: Record<string, any>;
+  changes?: Record<string, unknown>;
   reason?: string;
   created_at: string;
 }

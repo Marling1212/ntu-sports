@@ -61,7 +61,7 @@ export default function TournamentBracket({
   };
   
   const getThirdPlaceMatch = () => {
-    return matches.find(m => m.round === maxRound && m.matchNumber === 2);
+    return matches.find(m => m.round === actualTotalRounds && m.matchNumber === 2);
   };
 
   // Constants for sizing
@@ -95,16 +95,6 @@ export default function TournamentBracket({
         
         if (correspondingSF) {
           const position = calculateMatchPosition(round - 1, correspondingSF.matchNumber);
-          
-          if (typeof window !== 'undefined') {
-            console.log(`Final round match ${matchNumber} alignment:`, {
-              round,
-              matchNumber,
-              alignsWithSF: correspondingSF.matchNumber,
-              position
-            });
-          }
-          
           return position;
         }
       }
@@ -257,14 +247,6 @@ export default function TournamentBracket({
               // For the final round, check if we should include 3rd place match
               const isActualFinalRound = round === actualTotalRounds;
               const displayMatches = roundMatches;
-              
-              // Debug for final round
-              if (typeof window !== 'undefined' && isActualFinalRound) {
-                console.log(`Final Round ${round}:`, {
-                  roundMatches: roundMatches.map(m => ({ id: m.id, matchNumber: m.matchNumber, p1: m.player1?.name, p2: m.player2?.name })),
-                  displayMatches: displayMatches.map(m => ({ id: m.id, matchNumber: m.matchNumber, p1: m.player1?.name, p2: m.player2?.name }))
-                });
-              }
 
               return (
                 <div key={round} className="flex flex-col relative">
@@ -294,23 +276,12 @@ export default function TournamentBracket({
                       
                       // Check if this is the 3rd place match
                       const isThirdPlaceMatch = match.round === actualTotalRounds && match.matchNumber === 2;
-                      
-                      // Debug for final round matches
-                      if (typeof window !== 'undefined' && round === actualTotalRounds) {
-                        console.log(`Match rendering in Final Round:`, {
-                          matchNumber: match.matchNumber,
-                          isThirdPlace: isThirdPlaceMatch,
-                          matchPosition,
-                          player1: match.player1?.name,
-                          player2: match.player2?.name
-                        });
-                      }
 
-                      // Determine winner/loser status
-                      const player1IsWinner = match.winner?.id === match.player1?.id;
-                      const player1IsLoser = match.winner && match.winner.id !== match.player1?.id;
-                      const player2IsWinner = match.winner?.id === match.player2?.id;
-                      const player2IsLoser = match.winner && match.winner.id !== match.player2?.id;
+                      // Determine winner/loser status (only when there is an actual winner)
+                      const player1IsWinner = !!match.winner && match.winner.id === match.player1?.id;
+                      const player1IsLoser = !!match.winner && match.winner.id !== match.player1?.id;
+                      const player2IsWinner = !!match.winner && match.winner.id === match.player2?.id;
+                      const player2IsLoser = !!match.winner && match.winner.id !== match.player2?.id;
 
                       return (
                         <div
