@@ -6,6 +6,7 @@ import TournamentBracket from "./TournamentBracket";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import Link from "next/link";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
+import { type DesignVariant, seasonPlayThemes, seasonPlayDefault } from "@/components/design-variants/designThemes";
 
 interface SeasonPlayDisplayProps {
   matches: Match[];
@@ -36,11 +37,14 @@ interface SeasonPlayDisplayProps {
     name: string;
     jersey_number?: number | null;
   }>;
+  /** Design variant for UI comparison (Phase 3). */
+  designVariant?: DesignVariant;
 }
 
 const TAIPEI_TZ = "Asia/Taipei";
 
-export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [] }: SeasonPlayDisplayProps) {
+export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant }: SeasonPlayDisplayProps) {
+  const theme = designVariant ? seasonPlayThemes[designVariant] : seasonPlayDefault;
   const tabs = {
     regular: visibleTabs?.regular !== false,
     standings: visibleTabs?.standings !== false,
@@ -778,18 +782,14 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   const totalRegularMatches = regularSeasonMatches.length;
 
   return (
-    <div>
+    <div className={theme.root}>
       {/* View Tabs */}
-      <div className="mb-6 bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <div className={theme.tabsContainer}>
         <div className="flex overflow-x-auto">
           {hasRegularSeason && tabs.regular && (
             <button
               onClick={() => setView("regular")}
-              className={`flex-1 min-w-[140px] px-6 py-4 font-semibold transition-colors border-b-4 ${
-                view === "regular"
-                  ? "bg-ntu-green text-white border-ntu-green"
-                  : "bg-white text-gray-700 hover:bg-gray-50 border-transparent"
-              }`}
+              className={view === "regular" ? theme.tabActive : theme.tabInactive}
             >
               🏀 Regular Season
             </button>
@@ -797,11 +797,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           {hasRegularSeason && tabs.standings && (
             <button
               onClick={() => setView("standings")}
-              className={`flex-1 min-w-[140px] px-6 py-4 font-semibold transition-colors border-b-4 ${
-                view === "standings"
-                  ? "bg-ntu-green text-white border-ntu-green"
-                  : "bg-white text-gray-700 hover:bg-gray-50 border-transparent"
-              }`}
+              className={view === "standings" ? theme.tabActive : theme.tabInactive}
             >
               📊 Standings
             </button>
@@ -809,11 +805,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           {hasPlayoffs && tabs.playoffs && (
             <button
               onClick={() => setView("playoffs")}
-              className={`flex-1 min-w-[140px] px-6 py-4 font-semibold transition-colors border-b-4 ${
-                view === "playoffs"
-                  ? "bg-ntu-green text-white border-ntu-green"
-                  : "bg-white text-gray-700 hover:bg-gray-50 border-transparent"
-              }`}
+              className={view === "playoffs" ? theme.tabActive : theme.tabInactive}
             >
               🏆 Playoffs
             </button>
@@ -824,9 +816,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {/* Regular Season View */}
       {view === "regular" && hasRegularSeason && (
         <div>
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-lg">
+          <div className={theme.infoBox}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <p className="text-sm text-blue-800">
+              <p className={theme.infoBoxText}>
                 <strong>Regular Season Progress:</strong> {completedRegularMatches} / {totalRegularMatches} matches completed
               </p>
               {hasGroups && (
@@ -847,20 +839,20 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+          <div className={theme.tableWrapper}>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-ntu-green text-white">
+                <thead className={theme.tableHeader}>
                   <tr>
-                    {hasGroups && <th className="px-4 py-3 text-center">Group</th>}
-                    <th className="px-4 py-3 text-left hidden">Match #</th>
-                    <th className="px-4 py-3 text-left">Player 1</th>
-                    <th className="px-4 py-3 text-center">VS</th>
-                    <th className="px-4 py-3 text-left">Player 2</th>
-                    <th className="px-4 py-3 text-center">Date & Time</th>
-                    <th className="px-4 py-3 text-center">Court</th>
-                    <th className="px-4 py-3 text-center">Score</th>
-                    <th className="px-4 py-3 text-center">Status</th>
+                    {hasGroups && <th className={theme.tableHeaderCell}>Group</th>}
+                    <th className={`${theme.tableHeaderCell} hidden`}>Match #</th>
+                    <th className={theme.tableHeaderCell}>Player 1</th>
+                    <th className={theme.tableHeaderCell}>VS</th>
+                    <th className={theme.tableHeaderCell}>Player 2</th>
+                    <th className={theme.tableHeaderCell}>Date & Time</th>
+                    <th className={theme.tableHeaderCell}>Court</th>
+                    <th className={theme.tableHeaderCell}>Score</th>
+                    <th className={theme.tableHeaderCell}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -874,7 +866,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                     regularSeasonMatches.map((match, idx) => {
                       const matchData = match as any;
                       return (
-                        <tr key={match.id} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <tr key={match.id} className={idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}>
                           {hasGroups && (
                             <td className="px-4 py-3 text-center">
                               <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">
@@ -925,26 +917,18 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           <td className="px-4 py-3 text-center font-semibold">
                             {match.score || '-'}
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className={theme.tableCell}>
                             {match.status === 'completed' && (
-                              <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">
-                                Completed
-                              </span>
+                              <span className={theme.badgeCompleted}>Completed</span>
                             )}
                             {match.status === 'live' && (
-                              <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">
-                                Live
-                              </span>
+                              <span className={theme.badgeLive}>Live</span>
                             )}
                             {match.status === 'upcoming' && (
-                              <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-600 bg-gray-100 rounded">
-                                Upcoming
-                              </span>
+                              <span className={theme.badgeUpcoming}>Upcoming</span>
                             )}
                             {match.status === 'delayed' && (
-                              <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">
-                                Delayed
-                              </span>
+                              <span className={theme.badgeDelayed}>Delayed</span>
                             )}
                           </td>
                         </tr>
@@ -961,9 +945,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {/* Standings View */}
       {view === "standings" && hasRegularSeason && (
         <div>
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-lg">
+          <div className={theme.infoBox}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <p className="text-sm text-blue-800">
+              <p className={theme.infoBoxText}>
                 <strong>Standings:</strong> Based on regular season results (3 points per win)
               </p>
               {hasGroups && (
