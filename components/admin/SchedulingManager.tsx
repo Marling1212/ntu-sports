@@ -237,10 +237,6 @@ export default function SchedulingManager({
   const [submittingCourt, setSubmittingCourt] = useState(false);
   const [submittingSlotTemplate, setSubmittingSlotTemplate] = useState(false);
   const [generatingSlots, setGeneratingSlots] = useState(false);
-  const [slotCodePrefix, setSlotCodePrefix] = useState("S");
-  const [slotCodeDigits, setSlotCodeDigits] = useState("3");
-  const [slotCodeStart, setSlotCodeStart] = useState("1");
-  const [assigningSlotCodes, setAssigningSlotCodes] = useState(false);
   const [deletingAllSlots, setDeletingAllSlots] = useState(false);
   const [slotTemplateImporting, setSlotTemplateImporting] = useState(false);
   const [slotTemplateImportSummary, setSlotTemplateImportSummary] = useState<string | null>(null);
@@ -652,62 +648,6 @@ export default function SchedulingManager({
       toast.error(error?.message || "生成失敗");
     } finally {
       setGeneratingSlots(false);
-    }
-  };
-
-  const handleAutoAssignSlotCodes = async () => {
-    if (slots.length === 0) {
-      toast("目前沒有任何時段可以編號。", { icon: "ℹ️" });
-      return;
-    }
-
-    const prefix = slotCodePrefix.trim();
-    const digitsValue = Number(slotCodeDigits);
-    const digits = Number.isFinite(digitsValue) && digitsValue >= 0 ? Math.floor(digitsValue) : 0;
-    const startValue = Number(slotCodeStart);
-    const start = Number.isFinite(startValue) ? Math.floor(startValue) : 1;
-
-    if (!prefix && digits <= 0) {
-      toast.error("請設定代號前綴或有效的位數。至少需要其中一項。");
-      return;
-    }
-
-    const sortedSlots = [...slots].sort((a, b) =>
-      a.slot_date === b.slot_date
-        ? a.start_time.localeCompare(b.start_time)
-        : a.slot_date.localeCompare(b.slot_date),
-    );
-
-    const codes = sortedSlots.map((_, index) => {
-      const serial = start + index;
-      const padded = digits > 0 ? String(serial).padStart(digits, "0") : String(serial);
-      return `${prefix}${digits > 0 ? padded : String(serial)}`;
-    });
-
-    const uniqueCount = new Set(codes).size;
-    if (uniqueCount !== codes.length) {
-      toast.error("產生的代號有重複，請調整前綴或位數。");
-      return;
-    }
-
-    setAssigningSlotCodes(true);
-    try {
-      const updates = sortedSlots.map((slot, index) => ({ id: slot.id, code: codes[index] }));
-      const chunkSize = 100;
-      for (let i = 0; i < updates.length; i += chunkSize) {
-        const chunk = updates.slice(i, i + chunkSize).map(({ id, code }) => ({ id, code }));
-        const { error } = await supabase.from("event_slots").upsert(chunk, { onConflict: "id" });
-        if (error) throw error;
-      }
-
-      const codeMap = new Map(updates.map(({ id, code }) => [id, code] as const));
-      setSlots(slots.map((slot) => ({ ...slot, code: codeMap.get(slot.id) || slot.code })));
-      toast.success(`已為 ${updates.length} 筆時段設定代號`);
-    } catch (error: any) {
-      console.error("Auto assign slot codes error", error);
-      toast.error(error?.message || "設定代號失敗");
-    } finally {
-      setAssigningSlotCodes(false);
     }
   };
 
@@ -1319,59 +1259,6 @@ export default function SchedulingManager({
             {generatingSlots ? "產生中..." : "依模板生成時段"}
           </button>
         </form>
-
-        <div className="mt-4 border-2 border-dashed border-purple-300 rounded-lg p-4 bg-purple-50/30">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800">🔢 自動產生時段代號</h3>
-              <p className="text-sm text-gray-600">
-                依日期順序自動分配代號，方便後續排程以編號為主。已有代號的時段也會被新設定覆蓋。
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end">
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-700 mb-1">前綴</label>
-                <input
-                  type="text"
-                  value={slotCodePrefix}
-                  onChange={(e) => setSlotCodePrefix(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                  maxLength={10}
-                  placeholder="例如：S"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-700 mb-1">流水號位數</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={slotCodeDigits}
-                  onChange={(e) => setSlotCodeDigits(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                  placeholder="3"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-700 mb-1">起始號碼</label>
-                <input
-                  type="number"
-                  value={slotCodeStart}
-                  onChange={(e) => setSlotCodeStart(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                  placeholder="1"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleAutoAssignSlotCodes}
-                disabled={assigningSlotCodes}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
-              >
-                {assigningSlotCodes ? "產生中..." : "自動產生代號"}
-              </button>
-            </div>
-          </div>
-        </div>
       </section>
 
       <section id="available-slots" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
