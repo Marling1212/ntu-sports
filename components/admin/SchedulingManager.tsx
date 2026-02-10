@@ -8,6 +8,7 @@ import {
   EventSlot,
   EventSlotTemplate,
 } from "@/types/database";
+import SchedulePreviewEditor from "@/components/admin/SchedulePreviewEditor";
 
 type SlotRecord = EventSlot & { court?: EventCourt | null };
 type SlotTemplateRecord = EventSlotTemplate & { court?: EventCourt | null };
@@ -245,6 +246,13 @@ export default function SchedulingManager({
   const [slotTemplateImportReplace, setSlotTemplateImportReplace] = useState(false);
   const [autoScheduling, setAutoScheduling] = useState(false);
   const [autoScheduleClearExisting, setAutoScheduleClearExisting] = useState(false);
+  const [minSlotsBetweenSameTeam, setMinSlotsBetweenSameTeam] = useState(1);
+  const [schedulePreviewData, setSchedulePreviewData] = useState<{
+    slots: { id: string; slot_date: string; start_time: string; end_time: string; capacity: number }[];
+    matches: { id: string; round: number; match_number: number; player1_name: string; player2_name: string }[];
+    assignments: { matchId: string; slotId: string; scheduledTime: string }[];
+    unassignedIds: string[];
+  } | null>(null);
 
   const slotTemplateFileRef = useRef<HTMLInputElement | null>(null);
 
@@ -879,13 +887,48 @@ export default function SchedulingManager({
     }
   };
 
+  const handlePreviewSchedule = async () => {
+    setAutoScheduling(true);
+    try {
+      const res = await fetch(`/api/admin/events/${eventId}/auto-schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dryRun: true,
+          clearExisting: autoScheduleClearExisting,
+          minSlotsBetweenSameTeam,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message || "預覽失敗");
+        return;
+      }
+      if (data.dryRun && data.slots && data.assignments && data.matches) {
+        setSchedulePreviewData({
+          slots: data.slots,
+          matches: data.matches,
+          assignments: data.assignments,
+          unassignedIds: data.unassigned ?? [],
+        });
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "預覽失敗");
+    } finally {
+      setAutoScheduling(false);
+    }
+  };
+
   const handleAutoSchedule = async () => {
     setAutoScheduling(true);
     try {
       const res = await fetch(`/api/admin/events/${eventId}/auto-schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clearExisting: autoScheduleClearExisting }),
+        body: JSON.stringify({
+          clearExisting: autoScheduleClearExisting,
+          minSlotsBetweenSameTeam,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -1453,11 +1496,24 @@ export default function SchedulingManager({
           <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">一鍵排程</h2>
             <p className="text-sm text-gray-600 mt-1">
-              依「所有可用時段」與各時段的<strong>場地數（capacity）</strong>、選手頁設定的<strong>不可出賽</strong>，自動為尚未排程的比賽分配時段；同一時段內每場地最多排一場，且不會把隊伍排進其不可出賽時段。
+              依「所有可用時段」與各時段的<strong>場地數（capacity）</strong>、選手頁設定的<strong>不可出賽</strong>自動分配時段；演算法會避免<strong>同一隊伍連續出賽</strong>（至少間隔一時段休息）。建議先「預覽排程」確認後再儲存，並可拖曳調整。
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <span>同一隊伍至少間隔</span>
+            <select
+              value={minSlotsBetweenSameTeam}
+              onChange={(e) => setMinSlotsBetweenSameTeam(Number(e.target.value))}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value={0}>0（可連續）</option>
+              <option value={1}>1 個時段</option>
+              <option value={2}>2 個時段</option>
+            </select>
+            <span>再排下一場</span>
+          </label>
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
@@ -1465,21 +1521,41 @@ export default function SchedulingManager({
               onChange={(e) => setAutoScheduleClearExisting(e.target.checked)}
               className="h-4 w-4"
             />
-            清除既有排程後重排（勾選會先清空所有比賽的時段再重新分配）
+            清除既有排程後重排
           </label>
+          <button
+            type="button"
+            onClick={handlePreviewSchedule}
+            disabled={autoScheduling}
+            className="bg-emerald-700 text-white px-5 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {autoScheduling ? "產生中…" : "預覽排程（可拖曳編輯）"}
+          </button>
           <button
             type="button"
             onClick={handleAutoSchedule}
             disabled={autoScheduling}
             className="bg-emerald-600 text-white px-5 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {autoScheduling ? "排程中…" : "開始自動排程"}
+            {autoScheduling ? "排程中…" : "直接排程（不預覽）"}
           </button>
         </div>
         <p className="mt-3 text-xs text-gray-500">
-          完成後會導向賽程頁檢視結果。若部分比賽無法排入，請增加「所有可用時段」或調整不可出賽後再執行一次。
+          預覽後可拖曳比賽到不同時段或「未排入」，再按儲存。直接排程會寫入後導向賽程頁。
         </p>
       </section>
+
+      {schedulePreviewData && (
+        <SchedulePreviewEditor
+          eventId={eventId}
+          slots={schedulePreviewData.slots}
+          matches={schedulePreviewData.matches}
+          initialAssignments={schedulePreviewData.assignments}
+          initialUnassignedIds={schedulePreviewData.unassignedIds}
+          onClose={() => setSchedulePreviewData(null)}
+          onSaved={() => { setSchedulePreviewData(null); window.location.href = `/admin/${eventId}/matches`; }}
+        />
+      )}
     </div>
   );
 }

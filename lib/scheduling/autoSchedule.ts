@@ -49,8 +49,8 @@ function timeOverlap(
 }
 
 /** Build set of player_ids that are blacked out for this slot (from templates). */
-function blackoutForSlot(
-  slot: SlotForSchedule,
+export function blackoutForSlot(
+  slot: { slot_date: string; start_time: string; end_time: string },
   templates: BlackoutTemplate[]
 ): Set<string> {
   const weekday = getWeekday(slot.slot_date);
@@ -67,7 +67,7 @@ function blackoutForSlot(
 }
 
 /** scheduled_time ISO string for slot (date + start_time, no TZ assumed) */
-function slotToScheduledTime(slot: SlotForSchedule): string {
+export function slotToScheduledTime(slot: { slot_date: string; start_time: string }): string {
   const start = slot.start_time.slice(0, 8); // HH:MM:SS
   return `${slot.slot_date}T${start}`;
 }
@@ -83,15 +83,16 @@ export interface Assignment {
  * - slot capacity (each slot gets at most capacity matches)
  * - team_blackout_templates (no match in a slot if either player is blacked out)
  * - no double-booking (each player at most one match per slot)
+ * - minSlotsBetweenSameTeam: at least N slots of rest for the same team between matches (default 1)
  * Uses existing slot_id on matches as current assignment; pass clearExisting=true to ignore.
  */
 export function runAutoSchedule(
   slots: SlotForSchedule[],
   matches: MatchForSchedule[],
   blackoutTemplates: BlackoutTemplate[],
-  options: { clearExisting?: boolean } = {}
+  options: { clearExisting?: boolean; minSlotsBetweenSameTeam?: number } = {}
 ): { assignments: Assignment[]; unassigned: MatchForSchedule[] } {
-  const { clearExisting = false } = options;
+  const { clearExisting = false, minSlotsBetweenSameTeam = 1 } = options;
 
   // Sort slots by date then time
   const sortedSlots = [...slots].sort((a, b) => {
@@ -119,6 +120,11 @@ export function runAutoSchedule(
   for (const slot of sortedSlots) {
     slotUsage.set(slot.id, { count: 0, playerIds: new Set() });
   }
+  const slotIndexById = new Map<string, number>();
+  sortedSlots.forEach((s, idx) => slotIndexById.set(s.id, idx));
+  /** Last slot index (0-based in sortedSlots) where this player was assigned; -1 = none */
+  const lastSlotIndexByPlayer = new Map<string, number>();
+
   // Pre-fill from existing match assignments (if not clearExisting)
   if (!clearExisting) {
     for (const m of matches) {
@@ -130,6 +136,15 @@ export function runAutoSchedule(
       u.count += 1;
       if (p1) u.playerIds.add(p1);
       if (p2) u.playerIds.add(p2);
+      const idx = slotIndexById.get(sid) ?? -1;
+      if (p1 && idx >= 0) {
+        const last = lastSlotIndexByPlayer.get(p1) ?? -1;
+        if (idx > last) lastSlotIndexByPlayer.set(p1, idx);
+      }
+      if (p2 && idx >= 0) {
+        const last = lastSlotIndexByPlayer.get(p2) ?? -1;
+        if (idx > last) lastSlotIndexByPlayer.set(p2, idx);
+      }
     }
   }
 
@@ -140,16 +155,23 @@ export function runAutoSchedule(
     const p1 = match.player1_id ?? "";
     const p2 = match.player2_id ?? "";
     let placed = false;
-    for (const slot of sortedSlots) {
+    for (let slotIdx = 0; slotIdx < sortedSlots.length; slotIdx++) {
+      const slot = sortedSlots[slotIdx];
       const cap = slot.capacity ?? 1;
       const u = slotUsage.get(slot.id)!;
       if (u.count >= cap) continue;
       const blackout = blackoutForSlot(slot, blackoutTemplates);
       if (blackout.has(p1) || blackout.has(p2)) continue;
       if (u.playerIds.has(p1) || u.playerIds.has(p2)) continue;
+      // Rest constraint: same team should have at least minSlotsBetweenSameTeam slots between matches
+      const last1 = lastSlotIndexByPlayer.get(p1) ?? -1;
+      const last2 = lastSlotIndexByPlayer.get(p2) ?? -1;
+      if (slotIdx <= last1 + minSlotsBetweenSameTeam || slotIdx <= last2 + minSlotsBetweenSameTeam) continue;
       u.count += 1;
       u.playerIds.add(p1);
       u.playerIds.add(p2);
+      lastSlotIndexByPlayer.set(p1, slotIdx);
+      lastSlotIndexByPlayer.set(p2, slotIdx);
       assignments.push({
         matchId: match.id,
         slotId: slot.id,

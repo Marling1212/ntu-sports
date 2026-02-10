@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AdminNavbar from "@/components/admin/Navbar";
 import MatchesTable from "@/components/admin/MatchesTable";
+import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
 import PlayerStats from "@/components/admin/PlayerStats";
 import MatchHistory from "@/components/admin/MatchHistory";
 import BracketSeedingManagerWrapper from "@/components/admin/BracketSeedingManagerWrapper";
@@ -73,10 +74,15 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
 
   const { data: slots } = await supabase
     .from("event_slots")
-    .select("id, slot_date, start_time, end_time, code, court_id")
+    .select("id, slot_date, start_time, end_time, code, court_id, court:event_courts(name)")
     .eq("event_id", eventId)
     .order("slot_date", { ascending: true })
     .order("start_time", { ascending: true });
+
+  const { data: blackoutTemplates } = await supabase
+    .from("team_blackout_templates")
+    .select("player_id, day_of_week, start_time, end_time")
+    .eq("event_id", eventId);
 
   // Get courts for Court select
   const { data: courts } = await supabase
@@ -119,6 +125,36 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
             tournamentType={event?.tournament_type as "single_elimination" | "season_play" | null}
           />
         )}
+
+        <div id="schedule-editor" className="mb-8 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-ntu-green mb-2">排程編輯（拖曳）</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            依已建立的時段與場地拖放比賽；若放入的時段為某隊不可出賽會顯示警示，仍可儲存。
+          </p>
+          <ScheduleGridEditor
+            eventId={eventId}
+            slots={(slots || []).map((s: any) => ({
+              id: s.id,
+              slot_date: s.slot_date,
+              start_time: s.start_time,
+              end_time: s.end_time,
+              code: s.code,
+              court_id: s.court_id,
+              court: s.court,
+            }))}
+            matches={(matches || []).map((m: any) => ({
+              id: m.id,
+              player1_id: m.player1_id,
+              player2_id: m.player2_id,
+              slot_id: m.slot_id,
+              round: m.round,
+              match_number: m.match_number,
+              player1: m.player1,
+              player2: m.player2,
+            }))}
+            blackoutTemplates={blackoutTemplates || []}
+          />
+        </div>
 
         <MatchesTable 
           eventId={eventId} 

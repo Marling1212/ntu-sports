@@ -24,13 +24,15 @@ export async function POST(
     .maybeSingle();
   if (!organizer) return json(403, { ok: false, message: "Forbidden" });
 
-  let body: { clearExisting?: boolean } = {};
+  let body: { clearExisting?: boolean; dryRun?: boolean; minSlotsBetweenSameTeam?: number } = {};
   try {
     body = await req.json();
   } catch {
     // optional body
   }
   const clearExisting = !!body.clearExisting;
+  const dryRun = !!body.dryRun;
+  const minSlotsBetweenSameTeam = typeof body.minSlotsBetweenSameTeam === "number" ? body.minSlotsBetweenSameTeam : 1;
 
   const [
     { data: slots },
@@ -45,7 +47,7 @@ export async function POST(
       .order("start_time", { ascending: true }),
     supabase
       .from("matches")
-      .select("id, player1_id, player2_id, round, match_number, slot_id")
+      .select("id, player1_id, player2_id, round, match_number, slot_id, player1:players!matches_player1_id_fkey(name), player2:players!matches_player2_id_fkey(name)")
       .eq("event_id", eventId)
       .neq("status", "bye"),
     supabase
@@ -67,7 +69,7 @@ export async function POST(
     });
   }
 
-  if (clearExisting) {
+  if (!dryRun && clearExisting) {
     const { error: clearErr } = await supabase
       .from("matches")
       .update({ slot_id: null, scheduled_time: null, updated_at: new Date().toISOString() })
@@ -77,12 +79,38 @@ export async function POST(
     }
   }
 
+  const matchPayload = matches.map((m: any) => ({
+    id: m.id,
+    player1_id: m.player1_id,
+    player2_id: m.player2_id,
+    round: m.round,
+    match_number: m.match_number,
+    slot_id: m.slot_id,
+  }));
   const { assignments, unassigned } = runAutoSchedule(
     slots as any,
-    matches as any,
+    matchPayload,
     (blackoutTemplates ?? []) as any,
-    { clearExisting }
+    { clearExisting: dryRun ? true : clearExisting, minSlotsBetweenSameTeam }
   );
+
+  if (dryRun) {
+    const matchNames = (matches as any[]).map((m: any) => ({
+      id: m.id,
+      round: m.round,
+      match_number: m.match_number,
+      player1_name: m.player1?.name ?? "—",
+      player2_name: m.player2?.name ?? "—",
+    }));
+    return json(200, {
+      ok: true,
+      dryRun: true,
+      slots: slots.map((s: any) => ({ id: s.id, slot_date: s.slot_date, start_time: s.start_time, end_time: s.end_time, capacity: s.capacity ?? 1 })),
+      assignments,
+      unassigned: unassigned.map((m) => m.id),
+      matches: matchNames,
+    });
+  }
 
   for (const a of assignments) {
     const { error } = await supabase
