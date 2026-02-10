@@ -153,6 +153,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
               player2: m.player2,
             }))}
             blackoutTemplates={blackoutTemplates || []}
+            courts={courts || []}
           />
         </div>
 

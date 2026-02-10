@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { blackoutForSlot, slotToScheduledTime } from "@/lib/scheduling/autoSchedule";
@@ -38,17 +38,26 @@ interface ScheduleGridEditorProps {
   slots: SlotWithCourt[];
   matches: MatchForGrid[];
   blackoutTemplates: BlackoutTemplateForGrid[];
+  /** 若提供，欄位依此顯示（每場地一欄），即使某時段尚無該場地的 slot */
+  courts?: { id: string; name: string }[];
   onScheduleChange?: () => void;
 }
 
 type TimeBlockKey = string;
 
+interface ColSpec {
+  courtId: string | null;
+  courtName: string;
+}
+
 function buildGrid(
-  slots: SlotWithCourt[]
+  slots: SlotWithCourt[],
+  courts?: { id: string; name: string }[]
 ): {
   rowKeys: TimeBlockKey[];
   rows: Map<TimeBlockKey, SlotWithCourt[]>;
-  maxCols: number;
+  columns: ColSpec[];
+  slotByRowCol: Map<string, SlotWithCourt>;
 } {
   const blockToSlots = new Map<string, SlotWithCourt[]>();
   for (const slot of slots) {
@@ -57,16 +66,44 @@ function buildGrid(
     blockToSlots.get(key)!.push(slot);
   }
   const rowKeys = Array.from(blockToSlots.keys()).sort();
-  let maxCols = 0;
+
+  let columns: ColSpec[];
+  if (courts && courts.length > 0) {
+    columns = courts.map((c) => ({ courtId: c.id, courtName: c.name.trim() || c.id }));
+    const hasUnspecified = slots.some((s) => !s.court_id);
+    if (hasUnspecified) columns.push({ courtId: null, courtName: "未指定" });
+  } else {
+    const courtSet = new Map<string, ColSpec>();
+    slots.forEach((slot) => {
+      const id = slot.court_id ?? "";
+      const name = slot.court?.name?.trim() || "未指定";
+      if (!courtSet.has(id)) courtSet.set(id, { courtId: slot.court_id ?? null, courtName: name });
+    });
+    columns = Array.from(courtSet.values()).sort((a, b) =>
+      a.courtName === "未指定" ? 1 : b.courtName === "未指定" ? -1 : a.courtName.localeCompare(b.courtName)
+    );
+    if (!columns.some((c) => c.courtName === "未指定")) {
+      columns.push({ courtId: null, courtName: "未指定" });
+    }
+  }
+
   blockToSlots.forEach((list) => {
     list.sort((a, b) => {
       const na = a.court?.name?.trim() || "\uFFFF";
       const nb = b.court?.name?.trim() || "\uFFFF";
       return na.localeCompare(nb) || a.id.localeCompare(b.id);
     });
-    if (list.length > maxCols) maxCols = list.length;
   });
-  return { rowKeys, rows: blockToSlots, maxCols };
+
+  const slotByRowCol = new Map<string, SlotWithCourt>();
+  blockToSlots.forEach((list, rowKey) => {
+    list.forEach((slot) => {
+      const colKey = slot.court_id ?? "__none__";
+      slotByRowCol.set(`${rowKey}#${colKey}`, slot);
+    });
+  });
+
+  return { rowKeys, rows: blockToSlots, columns, slotByRowCol };
 }
 
 function formatRowLabel(rowKey: TimeBlockKey): string {
@@ -81,6 +118,7 @@ export default function ScheduleGridEditor({
   slots,
   matches,
   blackoutTemplates,
+  courts,
   onScheduleChange,
 }: ScheduleGridEditorProps) {
   const supabase = createClient();
@@ -94,9 +132,12 @@ export default function ScheduleGridEditor({
   });
   const [draggingMatchId, setDraggingMatchId] = useState<string | null>(null);
   const [dropTargetCell, setDropTargetCell] = useState<string | null>(null);
+  const [dropTargetUnassign, setDropTargetUnassign] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const { rowKeys, rows, maxCols } = useMemo(() => buildGrid(slots), [slots]);
+  const { rowKeys, rows, columns, slotByRowCol } = useMemo(() => buildGrid(slots, courts), [slots, courts]);
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  const scrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const slotById = useMemo(() => {
     const m = new Map<string, SlotWithCourt>();
@@ -136,6 +177,53 @@ export default function ScheduleGridEditor({
     [blackoutTemplates]
   );
 
+  useEffect(() => {
+    if (!draggingMatchId) {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+      return;
+    }
+    const STEP = 12;
+    const ZONE = 80;
+    const onMove = (e: MouseEvent) => {
+      const el = gridScrollRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const y = e.clientY;
+      const atTop = y < rect.top + ZONE;
+      const atBottom = y > rect.bottom - ZONE;
+      if (!atTop && !atBottom) {
+        if (scrollIntervalRef.current) {
+          clearInterval(scrollIntervalRef.current);
+          scrollIntervalRef.current = null;
+        }
+        return;
+      }
+      if (scrollIntervalRef.current) return;
+      scrollIntervalRef.current = setInterval(() => {
+        if (!gridScrollRef.current) return;
+        gridScrollRef.current.scrollTop += atTop ? -STEP : STEP;
+      }, 16);
+    };
+    const onUp = () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("dragend", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("dragend", onUp);
+      if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+    };
+  }, [draggingMatchId]);
+
   const handleDragStart = (e: React.DragEvent, matchId: string) => {
     setDraggingMatchId(matchId);
     e.dataTransfer.setData("matchId", matchId);
@@ -145,6 +233,7 @@ export default function ScheduleGridEditor({
   const handleDragEnd = () => {
     setDraggingMatchId(null);
     setDropTargetCell(null);
+    setDropTargetUnassign(false);
   };
 
   const handleDragOver = (e: React.DragEvent, slotId: string) => {
@@ -185,6 +274,21 @@ export default function ScheduleGridEditor({
     setAssignments((prev) => {
       const next = { ...prev };
       delete next[slotId];
+      return next;
+    });
+  };
+
+  const handleDropUnassign = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDropTargetUnassign(false);
+    setDraggingMatchId(null);
+    const matchId = e.dataTransfer.getData("matchId");
+    if (!matchId) return;
+    setAssignments((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((sid) => {
+        if (next[sid] === matchId) delete next[sid];
+      });
       return next;
     });
   };
@@ -255,116 +359,140 @@ export default function ScheduleGridEditor({
       <div className="flex gap-6 flex-wrap">
         <div className="w-64 shrink-0">
           <h3 className="font-semibold text-gray-700 mb-2">未排程 ({unassignedMatches.length})</h3>
-          <ul className="space-y-2 max-h-96 overflow-y-auto">
-            {unassignedMatches.map((match) => (
-              <li
-                key={match.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, match.id)}
-                onDragEnd={handleDragEnd}
-                className={`cursor-grab rounded-lg border-2 border-gray-200 bg-white p-2 text-sm shadow-sm active:cursor-grabbing ${draggingMatchId === match.id ? "opacity-50" : ""}`}
-              >
-                <span className="font-medium text-gray-800">
-                  {match.player1?.name ?? "—"} vs {match.player2?.name ?? "—"}
-                </span>
-                <span className="ml-1 text-gray-500">R{match.round}-{match.match_number}</span>
-              </li>
-            ))}
-          </ul>
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              setDropTargetUnassign(true);
+            }}
+            onDragLeave={() => setDropTargetUnassign(false)}
+            onDrop={handleDropUnassign}
+            className={`min-h-[120px] rounded-xl border-2 border-dashed p-3 transition-colors ${
+              dropTargetUnassign ? "border-ntu-green bg-ntu-green/10" : "border-gray-300 bg-gray-50"
+            }`}
+          >
+            <p className="text-xs text-gray-500 mb-2">拖曳比賽到此處可取消排程</p>
+            <ul className="space-y-2 max-h-80 overflow-y-auto">
+              {unassignedMatches.map((match) => (
+                <li
+                  key={match.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, match.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`cursor-grab rounded-lg border-2 border-gray-200 bg-white p-2 text-sm shadow-sm active:cursor-grabbing ${draggingMatchId === match.id ? "opacity-50" : ""}`}
+                >
+                  <span className="font-medium text-gray-800">
+                    {match.player1?.name ?? "—"} vs {match.player2?.name ?? "—"}
+                  </span>
+                  <span className="ml-1 text-gray-500">R{match.round}-{match.match_number}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        <div className="flex-1 min-w-0 overflow-x-auto">
+        <div
+          ref={gridScrollRef}
+          className="flex-1 min-w-0 overflow-auto max-h-[70vh] border border-gray-200 rounded-lg"
+        >
           <table className="w-full border-collapse text-sm">
-            <thead>
+            <thead className="sticky top-0 bg-gray-100 z-10">
               <tr>
-                <th className="border border-gray-300 bg-gray-100 px-2 py-2 text-left font-semibold text-gray-700 w-40">
+                <th className="border border-gray-300 px-2 py-2 text-left font-semibold text-gray-700 w-40">
                   時段
                 </th>
-                {Array.from({ length: maxCols }, (_, i) => (
-                  <th key={i} className="border border-gray-300 bg-gray-100 px-2 py-2 font-semibold text-gray-700 min-w-[140px]">
-                    場地 {i + 1}
+                {columns.map((col) => (
+                  <th key={col.courtId ?? "none"} className="border border-gray-300 px-2 py-2 font-semibold text-gray-700 min-w-[140px]">
+                    {col.courtName}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rowKeys.map((rowKey) => {
-                const rowSlots = rows.get(rowKey) ?? [];
-                return (
-                  <tr key={rowKey}>
-                    <td className="border border-gray-300 bg-gray-50 px-2 py-1.5 font-medium text-gray-600 whitespace-nowrap">
-                      {formatRowLabel(rowKey)}
-                    </td>
-                    {Array.from({ length: maxCols }, (_, colIdx) => {
-                      const slot = rowSlots[colIdx];
-                      const matchId = slot ? assignmentsBySlot[slot.id] : undefined;
-                      const match = matchId ? matchById.get(matchId) : null;
-                      const isDropTarget = slot && dropTargetCell === slot.id;
-                      const conflict =
-                        slot && match
-                          ? checkConflict(slot, match.player1_id ?? null, match.player2_id ?? null)
-                          : false;
+              {rowKeys.map((rowKey) => (
+                <tr key={rowKey}>
+                  <td className="border border-gray-300 bg-gray-50 px-2 py-1.5 font-medium text-gray-600 whitespace-nowrap">
+                    {formatRowLabel(rowKey)}
+                  </td>
+                  {columns.map((col) => {
+                    const colKey = col.courtId ?? "__none__";
+                    const slot = slotByRowCol.get(`${rowKey}#${colKey}`);
+                    const matchId = slot ? assignmentsBySlot[slot.id] : undefined;
+                    const match = matchId ? matchById.get(matchId) : null;
+                    const isDropTarget = slot && dropTargetCell === slot.id;
+                    const conflict =
+                      slot && match
+                        ? checkConflict(slot, match.player1_id ?? null, match.player2_id ?? null)
+                        : false;
 
-                      if (!slot) {
-                        return (
-                          <td key={`${rowKey}-${colIdx}`} className="border border-gray-200 bg-gray-50/50 p-1 min-w-[140px]" />
-                        );
-                      }
-
+                    if (!slot) {
                       return (
-                        <td
-                          key={slot.id}
-                          className={`border p-1 min-w-[140px] align-top ${
-                            conflict
-                              ? "bg-amber-100 border-amber-400 border-2"
-                              : "bg-white border-gray-200"
-                          } ${isDropTarget ? "ring-2 ring-ntu-green ring-offset-1" : ""}`}
-                          onDragOver={(e) => handleDragOver(e, slot.id)}
-                          onDragLeave={handleDragLeave}
+                        <td key={`${rowKey}-${colKey}`} className="border border-gray-200 bg-gray-50/50 p-1 min-w-[140px]" />
+                      );
+                    }
+
+                    return (
+                      <td
+                        key={slot.id}
+                        className={`border p-1 min-w-[140px] align-top ${
+                          conflict
+                            ? "bg-amber-100 border-amber-400 border-2"
+                            : "bg-white border-gray-200"
+                        } ${isDropTarget ? "ring-2 ring-ntu-green ring-offset-1" : ""}`}
+                        onDragOver={(e) => handleDragOver(e, slot.id)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, slot)}
+                      >
+                        <div
+                          className="min-h-[60px] rounded p-2"
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            handleDragOver(e, slot.id);
+                          }}
                           onDrop={(e) => handleDrop(e, slot)}
                         >
-                          <div
-                            className="min-h-[60px] rounded p-2"
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              handleDragOver(e, slot.id);
-                            }}
-                            onDrop={(e) => handleDrop(e, slot)}
-                          >
-                            <div className="text-xs text-gray-500 mb-1">{slot.court?.name?.trim() || "未指定"}</div>
-                            {match ? (
-                              <div className="flex flex-col gap-1">
-                                <div className="font-medium text-gray-800 text-xs leading-tight">
-                                  {match.player1?.name ?? "—"} vs {match.player2?.name ?? "—"}
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-gray-500 text-xs">R{match.round}-{match.match_number}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveFromSlot(slot.id)}
-                                    className="text-red-600 hover:text-red-700 text-xs font-medium"
-                                  >
-                                    移除
-                                  </button>
-                                </div>
-                                {conflict && (
-                                  <span className="text-amber-700 text-xs">⚠ 不可出賽時段</span>
-                                )}
+                          {match ? (
+                            <div
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, match.id)}
+                              onDragEnd={handleDragEnd}
+                              className="cursor-grab active:cursor-grabbing flex flex-col gap-1 rounded border border-transparent hover:border-gray-300 p-1 -m-1"
+                            >
+                              <div className="font-medium text-gray-800 text-xs leading-tight">
+                                {match.player1?.name ?? "—"} vs {match.player2?.name ?? "—"}
                               </div>
-                            ) : (
-                              <span className="text-gray-400 text-xs">拖放比賽至此</span>
-                            )}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-500 text-xs">R{match.round}-{match.match_number}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveFromSlot(slot.id)}
+                                  className="text-red-600 hover:text-red-700 text-xs font-medium"
+                                >
+                                  移除
+                                </button>
+                              </div>
+                              {conflict && (
+                                <span className="text-amber-700 text-xs">⚠ 不可出賽時段</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">拖放比賽至此</span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
+      {!courts?.length && columns.length === 1 && (
+        <p className="text-xs text-amber-700 mt-2">
+          若有多個場地，請在排程頁為每個時段建立多筆可用時段（每場地一筆），此處會依場地顯示多欄。
+        </p>
+      )}
     </div>
   );
 }
