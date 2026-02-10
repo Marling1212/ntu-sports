@@ -123,16 +123,27 @@ export default function SchedulePreviewEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ assignments }),
       });
-      const data = await res.json();
+      let data: { message?: string; applied?: number; cleared?: number; ok?: boolean } = {};
+      try {
+        data = await res.json();
+      } catch {
+        if (res.status === 404) {
+          toast.error("找不到儲存 API，請確認已部署 auto-schedule/apply 路由並重新整理頁面");
+          return;
+        }
+        toast.error("儲存失敗：伺服器回傳格式錯誤");
+        return;
+      }
       if (!res.ok) {
         toast.error(data.message || "儲存失敗");
         return;
       }
-      toast.success(`已儲存排程（${data.applied} 場已排入，${data.cleared ?? 0} 場已清除）`);
+      toast.success(`已儲存排程（${data.applied ?? 0} 場已排入，${data.cleared ?? 0} 場已清除）`);
       onSaved();
       onClose();
-    } catch (e: any) {
-      toast.error(e?.message || "儲存失敗");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "儲存失敗";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
