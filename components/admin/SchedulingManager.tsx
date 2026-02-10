@@ -241,6 +241,7 @@ export default function SchedulingManager({
   const [slotCodeDigits, setSlotCodeDigits] = useState("3");
   const [slotCodeStart, setSlotCodeStart] = useState("1");
   const [assigningSlotCodes, setAssigningSlotCodes] = useState(false);
+  const [deletingAllSlots, setDeletingAllSlots] = useState(false);
   const [slotTemplateImporting, setSlotTemplateImporting] = useState(false);
   const [slotTemplateImportSummary, setSlotTemplateImportSummary] = useState<string | null>(null);
   const [slotTemplateImportReplace, setSlotTemplateImportReplace] = useState(false);
@@ -468,6 +469,31 @@ export default function SchedulingManager({
     } catch (error: any) {
       console.error("Delete slot error", error);
       toast.error(error?.message || "刪除失敗");
+    }
+  };
+
+  const handleDeleteAllSlots = async () => {
+    if (slots.length === 0) {
+      toast("目前沒有任何時段可刪除。", { icon: "ℹ️" });
+      return;
+    }
+    if (!confirm(`確定要刪除全部 ${slots.length} 筆可用時段嗎？已指派到這些時段的比賽會改為未排程。`)) {
+      return;
+    }
+    setDeletingAllSlots(true);
+    try {
+      const { error } = await supabase
+        .from("event_slots")
+        .delete()
+        .eq("event_id", eventId);
+      if (error) throw error;
+      setSlots([]);
+      toast.success("已刪除全部可用時段");
+    } catch (error: any) {
+      console.error("Delete all slots error", error);
+      toast.error(error?.message || "刪除失敗");
+    } finally {
+      setDeletingAllSlots(false);
     }
   };
 
@@ -1357,6 +1383,16 @@ export default function SchedulingManager({
               由上方「每週時段模板」依日期區間<strong>生成</strong>的實際日曆時段（例如 2025/3/10 18:00–20:00），或手動新增。排程演算法會用這些 slot 來排比賽。
             </p>
           </div>
+          {slots.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDeleteAllSlots}
+              disabled={deletingAllSlots}
+              className="shrink-0 px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors disabled:opacity-50"
+            >
+              {deletingAllSlots ? "刪除中…" : "刪除全部"}
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleAddSlot} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">

@@ -38,8 +38,6 @@ interface ScheduleGridEditorProps {
   slots: SlotWithCourt[];
   matches: MatchForGrid[];
   blackoutTemplates: BlackoutTemplateForGrid[];
-  /** 若提供，欄位依此顯示（每場地一欄），即使某時段尚無該場地的 slot */
-  courts?: { id: string; name: string }[];
   onScheduleChange?: () => void;
 }
 
@@ -50,10 +48,7 @@ interface ColSpec {
   courtName: string;
 }
 
-function buildGrid(
-  slots: SlotWithCourt[],
-  courts?: { id: string; name: string }[]
-): {
+function buildGrid(slots: SlotWithCourt[]): {
   rowKeys: TimeBlockKey[];
   rows: Map<TimeBlockKey, SlotWithCourt[]>;
   columns: ColSpec[];
@@ -67,24 +62,17 @@ function buildGrid(
   }
   const rowKeys = Array.from(blockToSlots.keys()).sort();
 
-  let columns: ColSpec[];
-  if (courts && courts.length > 0) {
-    columns = courts.map((c) => ({ courtId: c.id, courtName: c.name.trim() || c.id }));
-    const hasUnspecified = slots.some((s) => !s.court_id);
-    if (hasUnspecified) columns.push({ courtId: null, courtName: "未指定" });
-  } else {
-    const courtSet = new Map<string, ColSpec>();
-    slots.forEach((slot) => {
-      const id = slot.court_id ?? "";
-      const name = slot.court?.name?.trim() || "未指定";
-      if (!courtSet.has(id)) courtSet.set(id, { courtId: slot.court_id ?? null, courtName: name });
-    });
-    columns = Array.from(courtSet.values()).sort((a, b) =>
-      a.courtName === "未指定" ? 1 : b.courtName === "未指定" ? -1 : a.courtName.localeCompare(b.courtName)
-    );
-    if (!columns.some((c) => c.courtName === "未指定")) {
-      columns.push({ courtId: null, courtName: "未指定" });
-    }
+  const courtSet = new Map<string, ColSpec>();
+  slots.forEach((slot) => {
+    const id = slot.court_id ?? "";
+    const name = slot.court?.name?.trim() || "未指定";
+    if (!courtSet.has(id)) courtSet.set(id, { courtId: slot.court_id ?? null, courtName: name });
+  });
+  const columns = Array.from(courtSet.values()).sort((a, b) =>
+    a.courtName === "未指定" ? 1 : b.courtName === "未指定" ? -1 : a.courtName.localeCompare(b.courtName)
+  );
+  if (!columns.some((c) => c.courtName === "未指定")) {
+    columns.push({ courtId: null, courtName: "未指定" });
   }
 
   blockToSlots.forEach((list) => {
@@ -118,7 +106,6 @@ export default function ScheduleGridEditor({
   slots,
   matches,
   blackoutTemplates,
-  courts,
   onScheduleChange,
 }: ScheduleGridEditorProps) {
   const supabase = createClient();
@@ -135,7 +122,7 @@ export default function ScheduleGridEditor({
   const [dropTargetUnassign, setDropTargetUnassign] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const { rowKeys, rows, columns, slotByRowCol } = useMemo(() => buildGrid(slots, courts), [slots, courts]);
+  const { rowKeys, rows, columns, slotByRowCol } = useMemo(() => buildGrid(slots), [slots]);
   const gridScrollRef = useRef<HTMLDivElement>(null);
   const scrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -488,9 +475,9 @@ export default function ScheduleGridEditor({
           </table>
         </div>
       </div>
-      {!courts?.length && columns.length === 1 && (
+      {columns.length === 1 && (
         <p className="text-xs text-amber-700 mt-2">
-          若有多個場地，請在排程頁為每個時段建立多筆可用時段（每場地一筆），此處會依場地顯示多欄。
+          若有多個場地，請在排程頁為每個時段建立多筆可用時段（每場地一筆），此處會依實際有建立的場地顯示多欄。
         </p>
       )}
     </div>
