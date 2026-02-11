@@ -10,11 +10,27 @@ import type { DesignVariant } from "@/components/design-variants/designThemes";
 import type { Match, Player } from "@/types/tournament";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
-const VALID_VARIANTS: DesignVariant[] = ["modern", "varsity", "dashboard"];
+const VALID_VARIANTS: DesignVariant[] = [
+  "modern",
+  "varsity",
+  "dashboard",
+  "editorial",
+  "mobile",
+  "neobrutalist",
+  "glass",
+  "split",
+  "dark",
+];
 const LABELS: Record<DesignVariant, string> = {
   modern: "A — Modern & Minimal",
   varsity: "B — High Energy / Varsity",
   dashboard: "C — Dashboard / Utility",
+  editorial: "D — Editorial / Magazine",
+  mobile: "E — Mobile-first / App-like",
+  neobrutalist: "F — Neobrutalist / Bold",
+  glass: "G — Glassmorphism / Soft",
+  split: "H — Split / Asymmetric",
+  dark: "I — Dark / Arena",
 };
 
 const mockPlayers: Player[] = [
@@ -119,8 +135,10 @@ export default function DesignVariantPage() {
       </section>
 
       {/* Full-width Season Play */}
-      <section className="w-full container mx-auto px-4 py-10">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Season Play (mock data)</h2>
+      <section className={`w-full container mx-auto px-4 py-10 ${variant === "dark" ? "bg-gray-900" : ""}`}>
+        <h2 className={`text-xl font-semibold mb-4 ${variant === "dark" ? "text-gray-200" : "text-gray-800"}`}>
+          Season Play (mock data)
+        </h2>
         <SeasonPlayDisplay
           matches={mockMatches}
           players={mockPlayers}

@@ -4,12 +4,18 @@
 
 Open **`/design-compare`** to choose a variant, then view it at **full width** (no squeezing):
 
-- **`/design-compare`** — Index with links to each variant.
-- **`/design-compare/modern`** — Version A (Modern & Minimal), full-width landing + season play.
-- **`/design-compare/varsity`** — Version B (High Energy / Varsity), full width.
-- **`/design-compare/dashboard`** — Version C (Dashboard / Utility), full width.
+- **`/design-compare`** — Index with links to all 9 variants.
+- **A** `/design-compare/modern` — Modern & Minimal
+- **B** `/design-compare/varsity` — High Energy / Varsity
+- **C** `/design-compare/dashboard` — Dashboard / Utility
+- **D** `/design-compare/editorial` — Editorial / Magazine
+- **E** `/design-compare/mobile` — Mobile-first / App-like
+- **F** `/design-compare/neobrutalist` — Neobrutalist / Bold
+- **G** `/design-compare/glass` — Glassmorphism / Soft
+- **H** `/design-compare/split` — Split / Asymmetric
+- **I** `/design-compare/dark` — Dark / Arena
 
-## The Three Design Systems
+## The Nine Design Systems
 
 ### Version A — Modern & Minimal
 
@@ -38,6 +44,36 @@ Open **`/design-compare`** to choose a variant, then view it at **full width** (
 - **Use case:** Admin and power users.
 
 **Tokens:** Tighter padding, `rounded` (small radius), bordered tables, small text, gray-700 header bar.
+
+### Version D — Editorial / Magazine
+
+- **Look:** Big serif/bold headlines, border-bottom hero, feature-first blocks.
+- **Use case:** Official, storytelling, “this is the place for NTU sports.”
+
+### Version E — Mobile-first / App-like
+
+- **Look:** Large tap targets, rounded-2xl cards, list-of-cards layout, min-height for touch.
+- **Use case:** Students on phones, quick “my next match” check.
+
+### Version F — Neobrutalist / Bold
+
+- **Look:** Hard shadows (no blur), thick black borders, yellow/black contrast, uppercase.
+- **Use case:** Memorable, youth-oriented, bold.
+
+### Version G — Glassmorphism / Soft
+
+- **Look:** Frosted panels (backdrop-blur), soft borders, light gradients.
+- **Use case:** Modern, premium, calm.
+
+### Version H — Split / Asymmetric
+
+- **Look:** Fixed sidebar + main content, clear “browse vs. focus.”
+- **Use case:** Desktop power users, quick navigation.
+
+### Version I — Dark / Arena
+
+- **Look:** Dark background (gray-900), NTU green and amber accents, “game day” feel.
+- **Use case:** Evening use, arena/scoreboard vibe.
 
 ---
 

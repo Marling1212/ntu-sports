@@ -6,6 +6,12 @@ const VARIANTS = [
   { id: "modern", label: "A — Modern & Minimal", desc: "Clean lines, whitespace, typography-focused." },
   { id: "varsity", label: "B — High Energy / Varsity", desc: "Bold colors, gradients, badge-style (ESPN-like)." },
   { id: "dashboard", label: "C — Dashboard / Utility", desc: "Dense, tabular, desktop admin–focused." },
+  { id: "editorial", label: "D — Editorial / Magazine", desc: "Big typography, feature-first, serious." },
+  { id: "mobile", label: "E — Mobile-first / App-like", desc: "Large tap targets, rounded cards, phone-friendly." },
+  { id: "neobrutalist", label: "F — Neobrutalist / Bold", desc: "Hard shadows, thick borders, high contrast." },
+  { id: "glass", label: "G — Glassmorphism / Soft", desc: "Frosted panels, soft gradients, premium feel." },
+  { id: "split", label: "H — Split / Asymmetric", desc: "Sidebar + main, clear browse vs. focus." },
+  { id: "dark", label: "I — Dark / Arena", desc: "Dark background, bright accents, game-day vibe." },
 ];
 
 export default function DesignCompareIndexPage() {
