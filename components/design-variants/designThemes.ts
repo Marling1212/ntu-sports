@@ -12,7 +12,12 @@ export type DesignVariant =
   | "neobrutalist"
   | "glass"
   | "split"
-  | "dark";
+  | "dark"
+  | "brutal-green"
+  | "brutal-rounded"
+  | "brutal-twocolor"
+  | "brutal-sections"
+  | "brutal-inverted";
 
 // —— SeasonPlayDisplay: keyed by section/element
 export interface SeasonPlayTheme {
@@ -284,6 +289,143 @@ export const seasonPlayDark: SeasonPlayTheme = {
   progressBarFill: "h-2 rounded-full bg-ntu-green transition-all",
 };
 
+// F spin-offs: Neobrutalist variants
+
+// J: Neobrutalist + NTU Green (green instead of yellow)
+export const seasonPlayBrutalGreen: SeasonPlayTheme = {
+  root: "space-y-6",
+  tabsContainer: "mb-6 bg-white border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000]",
+  tabActive: "flex-1 min-w-[140px] px-6 py-4 font-black text-white bg-ntu-green border-r-4 border-black last:border-r-0",
+  tabInactive: "flex-1 min-w-[140px] px-6 py-4 font-bold text-black bg-green-100 hover:bg-green-200 border-r-4 border-black last:border-r-0",
+  infoBox: "bg-green-100 border-4 border-black p-4 mb-6 shadow-[4px_4px_0_0_#000]",
+  infoBoxText: "text-sm font-bold text-black",
+  tableWrapper: "bg-white border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000]",
+  tableHeader: "bg-black text-white",
+  tableHeaderCell: "px-4 py-3 text-left text-sm font-black uppercase",
+  tableRowEven: "bg-white",
+  tableRowOdd: "bg-green-50",
+  tableCell: "px-4 py-3 text-sm font-semibold",
+  badgeCompleted: "inline-block px-3 py-1 text-xs font-black text-white bg-ntu-green border-2 border-black rounded-none",
+  badgeLive: "inline-block px-3 py-1 text-xs font-black text-white bg-red-500 border-2 border-black rounded-none",
+  badgeUpcoming: "inline-block px-3 py-1 text-xs font-black text-black bg-white border-2 border-black rounded-none",
+  badgeDelayed: "inline-block px-3 py-1 text-xs font-black text-black bg-ntu-green border-2 border-black rounded-none",
+  linkPrimary: "font-black text-ntu-green underline",
+  linkPrimaryHover: "hover:no-underline",
+  card: "bg-white border-4 border-black p-6 shadow-[6px_6px_0_0_#000]",
+  cardTitle: "text-lg font-black text-black",
+  qualifierBorder: "border-l-4 border-ntu-green",
+  progressBarTrack: "w-full bg-green-100 border-2 border-black h-4",
+  progressBarFill: "h-4 bg-ntu-green transition-all",
+};
+
+// K: Rounded brutalist (same style, rounded corners)
+export const seasonPlayBrutalRounded: SeasonPlayTheme = {
+  root: "space-y-6",
+  tabsContainer: "mb-6 bg-white rounded-2xl border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000]",
+  tabActive: "flex-1 min-w-[140px] px-6 py-4 font-black text-white bg-black border-r-4 border-black last:border-r-0 rounded-tl-2xl",
+  tabInactive: "flex-1 min-w-[140px] px-6 py-4 font-bold text-black bg-yellow-300 hover:bg-yellow-200 border-r-4 border-black last:border-r-0",
+  infoBox: "bg-yellow-300 rounded-2xl border-4 border-black p-4 mb-6 shadow-[4px_4px_0_0_#000]",
+  infoBoxText: "text-sm font-bold text-black",
+  tableWrapper: "bg-white rounded-2xl border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000]",
+  tableHeader: "bg-black text-white rounded-t-xl",
+  tableHeaderCell: "px-4 py-3 text-left text-sm font-black uppercase",
+  tableRowEven: "bg-white",
+  tableRowOdd: "bg-yellow-50",
+  tableCell: "px-4 py-3 text-sm font-semibold",
+  badgeCompleted: "inline-block px-3 py-1 text-xs font-black text-black bg-green-300 border-2 border-black rounded-xl",
+  badgeLive: "inline-block px-3 py-1 text-xs font-black text-white bg-red-500 border-2 border-black rounded-xl",
+  badgeUpcoming: "inline-block px-3 py-1 text-xs font-black text-black bg-gray-200 border-2 border-black rounded-xl",
+  badgeDelayed: "inline-block px-3 py-1 text-xs font-black text-black bg-amber-300 border-2 border-black rounded-xl",
+  linkPrimary: "font-black text-black underline",
+  linkPrimaryHover: "hover:no-underline",
+  card: "bg-white rounded-2xl border-4 border-black p-6 shadow-[6px_6px_0_0_#000]",
+  cardTitle: "text-lg font-black text-black",
+  qualifierBorder: "border-l-4 border-black rounded-l-xl",
+  progressBarTrack: "w-full bg-gray-200 border-2 border-black h-4 rounded-full",
+  progressBarFill: "h-4 bg-black rounded-full transition-all",
+};
+
+// L: Two-color only (black + yellow, no grays)
+export const seasonPlayBrutalTwocolor: SeasonPlayTheme = {
+  root: "space-y-6 bg-white",
+  tabsContainer: "mb-6 bg-white border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000]",
+  tabActive: "flex-1 min-w-[140px] px-6 py-4 font-black text-black bg-yellow-300 border-r-4 border-black last:border-r-0",
+  tabInactive: "flex-1 min-w-[140px] px-6 py-4 font-black text-black bg-white hover:bg-yellow-100 border-r-4 border-black last:border-r-0",
+  infoBox: "bg-yellow-300 border-4 border-black p-4 mb-6 shadow-[4px_4px_0_0_#000]",
+  infoBoxText: "text-sm font-black text-black",
+  tableWrapper: "bg-white border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000]",
+  tableHeader: "bg-black text-yellow-300",
+  tableHeaderCell: "px-4 py-3 text-left text-sm font-black uppercase",
+  tableRowEven: "bg-white",
+  tableRowOdd: "bg-yellow-100",
+  tableCell: "px-4 py-3 text-sm font-black text-black",
+  badgeCompleted: "inline-block px-3 py-1 text-xs font-black text-black bg-yellow-300 border-2 border-black rounded-none",
+  badgeLive: "inline-block px-3 py-1 text-xs font-black text-white bg-black border-2 border-black rounded-none",
+  badgeUpcoming: "inline-block px-3 py-1 text-xs font-black text-black bg-white border-2 border-black rounded-none",
+  badgeDelayed: "inline-block px-3 py-1 text-xs font-black text-black bg-yellow-300 border-2 border-black rounded-none",
+  linkPrimary: "font-black text-black underline",
+  linkPrimaryHover: "hover:no-underline",
+  card: "bg-white border-4 border-black p-6 shadow-[6px_6px_0_0_#000]",
+  cardTitle: "text-lg font-black text-black",
+  qualifierBorder: "border-l-4 border-black",
+  progressBarTrack: "w-full bg-white border-2 border-black h-4",
+  progressBarFill: "h-4 bg-black transition-all",
+};
+
+// M: Section accent colors (green / amber / red by feel — tabs get distinct colors)
+export const seasonPlayBrutalSections: SeasonPlayTheme = {
+  root: "space-y-6",
+  tabsContainer: "mb-6 bg-white border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000]",
+  tabActive: "flex-1 min-w-[140px] px-6 py-4 font-black text-white bg-ntu-green border-r-4 border-black last:border-r-0",
+  tabInactive: "flex-1 min-w-[140px] px-6 py-4 font-bold text-black bg-amber-50 hover:bg-amber-100 border-r-4 border-black last:border-r-0",
+  infoBox: "bg-ntu-green border-4 border-black p-4 mb-6 shadow-[4px_4px_0_0_#000]",
+  infoBoxText: "text-sm font-bold text-white",
+  tableWrapper: "bg-white border-4 border-black overflow-hidden shadow-[6px_6px_0_0_#000]",
+  tableHeader: "bg-black text-amber-300",
+  tableHeaderCell: "px-4 py-3 text-left text-sm font-black uppercase",
+  tableRowEven: "bg-white",
+  tableRowOdd: "bg-red-50",
+  tableCell: "px-4 py-3 text-sm font-semibold",
+  badgeCompleted: "inline-block px-3 py-1 text-xs font-black text-black bg-green-300 border-2 border-black rounded-none",
+  badgeLive: "inline-block px-3 py-1 text-xs font-black text-white bg-red-500 border-2 border-black rounded-none",
+  badgeUpcoming: "inline-block px-3 py-1 text-xs font-black text-black bg-amber-200 border-2 border-black rounded-none",
+  badgeDelayed: "inline-block px-3 py-1 text-xs font-black text-black bg-amber-300 border-2 border-black rounded-none",
+  linkPrimary: "font-black text-ntu-green underline",
+  linkPrimaryHover: "hover:no-underline",
+  card: "bg-white border-4 border-black p-6 shadow-[6px_6px_0_0_#000]",
+  cardTitle: "text-lg font-black text-black",
+  qualifierBorder: "border-l-4 border-ntu-green",
+  progressBarTrack: "w-full bg-amber-100 border-2 border-black h-4",
+  progressBarFill: "h-4 bg-ntu-green transition-all",
+};
+
+// N: Inverted brutalist (dark base, light panels)
+export const seasonPlayBrutalInverted: SeasonPlayTheme = {
+  root: "space-y-6 bg-gray-900",
+  tabsContainer: "mb-6 bg-gray-900 rounded-xl overflow-hidden",
+  tabActive: "flex-1 min-w-[140px] px-6 py-4 font-black text-gray-900 bg-white border-r-4 border-white last:border-r-0",
+  tabInactive: "flex-1 min-w-[140px] px-6 py-4 font-bold text-white bg-gray-800 hover:bg-gray-700 border-r-4 border-gray-600 last:border-r-0",
+  infoBox: "bg-gray-800 border-4 border-white p-4 mb-6 rounded-xl shadow-[4px_4px_0_0_rgba(255,255,255,0.4)]",
+  infoBoxText: "text-sm font-bold text-white",
+  tableWrapper: "bg-gray-800 border-4 border-white overflow-hidden rounded-xl shadow-[6px_6px_0_0_rgba(255,255,255,0.3)]",
+  tableHeader: "bg-white text-gray-900",
+  tableHeaderCell: "px-4 py-3 text-left text-sm font-black uppercase",
+  tableRowEven: "bg-gray-800",
+  tableRowOdd: "bg-gray-800/80",
+  tableCell: "px-4 py-3 text-sm font-semibold text-white",
+  badgeCompleted: "inline-block px-3 py-1 text-xs font-black text-gray-900 bg-ntu-green border-2 border-white rounded-none",
+  badgeLive: "inline-block px-3 py-1 text-xs font-black text-white bg-red-500 border-2 border-white rounded-none",
+  badgeUpcoming: "inline-block px-3 py-1 text-xs font-black text-white bg-gray-600 border-2 border-white rounded-none",
+  badgeDelayed: "inline-block px-3 py-1 text-xs font-black text-gray-900 bg-amber-300 border-2 border-white rounded-none",
+  linkPrimary: "font-black text-ntu-green underline",
+  linkPrimaryHover: "hover:no-underline",
+  card: "bg-gray-800 border-4 border-white p-6 rounded-xl shadow-[6px_6px_0_0_rgba(255,255,255,0.3)]",
+  cardTitle: "text-lg font-black text-white",
+  qualifierBorder: "border-l-4 border-ntu-green",
+  progressBarTrack: "w-full bg-gray-700 border-2 border-white h-4 rounded-full",
+  progressBarFill: "h-4 bg-ntu-green rounded-full transition-all",
+};
+
 export const seasonPlayThemes: Record<DesignVariant, SeasonPlayTheme> = {
   modern: seasonPlayModern,
   varsity: seasonPlayVarsity,
@@ -294,6 +436,11 @@ export const seasonPlayThemes: Record<DesignVariant, SeasonPlayTheme> = {
   glass: seasonPlayGlass,
   split: seasonPlaySplit,
   dark: seasonPlayDark,
+  "brutal-green": seasonPlayBrutalGreen,
+  "brutal-rounded": seasonPlayBrutalRounded,
+  "brutal-twocolor": seasonPlayBrutalTwocolor,
+  "brutal-sections": seasonPlayBrutalSections,
+  "brutal-inverted": seasonPlayBrutalInverted,
 };
 
 // Default (current) classes when no variant is set — match existing SeasonPlayDisplay

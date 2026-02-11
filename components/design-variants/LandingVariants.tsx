@@ -383,6 +383,183 @@ function LandingDark({ sportsToShow, isLoading, t }: { sportsToShow: string[]; i
   );
 }
 
+// J: Neobrutalist + NTU Green
+function LandingBrutalGreen({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="bg-ntu-green border-4 border-black p-8 mb-10 shadow-[8px_8px_0_0_#000]">
+        <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight mb-2">
+          {t("home.title")}
+        </h1>
+        <p className="text-lg font-bold text-white/90">{t("home.subtitle")}</p>
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 bg-green-100 border-4 border-black animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {sportsToShow.map((sport) => (
+            <LoadingLink
+              key={sport}
+              href={`/sports/${sport.toLowerCase()}`}
+              className="block bg-white border-4 border-black p-6 text-center shadow-[6px_6px_0_0_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0_0_#000] transition-all"
+            >
+              <span className="text-4xl block mb-2">{sportIcons[sport] || "🏆"}</span>
+              <span className="text-lg font-black text-black uppercase">{sport}</span>
+              <span className="text-sm font-bold text-ntu-green mt-2 block">{t("home.viewDetails")} →</span>
+            </LoadingLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// K: Rounded brutalist
+function LandingBrutalRounded({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="bg-yellow-300 rounded-2xl border-4 border-black p-8 mb-10 shadow-[8px_8px_0_0_#000]">
+        <h1 className="text-4xl md:text-5xl font-black text-black uppercase tracking-tight mb-2">
+          {t("home.title")}
+        </h1>
+        <p className="text-lg font-bold text-black">{t("home.subtitle")}</p>
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 bg-gray-200 rounded-2xl border-4 border-black animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {sportsToShow.map((sport) => (
+            <LoadingLink
+              key={sport}
+              href={`/sports/${sport.toLowerCase()}`}
+              className="block bg-white rounded-2xl border-4 border-black p-6 text-center shadow-[6px_6px_0_0_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0_0_#000] transition-all"
+            >
+              <span className="text-4xl block mb-2">{sportIcons[sport] || "🏆"}</span>
+              <span className="text-lg font-black text-black uppercase">{sport}</span>
+              <span className="text-sm font-bold text-black mt-2 block">{t("home.viewDetails")} →</span>
+            </LoadingLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// L: Two-color only (black + yellow)
+function LandingBrutalTwocolor({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-12 bg-white">
+      <div className="bg-yellow-300 border-4 border-black p-8 mb-10 shadow-[8px_8px_0_0_#000]">
+        <h1 className="text-4xl md:text-5xl font-black text-black uppercase tracking-tight mb-2">
+          {t("home.title")}
+        </h1>
+        <p className="text-lg font-black text-black">{t("home.subtitle")}</p>
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 bg-white border-4 border-black animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {sportsToShow.map((sport) => (
+            <LoadingLink
+              key={sport}
+              href={`/sports/${sport.toLowerCase()}`}
+              className="block bg-white border-4 border-black p-6 text-center shadow-[6px_6px_0_0_#000] hover:bg-yellow-100 transition-colors"
+            >
+              <span className="text-4xl block mb-2">{sportIcons[sport] || "🏆"}</span>
+              <span className="text-lg font-black text-black uppercase">{sport}</span>
+              <span className="text-sm font-black text-black mt-2 block">{t("home.viewDetails")} →</span>
+            </LoadingLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// M: Section accent colors
+function LandingBrutalSections({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="bg-ntu-green border-4 border-black p-8 mb-10 shadow-[8px_8px_0_0_#000]">
+        <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight mb-2">
+          {t("home.title")}
+        </h1>
+        <p className="text-lg font-bold text-white/90">{t("home.subtitle")}</p>
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 bg-amber-50 border-4 border-black animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {sportsToShow.map((sport) => (
+            <LoadingLink
+              key={sport}
+              href={`/sports/${sport.toLowerCase()}`}
+              className="block bg-white border-4 border-black p-6 text-center shadow-[6px_6px_0_0_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0_0_#000] transition-all"
+            >
+              <span className="text-4xl block mb-2">{sportIcons[sport] || "🏆"}</span>
+              <span className="text-lg font-black text-black uppercase">{sport}</span>
+              <span className="text-sm font-bold text-ntu-green mt-2 block">{t("home.viewDetails")} →</span>
+            </LoadingLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// N: Inverted brutalist (dark base)
+function LandingBrutalInverted({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="min-h-screen bg-gray-900 px-4 py-12">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-gray-800 border-4 border-white p-8 mb-10 rounded-xl shadow-[8px_8px_0_0_rgba(255,255,255,0.3)]">
+          <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight mb-2">
+            {t("home.title")}
+          </h1>
+          <p className="text-lg font-bold text-white/90">{t("home.subtitle")}</p>
+        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-32 bg-gray-800 rounded-xl border-4 border-white animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {sportsToShow.map((sport) => (
+              <LoadingLink
+                key={sport}
+                href={`/sports/${sport.toLowerCase()}`}
+                className="block bg-gray-800 rounded-xl border-4 border-white p-6 text-center shadow-[6px_6px_0_0_rgba(255,255,255,0.25)] hover:translate-x-1 hover:translate-y-1 transition-all"
+              >
+                <span className="text-4xl block mb-2">{sportIcons[sport] || "🏆"}</span>
+                <span className="text-lg font-black text-white uppercase">{sport}</span>
+                <span className="text-sm font-bold text-ntu-green mt-2 block">{t("home.viewDetails")} →</span>
+              </LoadingLink>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LandingVariants({ variant, sportsToShow, isLoading }: LandingVariantsProps) {
   const { t } = useI18n();
   const props = { sportsToShow, isLoading, t };
@@ -395,5 +572,10 @@ export default function LandingVariants({ variant, sportsToShow, isLoading }: La
   if (variant === "glass") return <LandingGlass {...props} />;
   if (variant === "split") return <LandingSplit {...props} />;
   if (variant === "dark") return <LandingDark {...props} />;
+  if (variant === "brutal-green") return <LandingBrutalGreen {...props} />;
+  if (variant === "brutal-rounded") return <LandingBrutalRounded {...props} />;
+  if (variant === "brutal-twocolor") return <LandingBrutalTwocolor {...props} />;
+  if (variant === "brutal-sections") return <LandingBrutalSections {...props} />;
+  if (variant === "brutal-inverted") return <LandingBrutalInverted {...props} />;
   return <LandingModern {...props} />;
 }

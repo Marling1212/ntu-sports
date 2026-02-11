@@ -12,6 +12,11 @@ const VARIANTS = [
   { id: "glass", label: "G — Glassmorphism / Soft", desc: "Frosted panels, soft gradients, premium feel." },
   { id: "split", label: "H — Split / Asymmetric", desc: "Sidebar + main, clear browse vs. focus." },
   { id: "dark", label: "I — Dark / Arena", desc: "Dark background, bright accents, game-day vibe." },
+  { id: "brutal-green", label: "J — Brutal + NTU Green", desc: "Same as F, green instead of yellow. More official." },
+  { id: "brutal-rounded", label: "K — Rounded Brutalist", desc: "Same style as F, with rounded corners. Friendlier." },
+  { id: "brutal-twocolor", label: "L — Two-Color Only", desc: "Black + yellow only. No grays. Poster-like." },
+  { id: "brutal-sections", label: "M — Brutal + Section Accents", desc: "Green / amber / red by section. Clear hierarchy." },
+  { id: "brutal-inverted", label: "N — Inverted Brutalist", desc: "Dark base, white/cream panels, hard light shadows." },
 ];
 
 export default function DesignCompareIndexPage() {

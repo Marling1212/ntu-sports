@@ -4,7 +4,7 @@
 
 Open **`/design-compare`** to choose a variant, then view it at **full width** (no squeezing):
 
-- **`/design-compare`** — Index with links to all 9 variants.
+- **`/design-compare`** — Index with links to all 14 variants.
 - **A** `/design-compare/modern` — Modern & Minimal
 - **B** `/design-compare/varsity` — High Energy / Varsity
 - **C** `/design-compare/dashboard` — Dashboard / Utility
@@ -14,8 +14,13 @@ Open **`/design-compare`** to choose a variant, then view it at **full width** (
 - **G** `/design-compare/glass` — Glassmorphism / Soft
 - **H** `/design-compare/split` — Split / Asymmetric
 - **I** `/design-compare/dark` — Dark / Arena
+- **J** `/design-compare/brutal-green` — Brutal + NTU Green (F with green)
+- **K** `/design-compare/brutal-rounded` — Rounded Brutalist (F with rounded corners)
+- **L** `/design-compare/brutal-twocolor` — Two-Color Only (black + yellow)
+- **M** `/design-compare/brutal-sections` — Brutal + Section Accents (green/amber/red)
+- **N** `/design-compare/brutal-inverted` — Inverted Brutalist (dark base)
 
-## The Nine Design Systems
+## The Fourteen Design Systems
 
 ### Version A — Modern & Minimal
 
@@ -74,6 +79,14 @@ Open **`/design-compare`** to choose a variant, then view it at **full width** (
 
 - **Look:** Dark background (gray-900), NTU green and amber accents, “game day” feel.
 - **Use case:** Evening use, arena/scoreboard vibe.
+
+### F spin-offs (neobrutalist variants)
+
+- **J — Brutal + NTU Green:** Same as F; yellow replaced by NTU green. More official.
+- **K — Rounded Brutalist:** Same style as F; rounded corners. Friendlier.
+- **L — Two-Color Only:** Black + yellow only; no grays. Poster-like.
+- **M — Brutal + Section Accents:** Green / amber / red by section. Clear hierarchy.
+- **N — Inverted Brutalist:** Dark base; white/cream panels; hard light shadows.
 
 ---
 

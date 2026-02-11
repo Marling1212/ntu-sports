@@ -20,6 +20,11 @@ const VALID_VARIANTS: DesignVariant[] = [
   "glass",
   "split",
   "dark",
+  "brutal-green",
+  "brutal-rounded",
+  "brutal-twocolor",
+  "brutal-sections",
+  "brutal-inverted",
 ];
 const LABELS: Record<DesignVariant, string> = {
   modern: "A — Modern & Minimal",
@@ -31,6 +36,11 @@ const LABELS: Record<DesignVariant, string> = {
   glass: "G — Glassmorphism / Soft",
   split: "H — Split / Asymmetric",
   dark: "I — Dark / Arena",
+  "brutal-green": "J — Brutal + NTU Green",
+  "brutal-rounded": "K — Rounded Brutalist",
+  "brutal-twocolor": "L — Two-Color Only",
+  "brutal-sections": "M — Brutal + Section Accents",
+  "brutal-inverted": "N — Inverted Brutalist",
 };
 
 const mockPlayers: Player[] = [
@@ -135,8 +145,8 @@ export default function DesignVariantPage() {
       </section>
 
       {/* Full-width Season Play */}
-      <section className={`w-full container mx-auto px-4 py-10 ${variant === "dark" ? "bg-gray-900" : ""}`}>
-        <h2 className={`text-xl font-semibold mb-4 ${variant === "dark" ? "text-gray-200" : "text-gray-800"}`}>
+      <section className={`w-full container mx-auto px-4 py-10 ${variant === "dark" || variant === "brutal-inverted" ? "bg-gray-900" : ""}`}>
+        <h2 className={`text-xl font-semibold mb-4 ${variant === "dark" || variant === "brutal-inverted" ? "text-gray-200" : "text-gray-800"}`}>
           Season Play (mock data)
         </h2>
         <SeasonPlayDisplay
