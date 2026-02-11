@@ -90,7 +90,8 @@ export interface Assignment {
  * - slot capacity (each slot gets at most capacity matches)
  * - team_blackout_templates (no match in a slot if either player is blacked out)
  * - no double-booking (each player at most one match per slot)
- * - minSlotsBetweenSameTeam: at least N slots of rest for the same team between matches (default 1)
+ * - minSlotsBetweenSameTeam: at least N *time blocks* of rest (same team not in two consecutive 時間段);
+ *   one time block = same (date, start_time); works the same for 1 or many venues (default 1).
  * - minDaysBetweenSameTeam: at least N full calendar days of rest (same team not on consecutive days when N>=1) (default 1)
  * Uses existing slot_id on matches as current assignment; pass clearExisting=true to ignore.
  */
@@ -108,6 +109,20 @@ export function runAutoSchedule(
       return a.slot_date.localeCompare(b.slot_date);
     return a.start_time.localeCompare(b.start_time);
   });
+
+  // Time block = unique (slot_date, start_time). Same 時間段 across venues share one block index.
+  const timeBlockKeyToIndex = new Map<string, number>();
+  for (const s of sortedSlots) {
+    const key = `${s.slot_date}\t${s.start_time}`;
+    if (!timeBlockKeyToIndex.has(key)) {
+      timeBlockKeyToIndex.set(key, timeBlockKeyToIndex.size);
+    }
+  }
+  const slotToTimeBlockIndex = new Map<string, number>();
+  for (const s of sortedSlots) {
+    const key = `${s.slot_date}\t${s.start_time}`;
+    slotToTimeBlockIndex.set(s.id, timeBlockKeyToIndex.get(key) ?? -1);
+  }
 
   // Matches to assign: exclude bye; if !clearExisting, exclude already scheduled
   const toAssign = matches.filter((m) => {
@@ -128,10 +143,8 @@ export function runAutoSchedule(
   for (const slot of sortedSlots) {
     slotUsage.set(slot.id, { count: 0, playerIds: new Set() });
   }
-  const slotIndexById = new Map<string, number>();
-  sortedSlots.forEach((s, idx) => slotIndexById.set(s.id, idx));
-  /** Last slot index (0-based in sortedSlots) where this player was assigned; -1 = none */
-  const lastSlotIndexByPlayer = new Map<string, number>();
+  /** Last time-block index (0-based) where this player was assigned; -1 = none. Same for 1 or many venues. */
+  const lastTimeBlockIndexByPlayer = new Map<string, number>();
   /** Last slot_date (YYYY-MM-DD) where this player was assigned; for minDaysBetweenSameTeam */
   const lastSlotDateByPlayer = new Map<string, string>();
 
@@ -142,24 +155,24 @@ export function runAutoSchedule(
       if (!sid || !slotUsage.has(sid)) continue;
       const slot = sortedSlots.find((s) => s.id === sid);
       const slotDate = slot?.slot_date;
+      const tbIdx = slotToTimeBlockIndex.get(sid) ?? -1;
       const p1 = m.player1_id;
       const p2 = m.player2_id;
       const u = slotUsage.get(sid)!;
       u.count += 1;
       if (p1) u.playerIds.add(p1);
       if (p2) u.playerIds.add(p2);
-      const idx = slotIndexById.get(sid) ?? -1;
-      if (p1 && idx >= 0) {
-        const last = lastSlotIndexByPlayer.get(p1) ?? -1;
-        if (idx > last) lastSlotIndexByPlayer.set(p1, idx);
+      if (p1 && tbIdx >= 0) {
+        const last = lastTimeBlockIndexByPlayer.get(p1) ?? -1;
+        if (tbIdx > last) lastTimeBlockIndexByPlayer.set(p1, tbIdx);
         if (slotDate) {
           const lastD = lastSlotDateByPlayer.get(p1);
           if (!lastD || slotDate > lastD) lastSlotDateByPlayer.set(p1, slotDate);
         }
       }
-      if (p2 && idx >= 0) {
-        const last = lastSlotIndexByPlayer.get(p2) ?? -1;
-        if (idx > last) lastSlotIndexByPlayer.set(p2, idx);
+      if (p2 && tbIdx >= 0) {
+        const last = lastTimeBlockIndexByPlayer.get(p2) ?? -1;
+        if (tbIdx > last) lastTimeBlockIndexByPlayer.set(p2, tbIdx);
         if (slotDate) {
           const lastD = lastSlotDateByPlayer.get(p2);
           if (!lastD || slotDate > lastD) lastSlotDateByPlayer.set(p2, slotDate);
@@ -183,10 +196,11 @@ export function runAutoSchedule(
       const blackout = blackoutForSlot(slot, blackoutTemplates);
       if (blackout.has(p1) || blackout.has(p2)) continue;
       if (u.playerIds.has(p1) || u.playerIds.has(p2)) continue;
-      // Rest constraint: same team should have at least minSlotsBetweenSameTeam slots between matches
-      const last1 = lastSlotIndexByPlayer.get(p1) ?? -1;
-      const last2 = lastSlotIndexByPlayer.get(p2) ?? -1;
-      if (slotIdx <= last1 + minSlotsBetweenSameTeam || slotIdx <= last2 + minSlotsBetweenSameTeam) continue;
+      const timeBlockIdx = slotToTimeBlockIndex.get(slot.id) ?? -1;
+      // Rest by time block: same team at least minSlotsBetweenSameTeam *time blocks* between (works for 1 or many venues)
+      const lastTb1 = lastTimeBlockIndexByPlayer.get(p1) ?? -1;
+      const lastTb2 = lastTimeBlockIndexByPlayer.get(p2) ?? -1;
+      if (timeBlockIdx <= lastTb1 + minSlotsBetweenSameTeam || timeBlockIdx <= lastTb2 + minSlotsBetweenSameTeam) continue;
       // Calendar-day rest: same team not on consecutive days when minDaysBetweenSameTeam >= 1
       if (minDaysBetweenSameTeam > 0) {
         const lastDate1 = lastSlotDateByPlayer.get(p1);
@@ -198,8 +212,10 @@ export function runAutoSchedule(
       u.count += 1;
       u.playerIds.add(p1);
       u.playerIds.add(p2);
-      lastSlotIndexByPlayer.set(p1, slotIdx);
-      lastSlotIndexByPlayer.set(p2, slotIdx);
+      if (timeBlockIdx >= 0) {
+        lastTimeBlockIndexByPlayer.set(p1, timeBlockIdx);
+        lastTimeBlockIndexByPlayer.set(p2, timeBlockIdx);
+      }
       lastSlotDateByPlayer.set(p1, slot.slot_date);
       lastSlotDateByPlayer.set(p2, slot.slot_date);
       assignments.push({
