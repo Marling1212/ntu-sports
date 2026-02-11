@@ -32,6 +32,13 @@ function getWeekday(slotDate: string): number {
   return d.getDay(); // 0=Sun, 6=Sat
 }
 
+/** Calendar days from date A to B (B - A). */
+function daysBetween(dateA: string, dateB: string): number {
+  const t1 = new Date(dateA + "T12:00:00").getTime();
+  const t2 = new Date(dateB + "T12:00:00").getTime();
+  return Math.round((t2 - t1) / (24 * 60 * 60 * 1000));
+}
+
 /** Time in HH:MM or HH:MM:SS to minutes since midnight */
 function timeToMinutes(t: string): number {
   const [h, m, s] = t.split(":").map(Number);
@@ -84,15 +91,16 @@ export interface Assignment {
  * - team_blackout_templates (no match in a slot if either player is blacked out)
  * - no double-booking (each player at most one match per slot)
  * - minSlotsBetweenSameTeam: at least N slots of rest for the same team between matches (default 1)
+ * - minDaysBetweenSameTeam: at least N full calendar days of rest (same team not on consecutive days when N>=1) (default 1)
  * Uses existing slot_id on matches as current assignment; pass clearExisting=true to ignore.
  */
 export function runAutoSchedule(
   slots: SlotForSchedule[],
   matches: MatchForSchedule[],
   blackoutTemplates: BlackoutTemplate[],
-  options: { clearExisting?: boolean; minSlotsBetweenSameTeam?: number } = {}
+  options: { clearExisting?: boolean; minSlotsBetweenSameTeam?: number; minDaysBetweenSameTeam?: number } = {}
 ): { assignments: Assignment[]; unassigned: MatchForSchedule[] } {
-  const { clearExisting = false, minSlotsBetweenSameTeam = 1 } = options;
+  const { clearExisting = false, minSlotsBetweenSameTeam = 1, minDaysBetweenSameTeam = 1 } = options;
 
   // Sort slots by date then time
   const sortedSlots = [...slots].sort((a, b) => {
@@ -124,12 +132,16 @@ export function runAutoSchedule(
   sortedSlots.forEach((s, idx) => slotIndexById.set(s.id, idx));
   /** Last slot index (0-based in sortedSlots) where this player was assigned; -1 = none */
   const lastSlotIndexByPlayer = new Map<string, number>();
+  /** Last slot_date (YYYY-MM-DD) where this player was assigned; for minDaysBetweenSameTeam */
+  const lastSlotDateByPlayer = new Map<string, string>();
 
   // Pre-fill from existing match assignments (if not clearExisting)
   if (!clearExisting) {
     for (const m of matches) {
       const sid = (m as any).slot_id;
       if (!sid || !slotUsage.has(sid)) continue;
+      const slot = sortedSlots.find((s) => s.id === sid);
+      const slotDate = slot?.slot_date;
       const p1 = m.player1_id;
       const p2 = m.player2_id;
       const u = slotUsage.get(sid)!;
@@ -140,10 +152,18 @@ export function runAutoSchedule(
       if (p1 && idx >= 0) {
         const last = lastSlotIndexByPlayer.get(p1) ?? -1;
         if (idx > last) lastSlotIndexByPlayer.set(p1, idx);
+        if (slotDate) {
+          const lastD = lastSlotDateByPlayer.get(p1);
+          if (!lastD || slotDate > lastD) lastSlotDateByPlayer.set(p1, slotDate);
+        }
       }
       if (p2 && idx >= 0) {
         const last = lastSlotIndexByPlayer.get(p2) ?? -1;
         if (idx > last) lastSlotIndexByPlayer.set(p2, idx);
+        if (slotDate) {
+          const lastD = lastSlotDateByPlayer.get(p2);
+          if (!lastD || slotDate > lastD) lastSlotDateByPlayer.set(p2, slotDate);
+        }
       }
     }
   }
@@ -167,11 +187,21 @@ export function runAutoSchedule(
       const last1 = lastSlotIndexByPlayer.get(p1) ?? -1;
       const last2 = lastSlotIndexByPlayer.get(p2) ?? -1;
       if (slotIdx <= last1 + minSlotsBetweenSameTeam || slotIdx <= last2 + minSlotsBetweenSameTeam) continue;
+      // Calendar-day rest: same team not on consecutive days when minDaysBetweenSameTeam >= 1
+      if (minDaysBetweenSameTeam > 0) {
+        const lastDate1 = lastSlotDateByPlayer.get(p1);
+        const lastDate2 = lastSlotDateByPlayer.get(p2);
+        const needDays = minDaysBetweenSameTeam + 1; // e.g. 1 rest day => next game >= 2 days later
+        if (lastDate1 && daysBetween(lastDate1, slot.slot_date) < needDays) continue;
+        if (lastDate2 && daysBetween(lastDate2, slot.slot_date) < needDays) continue;
+      }
       u.count += 1;
       u.playerIds.add(p1);
       u.playerIds.add(p2);
       lastSlotIndexByPlayer.set(p1, slotIdx);
       lastSlotIndexByPlayer.set(p2, slotIdx);
+      lastSlotDateByPlayer.set(p1, slot.slot_date);
+      lastSlotDateByPlayer.set(p2, slot.slot_date);
       assignments.push({
         matchId: match.id,
         slotId: slot.id,

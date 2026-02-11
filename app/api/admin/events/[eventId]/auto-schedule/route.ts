@@ -24,7 +24,7 @@ export async function POST(
     .maybeSingle();
   if (!organizer) return json(403, { ok: false, message: "Forbidden" });
 
-  let body: { clearExisting?: boolean; dryRun?: boolean; minSlotsBetweenSameTeam?: number } = {};
+  let body: { clearExisting?: boolean; dryRun?: boolean; minSlotsBetweenSameTeam?: number; minDaysBetweenSameTeam?: number } = {};
   try {
     body = await req.json();
   } catch {
@@ -33,6 +33,7 @@ export async function POST(
   const clearExisting = !!body.clearExisting;
   const dryRun = !!body.dryRun;
   const minSlotsBetweenSameTeam = typeof body.minSlotsBetweenSameTeam === "number" ? body.minSlotsBetweenSameTeam : 1;
+  const minDaysBetweenSameTeam = typeof body.minDaysBetweenSameTeam === "number" ? body.minDaysBetweenSameTeam : 1;
 
   const [
     { data: slots },
@@ -91,7 +92,7 @@ export async function POST(
     slots as any,
     matchPayload,
     (blackoutTemplates ?? []) as any,
-    { clearExisting: dryRun ? true : clearExisting, minSlotsBetweenSameTeam }
+    { clearExisting: dryRun ? true : clearExisting, minSlotsBetweenSameTeam, minDaysBetweenSameTeam }
   );
 
   if (dryRun) {

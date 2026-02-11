@@ -244,6 +244,7 @@ export default function SchedulingManager({
   const [autoScheduling, setAutoScheduling] = useState(false);
   const [autoScheduleClearExisting, setAutoScheduleClearExisting] = useState(false);
   const [minSlotsBetweenSameTeam, setMinSlotsBetweenSameTeam] = useState(1);
+  const [minDaysBetweenSameTeam, setMinDaysBetweenSameTeam] = useState(1);
   const [schedulePreviewData, setSchedulePreviewData] = useState<{
     slots: { id: string; slot_date: string; start_time: string; end_time: string; capacity: number }[];
     matches: { id: string; round: number; match_number: number; player1_name: string; player2_name: string }[];
@@ -863,6 +864,7 @@ export default function SchedulingManager({
           dryRun: true,
           clearExisting: autoScheduleClearExisting,
           minSlotsBetweenSameTeam,
+          minDaysBetweenSameTeam,
         }),
       });
       const data = await res.json();
@@ -894,6 +896,7 @@ export default function SchedulingManager({
         body: JSON.stringify({
           clearExisting: autoScheduleClearExisting,
           minSlotsBetweenSameTeam,
+          minDaysBetweenSameTeam,
         }),
       });
       const data = await res.json();
@@ -1419,7 +1422,7 @@ export default function SchedulingManager({
           <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">一鍵排程</h2>
             <p className="text-sm text-gray-600 mt-1">
-              依「所有可用時段」與各時段的<strong>場地數（capacity）</strong>、選手頁設定的<strong>不可出賽</strong>自動分配時段；演算法會避免<strong>同一隊伍連續出賽</strong>（至少間隔一時段休息）。建議先「預覽排程」確認後再儲存，並可拖曳調整。
+              依「所有可用時段」與各時段的<strong>場地數（capacity）</strong>、選手頁設定的<strong>不可出賽</strong>自動分配時段；演算法會避免<strong>同一隊伍連續出賽</strong>（可設時段間隔與日曆天間隔）。建議先「預覽排程」確認後再儲存，並可拖曳調整。
             </p>
           </div>
         </div>
@@ -1434,6 +1437,19 @@ export default function SchedulingManager({
               <option value={0}>0（可連續）</option>
               <option value={1}>1 個時段</option>
               <option value={2}>2 個時段</option>
+            </select>
+            <span>再排下一場</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <span>同一隊伍至少隔</span>
+            <select
+              value={minDaysBetweenSameTeam}
+              onChange={(e) => setMinDaysBetweenSameTeam(Number(e.target.value))}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value={0}>0 天（可連日）</option>
+              <option value={1}>1 天（不連日，建議多場地時使用）</option>
+              <option value={2}>2 天</option>
             </select>
             <span>再排下一場</span>
           </label>
