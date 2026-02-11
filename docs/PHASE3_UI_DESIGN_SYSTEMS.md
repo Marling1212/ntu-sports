@@ -2,10 +2,12 @@
 
 ## How to Compare
 
-Open **`/design-compare`** in your app to view all three design variants side by side:
+Open **`/design-compare`** to choose a variant, then view it at **full width** (no squeezing):
 
-- **Landing Page:** Three columns (A, B, C) with the same content and different styles.
-- **Season Play Display:** Same component with mock data, rendered in each variant.
+- **`/design-compare`** — Index with links to each variant.
+- **`/design-compare/modern`** — Version A (Modern & Minimal), full-width landing + season play.
+- **`/design-compare/varsity`** — Version B (High Energy / Varsity), full width.
+- **`/design-compare/dashboard`** — Version C (Dashboard / Utility), full width.
 
 ## The Three Design Systems
 
