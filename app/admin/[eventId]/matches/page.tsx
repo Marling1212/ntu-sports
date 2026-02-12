@@ -147,6 +147,8 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
               player1_id: m.player1_id,
               player2_id: m.player2_id,
               slot_id: m.slot_id,
+              scheduled_time: m.scheduled_time,
+              status: m.status,
               round: m.round,
               match_number: m.match_number,
               player1: m.player1,

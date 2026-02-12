@@ -20,6 +20,8 @@ export interface MatchForGrid {
   player1_id?: string | null;
   player2_id?: string | null;
   slot_id?: string | null;
+  scheduled_time?: string | null;
+  status?: string;
   round: number;
   match_number: number;
   player1?: { name?: string } | null;
@@ -146,9 +148,12 @@ export default function ScheduleGridEditor({
     return m;
   }, [assignments]);
 
+  // Show in unscheduled: not in grid, OR delayed (so delayed can be re-scheduled even if they have slot/time)
   const unassignedMatches = useMemo(() => {
     const assigned = new Set(Object.values(assignments));
-    return matches.filter((m) => m.player1_id || m.player2_id).filter((m) => !assigned.has(m.id));
+    return matches
+      .filter((m) => m.player1_id || m.player2_id)
+      .filter((m) => !assigned.has(m.id) || m.status === "delayed");
   }, [matches, assignments]);
 
   const checkConflict = useCallback(
@@ -301,11 +306,11 @@ export default function ScheduleGridEditor({
       for (const match of matches) {
         if (!(match.player1_id || match.player2_id)) continue;
         if (assignedMatchIds.has(match.id)) continue;
+        // Clear slot only; leave scheduled_time so manually-entered times are not wiped
         await supabase
           .from("matches")
           .update({
             slot_id: null,
-            scheduled_time: null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", match.id);
@@ -372,6 +377,14 @@ export default function ScheduleGridEditor({
                     {match.player1?.name ?? "—"} vs {match.player2?.name ?? "—"}
                   </span>
                   <span className="ml-1 text-gray-500">R{match.round}-{match.match_number}</span>
+                  {match.status === "delayed" && (
+                    <span className="ml-1 text-xs font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">延遲</span>
+                  )}
+                  {match.scheduled_time && !match.slot_id && match.status !== "delayed" && (
+                    <span className="block text-xs text-gray-500 mt-0.5">
+                      {new Date(match.scheduled_time).toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" })}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
