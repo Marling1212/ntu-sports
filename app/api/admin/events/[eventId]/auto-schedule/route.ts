@@ -48,7 +48,7 @@ export async function POST(
       .order("start_time", { ascending: true }),
     supabase
       .from("matches")
-      .select("id, player1_id, player2_id, round, match_number, slot_id, player1:players!matches_player1_id_fkey(name), player2:players!matches_player2_id_fkey(name)")
+      .select("id, player1_id, player2_id, round, match_number, slot_id, scheduled_time, status, player1:players!matches_player1_id_fkey(name), player2:players!matches_player2_id_fkey(name)")
       .eq("event_id", eventId)
       .neq("status", "bye"),
     supabase
@@ -70,17 +70,23 @@ export async function POST(
     });
   }
 
-  if (!dryRun && clearExisting) {
+  // 只排「未排程」區的比賽：無 slot，且（無手動時間 或 延遲）
+  const toSchedule = (matches as any[]).filter(
+    (m: any) => !m.slot_id && (!m.scheduled_time || m.status === "delayed")
+  );
+
+  if (!dryRun && clearExisting && toSchedule.length > 0) {
+    const toClearIds = toSchedule.map((m: any) => m.id);
     const { error: clearErr } = await supabase
       .from("matches")
       .update({ slot_id: null, scheduled_time: null, updated_at: new Date().toISOString() })
-      .eq("event_id", eventId);
+      .in("id", toClearIds);
     if (clearErr) {
       return json(500, { ok: false, message: `清除既有排程失敗：${clearErr.message}` });
     }
   }
 
-  const matchPayload = matches.map((m: any) => ({
+  const matchPayload = toSchedule.map((m: any) => ({
     id: m.id,
     player1_id: m.player1_id,
     player2_id: m.player2_id,
@@ -103,12 +109,14 @@ export async function POST(
       player1_name: m.player1?.name ?? "—",
       player2_name: m.player2?.name ?? "—",
     }));
+    const toScheduleIds = new Set(toSchedule.map((m: any) => m.id));
+    const notConsideredIds = (matches as any[]).filter((m: any) => !toScheduleIds.has(m.id)).map((m: any) => m.id);
     return json(200, {
       ok: true,
       dryRun: true,
       slots: slots.map((s: any) => ({ id: s.id, slot_date: s.slot_date, start_time: s.start_time, end_time: s.end_time, capacity: s.capacity ?? 1 })),
       assignments,
-      unassigned: unassigned.map((m) => m.id),
+      unassigned: [...unassigned.map((m) => m.id), ...notConsideredIds],
       matches: matchNames,
     });
   }
@@ -137,7 +145,7 @@ export async function POST(
     unassigned: unassigned.length,
     message:
       unassigned.length > 0
-        ? `已排程 ${assignments.length} 場，${unassigned.length} 場因時段不足或不可出賽無法排入，請新增時段或調整不可出賽後再試。`
-        : `已為 ${assignments.length} 場比賽完成排程。`,
+        ? `已為 ${assignments.length} 場未排程比賽排入時段，${unassigned.length} 場因時段不足或不可出賽無法排入；已填時間的比賽未更動。`
+        : `已為 ${assignments.length} 場未排程比賽完成排程（已填時間的比賽未更動）。`,
   });
 }
