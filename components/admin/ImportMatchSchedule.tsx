@@ -221,7 +221,7 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
         console.warn("Could not fetch slots:", slotsError);
       }
 
-      // Create a map of slots by date (YYYY-MM-DD format)
+      // Create a map of slots by date (YYYY-MM-DD), each array already sorted by start_time from query
       const slotsByDate = new Map<string, any[]>();
       slots?.forEach((slot) => {
         const dateStr = slot.slot_date; // Already in YYYY-MM-DD format
@@ -231,36 +231,63 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
         slotsByDate.get(dateStr)!.push(slot);
       });
 
-      // Helper function to match date to a slot
+      // Minutes from midnight for slot start_time (HH:MM or HH:MM:SS)
+      const slotStartMinutes = (slot: any): number => {
+        const t = slot.start_time || "00:00:00";
+        const [h, m] = t.split(":").map(Number);
+        return (h ?? 0) * 60 + (m ?? 0);
+      };
+
+      const buildSlotResult = (slot: any): { scheduledTime: string; slotId: string; court?: string } => {
+        const result: { scheduledTime: string; slotId: string; court?: string } = {
+          scheduledTime: `${slot.slot_date}T${slot.start_time}+08:00`,
+          slotId: slot.id,
+        };
+        if (slot.event_courts) {
+          const courtName = Array.isArray(slot.event_courts)
+            ? slot.event_courts[0]?.name
+            : slot.event_courts?.name;
+          if (courtName) result.court = courtName;
+        }
+        return result;
+      };
+
+      // Per-date usage index: when CSV has date-only, assign slots in order (1st row → 1st slot, 2nd → 2nd, ...)
+      const slotUsageByDate = new Map<string, number>();
+      const overflowWarnedForDate = new Set<string>();
+
       const matchDateToSlot = (dateStr: string): { scheduledTime: string; slotId: string; court?: string } | null => {
-        // Extract date part (YYYY-MM-DD) from ISO string if needed
         const dateOnly = dateStr.split("T")[0];
         const slotsForDate = slotsByDate.get(dateOnly);
-        
-        if (slotsForDate && slotsForDate.length > 0) {
-          // Use the first available slot for that date
-          const slot = slotsForDate[0];
-          // Combine date and time: slot_date is YYYY-MM-DD, start_time is HH:MM:SS
-          const result: { scheduledTime: string; slotId: string; court?: string } = {
-            scheduledTime: `${slot.slot_date}T${slot.start_time}+08:00`,
-            slotId: slot.id,
-          };
-          
-          // If slot has associated court, include it
-          if (slot.event_courts) {
-            const courtName = Array.isArray(slot.event_courts) 
-              ? slot.event_courts[0]?.name 
-              : slot.event_courts?.name;
-            if (courtName) {
-              result.court = courtName;
+        if (!slotsForDate || slotsForDate.length === 0) return null;
+
+        const d = new Date(dateStr);
+        const timeMinutes = Number.isNaN(d.getTime()) ? null : d.getHours() * 60 + d.getMinutes();
+        const hasExplicitTime = timeMinutes !== null && timeMinutes !== 0;
+
+        if (hasExplicitTime) {
+          // CSV 有帶時間：找該日期下「開始時間最接近」的 slot
+          let best = slotsForDate[0];
+          let bestDiff = Math.abs(slotStartMinutes(best) - timeMinutes);
+          for (let i = 1; i < slotsForDate.length; i++) {
+            const diff = Math.abs(slotStartMinutes(slotsForDate[i]) - timeMinutes);
+            if (diff < bestDiff) {
+              bestDiff = diff;
+              best = slotsForDate[i];
             }
           }
-          
-          return result;
+          return buildSlotResult(best);
         }
-        
-        // No slot found, return null (will use midnight as fallback)
-        return null;
+
+        // 僅日期：同一天多筆依序使用該日的 slot（第 1 筆→第 1 個時段，第 2 筆→第 2 個時段…）
+        const index = slotUsageByDate.get(dateOnly) ?? 0;
+        const slot = slotsForDate[Math.min(index, slotsForDate.length - 1)];
+        slotUsageByDate.set(dateOnly, index + 1);
+        if (index >= slotsForDate.length && !overflowWarnedForDate.has(dateOnly)) {
+          overflowWarnedForDate.add(dateOnly);
+          warnings.push(`日期 ${dateOnly} 的時段數（${slotsForDate.length}）少於該日匯入場次，多出的比賽已排入當日最後一時段。`);
+        }
+        return buildSlotResult(slot);
       };
 
       // Fetch existing matches for this round to update them
@@ -528,6 +555,9 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
           </li>
           <li>
             日期欄位：第一欄可以是日期（如 <span className="font-mono">2025-01-15</span>）或留空/TBD。若留空，該比賽日期保持 TBD。
+          </li>
+          <li>
+            <strong>同一天多場次</strong>：若只填日期，同一天多筆會<strong>依 CSV 順序</strong>對應到該日的第 1、2、3… 個時段。若第一欄寫「日期+時間」（如 <span className="font-mono">2025-01-15 14:00</span>），則會自動對應到該日<strong>最接近</strong>的可用時段。
           </li>
           <li>可選欄位：Score A, Score B，若有比分會自動標記比賽完成並計算勝隊。</li>
           <li>CSV 中的「Week X」等標題列會自動忽略，可保留原格式。</li>
