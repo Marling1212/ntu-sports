@@ -148,13 +148,24 @@ export default function ScheduleGridEditor({
     return m;
   }, [assignments]);
 
-  // Show in unscheduled: not in grid, OR delayed (so delayed can be re-scheduled even if they have slot/time)
-  const unassignedMatches = useMemo(() => {
-    const assigned = new Set(Object.values(assignments));
-    return matches
-      .filter((m) => m.player1_id || m.player2_id)
-      .filter((m) => !assigned.has(m.id) || m.status === "delayed");
-  }, [matches, assignments]);
+  const assigned = useMemo(() => new Set(Object.values(assignments)), [assignments]);
+  const notInGrid = useMemo(
+    () =>
+      matches
+        .filter((m) => m.player1_id || m.player2_id)
+        .filter((m) => !assigned.has(m.id) || m.status === "delayed"),
+    [matches, assigned]
+  );
+  // 未排程：沒有在格子裡，且（沒有填時間 或 是延遲）→ 真正「未排程」的才放這裡
+  const unassignedMatches = useMemo(
+    () => notInGrid.filter((m) => !m.scheduled_time || m.status === "delayed"),
+    [notInGrid]
+  );
+  // 已填時間未對應時段：沒有在格子裡、有手動時間、非延遲 → 不放在「未排程」避免混淆
+  const hasTimeNoSlotMatches = useMemo(
+    () => notInGrid.filter((m) => m.scheduled_time && m.status !== "delayed"),
+    [notInGrid]
+  );
 
   const checkConflict = useCallback(
     (slot: SlotWithCourt, player1Id: string | null, player2Id: string | null): boolean => {
@@ -349,8 +360,7 @@ export default function ScheduleGridEditor({
       </div>
 
       <div className="flex gap-6 flex-wrap">
-        <div className="w-64 shrink-0">
-          <h3 className="font-semibold text-gray-700 mb-2">未排程 ({unassignedMatches.length})</h3>
+        <div className="w-64 shrink-0 space-y-4">
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -364,7 +374,9 @@ export default function ScheduleGridEditor({
             }`}
           >
             <p className="text-xs text-gray-500 mb-2">拖曳比賽到此處可取消排程</p>
-            <ul className="space-y-2 max-h-80 overflow-y-auto">
+            <h3 className="font-semibold text-gray-700 mb-1">未排程 ({unassignedMatches.length})</h3>
+            <p className="text-xs text-gray-500 mb-2">尚無時段或延遲，可拖至下方時段</p>
+            <ul className="space-y-2 max-h-40 overflow-y-auto">
               {unassignedMatches.map((match) => (
                 <li
                   key={match.id}
@@ -380,11 +392,27 @@ export default function ScheduleGridEditor({
                   {match.status === "delayed" && (
                     <span className="ml-1 text-xs font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">延遲</span>
                   )}
-                  {match.scheduled_time && !match.slot_id && match.status !== "delayed" && (
-                    <span className="block text-xs text-gray-500 mt-0.5">
-                      {new Date(match.scheduled_time).toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" })}
-                    </span>
-                  )}
+                </li>
+              ))}
+            </ul>
+            <h3 className="font-semibold text-gray-700 mt-3 mb-1">已填時間、未對應時段 ({hasTimeNoSlotMatches.length})</h3>
+            <p className="text-xs text-gray-500 mb-2">已有手動時間，可拖至下方時段對應</p>
+            <ul className="space-y-2 max-h-40 overflow-y-auto">
+              {hasTimeNoSlotMatches.map((match) => (
+                <li
+                  key={match.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, match.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`cursor-grab rounded-lg border-2 border-emerald-100 bg-emerald-50/80 p-2 text-sm shadow-sm active:cursor-grabbing ${draggingMatchId === match.id ? "opacity-50" : ""}`}
+                >
+                  <span className="font-medium text-gray-800">
+                    {match.player1?.name ?? "—"} vs {match.player2?.name ?? "—"}
+                  </span>
+                  <span className="ml-1 text-gray-500">R{match.round}-{match.match_number}</span>
+                  <span className="block text-xs text-gray-600 mt-0.5">
+                    {new Date(match.scheduled_time!).toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" })}
+                  </span>
                 </li>
               ))}
             </ul>
