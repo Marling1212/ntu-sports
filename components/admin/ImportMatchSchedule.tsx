@@ -528,6 +528,13 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <a
+            href="/schedule-import-sample.csv"
+            download="schedule-import-sample.csv"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+          >
+            下載範例 CSV
+          </a>
           <button
             type="button"
             onClick={handleSelectFile}
@@ -551,7 +558,10 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
         <p className="font-semibold text-gray-700">格式說明</p>
         <ul className="list-disc list-inside space-y-1">
           <li>
-            必填欄位：<span className="font-mono">Team A, Team B</span>（日期為選填）
+            欄位順序：<span className="font-mono">日期, 隊伍A, 隊伍B, 比分A, 比分B</span>。範例檔可點「下載範例 CSV」取得，請將 Team A/B 等改為您賽事中的隊伍名稱。
+          </li>
+          <li>
+            必填欄位：<span className="font-mono">隊伍A, 隊伍B</span>（日期為選填）
           </li>
           <li>
             日期欄位：第一欄可以是日期（如 <span className="font-mono">2025-01-15</span>）或留空/TBD。若留空，該比賽日期保持 TBD。

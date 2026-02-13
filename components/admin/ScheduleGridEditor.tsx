@@ -156,14 +156,14 @@ export default function ScheduleGridEditor({
         .filter((m) => !assigned.has(m.id) || m.status === "delayed"),
     [matches, assigned]
   );
-  // 未排程：沒有在格子裡，且（沒有填時間 或 是延遲）→ 真正「未排程」的才放這裡
+  // 未排程：沒有在格子裡，且（沒有填時間 或 延遲 或 本來在格子裡被拖出）→ 從格子拖出/刪除的會進這裡
   const unassignedMatches = useMemo(
-    () => notInGrid.filter((m) => !m.scheduled_time || m.status === "delayed"),
+    () => notInGrid.filter((m) => !m.scheduled_time || m.status === "delayed" || m.slot_id),
     [notInGrid]
   );
-  // 已填時間未對應時段：沒有在格子裡、有手動時間、非延遲 → 不放在「未排程」避免混淆
+  // 已填時間未對應時段：沒有在格子裡、有手動時間、非延遲、且從未有 slot（非從格子拖出）
   const hasTimeNoSlotMatches = useMemo(
-    () => notInGrid.filter((m) => m.scheduled_time && m.status !== "delayed"),
+    () => notInGrid.filter((m) => m.scheduled_time && m.status !== "delayed" && !m.slot_id),
     [notInGrid]
   );
 
@@ -317,11 +317,13 @@ export default function ScheduleGridEditor({
       for (const match of matches) {
         if (!(match.player1_id || match.player2_id)) continue;
         if (assignedMatchIds.has(match.id)) continue;
-        // Clear slot only; leave scheduled_time so manually-entered times are not wiped
+        // 若本來在格子裡（有 slot_id）被移除 → 捨棄 slot 與時間，方便重新排程；僅手動填時間從未進格子的只清 slot
+        const hadSlot = !!match.slot_id;
         await supabase
           .from("matches")
           .update({
             slot_id: null,
+            ...(hadSlot ? { scheduled_time: null } : {}),
             updated_at: new Date().toISOString(),
           })
           .eq("id", match.id);
