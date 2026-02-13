@@ -17,6 +17,12 @@ const VARIANTS = [
   { id: "brutal-twocolor", label: "L — Two-Color Only", desc: "Black + yellow only. No grays. Poster-like." },
   { id: "brutal-sections", label: "M — Brutal + Section Accents", desc: "Green / amber / red by section. Clear hierarchy." },
   { id: "brutal-inverted", label: "N — Inverted Brutalist", desc: "Dark base, white/cream panels, hard light shadows." },
+  { id: "retro", label: "O — Retro / 80s", desc: "Neon cyan & magenta, synthwave, dark background." },
+  { id: "newspaper", label: "P — Newspaper / Print", desc: "Serif, black & white, column feel." },
+  { id: "terminal", label: "Q — Terminal / Code", desc: "Monospace, green/amber on dark, CLI vibe." },
+  { id: "comic", label: "R — Comic / Manga", desc: "Bold outlines, speech-bubble, primary colors." },
+  { id: "luxury", label: "S — Luxury / Premium", desc: "Gold, cream, serif, prestige." },
+  { id: "zen", label: "T — Zen / Minimal Japanese", desc: "Lots of space, one accent, restrained." },
 ];
 
 export default function DesignCompareIndexPage() {

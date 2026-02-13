@@ -17,7 +17,13 @@ export type DesignVariant =
   | "brutal-rounded"
   | "brutal-twocolor"
   | "brutal-sections"
-  | "brutal-inverted";
+  | "brutal-inverted"
+  | "retro"
+  | "newspaper"
+  | "terminal"
+  | "comic"
+  | "luxury"
+  | "zen";
 
 // —— SeasonPlayDisplay: keyed by section/element
 export interface SeasonPlayTheme {
@@ -426,6 +432,168 @@ export const seasonPlayBrutalInverted: SeasonPlayTheme = {
   progressBarFill: "h-4 bg-ntu-green rounded-full transition-all",
 };
 
+// O: Retro / 80s — neon, synthwave, dark + cyan/magenta
+export const seasonPlayRetro: SeasonPlayTheme = {
+  root: "space-y-6 bg-[#0f0e17]",
+  tabsContainer: "mb-6 bg-[#1a1a2e] border-2 border-cyan-400 overflow-hidden rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.3)]",
+  tabActive: "flex-1 min-w-[140px] px-6 py-4 font-bold text-[#0f0e17] bg-cyan-400 border-r-2 border-fuchsia-400 last:border-r-0",
+  tabInactive: "flex-1 min-w-[140px] px-6 py-4 font-medium text-fuchsia-300 hover:bg-fuchsia-500/20 border-r-2 border-cyan-400/30 last:border-r-0",
+  infoBox: "bg-[#1a1a2e] border-l-4 border-cyan-400 p-4 mb-6 rounded-r-lg shadow-[0_0_15px_rgba(34,211,238,0.2)]",
+  infoBoxText: "text-sm text-cyan-200",
+  tableWrapper: "bg-[#1a1a2e] border-2 border-cyan-400 overflow-hidden rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.2)]",
+  tableHeader: "bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-[#0f0e17]",
+  tableHeaderCell: "px-4 py-3 text-left text-sm font-bold uppercase",
+  tableRowEven: "bg-[#1a1a2e]",
+  tableRowOdd: "bg-[#16213e]",
+  tableCell: "px-4 py-3 text-sm text-cyan-100",
+  badgeCompleted: "inline-block px-3 py-1 text-xs font-bold text-[#0f0e17] bg-cyan-400 rounded",
+  badgeLive: "inline-block px-3 py-1 text-xs font-bold text-white bg-fuchsia-500 rounded animate-pulse",
+  badgeUpcoming: "inline-block px-3 py-1 text-xs font-bold text-cyan-300 bg-cyan-500/30 rounded",
+  badgeDelayed: "inline-block px-3 py-1 text-xs font-bold text-amber-200 bg-amber-500/30 rounded",
+  linkPrimary: "font-bold text-cyan-400",
+  linkPrimaryHover: "hover:text-fuchsia-400 hover:underline",
+  card: "bg-[#1a1a2e] border-2 border-cyan-400/50 p-6 rounded-lg",
+  cardTitle: "text-base font-bold text-cyan-300",
+  qualifierBorder: "border-l-4 border-fuchsia-400",
+  progressBarTrack: "w-full bg-[#16213e] rounded-full h-2",
+  progressBarFill: "h-2 rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 transition-all",
+};
+
+// P: Newspaper / Print — columns, serif, black & white
+export const seasonPlayNewspaper: SeasonPlayTheme = {
+  root: "space-y-8 max-w-3xl mx-auto",
+  tabsContainer: "mb-8 border-b-2 border-black overflow-hidden",
+  tabActive: "flex-1 min-w-[120px] px-4 py-3 font-serif text-sm font-bold text-black border-b-4 border-black -mb-0.5 bg-white",
+  tabInactive: "flex-1 min-w-[120px] px-4 py-3 font-serif text-sm text-gray-600 hover:text-black border-b-4 border-transparent -mb-0.5",
+  infoBox: "bg-gray-100 border-l-4 border-black py-3 pl-4 mb-6",
+  infoBoxText: "text-xs font-serif text-gray-800 leading-relaxed",
+  tableWrapper: "border border-black overflow-hidden",
+  tableHeader: "bg-black text-white",
+  tableHeaderCell: "px-3 py-2 text-left text-xs font-serif font-bold uppercase",
+  tableRowEven: "bg-white",
+  tableRowOdd: "bg-gray-50",
+  tableCell: "px-3 py-2 text-xs font-serif",
+  badgeCompleted: "inline-block px-2 py-0.5 text-xs font-serif font-bold text-black border border-black",
+  badgeLive: "inline-block px-2 py-0.5 text-xs font-serif font-bold text-white bg-black",
+  badgeUpcoming: "inline-block px-2 py-0.5 text-xs font-serif text-gray-600 border border-gray-400",
+  badgeDelayed: "inline-block px-2 py-0.5 text-xs font-serif font-bold text-black border border-black bg-gray-200",
+  linkPrimary: "font-serif font-bold text-black underline",
+  linkPrimaryHover: "hover:no-underline",
+  card: "border border-black p-4",
+  cardTitle: "text-sm font-serif font-bold text-black",
+  qualifierBorder: "border-l-4 border-black",
+  progressBarTrack: "w-full bg-gray-200 h-1",
+  progressBarFill: "h-1 bg-black transition-all",
+};
+
+// Q: Terminal / Code — monospace, green/amber on dark
+export const seasonPlayTerminal: SeasonPlayTheme = {
+  root: "space-y-4 bg-[#1e1e1e] font-mono",
+  tabsContainer: "mb-4 border border-[#3c3c3c] overflow-hidden bg-[#252526]",
+  tabActive: "flex-1 min-w-[120px] px-4 py-2 text-sm font-mono text-[#1e1e1e] bg-[#4ec9b0] border-r border-[#3c3c3c] last:border-r-0",
+  tabInactive: "flex-1 min-w-[120px] px-4 py-2 text-sm font-mono text-[#9cdcfe] hover:bg-[#2d2d30] border-r border-[#3c3c3c] last:border-r-0",
+  infoBox: "bg-[#252526] border-l-4 border-[#4ec9b0] p-3 mb-4 text-sm",
+  infoBoxText: "text-[#d4d4d4]",
+  tableWrapper: "border border-[#3c3c3c] overflow-hidden bg-[#252526]",
+  tableHeader: "bg-[#0e639c] text-[#d4d4d4]",
+  tableHeaderCell: "px-3 py-2 text-left text-xs font-mono",
+  tableRowEven: "bg-[#252526]",
+  tableRowOdd: "bg-[#2d2d2d]",
+  tableCell: "px-3 py-2 text-xs text-[#d4d4d4]",
+  badgeCompleted: "inline-block px-2 py-0.5 text-xs font-mono text-[#4ec9b0] bg-[#4ec9b0]/20 border border-[#4ec9b0]",
+  badgeLive: "inline-block px-2 py-0.5 text-xs font-mono text-[#f48771] bg-[#f48771]/20 border border-[#f48771]",
+  badgeUpcoming: "inline-block px-2 py-0.5 text-xs font-mono text-[#dcdcaa] bg-[#dcdcaa]/10 border border-[#dcdcaa]",
+  badgeDelayed: "inline-block px-2 py-0.5 text-xs font-mono text-[#ce9178] bg-[#ce9178]/20 border border-[#ce9178]",
+  linkPrimary: "font-mono text-[#4ec9b0]",
+  linkPrimaryHover: "hover:text-[#9cdcfe] hover:underline",
+  card: "bg-[#252526] border border-[#3c3c3c] p-4",
+  cardTitle: "text-sm font-mono text-[#4ec9b0]",
+  qualifierBorder: "border-l-2 border-[#dcdcaa]",
+  progressBarTrack: "w-full bg-[#3c3c3c] h-1",
+  progressBarFill: "h-1 bg-[#4ec9b0] transition-all",
+};
+
+// R: Comic / Manga — bold outlines, speech-bubble feel
+export const seasonPlayComic: SeasonPlayTheme = {
+  root: "space-y-6",
+  tabsContainer: "mb-6 overflow-hidden",
+  tabActive: "flex-1 min-w-[140px] px-6 py-4 font-black text-white bg-red-500 border-4 border-black rounded-t-2xl shadow-[4px_4px_0_0_#000]",
+  tabInactive: "flex-1 min-w-[140px] px-6 py-4 font-black text-black bg-white hover:bg-yellow-100 border-4 border-black rounded-t-2xl",
+  infoBox: "bg-yellow-100 border-4 border-black rounded-2xl p-4 mb-6 shadow-[4px_4px_0_0_#000]",
+  infoBoxText: "text-sm font-black text-black",
+  tableWrapper: "bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0_0_#000]",
+  tableHeader: "bg-blue-500 text-white border-b-4 border-black",
+  tableHeaderCell: "px-4 py-3 text-left text-sm font-black uppercase",
+  tableRowEven: "bg-white",
+  tableRowOdd: "bg-yellow-50",
+  tableCell: "px-4 py-3 text-sm font-bold",
+  badgeCompleted: "inline-block px-3 py-1 text-xs font-black text-white bg-green-500 border-2 border-black rounded-full",
+  badgeLive: "inline-block px-3 py-1 text-xs font-black text-white bg-red-500 border-2 border-black rounded-full animate-pulse",
+  badgeUpcoming: "inline-block px-3 py-1 text-xs font-black text-black bg-white border-2 border-black rounded-full",
+  badgeDelayed: "inline-block px-3 py-1 text-xs font-black text-black bg-amber-300 border-2 border-black rounded-full",
+  linkPrimary: "font-black text-blue-600 underline decoration-2",
+  linkPrimaryHover: "hover:text-red-500",
+  card: "bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0_0_#000]",
+  cardTitle: "text-lg font-black text-black",
+  qualifierBorder: "border-l-4 border-yellow-400",
+  progressBarTrack: "w-full bg-gray-200 border-2 border-black h-3 rounded-full",
+  progressBarFill: "h-3 rounded-full bg-blue-500 transition-all",
+};
+
+// S: Luxury / Premium — gold, cream, serif
+export const seasonPlayLuxury: SeasonPlayTheme = {
+  root: "space-y-8 bg-[#faf8f5]",
+  tabsContainer: "mb-8 bg-white/80 border border-[#e8e4dc] overflow-hidden rounded-sm shadow-sm",
+  tabActive: "flex-1 min-w-[140px] px-6 py-4 font-serif text-sm font-semibold text-[#5c4a32] bg-[#f5f0e8] border-b-2 border-[#c9a227]",
+  tabInactive: "flex-1 min-w-[140px] px-6 py-4 font-serif text-sm text-[#8b7355] hover:bg-[#faf8f5] border-b-2 border-transparent",
+  infoBox: "bg-[#f5f0e8] border-l-4 border-[#c9a227] p-5 mb-6 rounded-r-sm",
+  infoBoxText: "text-sm font-serif text-[#5c4a32]",
+  tableWrapper: "bg-white border border-[#e8e4dc] overflow-hidden rounded-sm",
+  tableHeader: "bg-[#5c4a32] text-[#f5f0e8]",
+  tableHeaderCell: "px-5 py-3 text-left text-xs font-serif font-semibold uppercase tracking-wider",
+  tableRowEven: "bg-white",
+  tableRowOdd: "bg-[#faf8f5]",
+  tableCell: "px-5 py-3 text-sm font-serif text-[#5c4a32]",
+  badgeCompleted: "inline-block px-2.5 py-1 text-xs font-serif text-[#5c4a32] bg-[#e8e4dc] rounded-sm",
+  badgeLive: "inline-block px-2.5 py-1 text-xs font-serif text-[#c9a227] bg-[#5c4a32] rounded-sm",
+  badgeUpcoming: "inline-block px-2.5 py-1 text-xs font-serif text-[#8b7355] bg-[#f5f0e8] rounded-sm",
+  badgeDelayed: "inline-block px-2.5 py-1 text-xs font-serif text-[#5c4a32] bg-[#e8dcc9] rounded-sm",
+  linkPrimary: "font-serif font-semibold text-[#5c4a32]",
+  linkPrimaryHover: "hover:text-[#c9a227] hover:underline",
+  card: "bg-white border border-[#e8e4dc] p-6 rounded-sm",
+  cardTitle: "text-base font-serif font-semibold text-[#5c4a32]",
+  qualifierBorder: "border-l-2 border-[#c9a227]",
+  progressBarTrack: "w-full bg-[#e8e4dc] rounded-sm h-1.5",
+  progressBarFill: "h-1.5 rounded-sm bg-[#c9a227] transition-all",
+};
+
+// T: Zen / Minimal Japanese — lots of space, one accent, restrained
+export const seasonPlayZen: SeasonPlayTheme = {
+  root: "space-y-12 max-w-2xl mx-auto",
+  tabsContainer: "mb-12 border-b border-gray-300 overflow-hidden",
+  tabActive: "flex-1 min-w-[120px] px-6 py-4 text-sm font-medium text-black border-b-2 border-black -mb-px",
+  tabInactive: "flex-1 min-w-[120px] px-6 py-4 text-sm font-medium text-gray-400 hover:text-gray-600 border-b-2 border-transparent -mb-px",
+  infoBox: "py-6 border-b border-gray-200",
+  infoBoxText: "text-sm text-gray-600 leading-relaxed",
+  tableWrapper: "border-b border-gray-200 overflow-hidden",
+  tableHeader: "bg-transparent border-b border-gray-300",
+  tableHeaderCell: "px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-widest",
+  tableRowEven: "bg-white",
+  tableRowOdd: "bg-white",
+  tableCell: "px-6 py-4 text-sm text-gray-800",
+  badgeCompleted: "inline-block px-2 py-0.5 text-xs text-gray-600 border border-gray-400 rounded",
+  badgeLive: "inline-block px-2 py-0.5 text-xs text-red-600 border border-red-400 rounded",
+  badgeUpcoming: "inline-block px-2 py-0.5 text-xs text-gray-400 border border-gray-300 rounded",
+  badgeDelayed: "inline-block px-2 py-0.5 text-xs text-amber-700 border border-amber-400 rounded",
+  linkPrimary: "font-medium text-gray-900",
+  linkPrimaryHover: "hover:text-black hover:underline",
+  card: "border-b border-gray-200 py-6",
+  cardTitle: "text-sm font-medium text-gray-800",
+  qualifierBorder: "border-l-2 border-gray-400",
+  progressBarTrack: "w-full bg-gray-100 h-1 rounded-full",
+  progressBarFill: "h-1 rounded-full bg-gray-800 transition-all",
+};
+
 export const seasonPlayThemes: Record<DesignVariant, SeasonPlayTheme> = {
   modern: seasonPlayModern,
   varsity: seasonPlayVarsity,
@@ -441,6 +609,12 @@ export const seasonPlayThemes: Record<DesignVariant, SeasonPlayTheme> = {
   "brutal-twocolor": seasonPlayBrutalTwocolor,
   "brutal-sections": seasonPlayBrutalSections,
   "brutal-inverted": seasonPlayBrutalInverted,
+  retro: seasonPlayRetro,
+  newspaper: seasonPlayNewspaper,
+  terminal: seasonPlayTerminal,
+  comic: seasonPlayComic,
+  luxury: seasonPlayLuxury,
+  zen: seasonPlayZen,
 };
 
 // Default (current) classes when no variant is set — match existing SeasonPlayDisplay

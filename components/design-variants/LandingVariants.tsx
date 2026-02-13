@@ -560,6 +560,215 @@ function LandingBrutalInverted({ sportsToShow, isLoading, t }: { sportsToShow: s
   );
 }
 
+// O: Retro / 80s neon
+function LandingRetro({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="min-h-screen bg-[#0f0e17] px-4 py-12">
+      <div className="max-w-4xl mx-auto">
+        <div className="border-2 border-cyan-400 rounded-lg p-8 mb-10 shadow-[0_0_30px_rgba(34,211,238,0.4)] bg-[#1a1a2e]">
+          <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400 mb-2">
+            {t("home.title")}
+          </h1>
+          <p className="text-lg text-cyan-200">{t("home.subtitle")}</p>
+        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 bg-[#1a1a2e] border border-cyan-400/50 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {sportsToShow.map((sport) => (
+              <LoadingLink
+                key={sport}
+                href={`/sports/${sport.toLowerCase()}`}
+                className="block bg-[#1a1a2e] border-2 border-cyan-400/50 rounded-lg p-6 text-center hover:border-fuchsia-400 hover:shadow-[0_0_20px_rgba(217,70,239,0.3)] transition-all"
+              >
+                <span className="text-4xl block mb-2">{sportIcons[sport] || "🏆"}</span>
+                <span className="text-base font-bold text-cyan-300 block">{sport}</span>
+                <span className="text-xs text-fuchsia-400 mt-2 block">{t("home.viewDetails")} →</span>
+              </LoadingLink>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// P: Newspaper / print
+function LandingNewspaper({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="max-w-3xl mx-auto px-6 py-12 bg-white">
+      <header className="border-b-2 border-black pb-6 mb-8">
+        <h1 className="text-4xl font-serif font-bold text-black mb-2">{t("home.title")}</h1>
+        <p className="text-sm font-serif text-gray-600">{t("home.subtitle")}</p>
+      </header>
+      <p className="text-xs font-serif uppercase tracking-widest text-gray-500 mb-4">{t("home.sports")}</p>
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-16 border border-gray-300 animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {sportsToShow.map((sport) => (
+            <LoadingLink
+              key={sport}
+              href={`/sports/${sport.toLowerCase()}`}
+              className="flex items-center gap-4 py-3 border-b border-gray-200 font-serif hover:bg-gray-50"
+            >
+              <span className="text-2xl">{sportIcons[sport] || "🏆"}</span>
+              <span className="font-bold text-black flex-1">{sport}</span>
+              <span className="text-sm text-gray-500">{t("home.viewDetails")} →</span>
+            </LoadingLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Q: Terminal / code
+function LandingTerminal({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="min-h-screen bg-[#1e1e1e] font-mono px-4 py-8">
+      <div className="max-w-2xl mx-auto">
+        <div className="border border-[#4ec9b0] p-4 mb-8">
+          <p className="text-[#4ec9b0] text-sm">&gt; ntu_sports --title</p>
+          <h1 className="text-2xl text-[#d4d4d4] mt-2">{t("home.title")}</h1>
+          <p className="text-[#9cdcfe] text-sm mt-1">{t("home.subtitle")}</p>
+        </div>
+        <p className="text-[#6a9955] text-sm mb-4">// {t("home.sports")}</p>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-12 bg-[#252526] border border-[#3c3c3c] animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {sportsToShow.map((sport) => (
+              <LoadingLink
+                key={sport}
+                href={`/sports/${sport.toLowerCase()}`}
+                className="block border border-[#3c3c3c] p-3 hover:border-[#4ec9b0] hover:bg-[#252526]"
+              >
+                <span className="text-[#4ec9b0]">$</span>{" "}
+                <span className="text-[#d4d4d4]">{sport}</span>{" "}
+                <span className="text-[#6a9955]"># {t("home.viewDetails")}</span>
+              </LoadingLink>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// R: Comic / manga
+function LandingComic({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-12 bg-yellow-50">
+      <div className="bg-white border-4 border-black rounded-3xl p-8 mb-10 shadow-[8px_8px_0_0_#000]">
+        <h1 className="text-4xl md:text-5xl font-black text-black uppercase mb-2" style={{ fontFamily: "system-ui, sans-serif" }}>
+          💥 {t("home.title")}
+        </h1>
+        <p className="text-lg font-bold text-gray-700">{t("home.subtitle")}</p>
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 bg-white rounded-2xl border-4 border-black animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {sportsToShow.map((sport) => (
+            <LoadingLink
+              key={sport}
+              href={`/sports/${sport.toLowerCase()}`}
+              className="block bg-white border-4 border-black rounded-2xl p-6 text-center shadow-[6px_6px_0_0_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0_0_#000] transition-all"
+            >
+              <span className="text-4xl block mb-2">{sportIcons[sport] || "🏆"}</span>
+              <span className="text-lg font-black text-black uppercase">{sport}</span>
+              <span className="text-sm font-bold text-red-500 mt-2 block">{t("home.viewDetails")} →</span>
+            </LoadingLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// S: Luxury / premium
+function LandingLuxury({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="min-h-screen bg-[#faf8f5] px-6 py-16">
+      <div className="max-w-3xl mx-auto">
+        <div className="text-center border-b border-[#e8e4dc] pb-12 mb-12">
+          <h1 className="text-4xl font-serif font-semibold text-[#5c4a32] mb-3">{t("home.title")}</h1>
+          <p className="text-sm font-serif text-[#8b7355]">{t("home.subtitle")}</p>
+        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 border border-[#e8e4dc] rounded-sm bg-white animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {sportsToShow.map((sport) => (
+              <LoadingLink
+                key={sport}
+                href={`/sports/${sport.toLowerCase()}`}
+                className="block bg-white border border-[#e8e4dc] p-6 rounded-sm hover:border-[#c9a227] transition-colors group"
+              >
+                <span className="text-2xl block mb-2">{sportIcons[sport] || "🏆"}</span>
+                <span className="font-serif font-semibold text-[#5c4a32] block">{sport}</span>
+                <span className="text-xs font-serif text-[#c9a227] mt-2 group-hover:underline">{t("home.viewDetails")}</span>
+              </LoadingLink>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// T: Zen / minimal Japanese
+function LandingZen({ sportsToShow, isLoading, t }: { sportsToShow: string[]; isLoading: boolean; t: (k: string) => string }) {
+  return (
+    <div className="max-w-xl mx-auto px-8 py-24">
+      <h1 className="text-2xl font-medium text-gray-900 mb-2">{t("home.title")}</h1>
+      <p className="text-sm text-gray-500 mb-16">{t("home.subtitle")}</p>
+      {isLoading ? (
+        <div className="space-y-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-14 border-b border-gray-200 animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {sportsToShow.map((sport) => (
+            <LoadingLink
+              key={sport}
+              href={`/sports/${sport.toLowerCase()}`}
+              className="block py-4 border-b border-gray-200 hover:border-gray-400 transition-colors group"
+            >
+              <span className="text-gray-900 group-hover:text-black">{sport}</span>
+              <span className="text-2xl ml-3 align-middle">{sportIcons[sport] || "🏆"}</span>
+              <span className="text-xs text-gray-400 mt-1 block">{t("home.viewDetails")}</span>
+            </LoadingLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function LandingVariants({ variant, sportsToShow, isLoading }: LandingVariantsProps) {
   const { t } = useI18n();
   const props = { sportsToShow, isLoading, t };
@@ -577,5 +786,11 @@ export default function LandingVariants({ variant, sportsToShow, isLoading }: La
   if (variant === "brutal-twocolor") return <LandingBrutalTwocolor {...props} />;
   if (variant === "brutal-sections") return <LandingBrutalSections {...props} />;
   if (variant === "brutal-inverted") return <LandingBrutalInverted {...props} />;
+  if (variant === "retro") return <LandingRetro {...props} />;
+  if (variant === "newspaper") return <LandingNewspaper {...props} />;
+  if (variant === "terminal") return <LandingTerminal {...props} />;
+  if (variant === "comic") return <LandingComic {...props} />;
+  if (variant === "luxury") return <LandingLuxury {...props} />;
+  if (variant === "zen") return <LandingZen {...props} />;
   return <LandingModern {...props} />;
 }

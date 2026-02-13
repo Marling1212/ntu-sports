@@ -25,6 +25,12 @@ const VALID_VARIANTS: DesignVariant[] = [
   "brutal-twocolor",
   "brutal-sections",
   "brutal-inverted",
+  "retro",
+  "newspaper",
+  "terminal",
+  "comic",
+  "luxury",
+  "zen",
 ];
 const LABELS: Record<DesignVariant, string> = {
   modern: "A — Modern & Minimal",
@@ -41,6 +47,12 @@ const LABELS: Record<DesignVariant, string> = {
   "brutal-twocolor": "L — Two-Color Only",
   "brutal-sections": "M — Brutal + Section Accents",
   "brutal-inverted": "N — Inverted Brutalist",
+  retro: "O — Retro / 80s",
+  newspaper: "P — Newspaper / Print",
+  terminal: "Q — Terminal / Code",
+  comic: "R — Comic / Manga",
+  luxury: "S — Luxury / Premium",
+  zen: "T — Zen / Minimal Japanese",
 };
 
 const mockPlayers: Player[] = [
@@ -145,8 +157,8 @@ export default function DesignVariantPage() {
       </section>
 
       {/* Full-width Season Play */}
-      <section className={`w-full container mx-auto px-4 py-10 ${variant === "dark" || variant === "brutal-inverted" ? "bg-gray-900" : ""}`}>
-        <h2 className={`text-xl font-semibold mb-4 ${variant === "dark" || variant === "brutal-inverted" ? "text-gray-200" : "text-gray-800"}`}>
+      <section className={`w-full container mx-auto px-4 py-10 ${["dark", "brutal-inverted", "retro", "terminal"].includes(variant) ? (variant === "retro" ? "bg-[#0f0e17]" : variant === "terminal" ? "bg-[#1e1e1e]" : "bg-gray-900") : ""}`}>
+        <h2 className={`text-xl font-semibold mb-4 ${["dark", "brutal-inverted", "retro", "terminal"].includes(variant) ? (variant === "terminal" ? "text-[#d4d4d4]" : "text-gray-200") : "text-gray-800"}`}>
           Season Play (mock data)
         </h2>
         <SeasonPlayDisplay

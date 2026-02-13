@@ -4,7 +4,7 @@
 
 Open **`/design-compare`** to choose a variant, then view it at **full width** (no squeezing):
 
-- **`/design-compare`** — Index with links to all 14 variants.
+- **`/design-compare`** — Index with links to all 20 variants.
 - **A** `/design-compare/modern` — Modern & Minimal
 - **B** `/design-compare/varsity` — High Energy / Varsity
 - **C** `/design-compare/dashboard` — Dashboard / Utility
@@ -19,8 +19,14 @@ Open **`/design-compare`** to choose a variant, then view it at **full width** (
 - **L** `/design-compare/brutal-twocolor` — Two-Color Only (black + yellow)
 - **M** `/design-compare/brutal-sections` — Brutal + Section Accents (green/amber/red)
 - **N** `/design-compare/brutal-inverted` — Inverted Brutalist (dark base)
+- **O** `/design-compare/retro` — Retro / 80s (neon, synthwave)
+- **P** `/design-compare/newspaper` — Newspaper / Print
+- **Q** `/design-compare/terminal` — Terminal / Code
+- **R** `/design-compare/comic` — Comic / Manga
+- **S** `/design-compare/luxury` — Luxury / Premium
+- **T** `/design-compare/zen` — Zen / Minimal Japanese
 
-## The Fourteen Design Systems
+## The Twenty Design Systems
 
 ### Version A — Modern & Minimal
 
@@ -87,6 +93,15 @@ Open **`/design-compare`** to choose a variant, then view it at **full width** (
 - **L — Two-Color Only:** Black + yellow only; no grays. Poster-like.
 - **M — Brutal + Section Accents:** Green / amber / red by section. Clear hierarchy.
 - **N — Inverted Brutalist:** Dark base; white/cream panels; hard light shadows.
+
+### Completely different styles (O–T)
+
+- **O — Retro / 80s:** Neon cyan & magenta, synthwave, dark background.
+- **P — Newspaper / Print:** Serif, black & white, column / print feel.
+- **Q — Terminal / Code:** Monospace, green/amber on dark, CLI aesthetic.
+- **R — Comic / Manga:** Bold outlines, speech-bubble feel, primary colors.
+- **S — Luxury / Premium:** Gold, cream, serif, prestige.
+- **T — Zen / Minimal Japanese:** Lots of space, one accent, very restrained.
 
 ---
 
