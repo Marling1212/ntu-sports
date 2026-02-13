@@ -641,7 +641,7 @@ function LandingTerminal({ sportsToShow, isLoading, t }: { sportsToShow: string[
           <h1 className="text-2xl text-[#d4d4d4] mt-2">{t("home.title")}</h1>
           <p className="text-[#9cdcfe] text-sm mt-1">{t("home.subtitle")}</p>
         </div>
-        <p className="text-[#6a9955] text-sm mb-4">// {t("home.sports")}</p>
+        <p className="text-[#6a9955] text-sm mb-4">{"// "}{t("home.sports")}</p>
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4].map((i) => (
