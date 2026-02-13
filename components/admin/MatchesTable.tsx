@@ -222,27 +222,20 @@ export default function MatchesTable({
 
       return true;
     }).sort((a, b) => {
-      // Priority: delayed status and no scheduled time go to bottom
-      const aIsDelayedOrUnscheduled = a.status === 'delayed' || !a.scheduled_time;
-      const bIsDelayedOrUnscheduled = b.status === 'delayed' || !b.scheduled_time;
-      
-      // If one is delayed/unscheduled and the other is not, delayed/unscheduled goes to bottom
-      if (aIsDelayedOrUnscheduled && !bIsDelayedOrUnscheduled) return 1;
-      if (!aIsDelayedOrUnscheduled && bIsDelayedOrUnscheduled) return -1;
-      
-      // If both are delayed/unscheduled or both are not, sort by scheduled time
-      if (aIsDelayedOrUnscheduled && bIsDelayedOrUnscheduled) {
-        // Both are delayed/unscheduled - sort by match number or round
-        if (a.round !== b.round) return a.round - b.round;
-        return a.match_number - b.match_number;
-      }
-      
-      // Both have scheduled time - sort by time
+      // Upcoming/live/delayed first (so 接下來的比賽 on top), then completed
+      const aUpcoming = a.status === "upcoming" || a.status === "live" || a.status === "delayed";
+      const bUpcoming = b.status === "upcoming" || b.status === "live" || b.status === "delayed";
+      if (aUpcoming && !bUpcoming) return -1;
+      if (!aUpcoming && bUpcoming) return 1;
+      // Within same group: delayed/unscheduled to bottom of that group
+      const aDelayedOrUnscheduled = a.status === "delayed" || !a.scheduled_time;
+      const bDelayedOrUnscheduled = b.status === "delayed" || !b.scheduled_time;
+      if (aDelayedOrUnscheduled && !bDelayedOrUnscheduled) return 1;
+      if (!aDelayedOrUnscheduled && bDelayedOrUnscheduled) return -1;
+      // Then by scheduled time (soonest first for upcoming, past first for completed)
       if (a.scheduled_time && b.scheduled_time) {
         return new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime();
       }
-      
-      // Fallback: sort by round and match number
       if (a.round !== b.round) return a.round - b.round;
       return a.match_number - b.match_number;
     });

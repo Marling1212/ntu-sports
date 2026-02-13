@@ -83,19 +83,24 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       filtered = filtered.filter(m => (m as any).group_number === selectedGroup);
     }
     
-    // Sort: non‑delayed first, then scheduled by time, then unscheduled, fallback by matchNumber
+    // Sort: upcoming/live first (接下來的比賽 on top), then completed, then delayed; within group by time
     return filtered.sort((a, b) => {
-      const aDelayed = a.status === "delayed" ? 1 : 0;
-      const bDelayed = b.status === "delayed" ? 1 : 0;
-      if (aDelayed !== bDelayed) return aDelayed - bDelayed; // push delayed to bottom
+      const aUpcoming = a.status === "upcoming" || a.status === "live";
+      const bUpcoming = b.status === "upcoming" || b.status === "live";
+      const aDelayed = a.status === "delayed";
+      const bDelayed = b.status === "delayed";
+      if (aUpcoming && !bUpcoming) return -1;
+      if (!aUpcoming && bUpcoming) return 1;
+      if (aDelayed && !bDelayed) return 1;
+      if (!aDelayed && bDelayed) return -1;
       const aHasTime = Boolean((a as any).scheduled_time);
       const bHasTime = Boolean((b as any).scheduled_time);
-      if (aHasTime !== bHasTime) return aHasTime ? -1 : 1; // scheduled first
       if (aHasTime && bHasTime) {
         const ta = new Date((a as any).scheduled_time).getTime();
         const tb = new Date((b as any).scheduled_time).getTime();
         if (ta !== tb) return ta - tb;
       }
+      if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
       return a.matchNumber - b.matchNumber;
     });
   }, [matches, selectedGroup]);
