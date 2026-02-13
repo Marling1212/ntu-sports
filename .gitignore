@@ -47,6 +47,8 @@ Thumbs.db
 *.xlsx
 *.xls
 *.csv
+# allow schedule import sample for download
+!public/schedule-import-sample.csv
 
 # PDF files (user uploads)
 *.pdf
