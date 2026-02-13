@@ -5,6 +5,7 @@ import Link from "next/link";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
 import MarkdownText from "@/components/MarkdownText";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -160,11 +161,7 @@ export default async function SportEventPage({
               </thead>
               <tbody className="bg-white divide-y divide-yellow-200">
                 {matchesToShow.map((m: any) => {
-                  const timeStr = new Intl.DateTimeFormat("zh-TW", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "Asia/Taipei",
-                  }).format(new Date(m.scheduled_time));
+                  const timeStr = formatScheduledTimeAsStored(m.scheduled_time).split(" ")[1] ?? "—";
                   const court = getCourtDisplay(m);
                   const p1 = m.player1?.name || "TBD";
                   const p2 = m.player2?.name || "TBD";

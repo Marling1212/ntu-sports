@@ -2,6 +2,7 @@ import { getSportEvent, getSportAnnouncements, getSportMatches } from "@/lib/uti
 import MarkdownText from "@/components/MarkdownText";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 
 export default async function SportAnnouncementsPage(context: any) {
   const params = (context?.params || {}) as { sport?: string };
@@ -104,11 +105,7 @@ export default async function SportAnnouncementsPage(context: any) {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {matchesToShow.map((m: any) => {
-                      const timeStr = new Intl.DateTimeFormat("zh-TW", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZone: "Asia/Taipei",
-                      }).format(new Date(m.scheduled_time));
+                      const timeStr = formatScheduledTimeAsStored(m.scheduled_time).split(" ")[1] ?? "—";
                       // Get court: use unified logic
                       const court = getCourtDisplay(m);
                       const p1 = m.player1?.name || "TBD";

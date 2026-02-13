@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx';
 import Link from "next/link";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import { DRAW_WINNER_ID, isDrawOption, isDrawMatch } from "@/lib/constants/matchConstants";
 import CreateMatchModal from "@/components/admin/CreateMatchModal";
 
@@ -20,12 +21,6 @@ interface SlotOption {
   code?: string | null;
   court_id?: string | null;
 }
-
-const taipeiFormatter = new Intl.DateTimeFormat("zh-TW", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Taipei",
-});
 
 const normalizeTime = (time?: string | null): string => {
   if (!time) return "";
@@ -52,10 +47,7 @@ const formatSlotLabel = (slot: SlotOption): string => {
 };
 
 const formatDateTimeDisplay = (iso?: string | null): string => {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-  return taipeiFormatter.format(date);
+  return formatScheduledTimeAsStored(iso ?? null);
 };
 
 const toLocalInputValue = (iso?: string | null): string => {
@@ -1438,18 +1430,9 @@ export default function MatchesTable({
                               
                               // 如果 slotRange 是 undefined 或包含 "undefined"，使用 scheduled_time 來顯示
                               if ((!slotRange || slotRange.includes('undefined')) && match.scheduled_time) {
-                                const date = new Date(match.scheduled_time);
-                                if (!Number.isNaN(date.getTime())) {
-                                  const dateStr = date.toLocaleDateString('zh-TW', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit'
-                                  });
-                                  const timeStr = date.toLocaleTimeString('zh-TW', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    hour12: false
-                                  });
+                                const formatted = formatScheduledTimeAsStored(match.scheduled_time);
+                                if (formatted !== "—") {
+                                  const parts = formatted.split(" ");
                                   return (
                                     <div className="flex flex-col">
                                       {match.slot.code && (
@@ -1457,8 +1440,8 @@ export default function MatchesTable({
                                           {match.slot.code}
                                         </span>
                                       )}
-                                      <span className="text-sm text-gray-700 whitespace-nowrap">{dateStr}</span>
-                                      <span className="text-xs text-gray-500 whitespace-nowrap">{timeStr}</span>
+                                      <span className="text-sm text-gray-700 whitespace-nowrap">{parts[0] ?? formatted}</span>
+                                      {parts[1] && <span className="text-xs text-gray-500 whitespace-nowrap">{parts[1]}</span>}
                                     </div>
                                   );
                                 }
@@ -1479,26 +1462,15 @@ export default function MatchesTable({
                             })()
                           ) : match.scheduled_time ? (
                             (() => {
-                              const date = new Date(match.scheduled_time);
-                              if (Number.isNaN(date.getTime())) {
-                                return <span className="text-sm text-gray-400">未排定</span>;
-                              }
-                              
-                              const dateStr = date.toLocaleDateString('zh-TW', {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit'
-                              });
-                              const timeStr = date.toLocaleTimeString('zh-TW', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: false
-                              });
-                              
+                              const formatted = formatScheduledTimeAsStored(match.scheduled_time);
+                              if (formatted === "—") return <span className="text-sm text-gray-400">未排定</span>;
+                              const parts = formatted.split(" ");
+                              const dateStr = parts[0] ?? formatted;
+                              const timeStr = parts[1] ?? "";
                               return (
                                 <div className="flex flex-col">
                                   <span className="text-sm text-gray-700 whitespace-nowrap">{dateStr}</span>
-                                  <span className="text-xs text-gray-500 whitespace-nowrap">{timeStr}</span>
+                                  {timeStr && <span className="text-xs text-gray-500 whitespace-nowrap">{timeStr}</span>}
                                 </div>
                               );
                             })()

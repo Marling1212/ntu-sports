@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 
 interface TeamDetailViewProps {
   team: any;
@@ -23,14 +24,8 @@ interface TeamDetailViewProps {
 }
 
 const formatDateTimeDisplay = (iso?: string | null): string => {
-  if (!iso) return "TBD";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "TBD";
-  return new Intl.DateTimeFormat("zh-TW", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Taipei",
-  }).format(date);
+  const s = formatScheduledTimeAsStored(iso ?? null);
+  return s === "—" ? "TBD" : s;
 };
 
 export default function TeamDetailView({

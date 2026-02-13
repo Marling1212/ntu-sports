@@ -4,6 +4,7 @@ import { Match, Player } from "@/types/tournament";
 import { useState, useMemo } from "react";
 import TournamentBracket from "./TournamentBracket";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import Link from "next/link";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
 import { type DesignVariant, seasonPlayThemes, seasonPlayDefault } from "@/components/design-variants/designThemes";
@@ -309,22 +310,11 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     return 4;
   }, [matches, allGroups, hasRegularSeason, qualifiersFromProps]);
 
-  // Format date/time for display
+  // Format date/time for display (stored value = display, no +8 shift)
   const formatDateTime = (dateTimeStr: string | null | undefined): string => {
     if (!dateTimeStr) return "TBD";
-    try {
-      const date = new Date(dateTimeStr);
-      return new Intl.DateTimeFormat("zh-TW", {
-        month: "short",
-        day: "numeric",
-        weekday: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: TAIPEI_TZ,
-      }).format(date);
-    } catch {
-      return "TBD";
-    }
+    const formatted = formatScheduledTimeAsStored(dateTimeStr);
+    return formatted === "—" ? "TBD" : formatted;
   };
 
   type StandingRow = {

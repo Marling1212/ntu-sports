@@ -5,6 +5,7 @@ import ShareButton from "./ShareButton";
 import QRCodeShare from "./QRCodeShare";
 import CountdownTimerWrapper from "./CountdownTimerWrapper";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import Link from "next/link";
 import MarkdownText from "./MarkdownText";
 
@@ -111,11 +112,7 @@ export default function SportsPageClient({
               </thead>
               <tbody className="bg-white divide-y divide-yellow-200">
                 {matchesToShow.map((m: any) => {
-                  const timeStr = new Intl.DateTimeFormat(locale === 'zh' ? "zh-TW" : "en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "Asia/Taipei",
-                  }).format(new Date(m.scheduled_time));
+                  const timeStr = formatScheduledTimeAsStored(m.scheduled_time).split(" ")[1] ?? "—";
                   const court = getCourtDisplay(m);
                   const p1 = m.player1?.name || "TBD";
                   const p2 = m.player2?.name || "TBD";
@@ -154,11 +151,7 @@ export default function SportsPageClient({
           {/* Mobile Card View - Fully Clickable */}
           <div className="md:hidden space-y-3">
             {matchesToShow.map((m: any) => {
-              const timeStr = new Intl.DateTimeFormat(locale === 'zh' ? "zh-TW" : "en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                timeZone: "Asia/Taipei",
-              }).format(new Date(m.scheduled_time));
+              const timeStr = formatScheduledTimeAsStored(m.scheduled_time).split(" ")[1] ?? "—";
               const court = getCourtDisplay(m);
               const p1 = m.player1?.name || "TBD";
               const p2 = m.player2?.name || "TBD";
