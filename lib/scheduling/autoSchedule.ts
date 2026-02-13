@@ -73,10 +73,11 @@ export function blackoutForSlot(
   return set;
 }
 
-/** scheduled_time ISO string for slot (date + start_time, no TZ assumed) */
+/** scheduled_time ISO string for slot (date + start_time), with +08:00 so DB stores correctly and list shows correct local time */
 export function slotToScheduledTime(slot: { slot_date: string; start_time: string }): string {
   const start = slot.start_time.slice(0, 8); // HH:MM:SS
-  return `${slot.slot_date}T${start}`;
+  const base = `${slot.slot_date}T${start}`;
+  return base.includes("+") || base.endsWith("Z") ? base : `${base}+08:00`;
 }
 
 export interface Assignment {

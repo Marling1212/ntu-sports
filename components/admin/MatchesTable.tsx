@@ -1658,9 +1658,15 @@ export default function MatchesTable({
                     <div>
                       <span className="font-medium">Time:</span>{" "}
                       {(() => {
+                        const slotCandidate = match.slot || (match.slot_id ? slotMap.get(match.slot_id) : null);
+                        if (slotCandidate) {
+                          return (
+                            <span className="text-gray-700">
+                              {formatSlotScheduleRange(slotCandidate)}
+                            </span>
+                          );
+                        }
                         const scheduledTime = match.scheduled_time;
-                        
-                        // 檢查 null、undefined、空字符串、字符串 "undefined" 或 "null"
                         if (scheduledTime === null || 
                             scheduledTime === undefined || 
                             scheduledTime === '' ||
@@ -1671,7 +1677,6 @@ export default function MatchesTable({
                             ))) {
                           return "—";
                         }
-                        
                         try {
                           return (
                             <span className="text-gray-700">
