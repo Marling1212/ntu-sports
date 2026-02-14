@@ -4,6 +4,7 @@ import AdminNavbar from "@/components/admin/Navbar";
 import SchedulingManager from "@/components/admin/SchedulingManager";
 import ImportMatchSchedule from "@/components/admin/ImportMatchSchedule";
 import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
+import SchedulingPageNav from "@/components/admin/SchedulingPageNav";
 
 export default async function SchedulingPage({
   params,
@@ -114,14 +115,18 @@ export default async function SchedulingPage({
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
       <div className="container mx-auto px-4 py-12">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">排程</h1>
           <p className="text-lg text-gray-600">
             {event?.name} — 設定時段、場地，並將比賽拖曳排入
           </p>
         </div>
 
-        <ImportMatchSchedule eventId={eventId} players={players || []} />
+        <SchedulingPageNav />
+
+        <div id="import-schedule" className="scroll-mt-24 pt-2">
+          <ImportMatchSchedule eventId={eventId} players={players || []} />
+        </div>
 
         <SchedulingManager
           eventId={eventId}

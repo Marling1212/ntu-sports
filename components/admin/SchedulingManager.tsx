@@ -917,37 +917,6 @@ export default function SchedulingManager({
 
   return (
     <div className="space-y-10">
-      {/* Navigation Menu */}
-      <nav className="sticky top-4 z-10 bg-white rounded-xl shadow-lg p-4 border-2 border-gray-200">
-        <div className="flex flex-wrap items-center gap-2 md:gap-4">
-          <span className="text-sm font-semibold text-gray-700 mr-2">快速導航：</span>
-          <a
-            href="#courts"
-            className="px-3 py-1.5 text-sm font-medium text-white bg-blue-500 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            場地管理
-          </a>
-          <a
-            href="#slot-templates"
-            className="px-3 py-1.5 text-sm font-medium text-white bg-purple-500 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            時段模板
-          </a>
-          <a
-            href="#available-slots"
-            className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-500 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            可用時段
-          </a>
-          <a
-            href="#auto-schedule"
-            className="px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            一鍵排程
-          </a>
-        </div>
-      </nav>
-
       <section id="courts" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
         <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-gray-200">
           <div className="w-1 h-8 bg-blue-500 rounded"></div>
