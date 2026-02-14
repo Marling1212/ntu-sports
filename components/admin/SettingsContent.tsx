@@ -1086,7 +1086,6 @@ export default function SettingsContent({
           </div>
           )}
         </div>
-      </div>
 
       {/* Danger Zone */}
       <div className="mt-10">
