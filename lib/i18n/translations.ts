@@ -87,10 +87,13 @@ export const translations = {
     // Navigation
     navigation: {
       draw: '籤表',
-      drawDescription: '查看賽事籤表與對戰資訊',
+      standings: '戰績',
       schedule: '賽程',
-      scheduleDescription: '查看比賽時間與賽程安排',
+      playoffs: '季後賽',
       announcements: '公告',
+      backToSport: '返回 {sport} 首頁',
+      drawDescription: '查看賽事籤表與對戰資訊',
+      scheduleDescription: '查看比賽時間與賽程安排',
       announcementsDescription: '閱讀重要公告與更新',
     },
   },
@@ -177,10 +180,13 @@ export const translations = {
     // Navigation
     navigation: {
       draw: 'Draw',
-      drawDescription: 'View tournament draw and bracket information',
+      standings: 'Standings',
       schedule: 'Schedule',
-      scheduleDescription: 'View match schedules and timing information',
+      playoffs: 'Playoffs',
       announcements: 'Announcements',
+      backToSport: 'Back to {sport}',
+      drawDescription: 'View tournament draw and bracket information',
+      scheduleDescription: 'View match schedules and timing information',
       announcementsDescription: 'Read important announcements and updates',
     },
   },

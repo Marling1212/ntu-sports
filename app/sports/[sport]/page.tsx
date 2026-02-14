@@ -320,7 +320,7 @@ export default async function SportPage(context: any) {
       )}
 
       {/* Navigation Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 gap-6 ${singleEvent?.tournament_type === "season_play" ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <Link
           href={`/sports/${sportParam}/draw`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
@@ -380,6 +380,35 @@ export default async function SportPage(context: any) {
             </p>
           </div>
         </Link>
+
+        {singleEvent?.tournament_type === "season_play" && (
+          <Link
+            href={`/sports/${sportParam}/playoffs`}
+            className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-semibold mb-3">季後賽 / Playoffs</h3>
+              <p className="text-white text-opacity-90 text-sm">
+                季後賽淘汰賽程與結果
+              </p>
+            </div>
+          </Link>
+        )}
 
         <Link
           href={`/sports/${sportParam}/announcements`}
