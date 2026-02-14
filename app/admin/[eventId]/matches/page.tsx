@@ -6,6 +6,7 @@ import MatchesTable from "@/components/admin/MatchesTable";
 import PlayerStats from "@/components/admin/PlayerStats";
 import MatchHistory from "@/components/admin/MatchHistory";
 import BracketSeedingManagerWrapper from "@/components/admin/BracketSeedingManagerWrapper";
+import MatchesPageNav from "@/components/admin/MatchesPageNav";
 
 export default async function MatchesPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
@@ -105,7 +106,10 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
-      <div className="container mx-auto px-4 py-12">
+      <div className="flex">
+        <MatchesPageNav />
+        <main className="min-w-0 flex-1 pt-6 pb-12">
+          <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">比賽</h1>
           <p className="text-lg text-gray-600">{event?.name} — 列表、比分、統計</p>
@@ -113,14 +117,17 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
 
         {/* Bracket Seeding Manager - show for single elimination or season play */}
         {(event?.tournament_type === "single_elimination" || event?.tournament_type === "season_play") && players && players.length > 0 && (
+          <div id="bracket-seeding" className="scroll-mt-24">
           <BracketSeedingManagerWrapper
             eventId={eventId}
             players={players || []}
             matches={matches || []}
             tournamentType={event?.tournament_type as "single_elimination" | "season_play" | null}
           />
+          </div>
         )}
 
+        <div id="matches-table" className="scroll-mt-24">
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
           <p className="text-sm text-amber-900">
             要排定比賽時間（拖曳比賽到時段），請至{" "}
@@ -141,6 +148,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           registrationType={event?.registration_type as 'player' | 'team' | undefined}
           matchPlayerStats={matchPlayerStats || []}
         />
+        </div>
 
         {/* Player Statistics */}
         <div id="player-stats" className="mt-8 scroll-mt-24">
@@ -162,6 +170,8 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
             registrationType={event?.registration_type as 'player' | 'team' | undefined}
           />
         </div>
+          </div>
+        </main>
       </div>
     </>
   );

@@ -8,6 +8,7 @@ import ImportBracket from "@/components/admin/ImportBracket";
 import ImportSeasonPlay from "@/components/admin/ImportSeasonPlay";
 import ImportSeasonGroups from "@/components/admin/ImportSeasonGroups";
 import ManualBracketEditor from "@/components/admin/ManualBracketEditor";
+import PlayersPageNav from "@/components/admin/PlayersPageNav";
 
 export default async function PlayersPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
@@ -72,7 +73,10 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
-      <div className="container mx-auto px-4 py-12">
+      <div className="flex">
+        <PlayersPageNav />
+        <main className="min-w-0 flex-1 pt-6 pb-12">
+          <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">
             {event?.registration_type === 'team' ? '管理隊伍' : '管理選手'}
@@ -81,6 +85,7 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
         </div>
 
         {/* Step 1: 添加選手/隊伍 - 這是創建比賽的第一步 */}
+        <div id="players-table" className="scroll-mt-24">
         <PlayersTable 
           eventId={eventId} 
           initialPlayers={players || []} 
@@ -89,10 +94,11 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
           initialSlotTemplates={slotTemplates || []}
           initialBlackoutTemplates={blackoutTemplates || []}
         />
+        </div>
 
         {/* Step 2: 生成籤表/賽季 - 需要先有選手才能生成 */}
         {event?.tournament_type === 'season_play' ? (
-          <div className="space-y-6 mt-8">
+          <div id="generate-section" className="space-y-6 mt-8 scroll-mt-24">
             <GenerateSeasonPlay 
               eventId={eventId}
               players={players || []}
@@ -107,7 +113,7 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
             />
           </div>
         ) : (
-          <div className="space-y-6 mt-8">
+          <div id="generate-section" className="space-y-6 mt-8 scroll-mt-24">
             <GenerateBracket 
               eventId={eventId}
               players={players || []}
@@ -116,12 +122,14 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
               eventId={eventId}
               players={players || []}
             />
-            <ImportBracket 
+            <            ImportBracket 
               eventId={eventId}
               players={players || []}
             />
           </div>
         )}
+          </div>
+        </main>
       </div>
     </>
   );

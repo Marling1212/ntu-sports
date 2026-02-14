@@ -88,6 +88,36 @@ export default function SettingsContent({
   const [newGame, setNewGame] = useState({ name: "", code: "", icon: "", color: "", description: "" });
   
   const [activeTab, setActiveTab] = useState<"basic" | "rules" | "schedule" | "games">("basic");
+
+  // Sync hash to tab so side nav links switch tab
+  useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash.slice(1) : "";
+    const map: Record<string, "basic" | "rules" | "schedule" | "games"> = {
+      "settings-basic": "basic",
+      "settings-rules": "rules",
+      "settings-schedule": "schedule",
+      "settings-games": "games",
+    };
+    if (map[hash]) setActiveTab(map[hash]);
+  }, []);
+  useEffect(() => {
+    const handler = () => {
+      const hash = window.location.hash.slice(1);
+      const map: Record<string, "basic" | "rules" | "schedule" | "games"> = {
+        "settings-basic": "basic",
+        "settings-rules": "rules",
+        "settings-schedule": "schedule",
+        "settings-games": "games",
+      };
+      if (map[hash]) {
+        setActiveTab(map[hash]);
+        // Scroll after tab panel is in DOM
+        setTimeout(() => document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      }
+    };
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
+  }, []);
   const supabase = createClient();
 
   // Load games when games tab is selected
@@ -539,7 +569,7 @@ export default function SettingsContent({
 
       {/* Basic Info Tab */}
       {activeTab === "basic" && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div id="settings-basic" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <h2 className="text-2xl font-semibold text-ntu-green mb-6">基本資訊設定</h2>
           
           <div className="space-y-6">
@@ -726,7 +756,7 @@ export default function SettingsContent({
 
       {/* Rules Tab */}
       {activeTab === "rules" && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div id="settings-rules" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-ntu-green">重要賽事規則</h2>
             <button
@@ -773,7 +803,7 @@ export default function SettingsContent({
 
       {/* Schedule Tab */}
       {activeTab === "schedule" && (
-        <div className="space-y-6">
+        <div id="settings-schedule" className="scroll-mt-24 space-y-6">
           {/* Top Action Buttons */}
           <div className="flex justify-between items-center">
             <button
@@ -982,7 +1012,7 @@ export default function SettingsContent({
 
       {/* Games Management Tab */}
       {activeTab === "games" && (
-        <div className="space-y-6">
+        <div id="settings-games" className="scroll-mt-24 space-y-6">
           <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
             <div className="flex justify-between items-center mb-6">
               <div>

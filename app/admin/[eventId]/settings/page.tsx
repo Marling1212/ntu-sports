@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AdminNavbar from "@/components/admin/Navbar";
 import SettingsContent from "@/components/admin/SettingsContent";
+import SettingsPageNav from "@/components/admin/SettingsPageNav";
 
 export default async function SettingsPage({ params }: { params: Promise<{ eventId: string }> }) {
   const supabase = await createClient();
@@ -57,7 +58,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
-      <div className="container mx-auto px-4 py-12">
+      <div className="flex">
+        <SettingsPageNav />
+        <main className="min-w-0 flex-1 pt-6 pb-12">
+          <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">Event Settings</h1>
           <p className="text-lg text-gray-600">{event?.name}</p>
@@ -83,6 +87,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
           initialRegistrationType={event?.registration_type as 'player' | 'team' | undefined}
           initialIsVisible={event?.is_visible ?? false}
         />
+          </div>
+        </main>
       </div>
     </>
   );
