@@ -324,7 +324,6 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
       }
 
       // Parse 球員統計 sheet if present (player-level: which player scored, yellow card, etc.)
-      let playerStatsRows: ParsedPlayerStatRow[] = [];
       if (!isCSV && typeof data !== 'string') {
         const workbook = XLSX.read(data, { type: "array", cellDates: false, raw: true });
         const psSheetName = workbook.SheetNames.find(n => n === "球員統計" || (n.toLowerCase().includes("player") && n.toLowerCase().includes("stat")));
