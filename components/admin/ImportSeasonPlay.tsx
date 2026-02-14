@@ -510,16 +510,16 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
             // Try to parse with various formats
             let date = new Date(dateStr);
             
-            // If parsing failed, try manual parsing for "YYYY/MM/DD HH:MM:SS" format
+            // If parsing failed, try manual parsing (export format "YYYY/MM/DD HH:MM" or "YYYY/MM/DD HH:MM:SS")
             if (isNaN(date.getTime())) {
-              const matchDate = dateStr.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(AM|PM)?\s*(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+              const matchDate = dateStr.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(AM|PM)?\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
               if (matchDate) {
                 const year = parseInt(matchDate[1], 10);
                 const month = parseInt(matchDate[2], 10) - 1; // Month is 0-indexed
                 const day = parseInt(matchDate[3], 10);
                 let hour = parseInt(matchDate[5], 10);
                 const minute = parseInt(matchDate[6], 10);
-                const second = parseInt(matchDate[7], 10);
+                const second = parseInt(matchDate[7] || "0", 10);
                 const ampm = matchDate[4];
                 
                 // Handle 12-hour format
@@ -639,7 +639,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-semibold text-blue-900 mb-2">📋 使用說明：</h3>
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li>上傳之前從系統導出的 Excel 或 CSV 文件（包含 &quot;Regular Season&quot; 工作表）</li>
+            <li>可上傳從「下載賽程 (Excel)」導出的賽季檔案，或含 &quot;Regular Season&quot; 工作表的 Excel/CSV</li>
             <li>系統會自動解析比賽數據並匹配選手</li>
             <li>如果選手名稱無法自動匹配，請手動選擇</li>
             <li>導入後會創建新比賽或更新現有比賽</li>

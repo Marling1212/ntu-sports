@@ -3,6 +3,7 @@
 import { Player, Match } from "@/types/tournament";
 import * as XLSX from 'xlsx';
 import toast from "react-hot-toast";
+import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 
 interface ExportBracketProps {
   matches: Match[];
@@ -11,6 +12,11 @@ interface ExportBracketProps {
   eventDate?: string;
   eventVenue?: string;
   tournamentType?: "single_elimination" | "season_play";
+}
+
+function formatTimeForExport(iso: string | null | undefined): string {
+  const s = formatScheduledTimeAsStored(iso ?? null);
+  return s === "—" ? "TBD" : s;
 }
 
 export default function ExportBracket({ 
@@ -128,7 +134,7 @@ export default function ExportBracket({
             match.player2?.name || "TBD",
             match.score || "-",
             match.status,
-            matchData.scheduled_time ? new Date(matchData.scheduled_time).toLocaleString('zh-TW') : "TBD"
+            formatTimeForExport(matchData.scheduled_time)
           ];
           regularSeasonData.push(row);
         });
@@ -147,7 +153,7 @@ export default function ExportBracket({
             match.player2?.name || "TBD",
             match.score || "-",
             match.status,
-            matchData.scheduled_time ? new Date(matchData.scheduled_time).toLocaleString('zh-TW') : "TBD"
+            formatTimeForExport(matchData.scheduled_time)
           ];
           regularSeasonData.push(row);
         });
