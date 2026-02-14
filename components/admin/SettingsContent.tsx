@@ -520,52 +520,6 @@ export default function SettingsContent({
   return (
     <>
       <Toaster position="top-right" />
-      
-      {/* Tabs */}
-      <div className="mb-6 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab("basic")}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "basic"
-                ? "border-ntu-green text-ntu-green"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            ⚙️ 基本資訊
-          </button>
-          <button
-            onClick={() => setActiveTab("rules")}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "rules"
-                ? "border-ntu-green text-ntu-green"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            📋 賽事規則
-          </button>
-          <button
-            onClick={() => setActiveTab("schedule")}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "schedule"
-                ? "border-ntu-green text-ntu-green"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            📅 比賽行程
-          </button>
-          <button
-            onClick={() => setActiveTab("games")}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "games"
-                ? "border-ntu-green text-ntu-green"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            🎮 運動/遊戲管理
-          </button>
-        </nav>
-      </div>
 
       {/* Basic Info Tab */}
       {activeTab === "basic" && (

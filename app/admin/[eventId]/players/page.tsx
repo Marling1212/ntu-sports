@@ -74,7 +74,7 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
       <div className="flex">
-        <PlayersPageNav />
+        <PlayersPageNav tournamentType={event?.tournament_type} />
         <main className="min-w-0 flex-1 pt-6 pb-12">
           <div className="container mx-auto px-4">
         <div className="mb-8">
@@ -98,34 +98,46 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
 
         {/* Step 2: 生成籤表/賽季 - 需要先有選手才能生成 */}
         {event?.tournament_type === 'season_play' ? (
-          <div id="generate-section" className="space-y-6 mt-8 scroll-mt-24">
-            <GenerateSeasonPlay 
-              eventId={eventId}
-              players={players || []}
-            />
-            <ImportSeasonGroups 
-              eventId={eventId}
-              players={players || []}
-            />
-            <ImportSeasonPlay 
-              eventId={eventId}
-              players={players || []}
-            />
+          <div className="space-y-6 mt-8">
+            <div id="generate-season-play" className="scroll-mt-24">
+              <GenerateSeasonPlay 
+                eventId={eventId}
+                players={players || []}
+              />
+            </div>
+            <div id="import-season-groups" className="scroll-mt-24">
+              <ImportSeasonGroups 
+                eventId={eventId}
+                players={players || []}
+              />
+            </div>
+            <div id="import-season-play" className="scroll-mt-24">
+              <ImportSeasonPlay 
+                eventId={eventId}
+                players={players || []}
+              />
+            </div>
           </div>
         ) : (
-          <div id="generate-section" className="space-y-6 mt-8 scroll-mt-24">
-            <GenerateBracket 
-              eventId={eventId}
-              players={players || []}
-            />
-            <ManualBracketEditor 
-              eventId={eventId}
-              players={players || []}
-            />
-            <            ImportBracket 
-              eventId={eventId}
-              players={players || []}
-            />
+          <div className="space-y-6 mt-8">
+            <div id="generate-bracket" className="scroll-mt-24">
+              <GenerateBracket 
+                eventId={eventId}
+                players={players || []}
+              />
+            </div>
+            <div id="manual-bracket" className="scroll-mt-24">
+              <ManualBracketEditor 
+                eventId={eventId}
+                players={players || []}
+              />
+            </div>
+            <div id="import-bracket" className="scroll-mt-24">
+              <ImportBracket 
+                eventId={eventId}
+                players={players || []}
+              />
+            </div>
           </div>
         )}
           </div>
