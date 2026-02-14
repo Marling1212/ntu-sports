@@ -8,7 +8,7 @@ interface AdminNavbarProps {
 
 export default function AdminNavbar({ eventId, eventName }: AdminNavbarProps) {
   return (
-    <nav className="bg-ntu-green text-white shadow-lg">
+    <nav className="sticky top-0 z-50 bg-ntu-green text-white shadow-lg">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
