@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import AdminNavbar from "@/components/admin/Navbar";
 import MatchesTable from "@/components/admin/MatchesTable";
-import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
 import PlayerStats from "@/components/admin/PlayerStats";
 import MatchHistory from "@/components/admin/MatchHistory";
 import BracketSeedingManagerWrapper from "@/components/admin/BracketSeedingManagerWrapper";
@@ -79,11 +79,6 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
     .order("slot_date", { ascending: true })
     .order("start_time", { ascending: true });
 
-  const { data: blackoutTemplates } = await supabase
-    .from("team_blackout_templates")
-    .select("player_id, day_of_week, start_time, end_time")
-    .eq("event_id", eventId);
-
   // Get courts for Court select
   const { data: courts } = await supabase
     .from("event_courts")
@@ -112,8 +107,8 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
       <AdminNavbar eventId={eventId} eventName={event?.name} />
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-ntu-green mb-2">Manage Matches</h1>
-          <p className="text-lg text-gray-600">{event?.name}</p>
+          <h1 className="text-4xl font-bold text-ntu-green mb-2">比賽</h1>
+          <p className="text-lg text-gray-600">{event?.name} — 列表、比分、統計</p>
         </div>
 
         {/* Bracket Seeding Manager - show for single elimination or season play */}
@@ -126,36 +121,14 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           />
         )}
 
-        <div id="schedule-editor" className="mb-8 scroll-mt-24">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-2">排程編輯（拖曳）</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            依已建立的時段與場地拖放比賽；若放入的時段為某隊不可出賽會顯示警示，仍可儲存。
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm text-amber-900">
+            要排定比賽時間（拖曳比賽到時段），請至{" "}
+            <Link href={`/admin/${eventId}/scheduling#schedule-editor`} className="font-medium text-ntu-green underline hover:no-underline">
+              排程
+            </Link>{" "}
+            頁面。
           </p>
-          <ScheduleGridEditor
-            eventId={eventId}
-            slots={(slots || []).map((s: any) => ({
-              id: s.id,
-              slot_date: s.slot_date,
-              start_time: s.start_time,
-              end_time: s.end_time,
-              code: s.code,
-              court_id: s.court_id,
-              court: s.court,
-            }))}
-            matches={(matches || []).map((m: any) => ({
-              id: m.id,
-              player1_id: m.player1_id,
-              player2_id: m.player2_id,
-              slot_id: m.slot_id,
-              scheduled_time: m.scheduled_time,
-              status: m.status,
-              round: m.round,
-              match_number: m.match_number,
-              player1: m.player1,
-              player2: m.player2,
-            }))}
-            blackoutTemplates={blackoutTemplates || []}
-          />
         </div>
 
         <MatchesTable 

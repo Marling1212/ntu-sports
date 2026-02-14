@@ -762,13 +762,17 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
 
       <div className="space-y-4 mb-6">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">📋 使用說明：</h3>
-          <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li>可上傳從「下載賽程 (Excel)」導出的賽季檔案，或含 &quot;Regular Season&quot; 工作表的 Excel/CSV</li>
-            <li>系統會自動解析比賽數據並匹配選手</li>
-            <li>如果選手名稱無法自動匹配，請手動選擇</li>
-            <li>導入後會創建新比賽或更新現有比賽</li>
-          </ul>
+          <h3 className="font-semibold text-blue-900 mb-2">📋 如何匯入：</h3>
+          <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
+            <li>到前台<strong>賽程／籤表頁</strong>（例如 /sports/足球/draw）點「Download Bracket (Excel)」下載賽季 Excel。</li>
+            <li>下載的檔案會包含多張工作表：<strong>Regular Season</strong>（賽程列表）、<strong>Standings</strong>（排名）、若有球員統計則還有<strong>球員統計</strong>（哪位球員進球、黃牌等）。</li>
+            <li>回到本頁，點下方「選擇 Excel 或 CSV 檔案」，選剛才下載的 .xlsx 檔。</li>
+            <li>系統會依 Regular Season 還原比賽（對戰、比分、狀態、時間），若有「球員統計」工作表會一併還原球員級資料。</li>
+            <li>若 Excel 內的選手名稱與目前賽事選手一致會自動對應；無法對應時請在解析結果中手動選擇後再按「確認導入」。</li>
+          </ol>
+          <p className="text-sm text-blue-800 mt-2">
+            也可上傳其他含 &quot;Regular Season&quot; 工作表的 Excel/CSV，欄位需包含 Match #、Player 1、Player 2、Score、Status、Date &amp; Time。
+          </p>
         </div>
 
         <div>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import AdminNavbar from "@/components/admin/Navbar";
 import SchedulingManager from "@/components/admin/SchedulingManager";
 import ImportMatchSchedule from "@/components/admin/ImportMatchSchedule";
+import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
 
 export default async function SchedulingPage({
   params,
@@ -68,14 +69,55 @@ export default async function SchedulingPage({
     .eq("event_id", eventId)
     .order("name", { ascending: true });
 
+  const { data: matches } = await supabase
+    .from("matches")
+    .select(`
+      *,
+      player1:players!matches_player1_id_fkey(id, name, seed),
+      player2:players!matches_player2_id_fkey(id, name, seed),
+      slot:event_slots(id, slot_date, start_time, end_time, code, court_id, event_courts!event_slots_court_id_fkey(name))
+    `)
+    .eq("event_id", eventId)
+    .neq("status", "bye")
+    .order("scheduled_time", { ascending: true, nullsFirst: false })
+    .order("round", { ascending: true })
+    .order("match_number", { ascending: true });
+
+  const { data: blackoutTemplates } = await supabase
+    .from("team_blackout_templates")
+    .select("player_id, day_of_week, start_time, end_time")
+    .eq("event_id", eventId);
+
+  const slotsForGrid = (slots || []).map((s: any) => ({
+    id: s.id,
+    slot_date: s.slot_date,
+    start_time: s.start_time,
+    end_time: s.end_time,
+    code: s.code,
+    court_id: s.court_id,
+    court: s.court,
+  }));
+  const matchesForGrid = (matches || []).map((m: any) => ({
+    id: m.id,
+    player1_id: m.player1_id,
+    player2_id: m.player2_id,
+    slot_id: m.slot_id,
+    scheduled_time: m.scheduled_time,
+    status: m.status,
+    round: m.round,
+    match_number: m.match_number,
+    player1: m.player1,
+    player2: m.player2,
+  }));
+
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-ntu-green mb-2">Scheduling</h1>
+          <h1 className="text-4xl font-bold text-ntu-green mb-2">排程</h1>
           <p className="text-lg text-gray-600">
-            {event?.name}
+            {event?.name} — 設定時段、場地，並將比賽拖曳排入
           </p>
         </div>
 
@@ -87,6 +129,19 @@ export default async function SchedulingPage({
           initialSlots={slots || []}
           initialSlotTemplates={slotTemplates || []}
         />
+
+        <div id="schedule-editor" className="mt-10 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-ntu-green mb-2">排程編輯（拖曳比賽）</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            將左側比賽拖曳至下方時段格；若該時段為某隊不可出賽會顯示警示，仍可儲存。
+          </p>
+          <ScheduleGridEditor
+            eventId={eventId}
+            slots={slotsForGrid}
+            matches={matchesForGrid}
+            blackoutTemplates={blackoutTemplates || []}
+          />
+        </div>
       </div>
     </>
   );
