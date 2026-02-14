@@ -12,22 +12,20 @@ const links: { href: string; label: string; color: string }[] = [
 export default function SchedulingPageNav() {
   return (
     <nav
-      className="sticky top-0 z-30 w-full border-b border-gray-200 bg-white/95 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/90"
+      className="fixed left-0 right-0 top-16 z-50 flex w-full border-b border-gray-200 bg-white py-3 shadow-md"
       aria-label="排程頁快速導航"
     >
-      <div className="container mx-auto px-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-2 text-sm font-semibold text-gray-600">快速導航：</span>
-          {links.map(({ href, label, color }) => (
-            <a
-              key={href}
-              href={href}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 ${color}`}
-            >
-              {label}
-            </a>
-          ))}
-        </div>
+      <div className="container mx-auto flex h-full flex-wrap items-center gap-2 px-4">
+        <span className="mr-2 text-sm font-semibold text-gray-600">快速導航：</span>
+        {links.map(({ href, label, color }) => (
+          <a
+            key={href}
+            href={href}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 ${color}`}
+          >
+            {label}
+          </a>
+        ))}
       </div>
     </nav>
   );

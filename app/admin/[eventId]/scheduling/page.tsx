@@ -114,15 +114,15 @@ export default async function SchedulingPage({
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} />
-      <div className="container mx-auto px-4 py-12">
+      <SchedulingPageNav />
+      {/* pt-28 = space for AdminNavbar (~4rem) + fixed quick nav (~3.5rem) so content is not hidden */}
+      <div className="container mx-auto px-4 pt-28 pb-12">
         <div className="mb-6">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">排程</h1>
           <p className="text-lg text-gray-600">
             {event?.name} — 設定時段、場地，並將比賽拖曳排入
           </p>
         </div>
-
-        <SchedulingPageNav />
 
         <div id="import-schedule" className="scroll-mt-24 pt-2">
           <ImportMatchSchedule eventId={eventId} players={players || []} />
