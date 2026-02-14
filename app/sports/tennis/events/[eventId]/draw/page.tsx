@@ -36,6 +36,22 @@ export default async function TennisEventDrawPage({
   // Fetch from Supabase
   const dbMatches = await getTennisMatches(event.id);
   const dbPlayers = await getTennisPlayers(event.id);
+
+  let matchPlayerStats: any[] = [];
+  let statDefinitions: { stat_name: string; stat_label: string; display_order: number }[] = [];
+  if (dbMatches?.length > 0) {
+    const { data: stats } = await supabase
+      .from("match_player_stats")
+      .select("*")
+      .in("match_id", dbMatches.map((m: any) => m.id));
+    matchPlayerStats = stats || [];
+  }
+  const { data: defs } = await supabase
+    .from("sport_stat_definitions")
+    .select("stat_name, stat_label, display_order")
+    .eq("sport", "tennis")
+    .order("display_order", { ascending: true });
+  statDefinitions = defs || [];
   
   // Convert to tournament format
   const matches = dbMatches.map((m: any) => ({
@@ -95,6 +111,8 @@ export default async function TennisEventDrawPage({
             eventDate={eventDate}
             eventVenue={eventVenue}
             tournamentType={event.tournament_type || "single_elimination"}
+            matchPlayerStats={matchPlayerStats}
+            statDefinitions={statDefinitions}
           />
           <ExportPDF
             matches={matches}

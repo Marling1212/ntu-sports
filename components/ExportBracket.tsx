@@ -5,6 +5,20 @@ import * as XLSX from 'xlsx';
 import toast from "react-hot-toast";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 
+export interface StatDefinition {
+  stat_name: string;
+  stat_label: string;
+  display_order?: number;
+}
+
+export interface MatchPlayerStatRow {
+  match_id: string;
+  player_id: string;
+  team_member_id?: string | null;
+  stat_name: string;
+  stat_value?: string | null;
+}
+
 interface ExportBracketProps {
   matches: Match[];
   players: Player[];
@@ -12,6 +26,9 @@ interface ExportBracketProps {
   eventDate?: string;
   eventVenue?: string;
   tournamentType?: "single_elimination" | "season_play";
+  /** Optional: include per-match stats (goals, yellow cards, etc.) in export */
+  matchPlayerStats?: MatchPlayerStatRow[];
+  statDefinitions?: StatDefinition[];
 }
 
 function formatTimeForExport(iso: string | null | undefined): string {
@@ -25,7 +42,9 @@ export default function ExportBracket({
   eventName = "NTU Tennis Tournament",
   eventDate = "2025/11/8-11/9",
   eventVenue = "台大新生網球場 5-8 場",
-  tournamentType = "single_elimination"
+  tournamentType = "single_elimination",
+  matchPlayerStats = [],
+  statDefinitions = [],
 }: ExportBracketProps) {
   
   const handleExport = () => {
@@ -105,6 +124,42 @@ export default function ExportBracket({
       }
     });
     const hasGroups = allGroups.size > 0;
+
+    // Build match -> player -> stat_name -> value. Prefer team-level (no team_member_id); else aggregate player-level (e.g. sum).
+    const statsByMatch: Record<string, Record<string, Record<string, string>>> = {};
+    const rawByKey: Record<string, { teamLevel: string | null; playerLevel: string[] }> = {};
+    matchPlayerStats.forEach((s) => {
+      const key = `${s.match_id}|${s.player_id}|${s.stat_name}`;
+      if (!rawByKey[key]) rawByKey[key] = { teamLevel: null, playerLevel: [] };
+      const v = s.stat_value?.trim() ?? "";
+      if (s.team_member_id == null) {
+        rawByKey[key].teamLevel = v;
+      } else if (v !== "") {
+        rawByKey[key].playerLevel.push(v);
+      }
+    });
+    Object.entries(rawByKey).forEach(([key, { teamLevel, playerLevel }]) => {
+      let value = teamLevel ?? "";
+      if (value === "" && playerLevel.length > 0) {
+        const nums = playerLevel.map((x) => parseFloat(x)).filter((n) => !Number.isNaN(n));
+        value = nums.length === playerLevel.length ? String(nums.reduce((a, b) => a + b, 0)) : playerLevel.join(", ");
+      }
+      if (value === "") return;
+      const [matchId, playerId, statName] = key.split("|");
+      if (!statsByMatch[matchId]) statsByMatch[matchId] = {};
+      if (!statsByMatch[matchId][playerId]) statsByMatch[matchId][playerId] = {};
+      statsByMatch[matchId][playerId][statName] = value;
+    });
+    const sortedStatDefs = [...statDefinitions].sort(
+      (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
+    );
+    const statHeaders: string[] = [];
+    sortedStatDefs.forEach((def) => {
+      statHeaders.push(`Player1_${def.stat_name}`);
+      statHeaders.push(`Player2_${def.stat_name}`);
+    });
+    const baseHeaders = ["Match #", "Player 1", "Player 2", "Score", "Status", "Date & Time"];
+    const fullHeaders = [...baseHeaders, ...statHeaders];
     
     // Sheet 1: Regular Season Matches
     const regularSeasonData: any[][] = [];
@@ -115,52 +170,56 @@ export default function ExportBracket({
     regularSeasonData.push(["組別", "Regular Season Matches"]);
     regularSeasonData.push([]);
     
+    const buildMatchRow = (match: Match) => {
+      const matchData = match as any;
+      const row: any[] = [
+        match.matchNumber,
+        match.player1?.name || "TBD",
+        match.player2?.name || "TBD",
+        match.score || "-",
+        match.status,
+        formatTimeForExport(matchData.scheduled_time),
+      ];
+      const matchStats = statsByMatch[match.id] ?? {};
+      const p1Id = match.player1?.id;
+      const p2Id = match.player2?.id;
+      sortedStatDefs.forEach((def) => {
+        row.push(p1Id ? (matchStats[p1Id]?.[def.stat_name] ?? "") : "");
+        row.push(p2Id ? (matchStats[p2Id]?.[def.stat_name] ?? "") : "");
+      });
+      return row;
+    };
+    
     if (hasGroups) {
       // Grouped matches
       const sortedGroups = Array.from(allGroups).sort((a, b) => a - b);
       sortedGroups.forEach(groupNum => {
         regularSeasonData.push([`Group ${groupNum}`]);
-        regularSeasonData.push(["Match #", "Player 1", "Player 2", "Score", "Status", "Date & Time"]);
+        regularSeasonData.push(fullHeaders);
         
         const groupMatches = regularSeasonMatches
           .filter(m => (m as any).group_number === groupNum)
           .sort((a, b) => a.matchNumber - b.matchNumber);
         
         groupMatches.forEach(match => {
-          const matchData = match as any;
-          const row = [
-            match.matchNumber,
-            match.player1?.name || "TBD",
-            match.player2?.name || "TBD",
-            match.score || "-",
-            match.status,
-            formatTimeForExport(matchData.scheduled_time)
-          ];
-          regularSeasonData.push(row);
+          regularSeasonData.push(buildMatchRow(match));
         });
         regularSeasonData.push([]);
       });
     } else {
       // Ungrouped matches
-      regularSeasonData.push(["Match #", "Player 1", "Player 2", "Score", "Status", "Date & Time"]);
+      regularSeasonData.push(fullHeaders);
       regularSeasonMatches
         .sort((a, b) => a.matchNumber - b.matchNumber)
         .forEach(match => {
-          const matchData = match as any;
-          const row = [
-            match.matchNumber,
-            match.player1?.name || "TBD",
-            match.player2?.name || "TBD",
-            match.score || "-",
-            match.status,
-            formatTimeForExport(matchData.scheduled_time)
-          ];
-          regularSeasonData.push(row);
+          regularSeasonData.push(buildMatchRow(match));
         });
     }
     
     const ws1 = XLSX.utils.aoa_to_sheet(regularSeasonData);
-    ws1['!cols'] = [{ wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 20 }];
+    const colWidths = [{ wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 20 }];
+    statHeaders.forEach(() => colWidths.push({ wch: 10 }));
+    ws1['!cols'] = colWidths;
     XLSX.utils.book_append_sheet(wb, ws1, "Regular Season");
     
     // Sheet 2: Standings

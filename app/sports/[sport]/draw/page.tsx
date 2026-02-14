@@ -25,6 +25,7 @@ export default async function SportDrawPage(context: any) {
   let matches: any[] = [];
   let players: any[] = [];
   let matchPlayerStats: any[] = [];
+  let statDefinitions: { stat_name: string; stat_label: string; display_order: number }[] = [];
   let teamMembers: any[] = [];
   
   if (event) {
@@ -32,13 +33,23 @@ export default async function SportDrawPage(context: any) {
     const dbMatches = await getSportMatches(event.id);
     const dbPlayers = await getSportPlayers(event.id);
     
-    // Get match player stats for top scorers
+    // Get match player stats for top scorers and for Excel export
     if (dbMatches && dbMatches.length > 0) {
       const { data: stats } = await supabase
         .from("match_player_stats")
         .select("*")
         .in("match_id", dbMatches.map((m: any) => m.id));
       matchPlayerStats = stats || [];
+    }
+
+    // Stat definitions for Excel export (stats columns)
+    if (event?.sport) {
+      const { data: defs } = await supabase
+        .from("sport_stat_definitions")
+        .select("stat_name, stat_label, display_order")
+        .eq("sport", event.sport)
+        .order("display_order", { ascending: true });
+      statDefinitions = defs || [];
     }
     
     // Get team members if team event
@@ -123,6 +134,8 @@ export default async function SportDrawPage(context: any) {
             eventDate={eventDate}
             eventVenue={eventVenue}
             tournamentType={event?.tournament_type || "single_elimination"}
+            matchPlayerStats={matchPlayerStats}
+            statDefinitions={statDefinitions}
           />
           <ExportPDF
             matches={matches}
