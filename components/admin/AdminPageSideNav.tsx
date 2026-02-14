@@ -19,7 +19,7 @@ export default function AdminPageSideNav({ title, links }: AdminPageSideNavProps
       aria-label={`${title}（滑過展開）`}
     >
       <nav
-        className="fixed left-0 top-20 z-40 flex h-[calc(100vh-5rem)] w-12 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-sm transition-[width] duration-300 ease-out hover:w-56 group-hover:w-56"
+        className="fixed left-0 top-20 z-40 flex h-[calc(100vh-5rem)] w-12 min-h-0 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-sm transition-[width] duration-300 ease-out hover:w-56 group-hover:w-56"
         aria-label={title}
       >
         <div className="flex min-h-[3rem] items-center border-b border-gray-100 px-2 py-3">

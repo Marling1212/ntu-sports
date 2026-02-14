@@ -8,8 +8,8 @@ interface AdminNavbarProps {
 
 export default function AdminNavbar({ eventId, eventName }: AdminNavbarProps) {
   return (
-    <nav className="sticky top-0 z-50 bg-ntu-green text-white shadow-lg">
-      <div className="container mx-auto px-4 py-4">
+    <nav className="sticky top-0 z-50 h-20 min-h-20 shrink-0 overflow-hidden bg-ntu-green text-white shadow-lg">
+      <div className="flex h-full items-center container mx-auto px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link href="/admin/dashboard" className="text-xl font-bold hover:opacity-80 transition-opacity">
