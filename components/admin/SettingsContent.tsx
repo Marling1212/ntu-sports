@@ -87,46 +87,13 @@ export default function SettingsContent({
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [newGame, setNewGame] = useState({ name: "", code: "", icon: "", color: "", description: "" });
   
-  const [activeTab, setActiveTab] = useState<"basic" | "rules" | "schedule" | "games">("basic");
-
-  // Sync hash to tab so side nav links switch tab
-  useEffect(() => {
-    const hash = typeof window !== "undefined" ? window.location.hash.slice(1) : "";
-    const map: Record<string, "basic" | "rules" | "schedule" | "games"> = {
-      "settings-basic": "basic",
-      "settings-rules": "rules",
-      "settings-schedule": "schedule",
-      "settings-games": "games",
-    };
-    if (map[hash]) setActiveTab(map[hash]);
-  }, []);
-  useEffect(() => {
-    const handler = () => {
-      const hash = window.location.hash.slice(1);
-      const map: Record<string, "basic" | "rules" | "schedule" | "games"> = {
-        "settings-basic": "basic",
-        "settings-rules": "rules",
-        "settings-schedule": "schedule",
-        "settings-games": "games",
-      };
-      if (map[hash]) {
-        setActiveTab(map[hash]);
-        // Scroll after tab panel is in DOM
-        setTimeout(() => document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-      }
-    };
-    window.addEventListener("hashchange", handler);
-    return () => window.removeEventListener("hashchange", handler);
-  }, []);
   const supabase = createClient();
 
-  // Load games when games tab is selected
+  // Load games on mount (all sections are on one page)
   useEffect(() => {
-    if (activeTab === "games") {
-      loadGames();
-    }
+    loadGames();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, []);
 
   const loadGames = async () => {
     setLoadingGames(true);
@@ -521,9 +488,9 @@ export default function SettingsContent({
     <>
       <Toaster position="top-right" />
 
-      {/* Basic Info Tab */}
-      {activeTab === "basic" && (
-        <div id="settings-basic" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
+      <div className="space-y-8">
+      {/* 基本資訊 */}
+      <div id="settings-basic" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <h2 className="text-2xl font-semibold text-ntu-green mb-6">基本資訊設定</h2>
           
           <div className="space-y-6">
@@ -706,11 +673,9 @@ export default function SettingsContent({
             </div>
           </div>
         </div>
-      )}
 
-      {/* Rules Tab */}
-      {activeTab === "rules" && (
-        <div id="settings-rules" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
+      {/* 賽事規則 */}
+      <div id="settings-rules" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-ntu-green">重要賽事規則</h2>
             <button
@@ -753,11 +718,9 @@ export default function SettingsContent({
             </button>
           </div>
         </div>
-      )}
 
-      {/* Schedule Tab */}
-      {activeTab === "schedule" && (
-        <div id="settings-schedule" className="scroll-mt-24 space-y-6">
+      {/* 比賽行程 */}
+      <div id="settings-schedule" className="scroll-mt-24 space-y-6">
           {/* Top Action Buttons */}
           <div className="flex justify-between items-center">
             <button
@@ -962,11 +925,9 @@ export default function SettingsContent({
             </button>
           </div>
         </div>
-      )}
 
-      {/* Games Management Tab */}
-      {activeTab === "games" && (
-        <div id="settings-games" className="scroll-mt-24 space-y-6">
+      {/* 運動/遊戲管理 */}
+      <div id="settings-games" className="scroll-mt-24 space-y-6">
           <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -1121,11 +1082,11 @@ export default function SettingsContent({
                     創建
                   </button>
                 </div>
-              </div>
             </div>
+          </div>
           )}
         </div>
-      )}
+      </div>
 
       {/* Danger Zone */}
       <div className="mt-10">
@@ -1186,6 +1147,7 @@ export default function SettingsContent({
             </div>
           )}
         </div>
+      </div>
       </div>
     </>
   );
