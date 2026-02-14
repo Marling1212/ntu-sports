@@ -38,7 +38,8 @@ export default async function TennisEventDrawPage({
   const dbPlayers = await getTennisPlayers(event.id);
 
   let matchPlayerStats: any[] = [];
-  let statDefinitions: { stat_name: string; stat_label: string; display_order: number }[] = [];
+  let statDefinitions: { stat_name: string; stat_label: string; display_order: number; stat_level?: string }[] = [];
+  let teamMembers: { id: string; player_id: string; name: string; jersey_number?: number | null }[] = [];
   if (dbMatches?.length > 0) {
     const { data: stats } = await supabase
       .from("match_player_stats")
@@ -48,10 +49,21 @@ export default async function TennisEventDrawPage({
   }
   const { data: defs } = await supabase
     .from("sport_stat_definitions")
-    .select("stat_name, stat_label, display_order")
+    .select("stat_name, stat_label, display_order, stat_level")
     .eq("sport", "tennis")
     .order("display_order", { ascending: true });
   statDefinitions = defs || [];
+  if (event.registration_type === "team" && dbPlayers?.length) {
+    const teamIds = dbPlayers.filter((p: any) => p.type === "team").map((p: any) => p.id);
+    if (teamIds.length > 0) {
+      const { data: members } = await supabase
+        .from("team_members")
+        .select("id, player_id, name, jersey_number")
+        .in("player_id", teamIds)
+        .order("jersey_number", { ascending: true, nullsFirst: true });
+      teamMembers = members || [];
+    }
+  }
   
   // Convert to tournament format
   const matches = dbMatches.map((m: any) => ({
@@ -113,6 +125,7 @@ export default async function TennisEventDrawPage({
             tournamentType={event.tournament_type || "single_elimination"}
             matchPlayerStats={matchPlayerStats}
             statDefinitions={statDefinitions}
+            teamMembers={teamMembers}
           />
           <ExportPDF
             matches={matches}

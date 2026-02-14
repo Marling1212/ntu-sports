@@ -19,9 +19,16 @@ interface ParsedMatch {
   status: string;
   scheduledTime?: string;
   groupNumber?: number;
-  /** Stat columns from Excel: Player1_goals, Player2_yellow_cards, etc. */
-  player1Stats?: Record<string, string>;
-  player2Stats?: Record<string, string>;
+}
+
+/** One row from 球員統計 sheet: which player (by name/jersey) had which stats in a match */
+interface ParsedPlayerStatRow {
+  matchNumber: number;
+  groupNumber: number;
+  side: 1 | 2;
+  jersey: string;
+  name: string;
+  stats: Record<string, string>;
 }
 
 export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayProps) {
@@ -29,6 +36,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [parsedMatches, setParsedMatches] = useState<ParsedMatch[]>([]);
+  const [parsedPlayerStats, setParsedPlayerStats] = useState<ParsedPlayerStatRow[]>([]);
   const [playerMappings, setPlayerMappings] = useState<Record<string, string>>({});
   const [fileName, setFileName] = useState<string>("");
 
@@ -62,6 +70,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
       const data = await file.arrayBuffer();
       
       let rows: string[][] = [];
+      let playerStatsRows: ParsedPlayerStatRow[] = [];
       
       // Check if it's CSV or Excel - XLSX library can handle both
       const isCSV = file.name.toLowerCase().endsWith('.csv');
@@ -239,19 +248,9 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
                hLower.includes("date&time");
       });
 
-      // Stat columns: Player1_<stat_name>, Player2_<stat_name> (from export)
-      const statCols: { colIndex: number; player: 1 | 2; statName: string }[] = [];
-      headerRow.forEach((h, colIndex) => {
-        const raw = String(h || "").trim();
-        const m1 = raw.match(/^player1_(.+)$/i);
-        const m2 = raw.match(/^player2_(.+)$/i);
-        if (m1) statCols.push({ colIndex, player: 1, statName: m1[1] });
-        else if (m2) statCols.push({ colIndex, player: 2, statName: m2[1] });
-      });
-
       // Debug: log what we found
       console.log("Header row:", headerRow);
-      console.log("Column indices:", { matchNumCol, player1Col, player2Col, scoreCol, statusCol, dateCol, statCols: statCols.length });
+      console.log("Column indices:", { matchNumCol, player1Col, player2Col, scoreCol, statusCol, dateCol });
 
       if (matchNumCol === -1 || player1Col === -1 || player2Col === -1) {
         toast.error(`Excel 格式不正確，缺少必要的欄位。找到的欄位：${headerRow.join(", ")}`);
@@ -298,15 +297,6 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         const score = String(row[scoreCol] || "").trim() || "-";
         const status = String(row[statusCol] || "").trim().toLowerCase() || "upcoming";
         const dateTime = dateCol >= 0 ? String(row[dateCol] || "").trim() : undefined;
-
-        const player1Stats: Record<string, string> = {};
-        const player2Stats: Record<string, string> = {};
-        statCols.forEach(({ colIndex, player, statName }) => {
-          const val = String(row[colIndex] ?? "").trim();
-          if (val === "") return;
-          if (player === 1) player1Stats[statName] = val;
-          else player2Stats[statName] = val;
-        });
         
         // Debug: log parsed data for matches with scores
         if (score !== "-" && score.trim() !== "") {
@@ -329,11 +319,54 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
             status: status === "completed" ? "completed" : status === "live" ? "live" : status === "delayed" ? "delayed" : "upcoming",
             scheduledTime: dateTime && dateTime !== "TBD" && dateTime !== "" ? dateTime : undefined,
             groupNumber: currentGroup,
-            player1Stats: Object.keys(player1Stats).length ? player1Stats : undefined,
-            player2Stats: Object.keys(player2Stats).length ? player2Stats : undefined,
           });
         }
       }
+
+      // Parse 球員統計 sheet if present (player-level: which player scored, yellow card, etc.)
+      let playerStatsRows: ParsedPlayerStatRow[] = [];
+      if (!isCSV && typeof data !== 'string') {
+        const workbook = XLSX.read(data, { type: "array", cellDates: false, raw: true });
+        const psSheetName = workbook.SheetNames.find(n => n === "球員統計" || (n.toLowerCase().includes("player") && n.toLowerCase().includes("stat")));
+        if (psSheetName) {
+          const psSheet = workbook.Sheets[psSheetName];
+          const psRows = XLSX.utils.sheet_to_json<string[]>(psSheet, { header: 1, defval: "", raw: true });
+          const origHeader = (psRows[0] || []) as string[];
+          const psHeader = origHeader.map(c => String(c ?? "").trim().toLowerCase());
+          const matchCol = psHeader.findIndex(h => h.includes("match") || h === "match #");
+          const groupCol = psHeader.findIndex(h => h.includes("group"));
+          const sideCol = psHeader.findIndex(h => h.includes("side"));
+          const jerseyCol = psHeader.findIndex(h => h.includes("jersey") || h === "jersey#");
+          const nameCol = psHeader.findIndex(h => h === "姓名" || h.includes("name"));
+          if (matchCol >= 0 && sideCol >= 0 && nameCol >= 0) {
+            const statColIndices: { colIndex: number; statName: string }[] = [];
+            psHeader.forEach((h, idx) => {
+              if (idx === matchCol || idx === groupCol || idx === sideCol || idx === jerseyCol || idx === nameCol) return;
+              const statName = String(origHeader[idx] ?? "").trim();
+              if (statName !== "") statColIndices.push({ colIndex: idx, statName });
+            });
+            for (let i = 1; i < psRows.length; i++) {
+              const r = psRows[i] || [];
+              const matchNumber = parseInt(String(r[matchCol] ?? ""), 10);
+              if (Number.isNaN(matchNumber)) continue;
+              const groupNumber = groupCol >= 0 ? parseInt(String(r[groupCol] ?? "0"), 10) : 0;
+              const sideStr = String(r[sideCol] ?? "").trim().toLowerCase();
+              const side = sideStr.includes("1") || sideStr === "player1" ? 1 : 2;
+              const jersey = jerseyCol >= 0 ? String(r[jerseyCol] ?? "").trim() : "";
+              const name = String(r[nameCol] ?? "").trim();
+              const stats: Record<string, string> = {};
+              statColIndices.forEach(({ colIndex, statName }) => {
+                const v = String(r[colIndex] ?? "").trim();
+                if (v !== "") stats[statName] = v;
+              });
+              if (name || Object.keys(stats).length > 0) {
+                playerStatsRows.push({ matchNumber, groupNumber: Number.isNaN(groupNumber) ? 0 : groupNumber, side, jersey, name, stats });
+              }
+            }
+          }
+        }
+      }
+      setParsedPlayerStats(playerStatsRows);
 
       if (matches.length === 0) {
         toast.error("沒有找到任何比賽數據");
@@ -636,40 +669,68 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         }
       }
 
-      // Build match key -> id so we can write match_player_stats (for both new and updated matches)
+      // Build match key -> match (id, player1_id, player2_id) for 球員統計
       const { data: allMatchesAfter } = await supabase
         .from("matches")
-        .select("id, match_number, group_number")
+        .select("id, match_number, group_number, player1_id, player2_id")
         .eq("event_id", eventId)
         .eq("round", 0);
-      const matchKeyToId = new Map<string, string>();
+      const matchKeyToMatch = new Map<string, { id: string; player1_id: string | null; player2_id: string | null }>();
       allMatchesAfter?.forEach((m: any) => {
-        matchKeyToId.set(`${m.match_number}_${m.group_number ?? 0}`, m.id);
+        matchKeyToMatch.set(`${m.match_number}_${m.group_number ?? 0}`, { id: m.id, player1_id: m.player1_id, player2_id: m.player2_id });
       });
 
-      // Write match_player_stats from parsed stat columns (Player1_*, Player2_*)
+      // Fetch team_members for all teams in these matches (to resolve 姓名/Jersey# -> team_member_id)
+      const teamPlayerIds = new Set<string>();
+      allMatchesAfter?.forEach((m: any) => {
+        if (m.player1_id) teamPlayerIds.add(m.player1_id);
+        if (m.player2_id) teamPlayerIds.add(m.player2_id);
+      });
+      let teamMembersList: { id: string; player_id: string; name: string; jersey_number: number | null }[] = [];
+      if (teamPlayerIds.size > 0) {
+        const { data: tm } = await supabase
+          .from("team_members")
+          .select("id, player_id, name, jersey_number")
+          .in("player_id", Array.from(teamPlayerIds));
+        teamMembersList = tm || [];
+      }
+      const teamMembersByPlayerId = new Map<string, { id: string; name: string; jersey_number: number | null }[]>();
+      teamMembersList.forEach((m) => {
+        if (!teamMembersByPlayerId.has(m.player_id)) teamMembersByPlayerId.set(m.player_id, []);
+        teamMembersByPlayerId.get(m.player_id)!.push({ id: m.id, name: m.name, jersey_number: m.jersey_number });
+      });
+
+      // Write match_player_stats from 球員統計 sheet (player-level: which player scored, yellow card, etc.)
       let statsWritten = 0;
-      for (const match of parsedMatches) {
-        const key = `${match.matchNumber}_${match.groupNumber ?? 0}`;
-        const matchId = matchKeyToId.get(key);
-        if (!matchId) continue;
+      for (const row of parsedPlayerStats) {
+        const key = `${row.matchNumber}_${row.groupNumber}`;
+        const matchInfo = matchKeyToMatch.get(key);
+        if (!matchInfo) continue;
+        const matchId = matchInfo.id;
+        const playerId = row.side === 1 ? matchInfo.player1_id : matchInfo.player2_id;
+        if (!playerId) continue;
 
-        const p1Id = match.player1Name && match.player1Name !== "TBD" ? playerMappings[match.player1Name] : undefined;
-        const p2Id = match.player2Name && match.player2Name !== "TBD" ? playerMappings[match.player2Name] : undefined;
-
-        await supabase.from("match_player_stats").delete().eq("match_id", matchId);
-
-        const toInsert: { match_id: string; player_id: string; stat_name: string; stat_value: string }[] = [];
-        if (match.player1Stats && p1Id) {
-          Object.entries(match.player1Stats).forEach(([statName, statValue]) => {
-            if (statValue.trim() !== "") toInsert.push({ match_id: matchId, player_id: p1Id, stat_name: statName, stat_value: statValue.trim() });
-          });
+        const members = teamMembersByPlayerId.get(playerId);
+        let teamMemberId: string | null = null;
+        if (members && members.length > 0) {
+          const byJersey = row.jersey !== "" ? members.find(m => String(m.jersey_number ?? "") === row.jersey) : null;
+          const byName = row.name !== "" ? members.find(m => m.name.trim() === row.name.trim()) : null;
+          const chosen = byJersey ?? byName ?? members[0];
+          teamMemberId = chosen.id;
         }
-        if (match.player2Stats && p2Id) {
-          Object.entries(match.player2Stats).forEach(([statName, statValue]) => {
-            if (statValue.trim() !== "") toInsert.push({ match_id: matchId, player_id: p2Id, stat_name: statName, stat_value: statValue.trim() });
-          });
+
+        let deleteQuery = supabase.from("match_player_stats").delete().eq("match_id", matchId).eq("player_id", playerId);
+        if (teamMemberId == null) {
+          deleteQuery = deleteQuery.is("team_member_id", null);
+        } else {
+          deleteQuery = deleteQuery.eq("team_member_id", teamMemberId);
         }
+        await deleteQuery;
+
+        const toInsert: { match_id: string; player_id: string; team_member_id: string | null; stat_name: string; stat_value: string }[] = [];
+        Object.entries(row.stats).forEach(([statName, statValue]) => {
+          if (statValue.trim() !== "") toInsert.push({ match_id: matchId, player_id: playerId, team_member_id: teamMemberId, stat_name: statName, stat_value: statValue.trim() });
+        });
         if (toInsert.length > 0) {
           const { error: statsErr } = await supabase.from("match_player_stats").insert(toInsert);
           if (!statsErr) statsWritten += toInsert.length;

@@ -9,6 +9,15 @@ export interface StatDefinition {
   stat_name: string;
   stat_label: string;
   display_order?: number;
+  stat_level?: "team" | "player";
+}
+
+/** Team member for team events (id from team_members table). For individual events, pass one fake member per player with id null. */
+export interface TeamMemberForExport {
+  id: string | null;
+  player_id: string;
+  name: string;
+  jersey_number?: number | null;
 }
 
 export interface MatchPlayerStatRow {
@@ -26,9 +35,11 @@ interface ExportBracketProps {
   eventDate?: string;
   eventVenue?: string;
   tournamentType?: "single_elimination" | "season_play";
-  /** Optional: include per-match stats (goals, yellow cards, etc.) in export */
+  /** Optional: per-player stats for 球員統計 sheet (which player scored, yellow card, etc.) */
   matchPlayerStats?: MatchPlayerStatRow[];
   statDefinitions?: StatDefinition[];
+  /** Optional: team members per team (player_id -> members). For individual events, not used. */
+  teamMembers?: TeamMemberForExport[];
 }
 
 function formatTimeForExport(iso: string | null | undefined): string {
@@ -45,6 +56,7 @@ export default function ExportBracket({
   tournamentType = "single_elimination",
   matchPlayerStats = [],
   statDefinitions = [],
+  teamMembers = [],
 }: ExportBracketProps) {
   
   const handleExport = () => {
@@ -125,43 +137,9 @@ export default function ExportBracket({
     });
     const hasGroups = allGroups.size > 0;
 
-    // Build match -> player -> stat_name -> value. Prefer team-level (no team_member_id); else aggregate player-level (e.g. sum).
-    const statsByMatch: Record<string, Record<string, Record<string, string>>> = {};
-    const rawByKey: Record<string, { teamLevel: string | null; playerLevel: string[] }> = {};
-    matchPlayerStats.forEach((s) => {
-      const key = `${s.match_id}|${s.player_id}|${s.stat_name}`;
-      if (!rawByKey[key]) rawByKey[key] = { teamLevel: null, playerLevel: [] };
-      const v = s.stat_value?.trim() ?? "";
-      if (s.team_member_id == null) {
-        rawByKey[key].teamLevel = v;
-      } else if (v !== "") {
-        rawByKey[key].playerLevel.push(v);
-      }
-    });
-    Object.entries(rawByKey).forEach(([key, { teamLevel, playerLevel }]) => {
-      let value = teamLevel ?? "";
-      if (value === "" && playerLevel.length > 0) {
-        const nums = playerLevel.map((x) => parseFloat(x)).filter((n) => !Number.isNaN(n));
-        value = nums.length === playerLevel.length ? String(nums.reduce((a, b) => a + b, 0)) : playerLevel.join(", ");
-      }
-      if (value === "") return;
-      const [matchId, playerId, statName] = key.split("|");
-      if (!statsByMatch[matchId]) statsByMatch[matchId] = {};
-      if (!statsByMatch[matchId][playerId]) statsByMatch[matchId][playerId] = {};
-      statsByMatch[matchId][playerId][statName] = value;
-    });
-    const sortedStatDefs = [...statDefinitions].sort(
-      (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
-    );
-    const statHeaders: string[] = [];
-    sortedStatDefs.forEach((def) => {
-      statHeaders.push(`Player1_${def.stat_name}`);
-      statHeaders.push(`Player2_${def.stat_name}`);
-    });
     const baseHeaders = ["Match #", "Player 1", "Player 2", "Score", "Status", "Date & Time"];
-    const fullHeaders = [...baseHeaders, ...statHeaders];
     
-    // Sheet 1: Regular Season Matches
+    // Sheet 1: Regular Season Matches (no team-level stat columns; score is the match score)
     const regularSeasonData: any[][] = [];
     regularSeasonData.push([eventName]);
     regularSeasonData.push([]);
@@ -172,7 +150,7 @@ export default function ExportBracket({
     
     const buildMatchRow = (match: Match) => {
       const matchData = match as any;
-      const row: any[] = [
+      return [
         match.matchNumber,
         match.player1?.name || "TBD",
         match.player2?.name || "TBD",
@@ -180,47 +158,88 @@ export default function ExportBracket({
         match.status,
         formatTimeForExport(matchData.scheduled_time),
       ];
-      const matchStats = statsByMatch[match.id] ?? {};
-      const p1Id = match.player1?.id;
-      const p2Id = match.player2?.id;
-      sortedStatDefs.forEach((def) => {
-        row.push(p1Id ? (matchStats[p1Id]?.[def.stat_name] ?? "") : "");
-        row.push(p2Id ? (matchStats[p2Id]?.[def.stat_name] ?? "") : "");
-      });
-      return row;
     };
     
     if (hasGroups) {
-      // Grouped matches
       const sortedGroups = Array.from(allGroups).sort((a, b) => a - b);
       sortedGroups.forEach(groupNum => {
         regularSeasonData.push([`Group ${groupNum}`]);
-        regularSeasonData.push(fullHeaders);
-        
+        regularSeasonData.push(baseHeaders);
         const groupMatches = regularSeasonMatches
           .filter(m => (m as any).group_number === groupNum)
           .sort((a, b) => a.matchNumber - b.matchNumber);
-        
-        groupMatches.forEach(match => {
-          regularSeasonData.push(buildMatchRow(match));
-        });
+        groupMatches.forEach(match => regularSeasonData.push(buildMatchRow(match)));
         regularSeasonData.push([]);
       });
     } else {
-      // Ungrouped matches
-      regularSeasonData.push(fullHeaders);
+      regularSeasonData.push(baseHeaders);
       regularSeasonMatches
         .sort((a, b) => a.matchNumber - b.matchNumber)
-        .forEach(match => {
-          regularSeasonData.push(buildMatchRow(match));
-        });
+        .forEach(match => regularSeasonData.push(buildMatchRow(match)));
     }
     
     const ws1 = XLSX.utils.aoa_to_sheet(regularSeasonData);
-    const colWidths = [{ wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 20 }];
-    statHeaders.forEach(() => colWidths.push({ wch: 10 }));
-    ws1['!cols'] = colWidths;
+    ws1['!cols'] = [{ wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(wb, ws1, "Regular Season");
+
+    // Sheet: 球員統計 (player-level: which player scored, yellow card, etc.)
+    const playerStatDefs = [...statDefinitions]
+      .filter((d) => d.stat_level === "player")
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+    const membersByPlayerId: Record<string, TeamMemberForExport[]> = {};
+    teamMembers.forEach((m) => {
+      if (!membersByPlayerId[m.player_id]) membersByPlayerId[m.player_id] = [];
+      membersByPlayerId[m.player_id].push(m);
+    });
+    const statsByMatchPlayerMember: Record<string, Record<string, Record<string, string>>> = {};
+    matchPlayerStats.forEach((s) => {
+      const memberKey = s.team_member_id ?? "__single__";
+      if (!statsByMatchPlayerMember[s.match_id]) statsByMatchPlayerMember[s.match_id] = {};
+      const playerKey = `${s.player_id}|${memberKey}`;
+      if (!statsByMatchPlayerMember[s.match_id][playerKey]) statsByMatchPlayerMember[s.match_id][playerKey] = {};
+      statsByMatchPlayerMember[s.match_id][playerKey][s.stat_name] = s.stat_value?.trim() ?? "";
+    });
+    const playerStatsHeaders = ["Match #", "Group", "Side", "Jersey#", "姓名", ...playerStatDefs.map((d) => d.stat_name)];
+    const playerStatsRows: any[][] = [playerStatsHeaders];
+    const matchList = [...regularSeasonMatches].sort((a, b) => (a.matchNumber - b.matchNumber) || ((a as any).group_number ?? 0) - ((b as any).group_number ?? 0));
+    matchList.forEach((match) => {
+      const matchData = match as any;
+      const groupNum = matchData.group_number ?? 0;
+      const p1Id = match.player1?.id;
+      const p2Id = match.player2?.id;
+      const sides: { side: 1 | 2; playerId: string | null; members: TeamMemberForExport[] }[] = [];
+      if (p1Id) {
+        const members = membersByPlayerId[p1Id]?.length ? membersByPlayerId[p1Id] : [{ id: null, player_id: p1Id, name: match.player1?.name ?? "TBD", jersey_number: null }];
+        sides.push({ side: 1, playerId: p1Id, members });
+      }
+      if (p2Id) {
+        const members = membersByPlayerId[p2Id]?.length ? membersByPlayerId[p2Id] : [{ id: null, player_id: p2Id, name: match.player2?.name ?? "TBD", jersey_number: null }];
+        sides.push({ side: 2, playerId: p2Id, members });
+      }
+      sides.forEach(({ side, playerId, members }) => {
+        members.forEach((member) => {
+          const memberKey = member.id ?? "__single__";
+          const playerKey = `${playerId}|${memberKey}`;
+          const statVals = statsByMatchPlayerMember[match.id]?.[playerKey] ?? {};
+          const hasAny = playerStatDefs.some((d) => (statVals[d.stat_name] ?? "").trim() !== "");
+          if (!hasAny && playerStatDefs.length > 0) return;
+          const row: any[] = [
+            match.matchNumber,
+            groupNum,
+            side === 1 ? "Player1" : "Player2",
+            member.jersey_number ?? "",
+            member.name ?? "",
+          ];
+          playerStatDefs.forEach((d) => row.push(statVals[d.stat_name] ?? ""));
+          playerStatsRows.push(row);
+        });
+      });
+    });
+    if (playerStatsRows.length > 1) {
+      const wsPlayer = XLSX.utils.aoa_to_sheet(playerStatsRows);
+      wsPlayer['!cols'] = [{ wch: 8 }, { wch: 6 }, { wch: 8 }, { wch: 8 }, { wch: 18 }, ...playerStatDefs.map(() => ({ wch: 10 }))];
+      XLSX.utils.book_append_sheet(wb, wsPlayer, "球員統計");
+    }
     
     // Sheet 2: Standings
     const standingsData: any[][] = [];

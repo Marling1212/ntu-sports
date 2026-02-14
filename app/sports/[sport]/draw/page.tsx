@@ -25,7 +25,7 @@ export default async function SportDrawPage(context: any) {
   let matches: any[] = [];
   let players: any[] = [];
   let matchPlayerStats: any[] = [];
-  let statDefinitions: { stat_name: string; stat_label: string; display_order: number }[] = [];
+  let statDefinitions: { stat_name: string; stat_label: string; display_order: number; stat_level?: string }[] = [];
   let teamMembers: any[] = [];
   
   if (event) {
@@ -42,23 +42,23 @@ export default async function SportDrawPage(context: any) {
       matchPlayerStats = stats || [];
     }
 
-    // Stat definitions for Excel export (stats columns)
+    // Stat definitions for Excel export (include stat_level for 球員統計 sheet)
     if (event?.sport) {
       const { data: defs } = await supabase
         .from("sport_stat_definitions")
-        .select("stat_name, stat_label, display_order")
+        .select("stat_name, stat_label, display_order, stat_level")
         .eq("sport", event.sport)
         .order("display_order", { ascending: true });
       statDefinitions = defs || [];
     }
     
-    // Get team members if team event
+    // Get team members if team event (for 球員統計: which player scored, yellow card, etc.)
     if (event.registration_type === 'team' && dbPlayers) {
       const teamIds = dbPlayers.filter((p: any) => p.type === 'team').map((p: any) => p.id);
       if (teamIds.length > 0) {
         const { data: members } = await supabase
           .from("team_members")
-          .select("*")
+          .select("id, player_id, name, jersey_number")
           .in("player_id", teamIds)
           .order("jersey_number", { ascending: true, nullsFirst: true });
         teamMembers = members || [];
@@ -136,6 +136,7 @@ export default async function SportDrawPage(context: any) {
             tournamentType={event?.tournament_type || "single_elimination"}
             matchPlayerStats={matchPlayerStats}
             statDefinitions={statDefinitions}
+            teamMembers={teamMembers}
           />
           <ExportPDF
             matches={matches}
