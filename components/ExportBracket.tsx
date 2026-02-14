@@ -9,7 +9,8 @@ export interface StatDefinition {
   stat_name: string;
   stat_label: string;
   display_order?: number;
-  stat_level?: "team" | "player";
+  /** From DB: "team" | "player"; accept string for Supabase return type */
+  stat_level?: string;
 }
 
 /** Team member for team events (id from team_members table). For individual events, pass one fake member per player with id null. */
