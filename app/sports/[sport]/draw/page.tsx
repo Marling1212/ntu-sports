@@ -7,12 +7,15 @@ import { getSportEvent, getSportMatches, getSportPlayers } from "@/lib/utils/get
 import { generateTennisPlayers, seedPlayers, generateMatches } from "@/data/tennisDraw";
 import { Toaster } from "react-hot-toast";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 // Disable caching to always fetch fresh data
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function SportDrawPage(context: any) {
+  const locale = await getLocale();
+  const t = getT(locale);
   const params = (context?.params || {}) as { sport?: string };
   const sportParam = (params.sport || "").toLowerCase();
   // Capitalize first letter of sport name
@@ -105,10 +108,10 @@ export default async function SportDrawPage(context: any) {
 
   // Format event dates for Excel export
   const eventDate = event?.start_date && event?.end_date 
-    ? `${new Date(event.start_date).toLocaleDateString('zh-TW')} - ${new Date(event.end_date).toLocaleDateString('zh-TW')}`
-    : "2025/11/8 - 11/9";
+    ? `${new Date(event.start_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")} - ${new Date(event.end_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")}`
+    : (locale === "zh" ? "2025/11/8 - 11/9" : "11/8/2025 - 11/9/2025");
   
-  const eventVenue = event?.venue || "台大新生網球場 5-8 場";
+  const eventVenue = event?.venue || t("common.defaultVenue");
 
   return (
     <>
@@ -118,19 +121,19 @@ export default async function SportDrawPage(context: any) {
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold text-ntu-green mb-4">
-              {event?.name || `NTU ${sportName} Tournament Draw`}
+              {event?.name || t("draw.pageTitleWithSport").replace("{sport}", sportName)}
             </h1>
             <p className="text-lg text-gray-600">
               {event?.tournament_type === 'season_play' 
-                ? 'Season Play: Regular Season + Playoffs' 
-                : 'Single-elimination tournament bracket'}
+                ? t("draw.pageSubtitleSeason")
+                : t("draw.pageSubtitleBracket")}
             </p>
           </div>
         <div className="flex gap-2">
           <ExportBracket 
             matches={matches}
             players={players}
-            eventName={event?.name || `NTU ${sportName} Tournament`}
+            eventName={event?.name || t("sports.ntuSportTournament").replace("{sport}", sportName)}
             eventDate={eventDate}
             eventVenue={eventVenue}
             tournamentType={event?.tournament_type || "single_elimination"}
@@ -141,7 +144,7 @@ export default async function SportDrawPage(context: any) {
           <ExportPDF
             matches={matches}
             players={players}
-            eventName={event?.name || `NTU ${sportName} Tournament`}
+            eventName={event?.name || t("sports.ntuSportTournament").replace("{sport}", sportName)}
             eventDate={eventDate}
             eventVenue={eventVenue}
             tournamentType={event?.tournament_type || "single_elimination"}

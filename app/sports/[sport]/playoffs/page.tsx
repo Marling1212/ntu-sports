@@ -3,11 +3,14 @@ import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getSportEvent, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function SportPlayoffsPage(context: any) {
+  const locale = await getLocale();
+  const t = getT(locale);
   const params = (context?.params || {}) as { sport?: string };
   const sportParam = (params.sport || "").toLowerCase();
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
@@ -78,8 +81,8 @@ export default async function SportPlayoffsPage(context: any) {
         <TennisNavbarClient eventName={undefined} tournamentType={undefined} />
         <div className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-4xl font-bold text-ntu-green mb-4">{sportName}</h1>
-          <p className="text-gray-600 mb-6">No event found.</p>
-          <Link href={basePath} className="text-ntu-green hover:underline font-medium">← Back to {sportName}</Link>
+          <p className="text-gray-600 mb-6">{t("common.noEventFound")}</p>
+          <Link href={basePath} className="text-ntu-green hover:underline font-medium">← {t("navigation.backToSport").replace("{sport}", sportName)}</Link>
         </div>
       </>
     );
@@ -90,9 +93,9 @@ export default async function SportPlayoffsPage(context: any) {
       <>
         <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
         <div className="container mx-auto px-4 py-12 text-center">
-          <h1 className="text-4xl font-bold text-ntu-green mb-4">季後賽 / Playoffs</h1>
-          <p className="text-gray-600 mb-6">本賽事為單淘汰制，無季後賽。請至籤表查看賽程。</p>
-          <Link href={`${basePath}/draw`} className="text-ntu-green hover:underline font-medium">前往籤表 →</Link>
+          <h1 className="text-4xl font-bold text-ntu-green mb-4">{t("playoffs.title")}</h1>
+          <p className="text-gray-600 mb-6">{t("playoffs.noPlayoffsSingleElim")}</p>
+          <Link href={`${basePath}/draw`} className="text-ntu-green hover:underline font-medium">{t("playoffs.goToDraw")}</Link>
         </div>
       </>
     );
@@ -104,10 +107,10 @@ export default async function SportPlayoffsPage(context: any) {
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">
-            {event.name} — 季後賽 / Playoffs
+            {event.name} — {t("playoffs.titleWithEvent")}
           </h1>
           <p className="text-lg text-gray-600">
-            季後賽淘汰賽程與結果
+            {t("playoffs.subtitle")}
           </p>
         </div>
 

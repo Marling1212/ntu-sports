@@ -4,11 +4,14 @@ import MarkdownText from "@/components/MarkdownText";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import { getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function SportSchedulePage(context: any) {
+  const locale = await getLocale();
+  const t = getT(locale);
   const supabase = await createClient();
   const params = (context?.params || {}) as { sport?: string };
   const sportParam = (params.sport || "").toLowerCase();
@@ -60,18 +63,18 @@ export default async function SportSchedulePage(context: any) {
       <TennisNavbarClient eventName={event?.name} tournamentType={event?.tournament_type} />
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-ntu-green mb-4">{sportName} Schedule</h1>
+          <h1 className="text-4xl font-bold text-ntu-green mb-4">{t("schedule.pageTitleWithSport").replace("{sport}", sportName)}</h1>
           <p className="text-lg text-gray-600">
             {event?.tournament_type === 'season_play'
-              ? 'Regular season match schedule'
-              : 'Tournament schedule and important dates'}
+              ? t("schedule.pageSubtitleSeason")
+              : t("schedule.pageSubtitleTournament")}
           </p>
         </div>
 
         {/* Tournament Rules (non-season-play) */}
         {event?.tournament_type !== 'season_play' && rules && rules.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
-            <h2 className="text-2xl font-semibold text-ntu-green mb-4">Tournament Rules</h2>
+            <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("schedule.tournamentRules")}</h2>
             <div className="space-y-4">
               {rules.map((rule, idx) => (
                 <div key={rule.id} className="flex gap-4">
@@ -90,12 +93,12 @@ export default async function SportSchedulePage(context: any) {
         {/* Schedule Items (non-season-play) */}
         {event?.tournament_type !== 'season_play' && scheduleItems && scheduleItems.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-8 border border-gray-100">
-            <h2 className="text-2xl font-semibold text-ntu-green mb-4">Schedule</h2>
+            <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("schedule.scheduleLabel")}</h2>
             <div className="space-y-4">
               {scheduleItems.map((item, idx) => (
                 <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-b-0">
                   <div className="flex-shrink-0 w-24 text-sm font-semibold text-gray-700">
-                    {item.time || `Day ${idx + 1}`}
+                    {item.time || t("schedule.dayN").replace("{n}", String(idx + 1))}
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-800 mb-1">{item.title}</h3>
@@ -125,7 +128,7 @@ export default async function SportSchedulePage(context: any) {
 
         {event?.tournament_type !== 'season_play' && (!rules || rules.length === 0) && (!scheduleItems || scheduleItems.length === 0) && (
           <div className="bg-white rounded-xl shadow-md p-12 text-center border border-gray-100">
-            <p className="text-gray-600 text-lg">No schedule information available yet.</p>
+            <p className="text-gray-600 text-lg">{t("schedule.noScheduleInfo")}</p>
           </div>
         )}
       </div>

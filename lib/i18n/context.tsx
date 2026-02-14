@@ -25,7 +25,7 @@ export function I18nProvider({ children, initialLocale = defaultLocale }: { chil
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
     localStorage.setItem('locale', newLocale);
-    // Update HTML lang attribute
+    document.cookie = `locale=${newLocale};path=/;max-age=31536000`;
     if (typeof document !== 'undefined') {
       document.documentElement.lang = newLocale === 'zh' ? 'zh-TW' : 'en';
     }

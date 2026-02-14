@@ -1,10 +1,10 @@
 import Link from "next/link";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
 import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import MarkdownText from "@/components/MarkdownText";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 // Sport icons mapping
 const sportIcons: { [key: string]: string } = {
@@ -22,13 +22,14 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function SportPage(context: any) {
+  const locale = await getLocale();
+  const t = getT(locale);
   const supabase = await createClient();
   const params = (context?.params || {}) as { sport?: string };
   const sportParam = (params.sport || "").toLowerCase();
-  // Capitalize first letter of sport name
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const sportIcon = sportIcons[sportName] || "🏆";
-  
+
   // Get all active events for this sport (case-insensitive)
   // Database stores sport names in lowercase, so normalize the input
   // Only get visible events for public display
@@ -42,7 +43,6 @@ export default async function SportPage(context: any) {
 
   const activeEvents = events || [];
 
-  // If no events found, show 404 or empty state
   if (activeEvents.length === 0) {
     return (
       <div className="container mx-auto px-4 py-12">
@@ -51,13 +51,13 @@ export default async function SportPage(context: any) {
             {sportIcon} {sportName}
           </h1>
           <p className="text-lg text-gray-600 mb-8">
-            No events found for {sportName}. Please check back later.
+            {t("sports.noEventsForSport").replace("{sport}", sportName)}
           </p>
           <Link
             href="/"
             className="text-ntu-green hover:underline font-semibold"
           >
-            ← Back to Home
+            ← {t("common.backToHome")}
           </Link>
         </div>
       </div>
@@ -74,16 +74,15 @@ export default async function SportPage(context: any) {
     : new Date("2025-11-08T08:00:00+08:00");
   const hasStarted = new Date() >= tournamentStartDate;
 
-  // Multiple events - show event list
   if (activeEvents.length > 1) {
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
           <h1 className="text-5xl font-bold text-ntu-green mb-4 text-center">
-            {sportIcon} NTU {sportName} Events
+            {sportIcon} {t("sports.ntuSportEvents").replace("{sport}", sportName)}
           </h1>
           <p className="text-lg text-gray-600 text-center">
-            選擇一個賽事查看詳情
+            {t("sports.selectEvent")}
           </p>
         </div>
 
@@ -99,11 +98,11 @@ export default async function SportPage(context: any) {
               </h2>
               <div className="space-y-2 text-sm text-gray-700">
                 <p>
-                  <span className="font-semibold">日期：</span>
-                  {new Date(event.start_date).toLocaleDateString('zh-TW')} - {new Date(event.end_date).toLocaleDateString('zh-TW')}
+                  <span className="font-semibold">{t("sports.dateLabel")}：</span>
+                  {new Date(event.start_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")} - {new Date(event.end_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")}
                 </p>
                 <p>
-                  <span className="font-semibold">地點：</span>
+                  <span className="font-semibold">{t("sports.venueLabel")}：</span>
                   {event.venue}
                 </p>
                 {event.description && (
@@ -113,7 +112,7 @@ export default async function SportPage(context: any) {
                 )}
               </div>
               <div className="mt-4 text-ntu-green font-medium">
-                查看賽事 →
+                {t("sports.viewEventArrow")}
               </div>
             </Link>
           ))}
@@ -176,8 +175,8 @@ export default async function SportPage(context: any) {
     })
     .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
   
-  const title = hasUpcomingToday ? `今日賽程（${sportName}）` : `明日賽程預告（${sportName}）`;
-  const emptyMessage = hasUpcomingToday ? "今日沒有已排定的比賽。" : "明日沒有已排定的比賽。";
+  const title = hasUpcomingToday ? t("sports.todayScheduleWithSport").replace("{sport}", sportName) : t("sports.tomorrowScheduleWithSport").replace("{sport}", sportName);
+  const emptyMessage = hasUpcomingToday ? t("sports.noMatchesToday") : t("sports.noMatchesTomorrow");
   
   const latestAnnouncement = (announcements || [])[0];
 
@@ -193,25 +192,25 @@ export default async function SportPage(context: any) {
       {/* Tournament Overview */}
       {singleEvent && (
         <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-4">Tournament Overview</h2>
+          <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("sports.tournamentOverview")}</h2>
           <div className="space-y-3 text-gray-700">
             <div className="flex items-start">
-              <span className="font-semibold text-gray-800 min-w-[100px]">Type:</span>
-              <span>{singleEvent.tournament_type === 'season_play' ? 'Season Play (Regular Season + Playoffs)' : 'Single-elimination Bracket'}</span>
+              <span className="font-semibold text-gray-800 min-w-[100px]">{t("sports.typeLabel")}:</span>
+              <span>{singleEvent.tournament_type === "season_play" ? t("sports.tournamentTypeSeason") : t("sports.tournamentTypeBracket")}</span>
             </div>
             <div className="flex items-start">
-              <span className="font-semibold text-gray-800 min-w-[100px]">Dates:</span>
+              <span className="font-semibold text-gray-800 min-w-[100px]">{t("sports.dates")}:</span>
               <span>
-                {new Date(singleEvent.start_date).toLocaleDateString('zh-TW')} - {new Date(singleEvent.end_date).toLocaleDateString('zh-TW')}
+                {new Date(singleEvent.start_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")} - {new Date(singleEvent.end_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")}
               </span>
             </div>
             <div className="flex items-start">
-              <span className="font-semibold text-gray-800 min-w-[100px]">Venue:</span>
+              <span className="font-semibold text-gray-800 min-w-[100px]">{t("sports.venue")}:</span>
               <span>{singleEvent.venue}</span>
             </div>
             {singleEvent.description && (
               <div className="flex items-start">
-                <span className="font-semibold text-gray-800 min-w-[100px]">Description:</span>
+                <span className="font-semibold text-gray-800 min-w-[100px]">{t("sports.descriptionLabel")}:</span>
                 <span>{singleEvent.description}</span>
               </div>
             )}
@@ -224,7 +223,7 @@ export default async function SportPage(context: any) {
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-lg">
           <div className="flex items-start justify-between mb-3">
             <h2 className="text-lg font-semibold text-yellow-800">{title}</h2>
-            <span className="text-sm text-yellow-700">依照目前排定之賽程時間產生</span>
+            <span className="text-sm text-yellow-700">{t("sports.autoGenerated")}</span>
           </div>
           {matchesToShow.length === 0 ? (
             <p className="text-yellow-800 text-sm">{emptyMessage}</p>
@@ -233,20 +232,19 @@ export default async function SportPage(context: any) {
               <table className="min-w-full divide-y divide-yellow-200">
                 <thead>
                   <tr className="bg-yellow-100">
-                    <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">時間</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">場地</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">對戰組合</th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-yellow-800 uppercase tracking-wider">狀態</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">{t("sports.time")}</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">{t("sports.court")}</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-yellow-800 uppercase tracking-wider">{t("sports.matchup")}</th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-yellow-800 uppercase tracking-wider">{t("sports.status")}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-yellow-200">
                   {matchesToShow.map((m: any) => {
-                    const timeStr = new Intl.DateTimeFormat("zh-TW", {
+                    const timeStr = new Intl.DateTimeFormat(locale === "zh" ? "zh-TW" : "en-US", {
                       hour: "2-digit",
                       minute: "2-digit",
                       timeZone: "Asia/Taipei",
                     }).format(new Date(m.scheduled_time));
-                    // Get court: use unified logic
                     const court = getCourtDisplay(m);
                     const p1 = m.player1?.name || "TBD";
                     const p2 = m.player2?.name || "TBD";
@@ -256,18 +254,18 @@ export default async function SportPage(context: any) {
                         <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{court}</td>
                         <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">
                           <span className="font-semibold">{p1}</span>
-                          <span className="mx-2 text-gray-400">vs</span>
+                          <span className="mx-2 text-gray-400">{t("sports.vs")}</span>
                           <span className="font-semibold">{p2}</span>
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-sm text-center">
                           {m.status === "completed" ? (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">Completed</span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">{t("sports.completed")}</span>
                           ) : m.status === "live" ? (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">Live</span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">{t("sports.live")}</span>
                           ) : m.status === "delayed" ? (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">Delayed</span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">{t("sports.delayed")}</span>
                           ) : (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">Upcoming</span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">{t("sports.upcoming")}</span>
                           )}
                         </td>
                       </tr>
@@ -284,13 +282,13 @@ export default async function SportPage(context: any) {
       {singleEvent && latestAnnouncement && (
         <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
           <div className="flex items-start justify-between mb-3">
-            <h2 className="text-xl font-semibold text-ntu-green">最新公告</h2>
+            <h2 className="text-xl font-semibold text-ntu-green">{t("announcements.title")}</h2>
             <Link href={`/sports/${sportParam}/announcements`} className="text-ntu-green hover:underline text-sm">
-              查看全部 →
+              {t("announcements.viewAllArrow")}
             </Link>
           </div>
           <div className="text-sm text-gray-500 mb-2">
-            {new Date(latestAnnouncement.created_at).toLocaleString("zh-TW")}
+            {new Date(latestAnnouncement.created_at).toLocaleString(locale === "zh" ? "zh-TW" : "en-US")}
           </div>
           <h3 className="text-lg font-semibold text-gray-800 mb-2">{latestAnnouncement.title}</h3>
           <div className="prose max-w-none">
@@ -302,7 +300,7 @@ export default async function SportPage(context: any) {
       {/* Purpose Statement */}
       {singleEvent?.description && (
         <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-4">賽事說明</h2>
+          <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("sports.eventDescription")}</h2>
           <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
             {singleEvent.description}
           </p>
@@ -313,7 +311,7 @@ export default async function SportPage(context: any) {
       {!hasStarted && (
         <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
           <h2 className="text-2xl font-semibold text-ntu-green mb-6 text-center">
-            Time Until Tournament Starts
+            {t("sports.timeUntilStart")}
           </h2>
           <CountdownTimerWrapper targetDate={tournamentStartDate} />
         </div>
@@ -342,12 +340,10 @@ export default async function SportPage(context: any) {
               </svg>
             </div>
             <h3 className="text-2xl font-semibold mb-3">
-              {singleEvent?.tournament_type === 'season_play' ? 'Season Overview' : 'Draw'}
+              {singleEvent?.tournament_type === "season_play" ? t("navigation.seasonOverview") : t("navigation.draw")}
             </h3>
             <p className="text-white text-opacity-90 text-sm">
-              {singleEvent?.tournament_type === 'season_play'
-                ? 'View regular season schedule, groups, standings, and playoffs'
-                : 'View tournament draw and bracket information'}
+              {singleEvent?.tournament_type === "season_play" ? t("navigation.drawDescription") : t("navigation.drawDescription")}
             </p>
           </div>
         </Link>
@@ -372,11 +368,9 @@ export default async function SportPage(context: any) {
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-semibold mb-3">Schedule</h3>
+            <h3 className="text-2xl font-semibold mb-3">{t("navigation.schedule")}</h3>
             <p className="text-white text-opacity-90 text-sm">
-              {singleEvent?.tournament_type === 'season_play'
-                ? 'Full season schedule by date and time'
-                : 'Match schedules and timing information'}
+              {t("navigation.scheduleDescription")}
             </p>
           </div>
         </Link>
@@ -402,9 +396,9 @@ export default async function SportPage(context: any) {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-semibold mb-3">季後賽 / Playoffs</h3>
+              <h3 className="text-2xl font-semibold mb-3">{t("navigation.playoffs")}</h3>
               <p className="text-white text-opacity-90 text-sm">
-                季後賽淘汰賽程與結果
+                {t("navigation.playoffsDescription")}
               </p>
             </div>
           </Link>
@@ -430,9 +424,9 @@ export default async function SportPage(context: any) {
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-semibold mb-3">Announcements</h3>
+            <h3 className="text-2xl font-semibold mb-3">{t("navigation.announcements")}</h3>
             <p className="text-white text-opacity-90 text-sm">
-              Read important announcements and updates
+              {t("navigation.announcementsDescription")}
             </p>
           </div>
         </Link>
