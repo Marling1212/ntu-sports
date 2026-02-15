@@ -103,6 +103,7 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
               <GenerateSeasonPlay 
                 eventId={eventId}
                 players={players || []}
+                initialQualifiersPerGroup={event?.playoff_qualifiers_per_group ?? undefined}
               />
             </div>
             <div id="import-season-groups" className="scroll-mt-24">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Player } from "@/types/database";
@@ -8,13 +8,21 @@ import { Player } from "@/types/database";
 interface GenerateSeasonPlayProps {
   eventId: string;
   players: Player[];
+  /** Initial playoff qualifiers per group from event (for display & when generating playoffs) */
+  initialQualifiersPerGroup?: number;
 }
 
-export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonPlayProps) {
+export default function GenerateSeasonPlay({ eventId, players, initialQualifiersPerGroup }: GenerateSeasonPlayProps) {
   const [loading, setLoading] = useState(false);
   const [numGroups, setNumGroups] = useState(1); // Default: 1 group (single round-robin)
-  const [playoffTeams, setPlayoffTeams] = useState(4); // Default: top 4 teams go to playoffs
+  const [playoffTeams, setPlayoffTeams] = useState(initialQualifiersPerGroup ?? 4);
   const supabase = createClient();
+
+  useEffect(() => {
+    if (initialQualifiersPerGroup != null && [2, 4, 8].includes(initialQualifiersPerGroup)) {
+      setPlayoffTeams(initialQualifiersPerGroup);
+    }
+  }, [initialQualifiersPerGroup]);
 
   // Helper function to shuffle array randomly
   const shuffleArray = <T,>(array: T[]): T[] => {
@@ -495,7 +503,24 @@ export default function GenerateSeasonPlay({ eventId, players }: GenerateSeasonP
             <option value={8}>Top 8</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">
-            How many top teams from each group will advance to the playoff bracket
+            每組前幾名進入季後賽籤表
+          </p>
+        </div>
+
+        {/* 季後賽籤表結構預覽 */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <h3 className="font-semibold text-amber-900 mb-2">🏆 季後賽籤表結構</h3>
+          <p className="text-sm text-amber-800">
+            {numGroups} 組 × 每組前 {playoffTeams} 名 = <strong>{numGroups * playoffTeams} 隊</strong> 進入季後賽
+          </p>
+          <p className="text-xs text-amber-700 mt-1">
+            {(() => {
+              const total = numGroups * playoffTeams;
+              if (total <= 2) return "2 隊 → 決賽";
+              if (total <= 4) return "4 隊 → 準決賽 → 決賽、季軍賽";
+              if (total <= 8) return "8 隊 → 八強 → 準決賽 → 決賽、季軍賽";
+              return `${total} 隊 → 單淘汰籤表（含季軍賽）`;
+            })()}
           </p>
         </div>
       </div>

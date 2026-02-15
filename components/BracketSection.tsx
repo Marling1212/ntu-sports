@@ -3,6 +3,7 @@
 import { Player, Match } from "@/types/tournament";
 import { useState } from "react";
 import TournamentBracket from "./TournamentBracket";
+import { useI18n } from "@/lib/i18n/context";
 
 interface BracketSectionProps {
   matches: Match[];
@@ -32,46 +33,15 @@ export default function BracketSection({
     const round16 = maxRound - 3; // Round of 16 is 4 rounds before final
     
     sections = [
-      { 
-        name: `第1區 (1-${quarter})`, 
-        startPos: 1, 
-        endPos: quarter, 
-        rounds: Array.from({ length: round16 }, (_, i) => i + 1) 
-      },
-      { 
-        name: `第2區 (${quarter + 1}-${quarter * 2})`, 
-        startPos: quarter + 1, 
-        endPos: quarter * 2, 
-        rounds: Array.from({ length: round16 }, (_, i) => i + 1) 
-      },
-      { 
-        name: `第3區 (${quarter * 2 + 1}-${quarter * 3})`, 
-        startPos: quarter * 2 + 1, 
-        endPos: quarter * 3, 
-        rounds: Array.from({ length: round16 }, (_, i) => i + 1) 
-      },
-      { 
-        name: `第4區 (${quarter * 3 + 1}-${bracketSize})`, 
-        startPos: quarter * 3 + 1, 
-        endPos: quarter * 4, 
-        rounds: Array.from({ length: round16 }, (_, i) => i + 1) 
-      },
-      { 
-        name: "決賽階段", 
-        startPos: 1, 
-        endPos: bracketSize, 
-        rounds: Array.from({ length: maxRound - round16 }, (_, i) => round16 + i + 1)
-      },
+      { name: t("bracket.sectionN").replace("{n}", "1").replace("{start}", "1").replace("{end}", String(quarter)), startPos: 1, endPos: quarter, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
+      { name: t("bracket.sectionN").replace("{n}", "2").replace("{start}", String(quarter + 1)).replace("{end}", String(quarter * 2)), startPos: quarter + 1, endPos: quarter * 2, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
+      { name: t("bracket.sectionN").replace("{n}", "3").replace("{start}", String(quarter * 2 + 1)).replace("{end}", String(quarter * 3)), startPos: quarter * 2 + 1, endPos: quarter * 3, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
+      { name: t("bracket.sectionN").replace("{n}", "4").replace("{start}", String(quarter * 3 + 1)).replace("{end}", String(bracketSize)), startPos: quarter * 3 + 1, endPos: quarter * 4, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
+      { name: t("bracket.finalsStage"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound - round16 }, (_, i) => round16 + i + 1) },
     ];
   } else {
-    // 32 players or less: show complete bracket
     sections = [
-      { 
-        name: "完整籤表", 
-        startPos: 1, 
-        endPos: bracketSize, 
-        rounds: Array.from({ length: maxRound }, (_, i) => i + 1) 
-      },
+      { name: t("bracket.fullBracket"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound }, (_, i) => i + 1) },
     ];
   }
 
@@ -176,10 +146,10 @@ export default function BracketSection({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-sm text-blue-800">
-              正在查看：<strong>{currentSectionConfig.name}</strong>
+              {t("bracket.viewingSection")}<strong>{currentSectionConfig.name}</strong>
               {currentSection === sections.length
-                ? ` - 包含八強、準決賽、決賽${has3rdPlaceMatch ? "和季軍賽" : ""}`
-                : ` - 包含 ${sectionMatches.length} 場比賽`
+                ? " - " + t("bracket.sectionIncludesFinals").replace("{thirdPlace}", has3rdPlaceMatch ? t("bracket.andThirdPlace") : "")
+                : " - " + t("bracket.sectionMatchesCount").replace("{n}", String(sectionMatches.length))
               }
             </p>
           </div>

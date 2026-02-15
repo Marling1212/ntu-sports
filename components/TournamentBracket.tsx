@@ -1,6 +1,7 @@
 "use client";
 
 import { Player, Match } from "@/types/tournament";
+import { useI18n } from "@/lib/i18n/context";
 
 interface TournamentBracketProps {
   matches: Match[];
@@ -19,6 +20,7 @@ export default function TournamentBracket({
   hideThirdPlace = false,
   compactLayout = false,
 }: TournamentBracketProps) {
+  const { t } = useI18n();
   // Calculate dynamic values based on actual data
   const maxRound = Math.max(...matches.map(m => m.round), 1);
   
@@ -41,14 +43,13 @@ export default function TournamentBracket({
 
   // Generate round names dynamically
   const generateRoundName = (round: number): string => {
-    if (round === actualTotalRounds) return "Final";
-    if (round === actualTotalRounds - 1) return "Semifinals";
-    if (round === actualTotalRounds - 2) return "Quarterfinals";
+    if (round === actualTotalRounds) return t("bracket.final");
+    if (round === actualTotalRounds - 1) return t("bracket.semifinals");
+    if (round === actualTotalRounds - 2) return t("bracket.quarterfinals");
     
     // Calculate number of players in this round
-    // Round 1 has 2^actualTotalRounds players, Round 2 has 2^(actualTotalRounds-1) players, etc.
     const playersInRound = Math.pow(2, actualTotalRounds - round + 1);
-    return `Round of ${playersInRound}`;
+    return t("bracket.roundOf").replace("{n}", String(playersInRound));
   };
 
   const roundNames = rounds.map(r => generateRoundName(r));
@@ -155,7 +156,7 @@ export default function TournamentBracket({
     isThirdPlace?: boolean;
   }) => {
     // Determine display text
-    const displayText = player?.name || (round === 1 ? "BYE" : "TBD");
+    const displayText = player?.name || (round === 1 ? t("bracket.bye") : t("bracket.tbd"));
     const isBye = !player && round === 1;
     
     return (

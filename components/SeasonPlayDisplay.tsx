@@ -8,6 +8,7 @@ import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import Link from "next/link";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
 import { type DesignVariant, seasonPlayThemes, seasonPlayDefault } from "@/components/design-variants/designThemes";
+import { useI18n } from "@/lib/i18n/context";
 
 interface SeasonPlayDisplayProps {
   matches: Match[];
@@ -45,6 +46,7 @@ interface SeasonPlayDisplayProps {
 const TAIPEI_TZ = "Asia/Taipei";
 
 export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant }: SeasonPlayDisplayProps) {
+  const { t } = useI18n();
   const theme = designVariant ? seasonPlayThemes[designVariant] : seasonPlayDefault;
   const tabs = {
     regular: visibleTabs?.regular !== false,
@@ -786,7 +788,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               onClick={() => setView("regular")}
               className={view === "regular" ? theme.tabActive : theme.tabInactive}
             >
-              🏀 Regular Season
+              🏀 {t("seasonPlay.tabRegular")}
             </button>
           )}
           {hasRegularSeason && tabs.standings && (
@@ -794,7 +796,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               onClick={() => setView("standings")}
               className={view === "standings" ? theme.tabActive : theme.tabInactive}
             >
-              📊 Standings
+              📊 {t("seasonPlay.tabStandings")}
             </button>
           )}
           {hasPlayoffs && tabs.playoffs && (
@@ -802,7 +804,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               onClick={() => setView("playoffs")}
               className={view === "playoffs" ? theme.tabActive : theme.tabInactive}
             >
-              🏆 Playoffs
+              🏆 {t("seasonPlay.tabPlayoffs")}
             </button>
           )}
         </div>
@@ -814,19 +816,19 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           <div className={theme.infoBox}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <p className={theme.infoBoxText}>
-                <strong>Regular Season Progress:</strong> {completedRegularMatches} / {totalRegularMatches} matches completed
+                <strong>{t("seasonPlay.regularProgress")}</strong> {t("seasonPlay.matchesCompleted").replace("{completed}", String(completedRegularMatches)).replace("{total}", String(totalRegularMatches))}
               </p>
               {hasGroups && (
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-semibold text-blue-800">Filter by Group:</label>
+                  <label className="text-sm font-semibold text-blue-800">{t("seasonPlay.filterByGroup")}</label>
                   <select
                     value={selectedGroup}
                     onChange={(e) => setSelectedGroup(e.target.value === "all" ? "all" : parseInt(e.target.value))}
                     className="px-3 py-1.5 border border-blue-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
-                    <option value="all">All Groups</option>
+                    <option value="all">{t("seasonPlay.allGroups")}</option>
                     {allGroups.map(groupNum => (
-                      <option key={groupNum} value={groupNum}>Group {groupNum}</option>
+                      <option key={groupNum} value={groupNum}>{t("seasonPlay.groupN").replace("{n}", String(groupNum))}</option>
                     ))}
                   </select>
                 </div>
@@ -839,22 +841,22 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               <table className="w-full">
                 <thead className={theme.tableHeader}>
                   <tr>
-                    {hasGroups && <th className={theme.tableHeaderCell}>Group</th>}
+                    {hasGroups && <th className={theme.tableHeaderCell}>{t("seasonPlay.group")}</th>}
                     <th className={`${theme.tableHeaderCell} hidden`}>Match #</th>
-                    <th className={theme.tableHeaderCell}>Player 1</th>
-                    <th className={theme.tableHeaderCell}>VS</th>
-                    <th className={theme.tableHeaderCell}>Player 2</th>
-                    <th className={theme.tableHeaderCell}>Date & Time</th>
-                    <th className={theme.tableHeaderCell}>Court</th>
-                    <th className={theme.tableHeaderCell}>Score</th>
-                    <th className={theme.tableHeaderCell}>Status</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.player1")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.vs")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.player2")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.dateTime")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.court")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.score")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.status")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {regularSeasonMatches.length === 0 ? (
                     <tr>
                       <td colSpan={hasGroups ? 9 : 8} className="px-4 py-8 text-center text-gray-500">
-                        No matches found for the selected group.
+                        {t("seasonPlay.noMatchesForGroup")}
                       </td>
                     </tr>
                   ) : (
@@ -865,7 +867,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           {hasGroups && (
                             <td className="px-4 py-3 text-center">
                               <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">
-                                Group {matchData.group_number || '-'}
+                                {t("seasonPlay.groupN").replace("{n}", String(matchData.group_number || '-'))}
                               </span>
                             </td>
                           )}
@@ -875,8 +877,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               href={`/sports/${sportName.toLowerCase()}/teams/${match.player1?.id}`}
                               className={match.winner?.id === match.player1?.id ? 'font-bold text-ntu-green hover:underline' : 'hover:text-ntu-green hover:underline'}
                             >
-                              {match.player1?.name || 'TBD'}
-                              {match.player1?.seed && <span className="ml-1 text-xs text-gray-500">(Seed {match.player1.seed})</span>}
+                              {match.player1?.name || t("bracket.tbd")}
+                              {match.player1?.seed && <span className="ml-1 text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(match.player1.seed))})</span>}
                             </Link>
                           </td>
                           <td className="px-4 py-3 text-center">
@@ -884,7 +886,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
                               className="text-lg font-bold text-ntu-green hover:text-green-700 hover:underline cursor-pointer transition-colors"
                             >
-                              vs
+                              {t("seasonPlay.vs")}
                             </Link>
                           </td>
                           <td className="px-4 py-3">
@@ -892,8 +894,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               href={`/sports/${sportName.toLowerCase()}/teams/${match.player2?.id}`}
                               className={match.winner?.id === match.player2?.id ? 'font-bold text-ntu-green hover:underline' : 'hover:text-ntu-green hover:underline'}
                             >
-                              {match.player2?.name || 'TBD'}
-                              {match.player2?.seed && <span className="ml-1 text-xs text-gray-500">(Seed {match.player2.seed})</span>}
+                              {match.player2?.name || t("bracket.tbd")}
+                              {match.player2?.seed && <span className="ml-1 text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(match.player2.seed))})</span>}
                             </Link>
                           </td>
                           <td className="px-4 py-3 text-center text-sm">
@@ -914,16 +916,16 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           </td>
                           <td className={theme.tableCell}>
                             {match.status === 'completed' && (
-                              <span className={theme.badgeCompleted}>Completed</span>
+                              <span className={theme.badgeCompleted}>{t("sports.completed")}</span>
                             )}
                             {match.status === 'live' && (
-                              <span className={theme.badgeLive}>Live</span>
+                              <span className={theme.badgeLive}>{t("sports.live")}</span>
                             )}
                             {match.status === 'upcoming' && (
-                              <span className={theme.badgeUpcoming}>Upcoming</span>
+                              <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>
                             )}
                             {match.status === 'delayed' && (
-                              <span className={theme.badgeDelayed}>Delayed</span>
+                              <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>
                             )}
                           </td>
                         </tr>
@@ -943,19 +945,19 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           <div className={theme.infoBox}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <p className={theme.infoBoxText}>
-                <strong>Standings:</strong> Based on regular season results (3 points per win)
+                <strong>{t("seasonPlay.standingsBased")}</strong>
               </p>
               {hasGroups && (
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-semibold text-blue-800">View Group:</label>
+                  <label className="text-sm font-semibold text-blue-800">{t("seasonPlay.viewGroup")}</label>
                   <select
                     value={selectedGroup}
                     onChange={(e) => setSelectedGroup(e.target.value === "all" ? "all" : parseInt(e.target.value))}
                     className="px-3 py-1.5 border border-blue-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
-                    <option value="all">All Groups</option>
+                    <option value="all">{t("seasonPlay.allGroups")}</option>
                     {allGroups.map(groupNum => (
-                      <option key={groupNum} value={groupNum}>Group {groupNum}</option>
+                      <option key={groupNum} value={groupNum}>{t("seasonPlay.groupN").replace("{n}", String(groupNum))}</option>
                     ))}
                   </select>
                 </div>
@@ -972,20 +974,20 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   return (
                     <div key={groupNum} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
                       <div className="bg-blue-600 text-white px-6 py-3">
-                        <h3 className="text-lg font-semibold">Group {groupNum} Standings</h3>
+                        <h3 className="text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(groupNum))}</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full">
                           <thead className="bg-gray-100">
                             <tr>
-                              <th className="px-4 py-3 text-center">#</th>
-                              <th className="px-4 py-3 text-left">Player</th>
-                              <th className="px-4 py-3 text-center">Wins</th>
-                              <th className="px-4 py-3 text-center">Draws</th>
-                              <th className="px-4 py-3 text-center">Losses</th>
-                              <th className="px-4 py-3 text-center">Points</th>
-                              <th className="px-4 py-3 text-center">GD</th>
-                              <th className="px-4 py-3 text-center">Y/R</th>
+                              <th className="px-4 py-3 text-center">{t("seasonPlay.rank")}</th>
+                              <th className="px-4 py-3 text-left">{t("seasonPlay.player")}</th>
+                              <th className="px-4 py-3 text-center">{t("seasonPlay.wins")}</th>
+                              <th className="px-4 py-3 text-center">{t("seasonPlay.draws")}</th>
+                              <th className="px-4 py-3 text-center">{t("seasonPlay.losses")}</th>
+                              <th className="px-4 py-3 text-center">{t("seasonPlay.points")}</th>
+                              <th className="px-4 py-3 text-center">{t("seasonPlay.gd")}</th>
+                              <th className="px-4 py-3 text-center">{t("seasonPlay.yr")}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1031,20 +1033,20 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                 // Display selected group standings
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
                   <div className="bg-blue-600 text-white px-6 py-3">
-                    <h3 className="text-lg font-semibold">Group {selectedGroup} Standings</h3>
+                    <h3 className="text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(selectedGroup))}</h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gray-100">
                         <tr>
-                          <th className="px-4 py-3 text-center">#</th>
-                          <th className="px-4 py-3 text-left">Player</th>
-                          <th className="px-4 py-3 text-center">Wins</th>
-                          <th className="px-4 py-3 text-center">Draws</th>
-                          <th className="px-4 py-3 text-center">Losses</th>
-                          <th className="px-4 py-3 text-center">Points</th>
-                          <th className="px-4 py-3 text-center">GD</th>
-                          <th className="px-4 py-3 text-center">Y/R</th>
+                          <th className="px-4 py-3 text-center">{t("seasonPlay.rank")}</th>
+                          <th className="px-4 py-3 text-left">{t("seasonPlay.player")}</th>
+                          <th className="px-4 py-3 text-center">{t("seasonPlay.wins")}</th>
+                          <th className="px-4 py-3 text-center">{t("seasonPlay.draws")}</th>
+                          <th className="px-4 py-3 text-center">{t("seasonPlay.losses")}</th>
+                          <th className="px-4 py-3 text-center">{t("seasonPlay.points")}</th>
+                          <th className="px-4 py-3 text-center">{t("seasonPlay.gd")}</th>
+                          <th className="px-4 py-3 text-center">{t("seasonPlay.yr")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1124,7 +1126,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                     {idx < qualifiersPerGroup && <span className="text-yellow-500">🏆</span>}
                             <span className="font-semibold">{standing.player.name}</span>
                             {standing.player.seed && (
-                              <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>
+                              <span className="text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(standing.player.seed))})</span>
                             )}
                           </Link>
                         </td>
@@ -1144,7 +1146,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
           <div className="mt-4 text-sm text-gray-600 flex items-center gap-2">
             <span className="inline-block w-1 h-8 bg-yellow-400"></span>
-            <span>Players with yellow border qualify for playoffs</span>
+            <span>{t("seasonPlay.qualifyHint")}</span>
           </div>
 
           {/* Statistics Charts */}
@@ -1156,13 +1158,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                 {allScorers.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-ntu-green">⚽ 進球數 Top 5</h3>
+                      <h3 className="text-lg font-semibold text-ntu-green">⚽ {t("seasonPlay.topScorers")}</h3>
                       {allScorers.length > 5 && (
                         <button
                           onClick={() => setExpandedScorers(!expandedScorers)}
                           className="text-sm text-ntu-green hover:text-green-700 font-medium underline"
                         >
-                          {expandedScorers ? '收起' : `查看全部 (${allScorers.length})`}
+                          {expandedScorers ? t("seasonPlay.collapse") : t("seasonPlay.viewAllCount").replace("{n}", String(allScorers.length))}
                         </button>
                       )}
                     </div>
@@ -1183,7 +1185,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               <span className="text-sm font-medium text-gray-700">
                                 {idx + 1}. {displayName}
                               </span>
-                              <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} 球</span>
+                              <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} {t("seasonPlay.goalsUnit")}</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3">
                               <div
@@ -1198,8 +1200,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </div>
                 ) : (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數 Top 5</h3>
-                    <p className="text-sm text-gray-500">尚無數據</p>
+                    <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ {t("seasonPlay.topScorers")}</h3>
+                    <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
                   </div>
                 )}
 
@@ -1207,13 +1209,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                 {allYellowCards.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-yellow-600">🟨 黃牌 Top 5</h3>
+                      <h3 className="text-lg font-semibold text-yellow-600">🟨 {t("seasonPlay.yellowCards")}</h3>
                       {allYellowCards.length > 5 && (
                         <button
                           onClick={() => setExpandedYellowCards(!expandedYellowCards)}
                           className="text-sm text-yellow-600 hover:text-yellow-700 font-medium underline"
                         >
-                          {expandedYellowCards ? '收起' : `查看全部 (${allYellowCards.length})`}
+                          {expandedYellowCards ? t("seasonPlay.collapse") : t("seasonPlay.viewAllCount").replace("{n}", String(allYellowCards.length))}
                         </button>
                       )}
                     </div>
@@ -1234,7 +1236,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               <span className="text-sm font-medium text-gray-700">
                                 {idx + 1}. {displayName}
                               </span>
-                              <span className="text-sm font-bold text-yellow-600">{stat.count} 張</span>
+                              <span className="text-sm font-bold text-yellow-600">{stat.count} {t("seasonPlay.cardsUnit")}</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3">
                               <div
@@ -1249,8 +1251,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </div>
                 ) : (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌 Top 5</h3>
-                    <p className="text-sm text-gray-500">尚無數據</p>
+                    <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 {t("seasonPlay.yellowCards")}</h3>
+                    <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
                   </div>
                 )}
 
@@ -1258,13 +1260,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                 {allRedCards.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-red-600">🟥 紅牌 Top 5</h3>
+                      <h3 className="text-lg font-semibold text-red-600">🟥 {t("seasonPlay.redCards")}</h3>
                       {allRedCards.length > 5 && (
                         <button
                           onClick={() => setExpandedRedCards(!expandedRedCards)}
                           className="text-sm text-red-600 hover:text-red-700 font-medium underline"
                         >
-                          {expandedRedCards ? '收起' : `查看全部 (${allRedCards.length})`}
+                          {expandedRedCards ? t("seasonPlay.collapse") : t("seasonPlay.viewAllCount").replace("{n}", String(allRedCards.length))}
                         </button>
                       )}
                     </div>
@@ -1285,7 +1287,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               <span className="text-sm font-medium text-gray-700">
                                 {idx + 1}. {displayName}
                               </span>
-                              <span className="text-sm font-bold text-red-600">{stat.count} 張</span>
+                              <span className="text-sm font-bold text-red-600">{stat.count} {t("seasonPlay.cardsUnit")}</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3">
                               <div
@@ -1300,8 +1302,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </div>
                 ) : (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌 Top 5</h3>
-                    <p className="text-sm text-gray-500">尚無數據</p>
+                    <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 {t("seasonPlay.redCards")}</h3>
+                    <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
                   </div>
                 )}
               </div>
@@ -1315,7 +1317,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         <div>
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-lg">
             <p className="text-sm text-yellow-800">
-              <strong>Playoff Bracket:</strong> Single elimination - top teams from regular season
+              <strong>{t("seasonPlay.playoffBracketHint")}</strong>
             </p>
           </div>
 
@@ -1330,7 +1332,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {/* No Content Messages */}
       {!hasRegularSeason && !hasPlayoffs && (
         <div className="bg-white rounded-xl shadow-md p-12 text-center border border-gray-100">
-          <p className="text-gray-600 text-lg">No matches generated yet. Please use the admin panel to generate regular season matches.</p>
+          <p className="text-gray-600 text-lg">{t("seasonPlay.noMatchesYet")}</p>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useI18n } from "@/lib/i18n/context";
 
 interface CountdownTimerProps {
   targetDate: Date;
@@ -11,6 +12,7 @@ export default function CountdownTimer({
   targetDate,
   className = "",
 }: CountdownTimerProps) {
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -71,19 +73,19 @@ export default function CountdownTimer({
         <div className="grid grid-cols-4 gap-4 max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow-md p-4 text-center border border-gray-100">
             <div className="text-3xl font-bold text-ntu-green">00</div>
-            <div className="text-sm text-gray-600 mt-2">Days</div>
+            <div className="text-sm text-gray-600 mt-2">{t("countdown.days")}</div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 text-center border border-gray-100">
             <div className="text-3xl font-bold text-ntu-green">00</div>
-            <div className="text-sm text-gray-600 mt-2">Hours</div>
+            <div className="text-sm text-gray-600 mt-2">{t("countdown.hours")}</div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 text-center border border-gray-100">
             <div className="text-3xl font-bold text-ntu-green">00</div>
-            <div className="text-sm text-gray-600 mt-2">Minutes</div>
+            <div className="text-sm text-gray-600 mt-2">{t("countdown.minutes")}</div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 text-center border border-gray-100">
             <div className="text-3xl font-bold text-ntu-green">00</div>
-            <div className="text-sm text-gray-600 mt-2">Seconds</div>
+            <div className="text-sm text-gray-600 mt-2">{t("countdown.seconds")}</div>
           </div>
         </div>
       </div>
@@ -93,7 +95,7 @@ export default function CountdownTimer({
   if (isExpired) {
     return (
       <div className={`text-center ${className}`}>
-        <p className="text-2xl font-semibold text-ntu-green">Tournament has started!</p>
+        <p className="text-2xl font-semibold text-ntu-green">{t("countdown.tournamentStarted")}</p>
       </div>
     );
   }
@@ -105,25 +107,25 @@ export default function CountdownTimer({
           <div className="text-3xl font-bold text-ntu-green">
             {String(timeLeft.days).padStart(2, "0")}
           </div>
-          <div className="text-sm text-gray-600 mt-2">Days</div>
+          <div className="text-sm text-gray-600 mt-2">{t("countdown.days")}</div>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 text-center border border-gray-100">
           <div className="text-3xl font-bold text-ntu-green">
             {String(timeLeft.hours).padStart(2, "0")}
           </div>
-          <div className="text-sm text-gray-600 mt-2">Hours</div>
+          <div className="text-sm text-gray-600 mt-2">{t("countdown.hours")}</div>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 text-center border border-gray-100">
           <div className="text-3xl font-bold text-ntu-green">
             {String(timeLeft.minutes).padStart(2, "0")}
           </div>
-          <div className="text-sm text-gray-600 mt-2">Minutes</div>
+          <div className="text-sm text-gray-600 mt-2">{t("countdown.minutes")}</div>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4 text-center border border-gray-100">
           <div className="text-3xl font-bold text-ntu-green">
             {String(timeLeft.seconds).padStart(2, "0")}
           </div>
-          <div className="text-sm text-gray-600 mt-2">Seconds</div>
+          <div className="text-sm text-gray-600 mt-2">{t("countdown.seconds")}</div>
         </div>
       </div>
     </div>
