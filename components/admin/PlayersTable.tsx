@@ -166,6 +166,17 @@ export default function PlayersTable({
     return map;
   }, [blackoutTemplates]);
 
+  /** 不可出賽下拉：同一「星期+時段」只顯示一項（不依場地分開），選一次即涵蓋該時段所有場地 */
+  const uniqueSlotTemplatesForBlackout = useMemo(() => {
+    const seen = new Set<string>();
+    return initialSlotTemplates.filter((st) => {
+      const key = `${st.day_of_week},${st.start_time},${st.end_time}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [initialSlotTemplates]);
+
   // Load team members for all teams
   useEffect(() => {
     if (registrationType === 'team') {
@@ -824,13 +835,14 @@ export default function PlayersTable({
                                     className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ntu-green"
                                   >
                                     <option value="">選擇時段…</option>
-                                    {initialSlotTemplates.map((st) => (
+                                    {uniqueSlotTemplatesForBlackout.map((st) => (
                                       <option key={st.id} value={st.id}>
                                         {WEEKDAY_LABELS[st.day_of_week]} {st.start_time.slice(0, 5)}–{st.end_time.slice(0, 5)}
                                         {st.code ? ` (${st.code})` : ""}
                                       </option>
                                     ))}
                                   </select>
+                                  <span className="text-xs text-gray-500">同一時段選一次即涵蓋所有場地</span>
                                   <button
                                     type="button"
                                     disabled={addingBlackoutForPlayer === player.id}
