@@ -16,6 +16,7 @@ export default function BracketSection({
   players,
   sportName = "Tennis",
 }: BracketSectionProps) {
+  const { t } = useI18n();
   const [currentSection, setCurrentSection] = useState(1);
 
   // Calculate bracket info
