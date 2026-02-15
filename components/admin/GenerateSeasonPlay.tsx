@@ -30,8 +30,8 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
   const supabase = createClient();
 
   useEffect(() => {
-    if (initialQualifiersPerGroup != null && [2, 4, 8].includes(initialQualifiersPerGroup)) {
-      setPlayoffTeams(initialQualifiersPerGroup);
+    if (initialQualifiersPerGroup != null && initialQualifiersPerGroup >= 1) {
+      setPlayoffTeams(Math.min(64, Math.max(1, initialQualifiersPerGroup)));
     }
   }, [initialQualifiersPerGroup]);
 
@@ -609,15 +609,18 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
             Number of Playoff Teams (Top X per group)
           </label>
           <div className="flex gap-2 items-center">
-            <select
+            <input
+              type="number"
+              min={1}
+              max={64}
               value={playoffTeams}
-              onChange={(e) => setPlayoffTeams(parseInt(e.target.value))}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-            >
-              <option value={2}>Top 2</option>
-              <option value={4}>Top 4</option>
-              <option value={8}>Top 8</option>
-            </select>
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (!Number.isNaN(v)) setPlayoffTeams(Math.min(64, Math.max(1, v)));
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green w-24"
+            />
+            <span className="text-gray-600 text-sm">per group</span>
             <button
               type="button"
               onClick={async () => {
@@ -631,7 +634,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            每組前幾名進入季後賽。可隨時修改並按「儲存」；若已建立季後賽籤表，改 X 後需刪除籤表再重新建立才會套用新名額。
+            每組前幾名進入季後賽（1–64）。可隨時修改並按「儲存」；若已建立季後賽籤表，改 X 後需刪除籤表再重新建立才會套用新名額。
           </p>
         </div>
 
