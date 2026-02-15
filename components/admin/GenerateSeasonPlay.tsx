@@ -606,19 +606,32 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Number of Playoff Teams
+            Number of Playoff Teams (Top X per group)
           </label>
-          <select
-            value={playoffTeams}
-            onChange={(e) => setPlayoffTeams(parseInt(e.target.value))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-          >
-            <option value={2}>Top 2</option>
-            <option value={4}>Top 4</option>
-            <option value={8}>Top 8</option>
-          </select>
+          <div className="flex gap-2 items-center">
+            <select
+              value={playoffTeams}
+              onChange={(e) => setPlayoffTeams(parseInt(e.target.value))}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+            >
+              <option value={2}>Top 2</option>
+              <option value={4}>Top 4</option>
+              <option value={8}>Top 8</option>
+            </select>
+            <button
+              type="button"
+              onClick={async () => {
+                const { error } = await supabase.from("events").update({ playoff_qualifiers_per_group: playoffTeams }).eq("id", eventId);
+                if (error) toast.error(error.message);
+                else toast.success("已儲存：每組前 " + playoffTeams + " 名進季後賽");
+              }}
+              className="px-3 py-2 border border-ntu-green text-ntu-green rounded-lg hover:bg-ntu-green hover:text-white text-sm font-medium"
+            >
+              儲存
+            </button>
+          </div>
           <p className="text-xs text-gray-500 mt-1">
-            每組前幾名進入季後賽籤表
+            每組前幾名進入季後賽。可隨時修改並按「儲存」；若已建立季後賽籤表，改 X 後需刪除籤表再重新建立才會套用新名額。
           </p>
         </div>
 
