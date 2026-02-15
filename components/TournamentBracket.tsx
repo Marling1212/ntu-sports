@@ -1,6 +1,6 @@
 "use client";
 
-import { Player, Match } from "@/types/tournament";
+import { Player, Match, SlotPlaceholder } from "@/types/tournament";
 import { useI18n } from "@/lib/i18n/context";
 
 interface TournamentBracketProps {
@@ -140,6 +140,7 @@ export default function TournamentBracket({
   // Player Block Component - individual player representation
   const PlayerBlock = ({ 
     player, 
+    slot,
     isWinner, 
     isLoser,
     position,
@@ -148,6 +149,7 @@ export default function TournamentBracket({
     isThirdPlace = false,
   }: { 
     player: Player | null; 
+    slot?: SlotPlaceholder | null;
     isWinner?: boolean;
     isLoser?: boolean;
     position: "top" | "bottom";
@@ -155,9 +157,10 @@ export default function TournamentBracket({
     round: number;
     isThirdPlace?: boolean;
   }) => {
-    // Determine display text
-    const displayText = player?.name || (round === 1 ? t("bracket.bye") : t("bracket.tbd"));
-    const isBye = !player && round === 1;
+    // Determine display text: player name, or "Seed N Group X" placeholder, or BYE/TBD
+    const displayText = player?.name 
+      || (slot ? `Seed ${slot.seed} Group ${slot.group}` : (round === 1 ? t("bracket.bye") : t("bracket.tbd")));
+    const isBye = !player && !slot && round === 1;
     
     return (
       <div
@@ -294,6 +297,7 @@ export default function TournamentBracket({
                             {/* Player 1 Block */}
                             <PlayerBlock
                               player={match.player1 || null}
+                              slot={(match as Match).slot1}
                               isWinner={player1IsWinner || undefined}
                               isLoser={player1IsLoser || undefined}
                               position="top"
@@ -308,6 +312,7 @@ export default function TournamentBracket({
                             {/* Player 2 Block */}
                             <PlayerBlock
                               player={match.player2 || null}
+                              slot={(match as Match).slot2}
                               isWinner={player2IsWinner || undefined}
                               isLoser={player2IsLoser || undefined}
                               position="bottom"

@@ -5,6 +5,17 @@ import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Player } from "@/types/database";
 
+/** Standard bracket seed order: 1v8, 4v5, 2v7, 3v6 for size 8. */
+function getBracketSeedOrder(size: number): number[] {
+  if (size === 2) return [0, 1];
+  if (size === 4) return [0, 3, 1, 2];
+  if (size === 8) return [0, 7, 3, 4, 1, 6, 2, 5];
+  if (size === 16) return [0, 15, 7, 8, 3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10];
+  const out: number[] = [];
+  for (let i = 0; i < size; i++) out.push(i);
+  return out;
+}
+
 interface GenerateSeasonPlayProps {
   eventId: string;
   players: Player[];
@@ -201,6 +212,110 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
     } catch (err) {
       console.error("Error:", err);
       toast.error("An unexpected error occurred");
+      setLoading(false);
+    }
+  };
+
+  /** Create playoff bracket with SEED SLOTS only (no team names yet). Admin can edit draw; names fill in from standings. */
+  const createPlayoffBracketTemplate = async () => {
+    const totalTeams = numGroups * playoffTeams;
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(totalTeams)));
+    const numRounds = Math.log2(bracketSize);
+
+    if (totalTeams < 2) {
+      toast.error("Need at least 2 teams for playoffs (groups × qualifiers).");
+      return;
+    }
+
+    const confirmMsg = `建立季後賽籤表（種子位，尚未填入隊伍）？\n\n${numGroups} 組 × 每組前 ${playoffTeams} 名 = ${totalTeams} 隊\n籤表將顯示為「Seed N Group X」等，您可稍後在「編輯季後賽籤表」中調整對戰組合。\n\n確定建立？`;
+    if (!confirm(confirmMsg)) return;
+
+    setLoading(true);
+    try {
+      const { data: existingPlayoffs } = await supabase
+        .from("matches")
+        .select("id")
+        .eq("event_id", eventId)
+        .gte("round", 1);
+
+      if (existingPlayoffs && existingPlayoffs.length > 0) {
+        toast.error("季後賽籤表已存在。請先刪除現有季後賽比賽後再建立。");
+        setLoading(false);
+        return;
+      }
+
+      await supabase.from("events").update({ playoff_qualifiers_per_group: playoffTeams }).eq("id", eventId);
+
+      // Build round-1 slot positions: position i (0-based) = (seed, group), seed 1-based, group 1-based
+      const positions: { seed: number; group: number }[] = [];
+      for (let g = 1; g <= numGroups; g++) {
+        for (let s = 1; s <= playoffTeams; s++) {
+          positions.push({ seed: s, group: g });
+        }
+      }
+      while (positions.length < bracketSize) {
+        positions.push({ seed: 0, group: 0 }); // BYE placeholder
+      }
+
+      // Standard bracket order for round 1 (1v8, 4v5, 2v7, 3v6 for 8 teams)
+      const seedOrder = getBracketSeedOrder(bracketSize);
+      const playoffMatches: Array<{
+        event_id: string;
+        round: number;
+        match_number: number;
+        player1_id?: null;
+        player2_id?: null;
+        slot1_seed?: number;
+        slot1_group?: number;
+        slot2_seed?: number;
+        slot2_group?: number;
+        status: string;
+      }> = [];
+      let matchNumber = 1;
+      for (let i = 0; i < bracketSize; i += 2) {
+        const p1 = positions[seedOrder[i]];
+        const p2 = positions[seedOrder[i + 1]];
+        const isBye1 = p1.seed === 0;
+        const isBye2 = p2.seed === 0;
+        if (isBye1 && isBye2) continue;
+        playoffMatches.push({
+          event_id: eventId,
+          round: 1,
+          match_number: matchNumber++,
+          player1_id: null,
+          player2_id: null,
+          ...(isBye1 ? {} : { slot1_seed: p1.seed, slot1_group: p1.group }),
+          ...(isBye2 ? {} : { slot2_seed: p2.seed, slot2_group: p2.group }),
+          status: isBye1 || isBye2 ? "bye" : "upcoming",
+        });
+      }
+
+      for (let round = 2; round <= numRounds; round++) {
+        const matchesInRound = Math.pow(2, numRounds - round);
+        for (let i = 1; i <= matchesInRound; i++) {
+          playoffMatches.push({
+            event_id: eventId,
+            round,
+            match_number: i,
+            player1_id: null,
+            player2_id: null,
+            status: "upcoming",
+          });
+        }
+      }
+
+      const { error } = await supabase.from("matches").insert(playoffMatches);
+      if (error) {
+        toast.error(`建立失敗：${error.message}`);
+        setLoading(false);
+        return;
+      }
+      toast.success(`已建立季後賽籤表（種子位）。可至「管理籤表」編輯對戰組合，或等例行賽結束後填入隊伍。`);
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e) {
+      console.error(e);
+      toast.error("An unexpected error occurred");
+    } finally {
       setLoading(false);
     }
   };
@@ -535,20 +650,34 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         </button>
 
         <button
+          onClick={createPlayoffBracketTemplate}
+          disabled={loading}
+          className="w-full bg-amber-500 text-white py-3 px-4 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "..." : `📋 Create Playoff Bracket (${numGroups}×${playoffTeams} = seed slots only)`}
+        </button>
+        <p className="text-xs text-gray-500 -mt-1">
+          Creates a bracket with &quot;Seed N Group X&quot; placeholders. You can edit who plays whom in Matches; names fill in when standings are set.
+        </p>
+
+        <button
           onClick={generatePlayoffs}
           disabled={loading}
           className="w-full bg-yellow-600 text-white py-3 px-4 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Generating..." : `🏆 Generate Playoffs (Top ${playoffTeams})`}
+          {loading ? "Generating..." : `🏆 Fill Playoffs from Standings (Top ${playoffTeams})`}
         </button>
+        <p className="text-xs text-gray-500 -mt-1">
+          Run after bracket exists and all regular season matches are completed. Overwrites playoff bracket with current standings.
+        </p>
       </div>
 
       <div className="mt-4 text-xs text-gray-500">
         <p>⚠️ <strong>Important:</strong></p>
         <ul className="list-disc list-inside space-y-1 ml-2">
-          <li>First click &quot;Generate Regular Season&quot; to create all round-robin matches</li>
-          <li>After all regular season matches are completed, click &quot;Generate Playoffs&quot;</li>
-          <li>Generating will delete any existing matches!</li>
+          <li>First &quot;Generate Regular Season&quot;, then &quot;Create Playoff Bracket&quot; to get a seed-only bracket</li>
+          <li>Edit the draw in <strong>Matches</strong> (filter by Playoffs) to change which seed/group goes where</li>
+          <li>After all regular season is done, &quot;Fill Playoffs from Standings&quot; assigns actual teams (or names fill in as you complete matches)</li>
         </ul>
       </div>
     </div>

@@ -5,12 +5,22 @@ export interface Player {
   school?: string;
 }
 
+/** Playoff bracket slot: seed (1-based) and group number when match uses seed placeholders. */
+export interface SlotPlaceholder {
+  seed: number;
+  group: number;
+}
+
 export interface Match {
   id: string;
   round: number;
   matchNumber: number;
   player1?: Player | null;
   player2?: Player | null;
+  /** When set, bracket shows "Seed N Group X" (or resolved name from standings) instead of player1. */
+  slot1?: SlotPlaceholder | null;
+  /** When set, bracket shows "Seed N Group X" (or resolved name from standings) instead of player2. */
+  slot2?: SlotPlaceholder | null;
   winner?: Player | null;
   score?: string;
   status: "upcoming" | "live" | "completed" | "bye" | "delayed";

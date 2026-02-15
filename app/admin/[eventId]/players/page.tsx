@@ -4,6 +4,7 @@ import AdminNavbar from "@/components/admin/Navbar";
 import PlayersTable from "@/components/admin/PlayersTable";
 import GenerateBracket from "@/components/admin/GenerateBracket";
 import GenerateSeasonPlay from "@/components/admin/GenerateSeasonPlay";
+import EditPlayoffDraw from "@/components/admin/EditPlayoffDraw";
 import ImportBracket from "@/components/admin/ImportBracket";
 import ImportSeasonPlay from "@/components/admin/ImportSeasonPlay";
 import ImportSeasonGroups from "@/components/admin/ImportSeasonGroups";
@@ -53,6 +54,18 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
     .eq("event_id", eventId)
     .order("seed", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
+
+  // For season_play: get num groups from round-0 matches (for EditPlayoffDraw)
+  let playoffNumGroups = 1;
+  if (event?.tournament_type === "season_play") {
+    const { data: r0 } = await supabase
+      .from("matches")
+      .select("group_number")
+      .eq("event_id", eventId)
+      .eq("round", 0);
+    const groups = new Set((r0 || []).map((m: any) => m.group_number).filter((g: any) => g != null));
+    playoffNumGroups = groups.size || 1;
+  }
 
   // For 不可出賽: slot templates (weekly) and blackout templates per player
   const { data: slotTemplates } = await supabase
@@ -104,6 +117,13 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
                 eventId={eventId}
                 players={players || []}
                 initialQualifiersPerGroup={event?.playoff_qualifiers_per_group ?? undefined}
+              />
+            </div>
+            <div id="edit-playoff-draw" className="scroll-mt-24">
+              <EditPlayoffDraw
+                eventId={eventId}
+                numGroups={playoffNumGroups}
+                qualifiersPerGroup={event?.playoff_qualifiers_per_group ?? 4}
               />
             </div>
             <div id="import-season-groups" className="scroll-mt-24">
