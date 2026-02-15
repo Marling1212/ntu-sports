@@ -384,180 +384,98 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
       }
     });
 
-    // Sort each group by wins (descending) and take top X from each
-    const playoffPlayers: Player[] = [];
-    const playoffStandings: Array<{ player: Player; wins: number; losses: number; group: number }> = [];
-
-    groupNumbers.forEach(groupNum => {
+    // Build (seed, group) -> Player map. Seed is 1-based (1 = 1st in group).
+    const seedGroupToPlayer: Record<string, Player> = {};
+    for (const groupNum of groupNumbers) {
       const groupStandingsArray = Object.values(groupStandings[groupNum]);
       const sorted = groupStandingsArray.sort((a, b) => b.wins - a.wins);
       const topX = sorted.slice(0, playoffTeams);
-      
       if (topX.length < playoffTeams) {
         toast.error(`Group ${groupNum} doesn't have enough players! Need ${playoffTeams}, have ${topX.length}`);
         return;
       }
-
-      topX.forEach(standing => {
-        playoffPlayers.push(standing.player);
-        playoffStandings.push({ ...standing, group: groupNum });
+      topX.forEach((standing, idx) => {
+        const seed = idx + 1;
+        seedGroupToPlayer[`${seed},${groupNum}`] = standing.player;
       });
-    });
+    }
 
-    if (playoffPlayers.length === 0) {
-      toast.error("No players qualified for playoffs!");
+    // Fetch existing playoff bracket (admin-created dummy bracket with slot1/slot2 seed+group)
+    const { data: existingPlayoffs, error: fetchPlayoffsError } = await supabase
+      .from("matches")
+      .select("id, round, match_number, slot1_seed, slot1_group, slot2_seed, slot2_group, status")
+      .eq("event_id", eventId)
+      .gte("round", 1);
+
+    if (fetchPlayoffsError) {
+      toast.error(`Error fetching playoff bracket: ${fetchPlayoffsError.message}`);
+      return;
+    }
+    if (!existingPlayoffs || existingPlayoffs.length === 0) {
+      toast.error("No playoff bracket found. Create one first with \"Create Playoff Bracket\" (seed slots only), then run Fill from Standings.");
       return;
     }
 
-    // Sort playoff players by wins (descending) for seeding
-    playoffStandings.sort((a, b) => b.wins - a.wins);
-    const sortedPlayoffPlayers = playoffStandings.map(s => s.player);
-
     // Confirm with group breakdown
-    const confirmLines = [`確定要生成季後賽籤表嗎？\n\n每組前 ${playoffTeams} 名進入季後賽：\n`];
+    const playoffStandings: Array<{ player: Player; wins: number; losses: number; group: number }> = [];
+    groupNumbers.forEach(groupNum => {
+      const groupStandingsArray = Object.values(groupStandings[groupNum]);
+      const sorted = groupStandingsArray.sort((a, b) => b.wins - a.wins);
+      const topX = sorted.slice(0, playoffTeams);
+      topX.forEach((standing) => playoffStandings.push({ ...standing, group: groupNum }));
+    });
+    const confirmLines = [`將依「現有季後賽籤表」填入隊伍（不更動籤表結構）。\n\n每組前 ${playoffTeams} 名：\n`];
     groupNumbers.forEach(groupNum => {
       const groupTop = playoffStandings.filter(s => s.group === groupNum);
       confirmLines.push(`\n第 ${groupNum} 組：`);
       groupTop.forEach((standing, idx) => {
-        const player = standing.player;
-        confirmLines.push(`  ${idx + 1}. ${player.name} (${standing.wins}勝 ${standing.losses}敗)`);
+        confirmLines.push(`  ${idx + 1}. ${standing.player.name} (${standing.wins}勝 ${standing.losses}敗)`);
       });
     });
-    confirmLines.push(`\n\n總共 ${playoffPlayers.length} 名選手進入季後賽\n\n確定生成？`);
-    const confirmText = confirmLines.join('\n');
-    
-    if (!confirm(confirmText)) return;
+    confirmLines.push(`\n\n確定要依此名單填入現有籤表的每個種子位？`);
+    if (!confirm(confirmLines.join("\n"))) return;
 
     setLoading(true);
-
     try {
-      // Backup existing playoff matches before deletion
-      const { data: existingPlayoffs, error: fetchError } = await supabase
-        .from("matches")
-        .select("*")
-        .eq("event_id", eventId)
-        .gte("round", 1);
+      let filled = 0;
+      for (const m of existingPlayoffs as Array<{
+        id: string;
+        round: number;
+        match_number: number;
+        slot1_seed: number | null;
+        slot1_group: number | null;
+        slot2_seed: number | null;
+        slot2_group: number | null;
+        status: string;
+      }>) {
+        const hasSlot1 = m.slot1_seed != null && m.slot1_group != null;
+        const hasSlot2 = m.slot2_seed != null && m.slot2_group != null;
+        const player1 = hasSlot1 ? seedGroupToPlayer[`${m.slot1_seed},${m.slot1_group}`] : null;
+        const player2 = hasSlot2 ? seedGroupToPlayer[`${m.slot2_seed},${m.slot2_group}`] : null;
 
-      if (fetchError) {
-        toast.error(`Error fetching existing playoffs: ${fetchError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      // Get current backup or create new one
-      const { data: eventData } = await supabase
-        .from("events")
-        .select("matches_backup")
-        .eq("id", eventId)
-        .single();
-
-      if (existingPlayoffs && existingPlayoffs.length > 0) {
-        const backupData = eventData?.matches_backup || {};
-        backupData.playoffs = existingPlayoffs;
-        backupData.playoffs_backup_time = new Date().toISOString();
-        
-        const { error: backupError } = await supabase
-          .from("events")
-          .update({ matches_backup: backupData })
-          .eq("id", eventId);
-
-        if (backupError) {
-          console.error("Failed to backup playoffs:", backupError);
-        } else {
-          toast.success(`已備份 ${existingPlayoffs.length} 場季後賽數據`);
+        const updates: { player1_id?: string | null; player2_id?: string | null; winner_id?: string | null } = {};
+        if (hasSlot1) updates.player1_id = player1?.id ?? null;
+        if (hasSlot2) updates.player2_id = player2?.id ?? null;
+        if (m.status === "bye") {
+          const winner = player1 ?? player2;
+          if (winner) updates.winner_id = winner.id;
         }
-      }
+        if (Object.keys(updates).length === 0) continue;
 
-      // Delete existing playoff matches (round >= 1)
-      const { error: deleteError } = await supabase
-        .from("matches")
-        .delete()
-        .eq("event_id", eventId)
-        .gte("round", 1);
-
-      if (deleteError) {
-        toast.error(`Error deleting existing playoffs: ${deleteError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      // Generate single elimination playoff bracket
-      // Calculate bracket size (next power of 2)
-      const totalPlayoffPlayers = sortedPlayoffPlayers.length;
-      const bracketSize = Math.pow(2, Math.ceil(Math.log2(totalPlayoffPlayers)));
-      const numRounds = Math.log2(bracketSize);
-
-      // Seed players (top seed gets best position)
-      const positions: (Player | null)[] = new Array(bracketSize).fill(null);
-      
-      // Standard seeding (1 vs lowest, 2 vs 2nd lowest, etc.)
-      for (let i = 0; i < sortedPlayoffPlayers.length; i++) {
-        positions[i] = sortedPlayoffPlayers[i];
-      }
-
-      // Generate first round matches
-      const playoffMatches = [];
-      let matchNumber = 1;
-      
-      for (let i = 0; i < bracketSize; i += 2) {
-        const player1 = positions[i];
-        const player2 = positions[i + 1];
-
-        // Create match (with BYE if needed)
-        if (player1 && !player2) {
-          // BYE for player1
-          playoffMatches.push({
-            event_id: eventId,
-            round: 1,
-            match_number: matchNumber++,
-            player1_id: player1.id,
-            player2_id: null,
-            status: "bye" as any,
-            winner_id: player1.id,
-          });
-        } else if (player1 && player2) {
-          playoffMatches.push({
-            event_id: eventId,
-            round: 1,
-            match_number: matchNumber++,
-            player1_id: player1.id,
-            player2_id: player2.id,
-            status: "upcoming",
-          });
+        const { error: updateError } = await supabase
+          .from("matches")
+          .update(updates)
+          .eq("id", m.id);
+        if (updateError) {
+          toast.error(`Failed to update match R${m.round}-${m.match_number}: ${updateError.message}`);
+          setLoading(false);
+          return;
         }
+        filled++;
       }
 
-      // Create placeholder matches for later rounds
-      for (let round = 2; round <= numRounds; round++) {
-        const matchesInRound = Math.pow(2, numRounds - round);
-        for (let i = 1; i <= matchesInRound; i++) {
-          playoffMatches.push({
-            event_id: eventId,
-            round,
-            match_number: i,
-            player1_id: null,
-            player2_id: null,
-            status: "upcoming",
-          });
-        }
-      }
-
-      // Insert playoff matches
-      const { error: matchError } = await supabase
-        .from("matches")
-        .insert(playoffMatches);
-
-      if (matchError) {
-        toast.error(`Error creating playoff matches: ${matchError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      toast.success(`✅ 季後賽籤表已生成！\n共 ${playoffMatches.filter(m => m.status !== 'bye').length} 場比賽\n${groupNumbers.length} 組，每組前 ${playoffTeams} 名，共 ${totalPlayoffPlayers} 名選手\n\n💡 提示：您可以在「管理籤表」中手動調整選手位置`);
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      toast.success(`已依 standings 填入現有季後賽籤表，共更新 ${filled} 場對戰的隊伍。`);
+      setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
       console.error("Error:", err);
       toast.error("An unexpected error occurred");
@@ -684,7 +602,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
           {loading ? "Generating..." : `🏆 Fill Playoffs from Standings (Top ${playoffTeams})`}
         </button>
         <p className="text-xs text-gray-500 -mt-1">
-          Run after bracket exists and all regular season matches are completed. Overwrites playoff bracket with current standings.
+          Uses your existing playoff bracket (Create Playoff Bracket + Edit Draw). Fills each seed slot with the actual player from current standings (e.g. Seed 1 Group A → 1st in Group A). Does not change bracket structure.
         </p>
       </div>
 
@@ -693,7 +611,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         <ul className="list-disc list-inside space-y-1 ml-2">
           <li>First &quot;Generate Regular Season&quot;, then &quot;Create Playoff Bracket&quot; to get a seed-only bracket</li>
           <li>Edit the draw in <strong>Matches</strong> (filter by Playoffs) to change which seed/group goes where</li>
-          <li>After all regular season is done, &quot;Fill Playoffs from Standings&quot; assigns actual teams (or names fill in as you complete matches)</li>
+          <li>After regular season is done, &quot;Fill Playoffs from Standings&quot; fills your existing bracket: each Seed N Group X slot gets the actual player from standings (does not replace or reseed the bracket)</li>
         </ul>
       </div>
     </div>
