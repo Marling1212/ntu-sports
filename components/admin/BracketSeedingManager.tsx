@@ -103,7 +103,7 @@ export default function BracketSeedingManager({
         group_number: m.group_number,
       }));
       const playersForStandings = players.map((p) => ({ id: p.id, name: p.name, seed: p.seed, school: p.department }));
-      const byGroup = computeStandings(matchesForStandings, playersForStandings, config, {}) as Record<number, { player: Player; wins: number; losses: number; group?: number }[]>;
+      const byGroup = computeStandings(matchesForStandings, playersForStandings, config, {}) as Record<number, import("@/lib/standings").StandingRow[]>;
       const standings: any[] = [];
       Object.keys(byGroup).forEach((groupNum) => {
         const sorted = byGroup[parseInt(groupNum)] || [];
