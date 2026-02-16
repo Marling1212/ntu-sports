@@ -67,7 +67,7 @@ export default async function SportDrawPage(context: any) {
         teamMembers = members || [];
       }
     }
-    
+
     // Convert to tournament format
     matches = dbMatches.map((m: any) => ({
       id: m.id,
@@ -165,6 +165,7 @@ export default async function SportDrawPage(context: any) {
           registrationType={event?.registration_type as 'player' | 'team' | undefined}
           matchPlayerStats={matchPlayerStats}
           teamMembers={teamMembers}
+          tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
         />
       ) : (
         <BracketSection

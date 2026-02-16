@@ -126,6 +126,7 @@ export default async function SportPlayoffsPage(context: any) {
           registrationType={event?.registration_type as "player" | "team" | undefined}
           matchPlayerStats={matchPlayerStats}
           teamMembers={teamMembers}
+          tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
         />
       </div>
     </>

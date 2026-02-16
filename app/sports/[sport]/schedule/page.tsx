@@ -122,6 +122,7 @@ export default async function SportSchedulePage(context: any) {
               qualifiersPerGroup={(event as any)?.playoff_qualifiers_per_group || undefined}
               visibleTabs={{ regular: true, standings: false, playoffs: false }}
               defaultView="regular"
+              tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
             />
           </div>
         )}

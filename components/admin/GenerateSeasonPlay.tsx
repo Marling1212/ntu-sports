@@ -428,10 +428,12 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
       return;
     }
 
-    // Confirm with group breakdown (from shared standings)
+    // Confirm with group breakdown (from groupStandings)
     const confirmLines = [`將依「現有季後賽籤表」填入隊伍（不更動籤表結構）。\n\n每組前 ${playoffTeams} 名：\n`];
     groupNumbers.forEach(groupNum => {
-      const groupTop = playoffStandings.filter((s) => s.group === groupNum);
+      const groupTop = Object.values(groupStandings[groupNum] || {})
+        .sort((a, b) => b.wins - a.wins)
+        .slice(0, playoffTeams);
       confirmLines.push(`\n第 ${groupNum} 組：`);
       groupTop.forEach((row, idx) => {
         confirmLines.push(`  ${idx + 1}. ${row.player.name} (${row.wins}勝 ${row.losses}敗)`);

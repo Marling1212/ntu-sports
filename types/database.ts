@@ -13,9 +13,29 @@ export interface Event {
   bracket_generation_method?: 'auto' | 'manual' | 'imported' | null;
   bracket_generated_at?: string | null;
   bracket_locked?: boolean;
+  tiebreaker_config?: TiebreakerConfig | null;
   created_at: string;
   updated_at: string;
 }
+
+/** Season play ranking: order of criteria + final tiebreaker. */
+export interface TiebreakerConfig {
+  /** Order of criteria (first to last). */
+  order: TiebreakerCriteria[];
+  /** When all criteria are tied. */
+  final_tiebreaker: 'admin_decide' | 'alphabetical';
+  points_win?: number;
+  points_draw?: number;
+  points_loss?: number;
+}
+
+export type TiebreakerCriteria =
+  | 'points'
+  | 'head_to_head'
+  | 'goal_difference'
+  | 'goals_for'
+  | 'fair_play'
+  | 'final';
 
 export interface Organizer {
   id: string;

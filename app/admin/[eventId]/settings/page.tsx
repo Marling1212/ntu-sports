@@ -86,6 +86,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
           contactInfo={event?.contact_info || ""}
           initialRegistrationType={event?.registration_type as 'player' | 'team' | undefined}
           initialIsVisible={event?.is_visible ?? false}
+          initialTiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
+          tournamentType={event?.tournament_type ?? undefined}
         />
           </div>
         </main>

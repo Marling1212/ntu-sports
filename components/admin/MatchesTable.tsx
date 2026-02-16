@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player } from "@/types/database";
 import { checkAndAnnounceRoundCompletion } from "@/lib/utils/checkRoundCompletion";
+import { syncLockedPlayoffSeeds } from "@/lib/actions/syncLockedPlayoffSeeds";
 import * as XLSX from 'xlsx';
 import Link from "next/link";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
@@ -306,6 +307,11 @@ export default function MatchesTable({
     if (error) {
       toast.error(`Error: ${error.message}`);
       return;
+    }
+
+    // After updating a regular-season result, sync locked playoff slots (auto-fill bracket)
+    if (currentMatch.round === 0) {
+      syncLockedPlayoffSeeds(eventId).catch((err) => console.warn("syncLockedPlayoffSeeds:", err));
     }
 
     // Generate announcement drafts for all changes (status, date, score)

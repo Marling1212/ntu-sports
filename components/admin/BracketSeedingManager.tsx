@@ -74,61 +74,49 @@ export default function BracketSeedingManager({
 
   const loadGroupStandings = async () => {
     try {
-      const { data: regularMatches } = await supabase
-        .from("matches")
-        .select("*, player1:player1_id(id, name), player2:player2_id(id, name), winner:winner_id(id, name)")
-        .eq("event_id", eventId)
-        .eq("round", 0)
-        .eq("status", "completed");
+      const [{ data: eventData }, { data: regularMatches }] = await Promise.all([
+        supabase.from("events").select("tiebreaker_config").eq("id", eventId).single(),
+        supabase
+          .from("matches")
+          .select("*, player1:player1_id(id, name), player2:player2_id(id, name), winner:winner_id(id, name)")
+          .eq("event_id", eventId)
+          .eq("round", 0)
+          .eq("status", "completed"),
+      ]);
 
-      if (!regularMatches) return;
+      if (!regularMatches?.length) {
+        setGroupStandings([]);
+        return;
+      }
 
-      // Calculate standings per group
-      const standingsMap: { [key: number]: { [playerId: string]: { player: Player; wins: number; losses: number } } } = {};
-      
-      regularMatches.forEach((match: any) => {
-        const groupNum = match.group_number || 1;
-        if (!standingsMap[groupNum]) standingsMap[groupNum] = {};
-
-        if (match.player1_id && !standingsMap[groupNum][match.player1_id]) {
-          const player = players.find(p => p.id === match.player1_id);
-          if (player) {
-            standingsMap[groupNum][match.player1_id] = { player, wins: 0, losses: 0 };
-          }
-        }
-        if (match.player2_id && !standingsMap[groupNum][match.player2_id]) {
-          const player = players.find(p => p.id === match.player2_id);
-          if (player) {
-            standingsMap[groupNum][match.player2_id] = { player, wins: 0, losses: 0 };
-          }
-        }
-
-        if (match.winner_id && standingsMap[groupNum][match.winner_id]) {
-          standingsMap[groupNum][match.winner_id].wins++;
-          const loserId = match.winner_id === match.player1_id ? match.player2_id : match.player1_id;
-          if (loserId && standingsMap[groupNum][loserId]) {
-            standingsMap[groupNum][loserId].losses++;
-          }
-        }
-      });
-
-      // Convert to array and sort (wins desc, then losses asc for tie-breaker)
+      const { computeStandings, normalizeTiebreakerConfig } = await import("@/lib/standings");
+      const config = normalizeTiebreakerConfig((eventData as any)?.tiebreaker_config);
+      const matchesForStandings = regularMatches.map((m: any) => ({
+        player1_id: m.player1_id,
+        player2_id: m.player2_id,
+        winner_id: m.winner_id,
+        score: m.score1 != null && m.score2 != null ? `${m.score1}-${m.score2}` : null,
+        score1: m.score1,
+        score2: m.score2,
+        status: m.status,
+        round: m.round,
+        group_number: m.group_number,
+      }));
+      const playersForStandings = players.map((p) => ({ id: p.id, name: p.name, seed: p.seed, school: p.department }));
+      const byGroup = computeStandings(matchesForStandings, playersForStandings, config, {}) as Record<number, { player: Player; wins: number; losses: number; group?: number }[]>;
       const standings: any[] = [];
-      Object.keys(standingsMap).forEach(groupNum => {
-        const groupStandings = Object.values(standingsMap[parseInt(groupNum)]);
-        const sorted = groupStandings.sort((a, b) => {
-          if (b.wins !== a.wins) return b.wins - a.wins;
-          return a.losses - b.losses; // fewer losses = better
-        });
-        sorted.forEach((standing, rank) => {
+      Object.keys(byGroup).forEach((groupNum) => {
+        const sorted = byGroup[parseInt(groupNum)] || [];
+        sorted.forEach((row, rank) => {
           standings.push({
-            ...standing,
+            player: row.player,
+            wins: row.wins,
+            losses: row.losses,
             group: parseInt(groupNum),
             rank: rank + 1,
           });
         });
       });
-
       setGroupStandings(standings);
     } catch (error: any) {
       console.error("Error loading standings:", error);

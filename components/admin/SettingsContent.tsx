@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
+import TiebreakerConfigEditor from "./TiebreakerConfigEditor";
 
 interface TournamentRule {
   id: string;
@@ -56,6 +57,8 @@ interface SettingsContentProps {
   contactInfo: string;
   initialRegistrationType?: 'player' | 'team';
   initialIsVisible?: boolean;
+  initialTiebreakerConfig?: unknown;
+  tournamentType?: string;
 }
 
 export default function SettingsContent({ 
@@ -68,7 +71,9 @@ export default function SettingsContent({
   scheduleUpdatedAt: initialScheduleUpdatedAt,
   contactInfo: initialContactInfo,
   initialRegistrationType = 'player',
-  initialIsVisible = false
+  initialIsVisible = false,
+  initialTiebreakerConfig,
+  tournamentType: tournamentTypeProp,
 }: SettingsContentProps) {
   const [rules, setRules] = useState<TournamentRule[]>(initialRules);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(initialScheduleItems);
@@ -672,6 +677,14 @@ export default function SettingsContent({
               </button>
             </div>
           </div>
+        </div>
+
+        <div className="mt-8">
+          <TiebreakerConfigEditor
+            eventId={eventId}
+            initialConfig={initialTiebreakerConfig as any}
+            tournamentType={eventData.tournamentType || tournamentTypeProp}
+          />
         </div>
 
       {/* 賽事規則 */}

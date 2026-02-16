@@ -223,6 +223,11 @@ export default function MatchDetailContent({
 
       if (error) throw error;
 
+      if (match.round === 0) {
+        const { syncLockedPlayoffSeeds } = await import("@/lib/actions/syncLockedPlayoffSeeds");
+        syncLockedPlayoffSeeds(eventId).catch((err) => console.warn("syncLockedPlayoffSeeds:", err));
+      }
+
       toast.success("比賽資訊已保存！");
     } catch (error: any) {
       toast.error(`錯誤: ${error.message}`);

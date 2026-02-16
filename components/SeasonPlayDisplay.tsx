@@ -9,6 +9,8 @@ import Link from "next/link";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
 import { type DesignVariant, seasonPlayThemes, seasonPlayDefault } from "@/components/design-variants/designThemes";
 import { useI18n } from "@/lib/i18n/context";
+import type { TiebreakerConfig } from "@/types/database";
+import { computeStandings, normalizeTiebreakerConfig, getTiebreakerRulesText } from "@/lib/standings";
 
 interface SeasonPlayDisplayProps {
   matches: Match[];
@@ -41,12 +43,14 @@ interface SeasonPlayDisplayProps {
   }>;
   /** Design variant for UI comparison (Phase 3). */
   designVariant?: DesignVariant;
+  /** Tiebreaker rules (from event.tiebreaker_config). When null/undefined, default rules are used and shown. */
+  tiebreakerConfig?: TiebreakerConfig | null;
 }
 
 const TAIPEI_TZ = "Asia/Taipei";
 
-export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant }: SeasonPlayDisplayProps) {
-  const { t } = useI18n();
+export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant, tiebreakerConfig }: SeasonPlayDisplayProps) {
+  const { t, locale } = useI18n();
   const theme = designVariant ? seasonPlayThemes[designVariant] : seasonPlayDefault;
   const tabs = {
     regular: visibleTabs?.regular !== false,
@@ -772,7 +776,36 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     });
   };
 
-  const standings = calculateStandings();
+  const config = useMemo(() => normalizeTiebreakerConfig(tiebreakerConfig), [tiebreakerConfig]);
+  const standings = useMemo(() => {
+    const opts = {
+      matchPlayerStats,
+      teamMembers,
+      registrationType,
+      groupNumber:
+        hasGroups && selectedGroup !== "all" ? (selectedGroup as number) : undefined,
+    };
+    return computeStandings(
+      regularSeasonMatches as any,
+      players,
+      config,
+      opts
+    );
+  }, [
+    regularSeasonMatches,
+    players,
+    config,
+    hasGroups,
+    selectedGroup,
+    matchPlayerStats,
+    teamMembers,
+    registrationType,
+  ]);
+
+  const tiebreakerRulesLines = useMemo(
+    () => getTiebreakerRulesText(config, locale === "zh" ? "zh" : "en"),
+    [config, locale]
+  );
 
   // Count completed matches
   const completedRegularMatches = regularSeasonMatches.filter(m => m.status === 'completed').length;
@@ -963,6 +996,15 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            <p className="font-semibold text-gray-800 mb-1">{locale === "zh" ? "排名規則（同分時依序比較）" : "Ranking rules (tiebreakers in order)"}</p>
+            <ul className="list-none space-y-0.5">
+              {tiebreakerRulesLines.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
           </div>
 
           {hasGroups && typeof standings === 'object' && !Array.isArray(standings) ? (
