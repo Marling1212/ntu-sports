@@ -243,28 +243,25 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
       return;
     }
 
-    const confirmMsg = `建立季後賽籤表（種子位，尚未填入隊伍）？\n\n${numGroups} 組 × 每組前 ${playoffTeams} 名 = ${totalTeams} 隊\n籤表將顯示為「Seed N Group X」等，您可稍後在「編輯季後賽籤表」中調整對戰組合。\n\n確定建立？`;
+    const confirmMsg = `建立季後賽籤表（種子位，尚未填入隊伍）？\n\n${numGroups} 組 × 每組前 ${playoffTeams} 名 = ${totalTeams} 隊\n籤表將顯示為「Seed N Group X」等。若已有舊籤表會先清除再建立。\n\n確定建立？`;
     if (!confirm(confirmMsg)) return;
 
     setLoading(true);
     try {
-      const checkExisting = async () => {
-        const { data } = await supabase
-          .from("matches")
-          .select("id")
-          .eq("event_id", eventId)
-          .gte("round", 1);
-        return data ?? [];
-      };
-      let existingPlayoffs = await checkExisting();
-      if (existingPlayoffs.length > 0) {
-        await new Promise((r) => setTimeout(r, 400));
-        existingPlayoffs = await checkExisting();
-      }
-      if (existingPlayoffs.length > 0) {
-        toast.error("季後賽籤表已存在。請先按「刪除季後賽籤表」再重新建立。");
+      // 先清除該賽事所有季後賽（Server Action），再建立，避免「籤表已存在」卡住
+      const deleteResult = await deletePlayoffMatches(eventId);
+      if (deleteResult.error) {
+        toast.error(`無法清除舊籤表：${deleteResult.error}`);
         setLoading(false);
         return;
+      }
+      if (playoffMatchCount > 0 && deleteResult.deleted === 0) {
+        toast.error("無法刪除舊季後賽籤表（請確認您為該賽事主辦方）。請在「比賽」頁手動刪除季後賽後再試。");
+        setLoading(false);
+        return;
+      }
+      if (deleteResult.deleted > 0) {
+        toast.success(`已清除 ${deleteResult.deleted} 場舊季後賽，正在建立新籤表…`);
       }
 
       await supabase.from("events").update({ playoff_qualifiers_per_group: playoffTeams }).eq("id", eventId);
