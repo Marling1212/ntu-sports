@@ -1,6 +1,6 @@
 "use client";
 
-import { Match, Player } from "@/types/tournament";
+import { Match, Player, SlotPlaceholder } from "@/types/tournament";
 import { useState, useMemo } from "react";
 import TournamentBracket from "./TournamentBracket";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
@@ -112,7 +112,35 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   }, [matches, selectedGroup]);
 
   const playoffMatches = matches.filter(m => m.round >= 1);
-  
+
+  /** 從上一輪 BYE 晉級的 slot/player 帶入本輪，讓 admin 修改第一輪後第二輪顯示會跟著更新 */
+  const resolvedPlayoffMatches = useMemo(() => {
+    const getByeWinner = (m: Match): { player: Player | null; slot: SlotPlaceholder | null } | null => {
+      if (m?.status !== "bye") return null;
+      return {
+        player: m.player1 || m.player2 || null,
+        slot: (m.slot1 != null ? m.slot1 : m.slot2) ?? null,
+      };
+    };
+    return playoffMatches.map((match) => {
+      if (match.round < 2) return match;
+      const prevRound = match.round - 1;
+      const feed1Num = (match.matchNumber - 1) * 2 + 1;
+      const feed2Num = (match.matchNumber - 1) * 2 + 2;
+      const prev1 = playoffMatches.find((m) => m.round === prevRound && m.matchNumber === feed1Num);
+      const prev2 = playoffMatches.find((m) => m.round === prevRound && m.matchNumber === feed2Num);
+      const bye1 = prev1 ? getByeWinner(prev1) : null;
+      const bye2 = prev2 ? getByeWinner(prev2) : null;
+      return {
+        ...match,
+        player1: bye1?.player ?? match.player1,
+        slot1: bye1?.slot ?? match.slot1,
+        player2: bye2?.player ?? match.player2,
+        slot2: bye2?.slot ?? match.slot2,
+      };
+    });
+  }, [playoffMatches]);
+
   const hasRegularSeason = matches.filter(m => m.round === 0).length > 0;
   const hasPlayoffs = playoffMatches.length > 0;
 
@@ -1364,7 +1392,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           </div>
 
           <TournamentBracket
-            matches={playoffMatches}
+            matches={resolvedPlayoffMatches}
             players={players}
             sportName={sportName}
           />
