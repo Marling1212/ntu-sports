@@ -160,7 +160,7 @@ export default async function SportDrawPage(context: any) {
           players={players}
           sportName={sportName}
           qualifiersPerGroup={(event as any)?.playoff_qualifiers_per_group || undefined}
-          visibleTabs={{ regular: false, standings: true, playoffs: true }}
+          visibleTabs={{ regular: false, standings: true, playoffs: false }}
           defaultView="standings"
           registrationType={event?.registration_type as 'player' | 'team' | undefined}
           matchPlayerStats={matchPlayerStats}
