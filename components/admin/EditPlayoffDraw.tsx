@@ -79,7 +79,11 @@ export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup
     })();
   }, [eventId, numGroups, qualifiersPerGroup, fetchR1, supabase]);
 
-  const handleSave = async (m: R1Match, slot1: { seed: number; group: number }, slot2: { seed: number; group: number }) => {
+  const handleSave = async (
+    m: R1Match,
+    slot1: { seed: number | null; group: number | null },
+    slot2: { seed: number | null; group: number | null },
+  ) => {
     setSavingId(m.id);
     const { error } = await supabase
       .from("matches")
@@ -100,8 +104,8 @@ export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup
       prev.map((x) =>
         x.id === m.id
           ? { ...x, slot1_seed: slot1.seed, slot1_group: slot1.group, slot2_seed: slot2.seed, slot2_group: slot2.group }
-          : x
-      )
+          : x,
+      ),
     );
   };
 
@@ -131,6 +135,8 @@ export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup
   );
 }
 
+const BYE_VALUE = 0; // seed=0 表示 BYE（輪空）
+
 function EditPlayoffRow({
   match,
   seeds,
@@ -142,63 +148,56 @@ function EditPlayoffRow({
   seeds: number[];
   groups: number[];
   saving: boolean;
-  onSave: (m: R1Match, slot1: { seed: number; group: number }, slot2: { seed: number; group: number }) => void;
+  onSave: (m: R1Match, slot1: { seed: number | null; group: number | null }, slot2: { seed: number | null; group: number | null }) => void;
 }) {
-  const [s1, setS1] = useState(match.slot1_seed ?? 1);
+  const [s1, setS1] = useState(match.slot1_seed ?? BYE_VALUE);
   const [g1, setG1] = useState(match.slot1_group ?? 1);
-  const [s2, setS2] = useState(match.slot2_seed ?? 1);
+  const [s2, setS2] = useState(match.slot2_seed ?? BYE_VALUE);
   const [g2, setG2] = useState(match.slot2_group ?? 1);
 
   useEffect(() => {
-    setS1(match.slot1_seed ?? 1);
+    setS1(match.slot1_seed ?? BYE_VALUE);
     setG1(match.slot1_group ?? 1);
-    setS2(match.slot2_seed ?? 1);
+    setS2(match.slot2_seed ?? BYE_VALUE);
     setG2(match.slot2_group ?? 1);
   }, [match.slot1_seed, match.slot1_group, match.slot2_seed, match.slot2_group]);
+
+  const toSlot = (seed: number, group: number) =>
+    ({ seed: seed === BYE_VALUE ? null : seed, group: seed === BYE_VALUE ? null : group });
 
   return (
     <div className="flex flex-wrap items-center gap-2 py-2 border-b border-gray-100 last:border-0">
       <span className="font-medium text-gray-700 w-20">Match {match.match_number}</span>
-      <select
-        value={s1}
-        onChange={(e) => setS1(Number(e.target.value))}
-        className="px-2 py-1 border rounded text-sm"
-      >
+      <select value={s1} onChange={(e) => setS1(Number(e.target.value))} className="px-2 py-1 border rounded text-sm">
+        <option value={BYE_VALUE}>BYE</option>
         {seeds.map((s) => (
           <option key={s} value={s}>Seed {s}</option>
         ))}
       </select>
-      <select
-        value={g1}
-        onChange={(e) => setG1(Number(e.target.value))}
-        className="px-2 py-1 border rounded text-sm"
-      >
-        {groups.map((g) => (
-          <option key={g} value={g}>Group {g}</option>
-        ))}
-      </select>
+      {s1 !== BYE_VALUE && (
+        <select value={g1} onChange={(e) => setG1(Number(e.target.value))} className="px-2 py-1 border rounded text-sm">
+          {groups.map((g) => (
+            <option key={g} value={g}>Group {g}</option>
+          ))}
+        </select>
+      )}
       <span className="text-gray-400">vs</span>
-      <select
-        value={s2}
-        onChange={(e) => setS2(Number(e.target.value))}
-        className="px-2 py-1 border rounded text-sm"
-      >
+      <select value={s2} onChange={(e) => setS2(Number(e.target.value))} className="px-2 py-1 border rounded text-sm">
+        <option value={BYE_VALUE}>BYE</option>
         {seeds.map((s) => (
           <option key={s} value={s}>Seed {s}</option>
         ))}
       </select>
-      <select
-        value={g2}
-        onChange={(e) => setG2(Number(e.target.value))}
-        className="px-2 py-1 border rounded text-sm"
-      >
-        {groups.map((g) => (
-          <option key={g} value={g}>Group {g}</option>
-        ))}
-      </select>
+      {s2 !== BYE_VALUE && (
+        <select value={g2} onChange={(e) => setG2(Number(e.target.value))} className="px-2 py-1 border rounded text-sm">
+          {groups.map((g) => (
+            <option key={g} value={g}>Group {g}</option>
+          ))}
+        </select>
+      )}
       <button
         type="button"
-        onClick={() => onSave(match, { seed: s1, group: g1 }, { seed: s2, group: g2 })}
+        onClick={() => onSave(match, toSlot(s1, g1), toSlot(s2, g2))}
         disabled={saving}
         className="ml-2 px-3 py-1 bg-ntu-green text-white rounded text-sm hover:opacity-90 disabled:opacity-50"
       >
