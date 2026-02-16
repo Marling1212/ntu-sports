@@ -304,6 +304,18 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         }
       }
 
+      // 季軍賽：與決賽同 round，match_number = 2（決賽為 1）
+      if (numRounds >= 2) {
+        playoffMatches.push({
+          event_id: eventId,
+          round: numRounds,
+          match_number: 2,
+          player1_id: null,
+          player2_id: null,
+          status: "upcoming",
+        });
+      }
+
       const { error } = await supabase.from("matches").insert(playoffMatches);
       if (error) {
         toast.error(`建立失敗：${error.message}`);
@@ -416,20 +428,13 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
       return;
     }
 
-    // Confirm with group breakdown
-    const playoffStandings: Array<{ player: Player; wins: number; losses: number; group: number }> = [];
-    groupNumbers.forEach(groupNum => {
-      const groupStandingsArray = Object.values(groupStandings[groupNum]);
-      const sorted = groupStandingsArray.sort((a, b) => b.wins - a.wins);
-      const topX = sorted.slice(0, playoffTeams);
-      topX.forEach((standing) => playoffStandings.push({ ...standing, group: groupNum }));
-    });
+    // Confirm with group breakdown (from shared standings)
     const confirmLines = [`將依「現有季後賽籤表」填入隊伍（不更動籤表結構）。\n\n每組前 ${playoffTeams} 名：\n`];
     groupNumbers.forEach(groupNum => {
-      const groupTop = playoffStandings.filter(s => s.group === groupNum);
+      const groupTop = (standingsByGroup[groupNum] ?? []).slice(0, playoffTeams);
       confirmLines.push(`\n第 ${groupNum} 組：`);
-      groupTop.forEach((standing, idx) => {
-        confirmLines.push(`  ${idx + 1}. ${standing.player.name} (${standing.wins}勝 ${standing.losses}敗)`);
+      groupTop.forEach((row, idx) => {
+        confirmLines.push(`  ${idx + 1}. ${row.player.name} (${row.wins}勝 ${row.losses}敗)`);
       });
     });
     confirmLines.push(`\n\n確定要依此名單填入現有籤表的每個種子位？`);
@@ -472,6 +477,23 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
           return;
         }
         filled++;
+
+        // BYE 場次：晉級者一併填入下一輪對應格位，避免第二輪仍空白
+        if (m.status === "bye" && m.round >= 1) {
+          const winner = player1 ?? player2;
+          if (winner) {
+            const nextRound = m.round + 1;
+            const nextMatchNum = Math.ceil(m.match_number / 2);
+            const isPlayer1Slot = m.match_number % 2 === 1;
+            const nextMatch = existingPlayoffs.find(
+              (x: { round: number; match_number: number }) => x.round === nextRound && x.match_number === nextMatchNum
+            ) as { id: string } | undefined;
+            if (nextMatch) {
+              const nextUpdates = isPlayer1Slot ? { player1_id: winner.id } : { player2_id: winner.id };
+              await supabase.from("matches").update(nextUpdates).eq("id", nextMatch.id);
+            }
+          }
+        }
       }
 
       toast.success(`已依 standings 填入現有季後賽籤表，共更新 ${filled} 場對戰的隊伍。`);
