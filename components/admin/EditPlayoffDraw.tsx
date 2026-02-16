@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 
@@ -19,29 +19,65 @@ interface R1Match {
   slot2_group: number | null;
 }
 
+/** 第一輪應有場次 = bracketSize / 2，bracketSize 為大於等於總隊數的最小 2 的冪次 */
+function expectedR1MatchCount(numGroups: number, qualifiersPerGroup: number): number {
+  const total = numGroups * qualifiersPerGroup;
+  if (total < 2) return 1;
+  const bracketSize = Math.pow(2, Math.ceil(Math.log2(total)));
+  return bracketSize / 2;
+}
+
 export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup }: EditPlayoffDrawProps) {
   const [matches, setMatches] = useState<R1Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const supabase = createClient();
 
+  const fetchR1 = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("matches")
+      .select("id, match_number, slot1_seed, slot1_group, slot2_seed, slot2_group")
+      .eq("event_id", eventId)
+      .eq("round", 1)
+      .order("match_number", { ascending: true });
+    if (error) {
+      toast.error(error.message);
+      return [];
+    }
+    return (data || []) as R1Match[];
+  }, [eventId, supabase]);
+
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
-        .from("matches")
-        .select("id, match_number, slot1_seed, slot1_group, slot2_seed, slot2_group")
-        .eq("event_id", eventId)
-        .eq("round", 1)
-        .order("match_number", { ascending: true });
-      if (error) {
-        toast.error(error.message);
-        setLoading(false);
-        return;
+      let list = await fetchR1();
+      const expected = expectedR1MatchCount(numGroups, qualifiersPerGroup);
+      if (list.length < expected) {
+        const toAdd = expected - list.length;
+        const nextMatchNum = list.length + 1;
+        const inserts = Array.from({ length: toAdd }, (_, i) => ({
+          event_id: eventId,
+          round: 1,
+          match_number: nextMatchNum + i,
+          player1_id: null,
+          player2_id: null,
+          slot1_seed: null,
+          slot1_group: null,
+          slot2_seed: null,
+          slot2_group: null,
+          status: "bye",
+        }));
+        const { error: insertErr } = await supabase.from("matches").insert(inserts);
+        if (insertErr) {
+          toast.error("補滿第一輪時寫入失敗：" + insertErr.message);
+        } else {
+          toast.success(`已補滿第一輪至 ${expected} 場（2 的倍數）。`);
+          list = await fetchR1();
+        }
       }
-      setMatches((data || []) as R1Match[]);
+      setMatches(list);
       setLoading(false);
     })();
-  }, [eventId]);
+  }, [eventId, numGroups, qualifiersPerGroup, fetchR1, supabase]);
 
   const handleSave = async (m: R1Match, slot1: { seed: number; group: number }, slot2: { seed: number; group: number }) => {
     setSavingId(m.id);
