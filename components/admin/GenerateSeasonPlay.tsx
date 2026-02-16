@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Player } from "@/types/database";
+import { deletePlayoffMatches } from "@/lib/actions/deletePlayoffMatches";
 
 /** Standard bracket seed order: 1v8, 4v5, 2v7, 3v6 for size 8. */
 function getBracketSeedOrder(size: number): number[] {
@@ -355,31 +356,26 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
     }
   };
 
-  /** 刪除本賽事所有季後賽比賽（round >= 1），以便重新建立不同大小的籤表。 */
+  /** 刪除本賽事所有季後賽比賽（round >= 1），改由 Server Action 執行以確保權限正確。 */
   const deletePlayoffBracket = async () => {
     if (playoffMatchCount === 0) return;
     const msg = `確定要刪除「季後賽籤表」嗎？\n\n將刪除本賽事全部 ${playoffMatchCount} 場季後賽比賽（第一輪～決賽、季軍賽），此操作無法復原。\n\n刪除後可再按「建立季後賽籤表」重新建立（例如改為 10 隊的 16 格籤表）。`;
     if (!confirm(msg)) return;
     setLoading(true);
     try {
-      const { data: deleted, error } = await supabase
-        .from("matches")
-        .delete()
-        .eq("event_id", eventId)
-        .gte("round", 1)
-        .select("id");
-      if (error) {
-        toast.error(`刪除失敗：${error.message}`);
+      const result = await deletePlayoffMatches(eventId);
+      if (result.error) {
+        toast.error(`刪除失敗：${result.error}`);
         setLoading(false);
         return;
       }
-      if (!deleted || deleted.length === 0) {
-        toast.error("未刪除任何季後賽比賽（可能權限不足或資料已變更）。請重新整理頁面後再試。");
+      if (result.deleted === 0) {
+        toast.error("未刪除任何季後賽比賽（請確認您為該賽事主辦方）。請重新整理頁面後再試。");
         setLoading(false);
         return;
       }
       setPlayoffMatchCount(0);
-      toast.success(`已刪除 ${deleted.length} 場季後賽。可重新建立籤表。`);
+      toast.success(`已刪除 ${result.deleted} 場季後賽。可重新建立籤表。`);
       setTimeout(() => window.location.reload(), 800);
     } catch (e) {
       console.error(e);
