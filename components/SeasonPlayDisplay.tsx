@@ -998,15 +998,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             </div>
           </div>
 
-          <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-            <p className="font-semibold text-gray-800 mb-1">{locale === "zh" ? "排名規則（同分時依序比較）" : "Ranking rules (tiebreakers in order)"}</p>
-            <ul className="list-none space-y-0.5">
-              {tiebreakerRulesLines.map((line, i) => (
-                <li key={i}>{line}</li>
-              ))}
-            </ul>
-          </div>
-
           {hasGroups && typeof standings === 'object' && !Array.isArray(standings) ? (
             // Display standings per group
             <div className="space-y-6">
@@ -1351,6 +1342,15 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               </div>
             </div>
           )}
+
+          <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            <p className="font-semibold text-gray-800 mb-1">{locale === "zh" ? "排名規則（同分時依序比較）" : "Ranking rules (tiebreakers in order)"}</p>
+            <ul className="list-none space-y-0.5">
+              {tiebreakerRulesLines.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 

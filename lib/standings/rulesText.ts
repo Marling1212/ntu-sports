@@ -6,7 +6,7 @@ const CRITERIA_LABELS_ZH: Record<string, string> = {
   head_to_head: "對戰成績（含對戰積分、得失差、得分）",
   goal_difference: "得失差",
   goals_for: "得分",
-  fair_play: "公平競賽（黃牌／紅牌，牌少者優先）",
+  fair_play: "公平競賽（算法：黃牌每張 -1 分、紅牌每張 -3 分，總分愈高即牌愈少者排名愈前）",
   final: "最後一關",
 };
 
@@ -15,7 +15,7 @@ const CRITERIA_LABELS_EN: Record<string, string> = {
   head_to_head: "Head-to-head (points, goal diff, goals for)",
   goal_difference: "Goal difference",
   goals_for: "Goals for",
-  fair_play: "Fair play (yellow/red cards; fewer cards first)",
+  fair_play: "Fair play: yellow card -1 pt each, red card -3 pts each; higher total (fewer cards) ranks higher",
   final: "Final tiebreaker",
 };
 

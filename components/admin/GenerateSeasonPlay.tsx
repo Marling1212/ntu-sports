@@ -27,6 +27,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
   const [loading, setLoading] = useState(false);
   const [numGroups, setNumGroups] = useState(1); // Default: 1 group (single round-robin)
   const [playoffTeams, setPlayoffTeams] = useState(initialQualifiersPerGroup ?? 4);
+  const [playoffMatchCount, setPlayoffMatchCount] = useState(0);
   const supabase = createClient();
 
   useEffect(() => {
@@ -34,6 +35,19 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
       setPlayoffTeams(Math.min(64, Math.max(1, initialQualifiersPerGroup)));
     }
   }, [initialQualifiersPerGroup]);
+
+  // 偵測是否已有季後賽籤表（用來顯示「刪除季後賽籤表」按鈕）
+  useEffect(() => {
+    if (!eventId) return;
+    (async () => {
+      const { count } = await supabase
+        .from("matches")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .gte("round", 1);
+      setPlayoffMatchCount(count ?? 0);
+    })();
+  }, [eventId]);
 
   // Helper function to shuffle array randomly
   const shuffleArray = <T,>(array: T[]): T[] => {
@@ -220,7 +234,8 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
   const createPlayoffBracketTemplate = async () => {
     const totalTeams = numGroups * playoffTeams;
     const bracketSize = Math.pow(2, Math.ceil(Math.log2(totalTeams)));
-    const numRounds = Math.log2(bracketSize);
+    // Must be integer: 16-team bracket => 4 rounds (R1=8, R2=4, R3=2, R4=1)
+    const numRounds = Math.floor(Math.log2(bracketSize));
 
     if (totalTeams < 2) {
       toast.error("Need at least 2 teams for playoffs (groups × qualifiers).");
@@ -239,7 +254,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         .gte("round", 1);
 
       if (existingPlayoffs && existingPlayoffs.length > 0) {
-        toast.error("季後賽籤表已存在。請先刪除現有季後賽比賽後再建立。");
+        toast.error("季後賽籤表已存在。請先按「刪除季後賽籤表」再重新建立。");
         setLoading(false);
         return;
       }
@@ -290,8 +305,9 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         });
       }
 
+      // Rounds 2..numRounds: 八強、四強、決賽。每輪場數 = bracketSize / 2^round（整數）
       for (let round = 2; round <= numRounds; round++) {
-        const matchesInRound = Math.pow(2, numRounds - round);
+        const matchesInRound = Math.floor(bracketSize / Math.pow(2, round));
         for (let i = 1; i <= matchesInRound; i++) {
           playoffMatches.push({
             event_id: eventId,
@@ -327,6 +343,33 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
     } catch (e) {
       console.error(e);
       toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** 刪除本賽事所有季後賽比賽（round >= 1），以便重新建立不同大小的籤表。 */
+  const deletePlayoffBracket = async () => {
+    if (playoffMatchCount === 0) return;
+    const msg = `確定要刪除「季後賽籤表」嗎？\n\n將刪除本賽事全部 ${playoffMatchCount} 場季後賽比賽（第一輪～決賽、季軍賽），此操作無法復原。\n\n刪除後可再按「建立季後賽籤表」重新建立（例如改為 10 隊的 16 格籤表）。`;
+    if (!confirm(msg)) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("matches")
+        .delete()
+        .eq("event_id", eventId)
+        .gte("round", 1);
+      if (error) {
+        toast.error(`刪除失敗：${error.message}`);
+        return;
+      }
+      setPlayoffMatchCount(0);
+      toast.success("已刪除季後賽籤表。可重新建立籤表。");
+      setTimeout(() => window.location.reload(), 800);
+    } catch (e) {
+      console.error(e);
+      toast.error("刪除時發生錯誤");
     } finally {
       setLoading(false);
     }
@@ -607,15 +650,27 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
           {loading ? "Generating..." : `🏁 Generate Regular Season (${players.length} players)`}
         </button>
 
-        <button
-          onClick={createPlayoffBracketTemplate}
-          disabled={loading}
-          className="w-full bg-amber-500 text-white py-3 px-4 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? "..." : `📋 Create Playoff Bracket (${numGroups}×${playoffTeams} = seed slots only)`}
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={createPlayoffBracketTemplate}
+            disabled={loading}
+            className="w-full bg-amber-500 text-white py-3 px-4 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "..." : `📋 建立季後賽籤表（${numGroups}×${playoffTeams} = 種子位）`}
+          </button>
+          {playoffMatchCount > 0 && (
+            <button
+              type="button"
+              onClick={deletePlayoffBracket}
+              disabled={loading}
+              className="w-full border-2 border-red-500 text-red-600 py-2 px-4 rounded-lg font-medium hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              🗑️ 刪除季後賽籤表（目前 {playoffMatchCount} 場）
+            </button>
+          )}
+        </div>
         <p className="text-xs text-gray-500 -mt-1">
-          Creates a bracket with &quot;Seed N Group X&quot; placeholders. You can edit who plays whom in Matches; names fill in when standings are set.
+          建立後籤表會顯示「Seed N Group X」等種子位；可至「比賽」編輯對戰組合，或例行賽結束後用「從排名填入」套用隊伍。
         </p>
 
         <button
