@@ -247,13 +247,20 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
 
     setLoading(true);
     try {
-      const { data: existingPlayoffs } = await supabase
-        .from("matches")
-        .select("id")
-        .eq("event_id", eventId)
-        .gte("round", 1);
-
-      if (existingPlayoffs && existingPlayoffs.length > 0) {
+      const checkExisting = async () => {
+        const { data } = await supabase
+          .from("matches")
+          .select("id")
+          .eq("event_id", eventId)
+          .gte("round", 1);
+        return data ?? [];
+      };
+      let existingPlayoffs = await checkExisting();
+      if (existingPlayoffs.length > 0) {
+        await new Promise((r) => setTimeout(r, 400));
+        existingPlayoffs = await checkExisting();
+      }
+      if (existingPlayoffs.length > 0) {
         toast.error("季後賽籤表已存在。請先按「刪除季後賽籤表」再重新建立。");
         setLoading(false);
         return;
@@ -355,17 +362,24 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
     if (!confirm(msg)) return;
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { data: deleted, error } = await supabase
         .from("matches")
         .delete()
         .eq("event_id", eventId)
-        .gte("round", 1);
+        .gte("round", 1)
+        .select("id");
       if (error) {
         toast.error(`刪除失敗：${error.message}`);
+        setLoading(false);
+        return;
+      }
+      if (!deleted || deleted.length === 0) {
+        toast.error("未刪除任何季後賽比賽（可能權限不足或資料已變更）。請重新整理頁面後再試。");
+        setLoading(false);
         return;
       }
       setPlayoffMatchCount(0);
-      toast.success("已刪除季後賽籤表。可重新建立籤表。");
+      toast.success(`已刪除 ${deleted.length} 場季後賽。可重新建立籤表。`);
       setTimeout(() => window.location.reload(), 800);
     } catch (e) {
       console.error(e);
