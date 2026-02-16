@@ -113,14 +113,18 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   const playoffMatches = matches.filter(m => m.round >= 1);
 
-  /** 從上一輪 BYE 晉級的 slot/player 帶入本輪，讓 admin 修改第一輪後第二輪顯示會跟著更新 */
+  /** 從上一輪 BYE／單方晉級 帶入本輪，讓 admin 修改第一輪後第二輪顯示會跟著更新 */
   const resolvedPlayoffMatches = useMemo(() => {
+    /** 若該場為 BYE 或僅一方有 slot/player（另一方輪空），回傳晉級的那一側 */
     const getByeWinner = (m: Match): { player: Player | null; slot: SlotPlaceholder | null } | null => {
-      if (m?.status !== "bye") return null;
-      return {
-        player: m.player1 || m.player2 || null,
-        slot: (m.slot1 != null ? m.slot1 : m.slot2) ?? null,
-      };
+      if (!m) return null;
+      const has1 = (m.slot1 != null && typeof m.slot1 === "object") || (m.player1 != null && typeof m.player1 === "object");
+      const has2 = (m.slot2 != null && typeof m.slot2 === "object") || (m.player2 != null && typeof m.player2 === "object");
+      if (has1 && has2) return null; // 兩邊都有人，不是 BYE
+      if (!has1 && !has2) return null;
+      const player = has1 ? (m.player1 ?? null) : (m.player2 ?? null);
+      const slot = has1 ? (m.slot1 ?? null) : (m.slot2 ?? null);
+      return { player, slot: slot && typeof slot === "object" ? slot : null };
     };
     return playoffMatches.map((match) => {
       if (match.round < 2) return match;
