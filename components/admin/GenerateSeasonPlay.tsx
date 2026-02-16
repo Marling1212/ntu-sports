@@ -310,16 +310,35 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         });
       }
 
-      // Rounds 2..numRounds: 八強、四強、決賽。每輪場數 = bracketSize / 2^round（整數）
+      // Rounds 2..numRounds: 八強、四強、決賽。若上一輪為 BYE，晉級的 Seed X Group Y 帶入下一輪 slot，不顯示 TBD
       for (let round = 2; round <= numRounds; round++) {
         const matchesInRound = Math.floor(bracketSize / Math.pow(2, round));
+        const prevRound = round - 1;
         for (let i = 1; i <= matchesInRound; i++) {
+          const prevMatch1Num = (i - 1) * 2 + 1;
+          const prevMatch2Num = (i - 1) * 2 + 2;
+          const prev1 = playoffMatches.find((m) => m.round === prevRound && m.match_number === prevMatch1Num);
+          const prev2 = playoffMatches.find((m) => m.round === prevRound && m.match_number === prevMatch2Num);
+          const advancingSlot1 =
+            prev1?.status === "bye"
+              ? prev1.slot1_seed != null
+                ? { slot1_seed: prev1.slot1_seed, slot1_group: prev1.slot1_group! }
+                : { slot1_seed: prev1.slot2_seed!, slot1_group: prev1.slot2_group! }
+              : {};
+          const advancingSlot2 =
+            prev2?.status === "bye"
+              ? prev2.slot1_seed != null
+                ? { slot2_seed: prev2.slot1_seed, slot2_group: prev2.slot1_group! }
+                : { slot2_seed: prev2.slot2_seed!, slot2_group: prev2.slot2_group! }
+              : {};
           playoffMatches.push({
             event_id: eventId,
             round,
             match_number: i,
             player1_id: null,
             player2_id: null,
+            ...advancingSlot1,
+            ...advancingSlot2,
             status: "upcoming",
           });
         }
