@@ -115,12 +115,14 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   /** 從上一輪 BYE／單方晉級 帶入本輪，讓 admin 修改第一輪後第二輪顯示會跟著更新 */
   const resolvedPlayoffMatches = useMemo(() => {
-    /** 若該場為 BYE 或僅一方有 slot/player（另一方輪空），回傳晉級的那一側 */
-    const getByeWinner = (m: Match): { player: Player | null; slot: SlotPlaceholder | null } | null => {
+    /** 回傳該場晉級到下一輪的那一側：已結束則回傳 winner；BYE／僅一方則回傳該側；兩邊都有人且未賽則 null（下一輪顯示 TBD） */
+    const getAdvancing = (m: Match): { player: Player | null; slot: SlotPlaceholder | null } | null => {
       if (!m) return null;
+      if (m.status === "completed" && m.winner != null && typeof m.winner === "object")
+        return { player: m.winner, slot: null };
       const has1 = (m.slot1 != null && typeof m.slot1 === "object") || (m.player1 != null && typeof m.player1 === "object");
       const has2 = (m.slot2 != null && typeof m.slot2 === "object") || (m.player2 != null && typeof m.player2 === "object");
-      if (has1 && has2) return null; // 兩邊都有人，不是 BYE
+      if (has1 && has2) return null; // 兩邊都有人且未結束 → TBD
       if (!has1 && !has2) return null;
       const player = has1 ? (m.player1 ?? null) : (m.player2 ?? null);
       const slot = has1 ? (m.slot1 ?? null) : (m.slot2 ?? null);
@@ -133,14 +135,19 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       const feed2Num = (match.matchNumber - 1) * 2 + 2;
       const prev1 = playoffMatches.find((m) => m.round === prevRound && m.matchNumber === feed1Num);
       const prev2 = playoffMatches.find((m) => m.round === prevRound && m.matchNumber === feed2Num);
-      const bye1 = prev1 ? getByeWinner(prev1) : null;
-      const bye2 = prev2 ? getByeWinner(prev2) : null;
+      const adv1 = prev1 ? getAdvancing(prev1) : null;
+      const adv2 = prev2 ? getAdvancing(prev2) : null;
+      // When prev match exists: use only the resolved advancing side (BYE or completed winner). If 2-sided and not played, show TBD (null), never stale DB slot.
+      const slot1 = prev1 ? (adv1?.slot ?? null) : match.slot1;
+      const slot2 = prev2 ? (adv2?.slot ?? null) : match.slot2;
+      const player1 = prev1 ? (adv1?.player ?? null) : match.player1;
+      const player2 = prev2 ? (adv2?.player ?? null) : match.player2;
       return {
         ...match,
-        player1: bye1?.player ?? match.player1,
-        slot1: bye1?.slot ?? match.slot1,
-        player2: bye2?.player ?? match.player2,
-        slot2: bye2?.slot ?? match.slot2,
+        player1,
+        slot1,
+        player2,
+        slot2,
       };
     });
   }, [playoffMatches]);
