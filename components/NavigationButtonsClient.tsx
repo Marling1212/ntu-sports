@@ -22,15 +22,15 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
   const showPlayoffs = tournamentType === "season_play";
 
   return (
-    <div className={`grid grid-cols-1 gap-4 sm:gap-6 ${showPlayoffs ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+    <div className={`grid grid-cols-1 gap-6 ${showPlayoffs ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
       <Link
         href={drawUrl}
-        className="bg-ntu-green text-white rounded-xl shadow-md p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+        className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
       >
         <div className="text-center">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4 group-hover:bg-opacity-30 transition-colors">
+          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
             <svg
-              className="w-7 h-7 sm:w-8 sm:h-8 text-white"
+              className="w-8 h-8 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -43,8 +43,8 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
               />
             </svg>
           </div>
-          <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">{t('navigation.draw')}</h3>
-          <p className="text-white text-opacity-90 text-xs sm:text-sm">
+          <h3 className="text-2xl font-semibold mb-3">{t('navigation.draw')}</h3>
+          <p className="text-white text-opacity-90 text-sm">
             {t('navigation.drawDescription')}
           </p>
         </div>
@@ -52,12 +52,12 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
 
       <Link
         href={scheduleUrl}
-        className="bg-ntu-green text-white rounded-xl shadow-md p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+        className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
       >
         <div className="text-center">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4 group-hover:bg-opacity-30 transition-colors">
+          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
             <svg
-              className="w-7 h-7 sm:w-8 sm:h-8 text-white"
+              className="w-8 h-8 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -70,8 +70,8 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
               />
             </svg>
           </div>
-          <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">{t('navigation.schedule')}</h3>
-          <p className="text-white text-opacity-90 text-xs sm:text-sm">
+          <h3 className="text-2xl font-semibold mb-3">{t('navigation.schedule')}</h3>
+          <p className="text-white text-opacity-90 text-sm">
             {t('navigation.scheduleDescription')}
           </p>
         </div>
@@ -80,12 +80,12 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
       {showPlayoffs && (
         <Link
           href={playoffsUrl}
-          className="bg-ntu-green text-white rounded-xl shadow-md p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
         >
           <div className="text-center">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4 group-hover:bg-opacity-30 transition-colors">
+            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
               <svg
-                className="w-7 h-7 sm:w-8 sm:h-8 text-white"
+                className="w-8 h-8 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -98,8 +98,8 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
                 />
               </svg>
             </div>
-            <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">{t('navigation.playoffs')}</h3>
-            <p className="text-white text-opacity-90 text-xs sm:text-sm">
+            <h3 className="text-2xl font-semibold mb-3">{t('navigation.playoffs')}</h3>
+            <p className="text-white text-opacity-90 text-sm">
               {t('navigation.playoffsDescription')}
             </p>
           </div>
@@ -108,12 +108,12 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
 
       <Link
         href={announcementsUrl}
-        className="bg-ntu-green text-white rounded-xl shadow-md p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+        className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
       >
         <div className="text-center">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4 group-hover:bg-opacity-30 transition-colors">
+          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
             <svg
-              className="w-7 h-7 sm:w-8 sm:h-8 text-white"
+              className="w-8 h-8 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -126,8 +126,8 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
               />
             </svg>
           </div>
-          <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">{t('navigation.announcements')}</h3>
-          <p className="text-white text-opacity-90 text-xs sm:text-sm">
+          <h3 className="text-2xl font-semibold mb-3">{t('navigation.announcements')}</h3>
+          <p className="text-white text-opacity-90 text-sm">
             {t('navigation.announcementsDescription')}
           </p>
         </div>

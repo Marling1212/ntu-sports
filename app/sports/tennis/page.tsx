@@ -32,7 +32,7 @@ export default async function TennisPage() {
   // Multiple events - show event list
   if (activeEvents.length > 1) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="container mx-auto px-4 py-12">
         <EventsListClient events={activeEvents} sport="tennis" />
       </div>
     );
@@ -42,7 +42,7 @@ export default async function TennisPage() {
   // Handle case when no events exist
   if (!singleEvent) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="container mx-auto px-4 py-12">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">No Tennis Events Found</h1>
           <p className="text-gray-600">There are currently no active tennis events.</p>
@@ -101,7 +101,7 @@ export default async function TennisPage() {
   const latest = (anns || [])[0];
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="container mx-auto px-4 py-12">
       <SportsPageClient
         singleEvent={singleEvent}
         hasStarted={hasStarted}
