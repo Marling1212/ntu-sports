@@ -205,7 +205,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   const resolvedPlayoffMatches = useMemo(() => {
     const roundNum = (x: { round: unknown }) => Number(x.round) || 0;
     const matchNum = (x: { matchNumber?: number }) => Number((x as { matchNumber?: number }).matchNumber) ?? 0;
-    /** 回傳該場晉級到下一輪的那一側。兩種情況帶入：1) 已結束 → winner；2) 僅一方有 slot (BYE) → 該側晉級。結構上單側有種子即視為 BYE，不依賴 status。 */
+    /** 回傳該場晉級到下一輪的那一側。僅兩種情況帶入：1) 已結束 → winner；2) 明確 BYE (status "bye") 且僅一方有 slot → 該側晉級。Seed vs TBD (一方空但非 bye) 不晉級。 */
     const getAdvancing = (m: Match): { player: Player | null; slot: SlotPlaceholder | null } | null => {
       if (!m) return null;
       if (m.status === "completed" && m.winner != null && typeof m.winner === "object")
@@ -214,7 +214,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       const has2 = (m.slot2 != null && typeof m.slot2 === "object") || (m.player2 != null && typeof m.player2 === "object");
       if (has1 && has2) return null; // 兩邊都有人 → 未賽則 TBD
       if (!has1 && !has2) return null;
-      // 僅一方有 slot/player => BYE，該側晉級（依結構判斷，不依賴 status）
+      // 僅一方有 slot：只有 status "bye" 才視為晉級；Seed vs TBD (upcoming 且一方空) 不晉級
+      if (m.status !== "bye") return null;
       const player = has1 ? (m.player1 ?? null) : (m.player2 ?? null);
       const slot = has1 ? (m.slot1 ?? null) : (m.slot2 ?? null);
       return { player, slot: slot && typeof slot === "object" ? slot : null };

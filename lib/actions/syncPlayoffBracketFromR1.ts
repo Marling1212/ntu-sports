@@ -6,6 +6,7 @@ type Row = {
   id: string;
   round: number;
   match_number: number;
+  status: string | null;
   slot1_seed: number | null;
   slot1_group: number | null;
   slot2_seed: number | null;
@@ -14,15 +15,14 @@ type Row = {
 
 /**
  * Recompute R2+ slot1/slot2 from current R1 (and above) slot state.
- * "Structural bye" = exactly one of slot1/slot2 filled → that side advances.
- * Call after admin edits the dummy bracket (EditPlayoffDraw) so the DB reflects who advances.
+ * Only advance when status is "bye" and exactly one slot is filled (true BYE). TBD (one slot empty, status not bye) does not advance.
  */
 export async function syncPlayoffBracketFromR1(eventId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
 
   const { data: rows, error: fetchErr } = await supabase
     .from("matches")
-    .select("id, round, match_number, slot1_seed, slot1_group, slot2_seed, slot2_group")
+    .select("id, round, match_number, status, slot1_seed, slot1_group, slot2_seed, slot2_group")
     .eq("event_id", eventId)
     .gte("round", 1)
     .order("round", { ascending: true })
@@ -37,6 +37,7 @@ export async function syncPlayoffBracketFromR1(eventId: string): Promise<{ ok: b
   const matchNum = (m: Row) => Number(m.match_number) ?? 0;
 
   const getAdvancingSlot = (m: Row): { seed: number; group: number } | null => {
+    if (m.status !== "bye") return null; // TBD (one side empty) is not a bye
     const has1 = m.slot1_seed != null && m.slot1_group != null;
     const has2 = m.slot2_seed != null && m.slot2_group != null;
     if (has1 && !has2) return { seed: m.slot1_seed!, group: m.slot1_group! };
