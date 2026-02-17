@@ -161,11 +161,15 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     if (bracketMatches.length === 0) return { tierByKey: new Map<string, number>(), tierColors: [] as string[] };
     const maxRound = Math.max(...bracketMatches.map((m) => m.round));
     const firstRoundByKey = new Map<string, number>();
-    for (const m of bracketMatches) {
+    // Process matches in round order. First appearance of each (seed, group) defines their first round of play; never overwrite with later rounds (R2+ slots are often "advanced" from R1).
+    // This handles any structure: single/double bye, multi-round byes, etc.
+    const byRound = [...bracketMatches].sort((a, b) => a.round - b.round || (a.matchNumber ?? 0) - (b.matchNumber ?? 0));
+    for (const m of byRound) {
       const firstRound = m.status === "bye" ? m.round + 1 : m.round;
       const add = (seed: number, group: number) => {
         const key = `${seed}-${group}`;
-        firstRoundByKey.set(key, Math.min(firstRoundByKey.get(key) ?? Infinity, firstRound));
+        if (firstRoundByKey.has(key)) return; // already set from an earlier round
+        firstRoundByKey.set(key, firstRound);
       };
       if (m.slot1 != null && typeof m.slot1 === "object") add(m.slot1.seed, m.slot1.group);
       if (m.slot2 != null && typeof m.slot2 === "object") add(m.slot2.seed, m.slot2.group);
