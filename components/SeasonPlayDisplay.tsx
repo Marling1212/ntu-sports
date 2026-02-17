@@ -115,15 +115,17 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   /** 從上一輪 BYE／單方晉級 帶入本輪，讓 admin 修改第一輪後第二輪顯示會跟著更新 */
   const resolvedPlayoffMatches = useMemo(() => {
-    /** 回傳該場晉級到下一輪的那一側：已結束則回傳 winner；BYE／僅一方則回傳該側；兩邊都有人且未賽則 null（下一輪顯示 TBD） */
+    /** 回傳該場晉級到下一輪的那一側。僅兩種情況帶入：1) 已結束 → winner；2) 明確 BYE (status "bye") → 唯一那側。Seed vs TBD (upcoming 且一方空) 不算 BYE，不帶入。 */
     const getAdvancing = (m: Match): { player: Player | null; slot: SlotPlaceholder | null } | null => {
       if (!m) return null;
       if (m.status === "completed" && m.winner != null && typeof m.winner === "object")
         return { player: m.winner, slot: null };
       const has1 = (m.slot1 != null && typeof m.slot1 === "object") || (m.player1 != null && typeof m.player1 === "object");
       const has2 = (m.slot2 != null && typeof m.slot2 === "object") || (m.player2 != null && typeof m.player2 === "object");
-      if (has1 && has2) return null; // 兩邊都有人且未結束 → TBD
+      if (has1 && has2) return null; // 兩邊都有人 → 未賽則 TBD
       if (!has1 && !has2) return null;
+      // 僅一方有 slot/player：只有 status "bye" 才視為晉級；Seed vs TBD (upcoming) 不晉級
+      if (m.status !== "bye") return null;
       const player = has1 ? (m.player1 ?? null) : (m.player2 ?? null);
       const slot = has1 ? (m.slot1 ?? null) : (m.slot2 ?? null);
       return { player, slot: slot && typeof slot === "object" ? slot : null };
