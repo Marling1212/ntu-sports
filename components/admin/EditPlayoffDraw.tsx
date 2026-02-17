@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
+import { syncPlayoffBracketFromR1 } from "@/lib/actions/syncPlayoffBracketFromR1";
 
 interface EditPlayoffDrawProps {
   eventId: string;
@@ -85,6 +86,7 @@ export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup
     slot2: { seed: number | null; group: number | null },
   ) => {
     setSavingId(m.id);
+    const isBye = (slot1.seed == null) !== (slot2.seed == null); // exactly one side filled
     const { error } = await supabase
       .from("matches")
       .update({
@@ -92,6 +94,7 @@ export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup
         slot1_group: slot1.group,
         slot2_seed: slot2.seed,
         slot2_group: slot2.group,
+        status: isBye ? "bye" : "upcoming",
       })
       .eq("id", m.id);
     setSavingId(null);
@@ -100,6 +103,9 @@ export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup
       return;
     }
     toast.success("已儲存");
+    // Propagate R1 slot state to R2+ in DB so bracket everywhere reflects admin edits (e.g. BYE advancement)
+    const sync = await syncPlayoffBracketFromR1(eventId);
+    if (!sync.ok) toast.error("籤表同步失敗：" + (sync.error ?? ""));
     setMatches((prev) =>
       prev.map((x) =>
         x.id === m.id

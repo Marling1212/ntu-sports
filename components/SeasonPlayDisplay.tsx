@@ -203,7 +203,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   /** 從上一輪 BYE／單方晉級 帶入本輪，讓 admin 修改第一輪後第二輪顯示會跟著更新 */
   const resolvedPlayoffMatches = useMemo(() => {
-    /** 回傳該場晉級到下一輪的那一側。僅兩種情況帶入：1) 已結束 → winner；2) 明確 BYE (status "bye") → 唯一那側。Seed vs TBD (upcoming 且一方空) 不算 BYE，不帶入。 */
+    const roundNum = (x: { round: unknown }) => Number(x.round) || 0;
+    const matchNum = (x: { matchNumber?: number }) => Number((x as { matchNumber?: number }).matchNumber) ?? 0;
+    /** 回傳該場晉級到下一輪的那一側。兩種情況帶入：1) 已結束 → winner；2) 僅一方有 slot (BYE) → 該側晉級。結構上單側有種子即視為 BYE，不依賴 status。 */
     const getAdvancing = (m: Match): { player: Player | null; slot: SlotPlaceholder | null } | null => {
       if (!m) return null;
       if (m.status === "completed" && m.winner != null && typeof m.winner === "object")
@@ -212,19 +214,20 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       const has2 = (m.slot2 != null && typeof m.slot2 === "object") || (m.player2 != null && typeof m.player2 === "object");
       if (has1 && has2) return null; // 兩邊都有人 → 未賽則 TBD
       if (!has1 && !has2) return null;
-      // 僅一方有 slot/player：只有 status "bye" 才視為晉級；Seed vs TBD (upcoming) 不晉級
-      if (m.status !== "bye") return null;
+      // 僅一方有 slot/player => BYE，該側晉級（依結構判斷，不依賴 status）
       const player = has1 ? (m.player1 ?? null) : (m.player2 ?? null);
       const slot = has1 ? (m.slot1 ?? null) : (m.slot2 ?? null);
       return { player, slot: slot && typeof slot === "object" ? slot : null };
     };
     return playoffMatches.map((match) => {
-      if (match.round < 2) return match;
-      const prevRound = match.round - 1;
-      const feed1Num = (match.matchNumber - 1) * 2 + 1;
-      const feed2Num = (match.matchNumber - 1) * 2 + 2;
-      const prev1 = playoffMatches.find((m) => m.round === prevRound && m.matchNumber === feed1Num);
-      const prev2 = playoffMatches.find((m) => m.round === prevRound && m.matchNumber === feed2Num);
+      const r = roundNum(match);
+      if (r < 2) return match;
+      const prevRound = r - 1;
+      const mn = matchNum(match);
+      const feed1Num = (mn - 1) * 2 + 1;
+      const feed2Num = (mn - 1) * 2 + 2;
+      const prev1 = playoffMatches.find((m) => roundNum(m) === prevRound && matchNum(m) === feed1Num);
+      const prev2 = playoffMatches.find((m) => roundNum(m) === prevRound && matchNum(m) === feed2Num);
       const adv1 = prev1 ? getAdvancing(prev1) : null;
       const adv2 = prev2 ? getAdvancing(prev2) : null;
       // When prev match exists: use only the resolved advancing side (BYE or completed winner). If 2-sided and not played, show TBD (null), never stale DB slot.
@@ -1378,8 +1381,14 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             </div>
           )}
 
-          <div className="mt-4 text-sm text-gray-600 flex items-center gap-2">
-            <span className="inline-block w-1 h-8 bg-yellow-400"></span>
+          <div className="mt-4 text-sm text-gray-600 flex items-center gap-2 flex-wrap">
+            {playoffWinsNeededTier.tierColors.length > 0 && (
+              <>
+                <span className="inline-block w-2 h-4 rounded-sm bg-amber-500" aria-hidden />
+                {playoffWinsNeededTier.tierColors.length > 1 && <span className="inline-block w-2 h-4 rounded-sm bg-teal-500" aria-hidden />}
+                {playoffWinsNeededTier.tierColors.length > 2 && <span className="inline-block w-2 h-4 rounded-sm bg-lime-500" aria-hidden />}
+              </>
+            )}
             <span>{t("seasonPlay.qualifyHint")}</span>
           </div>
 
