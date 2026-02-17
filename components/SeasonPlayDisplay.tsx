@@ -153,6 +153,42 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   const playoffMatches = matches.filter(m => m.round >= 1);
 
+  /** From bracket: (seed, group) -> "playoff wins needed to win the event". Same treatment => same tier => same color. */
+  const playoffWinsNeededTier = useMemo(() => {
+    const bracketMatches = playoffMatches.filter(
+      (m) => !(m.round === Math.max(...playoffMatches.map((x) => x.round), 1) && m.matchNumber === 2)
+    );
+    if (bracketMatches.length === 0) return { tierByKey: new Map<string, number>(), tierColors: [] as string[] };
+    const maxRound = Math.max(...bracketMatches.map((m) => m.round));
+    const firstRoundByKey = new Map<string, number>();
+    for (const m of bracketMatches) {
+      const firstRound = m.status === "bye" ? m.round + 1 : m.round;
+      const add = (seed: number, group: number) => {
+        const key = `${seed}-${group}`;
+        firstRoundByKey.set(key, Math.min(firstRoundByKey.get(key) ?? Infinity, firstRound));
+      };
+      if (m.slot1 != null && typeof m.slot1 === "object") add(m.slot1.seed, m.slot1.group);
+      if (m.slot2 != null && typeof m.slot2 === "object") add(m.slot2.seed, m.slot2.group);
+    }
+    const winsByKey = new Map<string, number>();
+    firstRoundByKey.forEach((firstRound, key) => {
+      winsByKey.set(key, maxRound - firstRound + 1);
+    });
+    const uniqueWins = [...new Set(winsByKey.values())].sort((a, b) => a - b);
+    const tierByKey = new Map<string, number>();
+    winsByKey.forEach((wins, key) => {
+      tierByKey.set(key, uniqueWins.indexOf(wins));
+    });
+    const tierColors = [
+      "border-l-4 border-amber-500 bg-amber-50/50",
+      "border-l-4 border-yellow-400 bg-yellow-50/50",
+      "border-l-4 border-lime-500 bg-lime-50/50",
+      "border-l-4 border-emerald-500 bg-emerald-50/50",
+      "border-l-4 border-teal-500 bg-teal-50/50",
+    ];
+    return { tierByKey, tierColors };
+  }, [playoffMatches]);
+
   /** 從上一輪 BYE／單方晉級 帶入本輪，讓 admin 修改第一輪後第二輪顯示會跟著更新 */
   const resolvedPlayoffMatches = useMemo(() => {
     /** 回傳該場晉級到下一輪的那一側。僅兩種情況帶入：1) 已結束 → winner；2) 明確 BYE (status "bye") → 唯一那側。Seed vs TBD (upcoming 且一方空) 不算 BYE，不帶入。 */
@@ -888,6 +924,16 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     [config, locale]
   );
 
+  /** Qualifier row highlight: by playoff tier (wins needed to win). Same treatment => same color. */
+  const getQualifierRowClass = (idx: number, groupNum: number) => {
+    if (idx >= qualifiersPerGroup) return "";
+    const key = `${idx + 1}-${groupNum}`;
+    const tier = playoffWinsNeededTier.tierByKey.get(key);
+    if (tier === undefined) return "border-l-4 border-yellow-400 bg-yellow-50/30";
+    const c = playoffWinsNeededTier.tierColors[tier];
+    return c ?? "border-l-4 border-yellow-400 bg-yellow-50/30";
+  };
+
   // Count completed matches
   const completedRegularMatches = regularSeasonMatches.filter(m => m.status === 'completed').length;
   const totalRegularMatches = regularSeasonMatches.length;
@@ -1174,7 +1220,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               return (
                               <tr 
                                 key={standing.player.id} 
-                                className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < qualifiersPerGroup ? 'border-l-4 border-yellow-400' : ''}`}
+                                className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${getQualifierRowClass(idx, groupNum)}`}
                               >
                                 <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                                 <td className="px-4 py-3">
@@ -1230,10 +1276,11 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             : standing.yellowCards > 0 
                               ? `${standing.yellowCards}` 
                               : '-';
+                          const groupNum = selectedGroup === "all" ? 1 : (selectedGroup as number);
                           return (
                           <tr 
                             key={standing.player.id} 
-                            className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < qualifiersPerGroup ? 'border-l-4 border-yellow-400' : ''}`}
+                            className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${getQualifierRowClass(idx, groupNum)}`}
                           >
                             <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                             <td className="px-4 py-3">
@@ -1286,10 +1333,11 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 : standing.yellowCards > 0 
                                   ? `${standing.yellowCards}` 
                                   : '-';
+                              const groupNum = standing.group ?? 1;
                               return (
                       <tr 
                         key={standing.player.id} 
-                                className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${idx < qualifiersPerGroup ? 'border-l-4 border-yellow-400' : ''}`}
+                                className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${getQualifierRowClass(idx, groupNum)}`}
                       >
                         <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                         <td className="px-4 py-3">
