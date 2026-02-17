@@ -155,28 +155,31 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   /** From bracket: (seed, group) -> "playoff wins needed to win the event". Same treatment => same tier => same color. */
   const playoffWinsNeededTier = useMemo(() => {
+    const roundNum = (m: { round: unknown }) => Number(m.round) || 0;
     const bracketMatches = playoffMatches.filter(
-      (m) => !(m.round === Math.max(...playoffMatches.map((x) => x.round), 1) && m.matchNumber === 2)
+      (m) => !(roundNum(m) === Math.max(...playoffMatches.map((x) => roundNum(x)), 1) && (m as { matchNumber?: number }).matchNumber === 2)
     );
     if (bracketMatches.length === 0) return { tierByKey: new Map<string, number>(), tierColors: [] as string[] };
-    const maxRound = Math.max(...bracketMatches.map((m) => m.round));
+    const maxRound = Math.max(...bracketMatches.map((m) => roundNum(m)), 1);
     const firstRoundByKey = new Map<string, number>();
-    // Process matches in round order. First appearance of each (seed, group) defines their first round of play; never overwrite with later rounds (R2+ slots are often "advanced" from R1).
-    // This handles any structure: single/double bye, multi-round byes, etc.
-    const roundNum = (m: { round: unknown }) => Number(m.round) || 0;
+    // Process matches in round order. First appearance of each (seed, group) defines their first round of *play*; never overwrite with later rounds (R2+ slots are often "advanced" from R1).
     const byRound = [...bracketMatches].sort(
       (a, b) => roundNum(a) - roundNum(b) || (Number((a as { matchNumber?: number }).matchNumber) ?? 0) - (Number((b as { matchNumber?: number }).matchNumber) ?? 0)
     );
     for (const m of byRound) {
       const r = roundNum(m);
-      const firstRound = m.status === "bye" ? r + 1 : r;
+      const hasSlot1 = m.slot1 != null && typeof m.slot1 === "object";
+      const hasSlot2 = m.slot2 != null && typeof m.slot2 === "object";
+      // First round of play: exactly one slot filled => that seed has a bye this round => first play is next round (r+1). Both filled => they play this round (r).
+      const isByeMatch = hasSlot1 !== hasSlot2;
+      const firstRound = isByeMatch ? r + 1 : r;
       const add = (seed: number, group: number) => {
         const key = `${seed}-${group}`;
         if (firstRoundByKey.has(key)) return; // already set from an earlier round
         firstRoundByKey.set(key, firstRound);
       };
-      if (m.slot1 != null && typeof m.slot1 === "object") add(m.slot1.seed, m.slot1.group);
-      if (m.slot2 != null && typeof m.slot2 === "object") add(m.slot2.seed, m.slot2.group);
+      if (hasSlot1) add(m.slot1!.seed, m.slot1!.group);
+      if (hasSlot2) add(m.slot2!.seed, m.slot2!.group);
     }
     const winsByKey = new Map<string, number>();
     firstRoundByKey.forEach((firstRound, key) => {
