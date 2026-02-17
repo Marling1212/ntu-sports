@@ -1,10 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { getSportEvent } from "@/lib/utils/getSportEvent";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import MatchDetailView from "@/components/MatchDetailView";
 import { notFound } from "next/navigation";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function MatchDetailPage(context: any) {
@@ -17,14 +16,8 @@ export default async function MatchDetailPage(context: any) {
     notFound();
   }
 
-  const event = sportParam ? await getSportEvent(sportParam) : null;
-  
-  if (!event) {
-    notFound();
-  }
-
-  // Get match details with player information
-  const { data: match } = await supabase
+  // Fetch match by ID only - match may belong to any event of this sport (including older events)
+  const { data: match, error: matchError } = await supabase
     .from("matches")
     .select(`
       *,
@@ -34,10 +27,21 @@ export default async function MatchDetailPage(context: any) {
       slot:event_slots(id, slot_date, start_time, end_time, code, court_id)
     `)
     .eq("id", matchId)
-    .eq("event_id", event.id)
     .single();
 
-  if (!match) {
+  if (matchError || !match) {
+    notFound();
+  }
+
+  // Fetch the event (match may belong to any event, not just the "current" one)
+  const { data: event, error: eventError } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", match.event_id)
+    .eq("is_visible", true)
+    .maybeSingle();
+
+  if (eventError || !event || event.sport?.toLowerCase() !== sportParam) {
     notFound();
   }
 
