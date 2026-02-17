@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { I18nProvider } from "@/lib/i18n/context";
 import { LoadingProvider } from "@/components/LoadingProvider";
 import PageLoader from "@/components/PageLoader";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "NTU Sports - 台大運動賽事管理平台",
@@ -34,6 +35,7 @@ export default function RootLayout({
             </main>
             <Footer />
             <PageLoader />
+            <Toaster position="top-right" />
             <Analytics />
           </LoadingProvider>
         </I18nProvider>

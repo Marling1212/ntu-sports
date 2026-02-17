@@ -4,6 +4,8 @@ import Link from "next/link";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
+import CopyMatchLinkButton from "./CopyMatchLinkButton";
+import AddToCalendarButton from "./AddToCalendarButton";
 
 interface MatchDetailViewProps {
   match: any;
@@ -180,6 +182,11 @@ export default function MatchDetailView({
   // Get sport name for URL
   const sportParam = event?.sport?.toLowerCase() || "";
 
+  const calendarTitle = event?.name
+    ? `${event.name}: ${player1?.name ?? "TBD"} vs ${player2?.name ?? "TBD"}`
+    : `${player1?.name ?? "TBD"} vs ${player2?.name ?? "TBD"}`;
+  const calendarLocation = [getCourtDisplay(match), event?.venue].filter(Boolean).join(" — ") || undefined;
+
   return (
     <div>
       <div className="mb-6">
@@ -189,6 +196,17 @@ export default function MatchDetailView({
         >
           ← 返回賽程
         </Link>
+        <div className="flex flex-wrap items-center gap-3 mb-3">
+          <CopyMatchLinkButton className="min-h-[44px]" />
+          <AddToCalendarButton
+            title={calendarTitle}
+            description={event?.name}
+            location={calendarLocation}
+            startTime={match.scheduled_time}
+            url={undefined}
+            className="min-h-[44px]"
+          />
+        </div>
         <h1 className="text-4xl font-bold text-ntu-green mb-2">
           比賽詳情
         </h1>

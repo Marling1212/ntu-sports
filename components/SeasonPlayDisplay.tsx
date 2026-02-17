@@ -49,6 +49,34 @@ interface SeasonPlayDisplayProps {
 
 const TAIPEI_TZ = "Asia/Taipei";
 
+type DateFilter = "all" | "today" | "tomorrow" | "week";
+
+function getDateRangeInTaipei(filter: DateFilter): { start: Date; end: Date } | null {
+  if (filter === "all") return null;
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: TAIPEI_TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+  const parts = formatter.formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "0";
+  const y = parseInt(get("year"), 10);
+  const m = parseInt(get("month"), 10) - 1;
+  const d = parseInt(get("day"), 10);
+  let start: Date;
+  let end: Date;
+  if (filter === "today") {
+    start = new Date(y, m, d, 0, 0, 0, 0);
+    end = new Date(y, m, d, 23, 59, 59, 999);
+  } else if (filter === "tomorrow") {
+    start = new Date(y, m, d + 1, 0, 0, 0, 0);
+    end = new Date(y, m, d + 1, 23, 59, 59, 999);
+  } else {
+    const dayOfWeek = new Date(y, m, d).getDay();
+    const weekStartOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    start = new Date(y, m, d + weekStartOffset, 0, 0, 0, 0);
+    end = new Date(y, m, d + weekStartOffset + 6, 23, 59, 59, 999);
+  }
+  return { start, end };
+}
+
 export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant, tiebreakerConfig }: SeasonPlayDisplayProps) {
   const { t, locale } = useI18n();
   const theme = designVariant ? seasonPlayThemes[designVariant] : seasonPlayDefault;
@@ -61,6 +89,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     defaultView && tabs[defaultView] ? defaultView : (tabs.regular ? "regular" : tabs.standings ? "standings" : "playoffs");
   const [view, setView] = useState<"regular" | "playoffs" | "standings">(initialView);
   const [selectedGroup, setSelectedGroup] = useState<number | "all">("all");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [expandedScorers, setExpandedScorers] = useState(false);
   const [expandedYellowCards, setExpandedYellowCards] = useState(false);
   const [expandedRedCards, setExpandedRedCards] = useState(false);
@@ -110,6 +139,17 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       return a.matchNumber - b.matchNumber;
     });
   }, [matches, selectedGroup]);
+
+  const filteredRegularSeasonMatches = useMemo(() => {
+    const range = getDateRangeInTaipei(dateFilter);
+    if (!range) return regularSeasonMatches;
+    return regularSeasonMatches.filter((m) => {
+      const t = (m as any).scheduled_time;
+      if (!t) return false;
+      const matchTime = new Date(t).getTime();
+      return matchTime >= range.start.getTime() && matchTime <= range.end.getTime();
+    });
+  }, [regularSeasonMatches, dateFilter]);
 
   const playoffMatches = matches.filter(m => m.round >= 1);
 
@@ -888,30 +928,90 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {view === "regular" && hasRegularSeason && (
         <div>
           <div className={theme.infoBox}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <p className={theme.infoBoxText}>
-                <strong>{t("seasonPlay.regularProgress")}</strong> {t("seasonPlay.matchesCompleted").replace("{completed}", String(completedRegularMatches)).replace("{total}", String(totalRegularMatches))}
-              </p>
-              {hasGroups && (
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-semibold text-blue-800">{t("seasonPlay.filterByGroup")}</label>
-                  <select
-                    value={selectedGroup}
-                    onChange={(e) => setSelectedGroup(e.target.value === "all" ? "all" : parseInt(e.target.value))}
-                    className="px-3 py-1.5 border border-blue-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <p className={theme.infoBoxText}>
+                  <strong>{t("seasonPlay.regularProgress")}</strong> {t("seasonPlay.matchesCompleted").replace("{completed}", String(completedRegularMatches)).replace("{total}", String(totalRegularMatches))}
+                </p>
+                {hasGroups && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-semibold text-blue-800">{t("seasonPlay.filterByGroup")}</label>
+                    <select
+                      value={selectedGroup}
+                      onChange={(e) => setSelectedGroup(e.target.value === "all" ? "all" : parseInt(e.target.value))}
+                      className="px-3 py-1.5 border border-blue-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                      <option value="all">{t("seasonPlay.allGroups")}</option>
+                      {allGroups.map(groupNum => (
+                        <option key={groupNum} value={groupNum}>{t("seasonPlay.groupN").replace("{n}", String(groupNum))}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-gray-700">{t("seasonPlay.filterByDate")}</span>
+                {(["all", "today", "tomorrow", "week"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setDateFilter(key)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      dateFilter === key
+                        ? "bg-ntu-green text-white"
+                        : "bg-white border border-gray-300 text-gray-700 hover:border-ntu-green hover:text-ntu-green"
+                    }`}
                   >
-                    <option value="all">{t("seasonPlay.allGroups")}</option>
-                    {allGroups.map(groupNum => (
-                      <option key={groupNum} value={groupNum}>{t("seasonPlay.groupN").replace("{n}", String(groupNum))}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                    {key === "all" ? t("seasonPlay.filterAll") : key === "today" ? t("seasonPlay.filterToday") : key === "tomorrow" ? t("seasonPlay.filterTomorrow") : t("seasonPlay.filterThisWeek")}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div className={theme.tableWrapper}>
-            <div className="overflow-x-auto">
+            {/* Mobile card view */}
+            <div className="md:hidden space-y-3">
+              {filteredRegularSeasonMatches.length === 0 ? (
+                <p className="px-4 py-8 text-center text-gray-500">{t("seasonPlay.noMatchesForGroup")}</p>
+              ) : (
+                filteredRegularSeasonMatches.map((match) => {
+                  const matchData = match as any;
+                  return (
+                    <Link
+                      key={match.id}
+                      href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
+                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.99]"
+                    >
+                      {hasGroups && (
+                        <div className="mb-2">
+                          <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">
+                            {t("seasonPlay.groupN").replace("{n}", String(matchData.group_number ?? "-"))}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-sm font-medium text-gray-600">{formatDateTime(matchData.scheduled_time)}</span>
+                        {match.status === "completed" && <span className={theme.badgeCompleted}>{t("sports.completed")}</span>}
+                        {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
+                        {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
+                        {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
+                      </div>
+                      <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(matchData as any)}</div>
+                      <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
+                        <span className="truncate">{match.player1?.name || t("bracket.tbd")}</span>
+                        <span className="text-ntu-green shrink-0">VS</span>
+                        <span className="truncate">{match.player2?.name || t("bracket.tbd")}</span>
+                      </div>
+                      {match.score && (
+                        <div className="mt-2 text-sm font-semibold text-ntu-green">{(match as any).score}</div>
+                      )}
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className={theme.tableHeader}>
                   <tr>
@@ -927,14 +1027,14 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </tr>
                 </thead>
                 <tbody>
-                  {regularSeasonMatches.length === 0 ? (
+                  {filteredRegularSeasonMatches.length === 0 ? (
                     <tr>
                       <td colSpan={hasGroups ? 9 : 8} className="px-4 py-8 text-center text-gray-500">
-                        {t("seasonPlay.noMatchesForGroup")}
+                        {dateFilter === "all" ? t("seasonPlay.noMatchesForGroup") : t("seasonPlay.noMatchesForGroup")}
                       </td>
                     </tr>
                   ) : (
-                    regularSeasonMatches.map((match, idx) => {
+                    filteredRegularSeasonMatches.map((match, idx) => {
                       const matchData = match as any;
                       return (
                         <tr key={match.id} className={idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}>

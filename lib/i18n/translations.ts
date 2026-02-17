@@ -122,6 +122,11 @@ export const translations = {
       qrCodeTitle: '掃描 QR Code 分享此賽事',
       close: '關閉',
     },
+    matchDetail: {
+      copyMatchLink: '複製比賽連結',
+      addToCalendar: '加入日曆',
+      addToCalendarSuccess: '已下載日曆檔案，可加入您的日曆應用',
+    },
     // Announcements
     announcements: {
       title: '最新公告',
@@ -158,6 +163,11 @@ export const translations = {
       matchesCompleted: '{completed} / {total} 場已完成',
       filterByGroup: '依分組篩選：',
       allGroups: '全部分組',
+      filterByDate: '日期篩選：',
+      filterToday: '今日',
+      filterTomorrow: '明日',
+      filterThisWeek: '本週',
+      filterAll: '全部',
       groupN: '第 {n} 組',
       group: '分組',
       player1: '選手一',
@@ -327,6 +337,11 @@ export const translations = {
       qrCodeTitle: 'Scan QR Code to share this event',
       close: 'Close',
     },
+    matchDetail: {
+      copyMatchLink: 'Copy match link',
+      addToCalendar: 'Add to calendar',
+      addToCalendarSuccess: 'Calendar file downloaded. Add it to your calendar app.',
+    },
     // Announcements
     announcements: {
       title: 'Latest Announcement',
@@ -362,6 +377,11 @@ export const translations = {
       matchesCompleted: '{completed} / {total} matches completed',
       filterByGroup: 'Filter by Group:',
       allGroups: 'All Groups',
+      filterByDate: 'Date filter:',
+      filterToday: 'Today',
+      filterTomorrow: 'Tomorrow',
+      filterThisWeek: 'This week',
+      filterAll: 'All',
       groupN: 'Group {n}',
       group: 'Group',
       player1: 'Player 1',

@@ -16,6 +16,8 @@ interface SportsPageClientProps {
   matchesToShow: any[];
   hasUpcomingToday: boolean;
   latestAnnouncement?: any;
+  /** If set, links (e.g. announcements, match URLs) use event-specific paths. */
+  eventId?: string;
 }
 
 export default function SportsPageClient({
@@ -25,8 +27,13 @@ export default function SportsPageClient({
   matchesToShow,
   hasUpcomingToday,
   latestAnnouncement,
+  eventId,
 }: SportsPageClientProps) {
   const { t, locale } = useI18n();
+  const sport = (singleEvent?.sport ?? "tennis").toString().toLowerCase();
+  const basePath = `/sports/${sport}`;
+  const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements` : `${basePath}/announcements`;
+  const matchesBasePath = basePath; // match links are /sports/{sport}/matches/{id} (no event in path)
 
   const title = hasUpcomingToday ? t('sports.todaySchedule') : t('sports.tomorrowSchedule');
   const emptyMessage = hasUpcomingToday ? t('sports.noMatchesToday') : t('sports.noMatchesTomorrow');
@@ -123,7 +130,7 @@ export default function SportsPageClient({
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
                         <span className="font-semibold">{p1}</span>
                         <Link 
-                          href={`/sports/${singleEvent?.sport?.toLowerCase() || 'tennis'}/matches/${m.id}`}
+                          href={`${matchesBasePath}/matches/${m.id}`}
                           className="mx-3 text-lg font-bold text-ntu-green hover:text-green-700 hover:underline cursor-pointer transition-colors"
                         >
                           {t('sports.vs')}
@@ -158,7 +165,7 @@ export default function SportsPageClient({
               return (
                 <Link
                   key={m.id}
-                  href={`/sports/${singleEvent?.sport?.toLowerCase() || 'tennis'}/matches/${m.id}`}
+                  href={`${matchesBasePath}/matches/${m.id}`}
                   className="block bg-white rounded-lg p-4 shadow-sm border border-yellow-200 hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.98]"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -203,7 +210,7 @@ export default function SportsPageClient({
         <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 mb-6 sm:mb-8 border border-gray-100 animate-scaleIn">
           <div className="flex items-start justify-between mb-3">
             <h2 className="text-xl font-semibold text-ntu-green">{t('announcements.title')}</h2>
-            <Link href="/sports/tennis/announcements" className="text-ntu-green hover:underline text-xs sm:text-sm">
+            <Link href={announcementsUrl} className="text-ntu-green hover:underline text-xs sm:text-sm">
               {t('announcements.viewAll')} →
             </Link>
           </div>

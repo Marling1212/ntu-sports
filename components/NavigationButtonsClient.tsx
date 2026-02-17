@@ -6,19 +6,23 @@ import { useI18n } from "@/lib/i18n/context";
 interface NavigationButtonsClientProps {
   eventId?: string;
   sport?: string;
+  /** When "season_play", show a fourth card linking to Playoffs. */
+  tournamentType?: string;
 }
 
-export default function NavigationButtonsClient({ eventId, sport = "tennis" }: NavigationButtonsClientProps) {
+export default function NavigationButtonsClient({ eventId, sport = "tennis", tournamentType }: NavigationButtonsClientProps) {
   const { t } = useI18n();
   
   // Build URLs - if eventId is provided, link to event-specific pages
   const basePath = `/sports/${sport}`;
   const drawUrl = eventId ? `${basePath}/events/${eventId}/draw` : `${basePath}/draw`;
   const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule` : `${basePath}/schedule`;
+  const playoffsUrl = eventId ? `${basePath}/events/${eventId}/playoffs` : `${basePath}/playoffs`;
   const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements` : `${basePath}/announcements`;
+  const showPlayoffs = tournamentType === "season_play";
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+    <div className={`grid grid-cols-1 gap-4 sm:gap-6 ${showPlayoffs ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
       <Link
         href={drawUrl}
         className="bg-ntu-green text-white rounded-xl shadow-md p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
@@ -72,6 +76,35 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis" }: N
           </p>
         </div>
       </Link>
+
+      {showPlayoffs && (
+        <Link
+          href={playoffsUrl}
+          className="bg-ntu-green text-white rounded-xl shadow-md p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+        >
+          <div className="text-center">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4 group-hover:bg-opacity-30 transition-colors">
+              <svg
+                className="w-7 h-7 sm:w-8 sm:h-8 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">{t('navigation.playoffs')}</h3>
+            <p className="text-white text-opacity-90 text-xs sm:text-sm">
+              {t('navigation.playoffsDescription')}
+            </p>
+          </div>
+        </Link>
+      )}
 
       <Link
         href={announcementsUrl}

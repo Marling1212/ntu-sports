@@ -109,10 +109,11 @@ export default async function TennisPage() {
         matchesToShow={matchesToShow}
         hasUpcomingToday={hasUpcomingToday}
         latestAnnouncement={latest}
+        eventId={singleEvent.id}
       />
 
       {/* Navigation Buttons */}
-      <NavigationButtonsClient eventId={singleEvent.id} sport="tennis" />
+      <NavigationButtonsClient eventId={singleEvent.id} sport="tennis" tournamentType={singleEvent.tournament_type} />
     </div>
   );
 }
