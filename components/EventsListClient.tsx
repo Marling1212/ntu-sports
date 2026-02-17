@@ -3,21 +3,37 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
 
+const sportIcons: { [key: string]: string } = {
+  tennis: "🎾",
+  soccer: "⚽",
+  basketball: "🏀",
+  volleyball: "🏐",
+  badminton: "🏸",
+  tabletennis: "🏓",
+  baseball: "⚾",
+  softball: "🥎",
+};
+
 interface EventsListClientProps {
   events: any[];
+  /** Sport code (e.g. "tennis", "soccer"). Defaults to "tennis". */
+  sport?: string;
 }
 
-export default function EventsListClient({ events }: EventsListClientProps) {
+export default function EventsListClient({ events, sport = "tennis" }: EventsListClientProps) {
   const { t, locale } = useI18n();
+  const sportLower = sport.toLowerCase();
+  const sportName = sportLower ? sportLower.charAt(0).toUpperCase() + sportLower.slice(1) : "";
+  const sportIcon = sportIcons[sportLower] || "🏆";
 
   return (
     <>
       <div className="mb-8 sm:mb-12 animate-fadeIn">
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ntu-green mb-3 sm:mb-4 text-center">
-          🎾 {t('sports.tennisEvents')}
+          {sportIcon} {t("sports.ntuSportEvents").replace("{sport}", sportName)}
         </h1>
         <p className="text-base sm:text-lg text-gray-600 text-center px-4">
-          {t('sports.selectEvent')}
+          {t("sports.selectEvent")}
         </p>
       </div>
 
@@ -25,7 +41,7 @@ export default function EventsListClient({ events }: EventsListClientProps) {
         {events.map((event, index) => (
           <Link
             key={event.id}
-            href={`/sports/tennis/events/${event.id}`}
+            href={`/sports/${sportLower}/events/${event.id}`}
             className="bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-gray-100 p-5 sm:p-6 animate-scaleIn group"
             style={{ animationDelay: `${index * 0.1}s` }}
           >

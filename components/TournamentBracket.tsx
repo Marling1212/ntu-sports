@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Player, Match, SlotPlaceholder } from "@/types/tournament";
 import { useI18n } from "@/lib/i18n/context";
 
@@ -288,9 +289,10 @@ export default function TournamentBracket({
                       const player2IsLoser = !!match.winner && match.winner.id !== match.player2?.id;
 
                       return (
-                        <div
+                        <Link
                           key={match.id}
-                          className="absolute"
+                          href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
+                          className="absolute block cursor-pointer group rounded-lg -m-1 p-1 hover:bg-gray-50/80 transition-colors"
                           style={{ top: `${matchPosition}px` }}
                         >
                           <div className="relative flex flex-col gap-1">
@@ -360,7 +362,7 @@ export default function TournamentBracket({
                               )}
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>

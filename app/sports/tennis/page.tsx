@@ -33,7 +33,7 @@ export default async function TennisPage() {
   if (activeEvents.length > 1) {
     return (
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <EventsListClient events={activeEvents} />
+        <EventsListClient events={activeEvents} sport="tennis" />
       </div>
     );
   }

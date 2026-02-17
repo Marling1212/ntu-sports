@@ -163,9 +163,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     const firstRoundByKey = new Map<string, number>();
     // Process matches in round order. First appearance of each (seed, group) defines their first round of play; never overwrite with later rounds (R2+ slots are often "advanced" from R1).
     // This handles any structure: single/double bye, multi-round byes, etc.
-    const byRound = [...bracketMatches].sort((a, b) => a.round - b.round || (a.matchNumber ?? 0) - (b.matchNumber ?? 0));
+    const roundNum = (m: { round: unknown }) => Number(m.round) || 0;
+    const byRound = [...bracketMatches].sort(
+      (a, b) => roundNum(a) - roundNum(b) || (Number((a as { matchNumber?: number }).matchNumber) ?? 0) - (Number((b as { matchNumber?: number }).matchNumber) ?? 0)
+    );
     for (const m of byRound) {
-      const firstRound = m.status === "bye" ? m.round + 1 : m.round;
+      const r = roundNum(m);
+      const firstRound = m.status === "bye" ? r + 1 : r;
       const add = (seed: number, group: number) => {
         const key = `${seed}-${group}`;
         if (firstRoundByKey.has(key)) return; // already set from an earlier round
@@ -183,12 +187,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     winsByKey.forEach((wins, key) => {
       tierByKey.set(key, uniqueWins.indexOf(wins));
     });
+    // Tier 0 vs 1 should be clearly distinct (e.g. 1–6 vs 7–10); avoid two similar yellows.
     const tierColors = [
       "border-l-4 border-amber-500 bg-amber-50/50",
-      "border-l-4 border-yellow-400 bg-yellow-50/50",
+      "border-l-4 border-teal-500 bg-teal-50/50",
       "border-l-4 border-lime-500 bg-lime-50/50",
       "border-l-4 border-emerald-500 bg-emerald-50/50",
-      "border-l-4 border-teal-500 bg-teal-50/50",
+      "border-l-4 border-sky-500 bg-sky-50/50",
     ];
     return { tierByKey, tierColors };
   }, [playoffMatches]);
