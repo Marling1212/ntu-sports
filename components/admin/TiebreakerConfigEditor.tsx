@@ -8,13 +8,18 @@ import {
   getDefaultTiebreakerConfig,
   normalizeTiebreakerConfig,
   DEFAULT_TIEBREAKER_ORDER,
+  ALL_TIEBREAKER_CRITERIA,
 } from "@/lib/standings";
 
-const CRITERIA_OPTIONS: { value: TiebreakerCriteria; labelZh: string; labelEn: string }[] = [
+const CRITERIA_LABELS: { value: TiebreakerCriteria; labelZh: string; labelEn: string }[] = [
   { value: "points", labelZh: "積分", labelEn: "Points" },
+  { value: "wins", labelZh: "勝場數", labelEn: "Wins" },
+  { value: "losses", labelZh: "敗場數（少者較前）", labelEn: "Losses (fewer first)" },
+  { value: "draws", labelZh: "和局數", labelEn: "Draws" },
   { value: "head_to_head", labelZh: "對戰成績（H2H）", labelEn: "Head-to-head" },
   { value: "goal_difference", labelZh: "得失差", labelEn: "Goal difference" },
   { value: "goals_for", labelZh: "得分", labelEn: "Goals for" },
+  { value: "goals_against", labelZh: "失分（少者較前）", labelEn: "Goals against (fewer first)" },
   { value: "fair_play", labelZh: "公平競賽（黃／紅牌）", labelEn: "Fair play (cards)" },
 ];
 
@@ -49,6 +54,12 @@ export default function TiebreakerConfigEditor({
 
   if (tournamentType !== "season_play") return null;
 
+  const isSelected = (crit: TiebreakerCriteria) => order.includes(crit);
+  const toggle = (crit: TiebreakerCriteria) => {
+    if (isSelected(crit)) setOrder((prev) => prev.filter((c) => c !== crit));
+    else setOrder((prev) => [...prev, crit]);
+  };
+
   const move = (index: number, dir: "up" | "down") => {
     const next = [...order];
     const j = dir === "up" ? index - 1 : index + 1;
@@ -60,10 +71,14 @@ export default function TiebreakerConfigEditor({
   const restoreDefault = () => {
     setOrder(DEFAULT_TIEBREAKER_ORDER.filter((c) => c !== "final"));
     setFinalTiebreaker(getDefaultTiebreakerConfig().final_tiebreaker);
-    toast.success("已還原為預設順序");
+    toast.success("已還原為預設（含預設順序與選項）");
   };
 
   const save = async () => {
+    if (order.length === 0) {
+      toast.error("請至少勾選一項排名依據");
+      return;
+    }
     setSaving(true);
     try {
       const config: TiebreakerConfig = {
@@ -87,48 +102,70 @@ export default function TiebreakerConfigEditor({
     }
   };
 
+  const label = (crit: TiebreakerCriteria) =>
+    CRITERIA_LABELS.find((o) => o.value === crit)?.labelZh ?? crit;
+
   return (
     <section className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200">
       <h2 className="text-xl font-semibold text-ntu-green mb-2">季後賽／排名 Tiebreaker 規則</h2>
       <p className="text-sm text-gray-600 mb-4">
-        同分時依序比較以下項目。此順序會用於戰績表、填寫季後賽名單與匯出。最後一關可設為「由主辦方決定」以便加賽或抽籤。
+        勾選要使用的排名依據，並在下方調整比較順序。同分時依序比較「已選擇」的項目。此設定會用於戰績表、填寫季後賽名單與匯出。
       </p>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">比較順序</label>
-          <ul className="space-y-1">
-            {order.map((crit, index) => (
-              <li key={crit} className="flex items-center gap-2">
-                <span className="text-gray-500 w-6">{index + 1}.</span>
-                <span className="flex-1">
-                  {CRITERIA_OPTIONS.find((o) => o.value === crit)?.labelZh ?? crit}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => move(index, "up")}
-                  disabled={index === 0}
-                  className="px-2 py-0.5 text-xs border rounded disabled:opacity-40"
-                >
-                  上
-                </button>
-                <button
-                  type="button"
-                  onClick={() => move(index, "down")}
-                  disabled={index === order.length - 1}
-                  className="px-2 py-0.5 text-xs border rounded disabled:opacity-40"
-                >
-                  下
-                </button>
-              </li>
+          <label className="block text-sm font-medium text-gray-700 mb-2">可選的排名依據（勾選要使用的項目）</label>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {ALL_TIEBREAKER_CRITERIA.map((crit) => (
+              <label key={crit} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isSelected(crit)}
+                  onChange={() => toggle(crit)}
+                  className="rounded border-gray-300"
+                />
+                <span className="text-sm">{label(crit)}</span>
+              </label>
             ))}
-          </ul>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">已選擇的比較順序（由上到下依序比較）</label>
+          {order.length === 0 ? (
+            <p className="text-sm text-gray-500 italic">請在上方至少勾選一項</p>
+          ) : (
+            <ul className="space-y-1">
+              {order.map((crit, index) => (
+                <li key={crit} className="flex items-center gap-2">
+                  <span className="text-gray-500 w-6">{index + 1}.</span>
+                  <span className="flex-1">{label(crit)}</span>
+                  <button
+                    type="button"
+                    onClick={() => move(index, "up")}
+                    disabled={index === 0}
+                    className="px-2 py-0.5 text-xs border rounded disabled:opacity-40"
+                  >
+                    上
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(index, "down")}
+                    disabled={index === order.length - 1}
+                    className="px-2 py-0.5 text-xs border rounded disabled:opacity-40"
+                  >
+                    下
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <button
             type="button"
             onClick={restoreDefault}
             className="mt-2 text-sm text-ntu-green hover:underline"
           >
-            還原為預設順序
+            還原為預設順序與選項
           </button>
         </div>
 
@@ -161,7 +198,7 @@ export default function TiebreakerConfigEditor({
         <button
           type="button"
           onClick={save}
-          disabled={saving}
+          disabled={saving || order.length === 0}
           className="bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
         >
           {saving ? "儲存中…" : "儲存排名規則"}

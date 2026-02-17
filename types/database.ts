@@ -29,11 +29,16 @@ export interface TiebreakerConfig {
   points_loss?: number;
 }
 
+/** 單一排名依據。Admin 可從「可用選項」中勾選要使用的項目並排順序。 */
 export type TiebreakerCriteria =
   | 'points'
+  | 'wins'
+  | 'losses'
+  | 'draws'
   | 'head_to_head'
   | 'goal_difference'
   | 'goals_for'
+  | 'goals_against'
   | 'fair_play'
   | 'final';
 

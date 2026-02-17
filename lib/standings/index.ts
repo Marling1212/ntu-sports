@@ -1,4 +1,4 @@
-export { getDefaultTiebreakerConfig, normalizeTiebreakerConfig, DEFAULT_TIEBREAKER_ORDER } from "./config";
+export { getDefaultTiebreakerConfig, normalizeTiebreakerConfig, DEFAULT_TIEBREAKER_ORDER, ALL_TIEBREAKER_CRITERIA } from "./config";
 export {
   computeStandings,
   type StandingRow,

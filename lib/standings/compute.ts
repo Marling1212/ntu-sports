@@ -346,10 +346,18 @@ export function computeStandings(
       for (const crit of order) {
         if (crit === "points") {
           if (b.points !== a.points) return b.points - a.points;
+        } else if (crit === "wins") {
+          if (b.wins !== a.wins) return b.wins - a.wins;
+        } else if (crit === "losses") {
+          if (a.losses !== b.losses) return a.losses - b.losses; // 少輸較好
+        } else if (crit === "draws") {
+          if (b.draws !== a.draws) return b.draws - a.draws;
         } else if (crit === "goal_difference") {
           if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
         } else if (crit === "goals_for") {
           if ((b.goalsFor || 0) !== (a.goalsFor || 0)) return (b.goalsFor || 0) - (a.goalsFor || 0);
+        } else if (crit === "goals_against") {
+          if ((a.goalsAgainst || 0) !== (b.goalsAgainst || 0)) return (a.goalsAgainst || 0) - (b.goalsAgainst || 0); // 少失較好
         } else if (crit === "fair_play") {
           if ((b.fairPlayPoints || 0) !== (a.fairPlayPoints || 0))
             return (b.fairPlayPoints || 0) - (a.fairPlayPoints || 0);
