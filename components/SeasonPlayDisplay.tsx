@@ -1276,7 +1276,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             : standing.yellowCards > 0 
                               ? `${standing.yellowCards}` 
                               : '-';
-                          const groupNum = selectedGroup === "all" ? 1 : (selectedGroup as number);
+                          const groupNum = typeof selectedGroup === "number" ? selectedGroup : 1;
                           return (
                           <tr 
                             key={standing.player.id} 
