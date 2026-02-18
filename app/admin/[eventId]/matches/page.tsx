@@ -105,7 +105,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
 
   return (
     <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} />
+      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
       <div className="flex">
         <MatchesPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">

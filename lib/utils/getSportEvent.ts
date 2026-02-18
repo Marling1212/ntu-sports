@@ -59,15 +59,27 @@ export async function getSportMatches(eventId: string) {
   return matches || [];
 }
 
+/** For overview "latest" only: most recent by created_at. Pinned does not affect this. */
 export async function getSportAnnouncements(eventId: string) {
   const supabase = await createClient();
-  
   const { data: announcements } = await supabase
     .from("announcements")
     .select("*")
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
+  return announcements || [];
+}
 
+/** For announcements list page: pinned first (by pinned_order), then by created_at. */
+export async function getSportAnnouncementsForList(eventId: string) {
+  const supabase = await createClient();
+  const { data: announcements } = await supabase
+    .from("announcements")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("is_pinned", { ascending: false })
+    .order("pinned_order", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
   return announcements || [];
 }
 

@@ -81,12 +81,21 @@ function EventCard({ event, onVisibilityChange }: EventCardProps) {
           </p>
         )}
       </div>
-      <Link
-        href={`/admin/${event.id}/players`}
-        className="mt-4 text-ntu-green font-medium text-sm block hover:underline"
-      >
-        Manage →
-      </Link>
+      <div className="mt-4 flex items-center gap-4">
+        <Link
+          href={`/sports/${event.sport}/events/${event.id}`}
+          className="text-ntu-green font-medium text-sm hover:underline"
+          title="View on public site"
+        >
+          看前台
+        </Link>
+        <Link
+          href={`/admin/${event.id}/players`}
+          className="text-ntu-green font-medium text-sm hover:underline"
+        >
+          Manage →
+        </Link>
+      </div>
     </div>
   );
 }

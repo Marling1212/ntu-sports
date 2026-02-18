@@ -27,9 +27,16 @@ export default function AnnouncementsPageClient({ announcements }: Announcements
         ) : (
           announcements.map((announcement) => (
             <div key={announcement.id} className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-              <h2 className="text-xl sm:text-2xl font-semibold text-ntu-green mb-3">
-                {announcement.title}
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                <h2 className="text-xl sm:text-2xl font-semibold text-ntu-green">
+                  {announcement.title}
+                </h2>
+                {announcement.is_pinned && (
+                  <span className="text-xs font-medium px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
+                    {locale === "zh" ? "置頂" : "Pinned"}
+                  </span>
+                )}
+              </div>
               <div className="text-gray-700 mb-4 leading-relaxed text-sm sm:text-base">
                 <MarkdownText content={announcement.content} />
               </div>

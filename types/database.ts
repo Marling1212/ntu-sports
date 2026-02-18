@@ -100,6 +100,8 @@ export interface Announcement {
   content: string;
   created_at: string;
   updated_at: string;
+  is_pinned?: boolean;
+  pinned_order?: number | null;
 }
 
 export interface EventCourt {

@@ -40,16 +40,18 @@ export default async function AnnouncementsPage({ params }: { params: Promise<{ 
     .eq("id", eventId)
     .single();
 
-  // Get announcements
+  // Get announcements: pinned first (by pinned_order), then by created_at
   const { data: announcements } = await supabase
     .from("announcements")
     .select("*")
     .eq("event_id", eventId)
+    .order("is_pinned", { ascending: false })
+    .order("pinned_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
 
   return (
     <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} />
+      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
       <div className="flex">
         <AnnouncementsPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">

@@ -113,7 +113,7 @@ export default async function SchedulingPage({
 
   return (
     <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} />
+      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
       <div className="flex">
         <SchedulingPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">

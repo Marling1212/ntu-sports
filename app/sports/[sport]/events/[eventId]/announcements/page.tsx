@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getSportAnnouncements } from "@/lib/utils/getSportEvent";
+import { getSportAnnouncementsForList } from "@/lib/utils/getSportEvent";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import AnnouncementsPageClient from "@/components/AnnouncementsPageClient";
 import { notFound } from "next/navigation";
@@ -28,7 +28,7 @@ export default async function SportEventAnnouncementsPage({
     notFound();
   }
 
-  const announcements = await getSportAnnouncements(event.id);
+  const announcements = await getSportAnnouncementsForList(event.id);
 
   return (
     <>

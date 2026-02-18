@@ -4,9 +4,12 @@ import LogoutButton from "./LogoutButton";
 interface AdminNavbarProps {
   eventId?: string;
   eventName?: string;
+  /** Event sport (e.g. "tennis", "soccer") for consistent "View site" link to /sports/{sport}/events/{eventId} */
+  sport?: string;
 }
 
-export default function AdminNavbar({ eventId, eventName }: AdminNavbarProps) {
+export default function AdminNavbar({ eventId, eventName, sport }: AdminNavbarProps) {
+  const viewerUrl = eventId && sport ? `/sports/${sport}/events/${eventId}` : null;
   return (
     <nav className="sticky top-0 z-50 bg-ntu-green text-white shadow-lg">
       <div className="container mx-auto px-4 py-4">
@@ -23,7 +26,12 @@ export default function AdminNavbar({ eventId, eventName }: AdminNavbarProps) {
             )}
           </div>
           {eventId && (
-            <div className="flex gap-5 text-sm font-medium">
+            <div className="flex gap-5 text-sm font-medium items-center">
+              {viewerUrl && (
+                <Link href={viewerUrl} className="hover:opacity-80 transition-opacity" title="看前台 View on site">
+                  看前台
+                </Link>
+              )}
               <Link href={`/admin/${eventId}/players`} className="hover:opacity-80 transition-opacity" title="管理選手／隊伍、產生籤表、匯入賽季">
                 選手
               </Link>

@@ -26,6 +26,7 @@ export default function AnnouncementsManager({ eventId, initialAnnouncements }: 
         event_id: eventId,
         title: newAnnouncement.title,
         content: newAnnouncement.content,
+        is_pinned: false,
       })
       .select()
       .single();
@@ -53,6 +54,32 @@ export default function AnnouncementsManager({ eventId, initialAnnouncements }: 
     } else {
       setAnnouncements(announcements.filter(a => a.id !== announcementId));
       toast.success("Announcement deleted!");
+    }
+  };
+
+  const handleTogglePin = async (announcement: Announcement) => {
+    const newPinned = !(announcement.is_pinned ?? false);
+    let pinnedOrder: number | null = null;
+    if (newPinned) {
+      const pinned = announcements.filter(a => a.is_pinned);
+      pinnedOrder = pinned.length > 0
+        ? Math.max(...pinned.map(a => a.pinned_order ?? 0)) + 1
+        : 0;
+    }
+    const { error } = await supabase
+      .from("announcements")
+      .update({ is_pinned: newPinned, pinned_order: pinnedOrder })
+      .eq("id", announcement.id);
+
+    if (error) {
+      toast.error(`Error: ${error.message}`);
+    } else {
+      setAnnouncements(announcements.map(a =>
+        a.id === announcement.id
+          ? { ...a, is_pinned: newPinned, pinned_order: pinnedOrder }
+          : a
+      ));
+      toast.success(newPinned ? "Pinned to top of list" : "Unpinned");
     }
   };
 
@@ -115,13 +142,29 @@ export default function AnnouncementsManager({ eventId, initialAnnouncements }: 
             announcements.map((announcement) => (
               <div key={announcement.id} className="p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-xl font-semibold text-gray-900">{announcement.title}</h3>
-                  <button
-                    onClick={() => handleDelete(announcement.id)}
-                    className="text-red-600 hover:text-red-900 text-sm font-medium"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xl font-semibold text-gray-900">{announcement.title}</h3>
+                    {announcement.is_pinned && (
+                      <span className="text-xs font-medium px-2 py-0.5 bg-amber-100 text-amber-800 rounded" title="Shows at top on public announcements page">
+                        Pinned
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleTogglePin(announcement)}
+                      className="text-sm font-medium text-gray-600 hover:text-ntu-green"
+                      title={announcement.is_pinned ? "Unpin" : "Pin to top of list"}
+                    >
+                      {announcement.is_pinned ? "Unpin" : "Pin"}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(announcement.id)}
+                      className="text-red-600 hover:text-red-900 text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
                 <div className="text-gray-700 mb-3">
                   <MarkdownText content={announcement.content} />

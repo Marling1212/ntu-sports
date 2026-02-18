@@ -57,7 +57,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
 
   return (
     <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} />
+      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
       <div className="flex">
         <SettingsPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">

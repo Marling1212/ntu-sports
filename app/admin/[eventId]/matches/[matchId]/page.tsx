@@ -126,7 +126,7 @@ export default async function MatchDetailPage({
 
   return (
     <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} />
+      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
       <div className="container mx-auto px-4 py-12">
         <MatchDetailContent
           eventId={eventId}
