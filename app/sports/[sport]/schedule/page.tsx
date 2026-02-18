@@ -81,7 +81,7 @@ export default async function SportSchedulePage(context: any) {
         </div>
 
         {/* Tournament Rules (non-season-play) */}
-        {event?.tournament_type !== 'season_play' && rules && rules.length > 0 && (
+        {event?.tournament_type !== 'season_play' && Array.isArray(rules) && rules.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
             <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("schedule.tournamentRules")}</h2>
             <div className="space-y-4">
@@ -100,7 +100,7 @@ export default async function SportSchedulePage(context: any) {
         )}
 
         {/* Schedule Items (non-season-play) */}
-        {event?.tournament_type !== 'season_play' && scheduleItems && scheduleItems.length > 0 && (
+        {event?.tournament_type !== 'season_play' && Array.isArray(scheduleItems) && scheduleItems.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-8 border border-gray-100">
             <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("schedule.scheduleLabel")}</h2>
             <div className="space-y-4">
@@ -136,7 +136,7 @@ export default async function SportSchedulePage(context: any) {
           </div>
         )}
 
-        {event?.tournament_type !== 'season_play' && (!rules || rules.length === 0) && (!scheduleItems || scheduleItems.length === 0) && (
+        {event?.tournament_type !== 'season_play' && (rules?.length ?? 0) === 0 && (scheduleItems?.length ?? 0) === 0 && (
           <div className="bg-white rounded-xl shadow-md p-12 text-center border border-gray-100">
             <p className="text-gray-600 text-lg">{t("schedule.noScheduleInfo")}</p>
           </div>
