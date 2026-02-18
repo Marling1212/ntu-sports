@@ -190,13 +190,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     winsByKey.forEach((wins, key) => {
       tierByKey.set(key, uniqueWins.indexOf(wins));
     });
-    // Tier 0 vs 1 should be clearly distinct (e.g. 1–6 vs 7–10); avoid two similar yellows.
+    // Very visible tier colors: thick border + strong tint; no alternating row bg so these show clearly.
     const tierColors = [
-      "border-l-4 border-amber-500 bg-amber-50/50",
-      "border-l-4 border-teal-500 bg-teal-50/50",
-      "border-l-4 border-lime-500 bg-lime-50/50",
-      "border-l-4 border-emerald-500 bg-emerald-50/50",
-      "border-l-4 border-sky-500 bg-sky-50/50",
+      "border-l-[8px] border-amber-600 bg-amber-200",
+      "border-l-[8px] border-teal-600 bg-teal-200",
+      "border-l-[8px] border-lime-600 bg-lime-200",
+      "border-l-[8px] border-emerald-600 bg-emerald-200",
+      "border-l-[8px] border-sky-600 bg-sky-200",
     ];
     return { tierByKey, tierColors };
   }, [playoffMatches]);
@@ -945,9 +945,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     if (idx >= qualifiersPerGroup) return "";
     const key = `${idx + 1}-${groupNum}`;
     const tier = playoffWinsNeededTier.tierByKey.get(key);
-    if (tier === undefined) return "border-l-4 border-yellow-400 bg-yellow-50/30";
+    if (tier === undefined) return "border-l-[8px] border-yellow-600 bg-yellow-200";
     const c = playoffWinsNeededTier.tierColors[tier];
-    return c ?? "border-l-4 border-yellow-400 bg-yellow-50/30";
+    return c ?? "border-l-[8px] border-yellow-600 bg-yellow-200";
   };
 
   // Count completed matches
@@ -1236,7 +1236,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               return (
                               <tr 
                                 key={standing.player.id} 
-                                className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${getQualifierRowClass(idx, groupNum)}`}
+                                className={getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? 'bg-gray-50' : 'bg-white')}
                               >
                                 <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                                 <td className="px-4 py-3">
@@ -1296,7 +1296,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           return (
                           <tr 
                             key={standing.player.id} 
-                            className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${getQualifierRowClass(idx, groupNum)}`}
+                            className={getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? 'bg-gray-50' : 'bg-white')}
                           >
                             <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                             <td className="px-4 py-3">
@@ -1353,7 +1353,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               return (
                       <tr 
                         key={standing.player.id} 
-                                className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${getQualifierRowClass(idx, groupNum)}`}
+                                className={getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? 'bg-gray-50' : 'bg-white')}
                       >
                         <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                         <td className="px-4 py-3">
