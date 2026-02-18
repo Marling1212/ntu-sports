@@ -53,19 +53,21 @@ export default async function SportSchedulePage(context: any) {
     }));
   }
   
-  // Get tournament rules
-  const { data: rules } = await supabase
+  // Get tournament rules (default to [] so type is never null in JSX)
+  const { data: rulesData } = await supabase
     .from("tournament_rules")
     .select("*")
     .eq("event_id", event?.id || "")
     .order("order_number", { ascending: true });
+  const rulesList = rulesData ?? [];
 
   // Get schedule items
-  const { data: scheduleItems } = await supabase
+  const { data: scheduleItemsData } = await supabase
     .from("schedule_items")
     .select("*")
     .eq("event_id", event?.id || "")
     .order("order_number", { ascending: true });
+  const scheduleItemsList = scheduleItemsData ?? [];
 
   return (
     <>
@@ -81,11 +83,11 @@ export default async function SportSchedulePage(context: any) {
         </div>
 
         {/* Tournament Rules (non-season-play) */}
-        {event?.tournament_type !== 'season_play' && Array.isArray(rules) && rules.length > 0 && (
+        {event?.tournament_type !== 'season_play' && rulesList.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
             <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("schedule.tournamentRules")}</h2>
             <div className="space-y-4">
-              {rules.map((rule, idx) => (
+              {rulesList.map((rule, idx) => (
                 <div key={rule.id} className="flex gap-4">
                   <div className="flex-shrink-0 w-8 h-8 bg-ntu-green text-white rounded-full flex items-center justify-center font-bold">
                     {idx + 1}
@@ -100,11 +102,11 @@ export default async function SportSchedulePage(context: any) {
         )}
 
         {/* Schedule Items (non-season-play) */}
-        {event?.tournament_type !== 'season_play' && Array.isArray(scheduleItems) && scheduleItems.length > 0 && (
+        {event?.tournament_type !== 'season_play' && scheduleItemsList.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-8 border border-gray-100">
             <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("schedule.scheduleLabel")}</h2>
             <div className="space-y-4">
-              {scheduleItems.map((item, idx) => (
+              {scheduleItemsList.map((item, idx) => (
                 <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-b-0">
                   <div className="flex-shrink-0 w-24 text-sm font-semibold text-gray-700">
                     {item.time || t("schedule.dayN").replace("{n}", String(idx + 1))}
@@ -136,7 +138,7 @@ export default async function SportSchedulePage(context: any) {
           </div>
         )}
 
-        {event?.tournament_type !== 'season_play' && (rules?.length ?? 0) === 0 && (scheduleItems?.length ?? 0) === 0 && (
+        {event?.tournament_type !== 'season_play' && rulesList.length === 0 && scheduleItemsList.length === 0 && (
           <div className="bg-white rounded-xl shadow-md p-12 text-center border border-gray-100">
             <p className="text-gray-600 text-lg">{t("schedule.noScheduleInfo")}</p>
           </div>
