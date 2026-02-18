@@ -217,7 +217,7 @@ export default async function SportEventPage({
         <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
           <div className="flex items-start justify-between mb-3">
             <h2 className="text-xl font-semibold text-ntu-green">{t("announcements.title")}</h2>
-            <Link href={`/sports/${sportParam}/announcements`} className="text-ntu-green hover:underline text-sm">
+            <Link href={`/sports/${sportParam}/events/${event.id}/announcements`} className="text-ntu-green hover:underline text-sm">
               {t("announcements.viewAllArrow")}
             </Link>
           </div>
@@ -254,7 +254,7 @@ export default async function SportEventPage({
       {/* Navigation Buttons */}
       <div className={`grid grid-cols-1 gap-6 ${event.tournament_type === "season_play" ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <Link
-          href={`/sports/${sportParam}/draw`}
+          href={`/sports/${sportParam}/events/${event.id}/draw`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
         >
           <div className="text-center">
@@ -285,7 +285,7 @@ export default async function SportEventPage({
         </Link>
 
         <Link
-          href={`/sports/${sportParam}/schedule`}
+          href={`/sports/${sportParam}/events/${event.id}/schedule`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
         >
           <div className="text-center">
@@ -315,7 +315,7 @@ export default async function SportEventPage({
 
         {event.tournament_type === "season_play" && (
           <Link
-            href={`/sports/${sportParam}/playoffs`}
+            href={`/sports/${sportParam}/events/${event.id}/playoffs`}
             className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
           >
             <div className="text-center">
@@ -343,7 +343,7 @@ export default async function SportEventPage({
         )}
 
         <Link
-          href={`/sports/${sportParam}/announcements`}
+          href={`/sports/${sportParam}/events/${event.id}/announcements`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
         >
           <div className="text-center">

@@ -8,22 +8,32 @@ import { generateTennisPlayers, seedPlayers, generateMatches } from "@/data/tenn
 import { Toaster } from "react-hot-toast";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { redirect } from "next/navigation";
 
 // Disable caching to always fetch fresh data
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function SportDrawPage(context: any) {
-  const locale = await getLocale();
-  const t = getT(locale);
   const params = (context?.params || {}) as { sport?: string };
   const sportParam = (params.sport || "").toLowerCase();
+  // Standardize on event-level URLs: redirect sport-level to event-level when exactly one event
+  const supabase = await createClient();
+  const { data: events } = sportParam
+    ? await supabase.from("events").select("id").eq("sport", sportParam).eq("is_visible", true).order("start_date", { ascending: false })
+    : { data: [] };
+  if (events?.length === 1) {
+    redirect(`/sports/${sportParam}/events/${events[0].id}/draw`);
+  }
+  redirect(`/sports/${sportParam}`);
+
+  const locale = await getLocale();
+  const t = getT(locale);
   // Capitalize first letter of sport name
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   
   // Try to get data from Supabase (case-insensitive)
   const event = sportParam ? await getSportEvent(sportParam) : null; // Pass lowercase version for case-insensitive lookup
-  const supabase = await createClient();
   
   let matches: any[] = [];
   let players: any[] = [];

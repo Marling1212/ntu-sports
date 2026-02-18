@@ -4,12 +4,23 @@ import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export default async function SportAnnouncementsPage(context: any) {
-  const locale = await getLocale();
-  const t = getT(locale);
   const params = (context?.params || {}) as { sport?: string };
   const sportParam = (params.sport || "").toLowerCase();
+  const supabase = await createClient();
+  const { data: events } = sportParam
+    ? await supabase.from("events").select("id").eq("sport", sportParam).eq("is_visible", true).order("start_date", { ascending: false })
+    : { data: [] };
+  if (events?.length === 1) {
+    redirect(`/sports/${sportParam}/events/${events[0].id}/announcements`);
+  }
+  redirect(`/sports/${sportParam}`);
+
+  const locale = await getLocale();
+  const t = getT(locale);
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const event = sportParam ? await getSportEvent(sportParam) : null; // Pass lowercase version for case-insensitive lookup
   const announcements = event ? await getSportAnnouncements(event.id) : [];

@@ -5,16 +5,25 @@ import TennisNavbarClient from "@/components/TennisNavbarClient";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import { getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function SportSchedulePage(context: any) {
-  const locale = await getLocale();
-  const t = getT(locale);
-  const supabase = await createClient();
   const params = (context?.params || {}) as { sport?: string };
   const sportParam = (params.sport || "").toLowerCase();
+  const supabase = await createClient();
+  const { data: events } = sportParam
+    ? await supabase.from("events").select("id").eq("sport", sportParam).eq("is_visible", true).order("start_date", { ascending: false })
+    : { data: [] };
+  if (events?.length === 1) {
+    redirect(`/sports/${sportParam}/events/${events[0].id}/schedule`);
+  }
+  redirect(`/sports/${sportParam}`);
+
+  const locale = await getLocale();
+  const t = getT(locale);
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const event = sportParam ? await getSportEvent(sportParam) : null; // Pass lowercase version for case-insensitive lookup
   let matches: any[] = [];
