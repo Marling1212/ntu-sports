@@ -252,7 +252,7 @@ export default async function SportEventPage({
       )}
 
       {/* Navigation Buttons */}
-      <div className={`grid grid-cols-1 gap-6 ${event.tournament_type === "season_play" ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+      <div className={`grid grid-cols-1 gap-6 ${event.tournament_type === "season_play" ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
         <Link
           href={`/sports/${sportParam}/events/${event.id}/draw`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
@@ -341,6 +341,33 @@ export default async function SportEventPage({
             </div>
           </Link>
         )}
+
+        <Link
+          href={`/sports/${sportParam}/events/${event.id}/rules`}
+          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+        >
+          <div className="text-center">
+            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
+              <svg
+                className="w-8 h-8 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold mb-3">{t("navigation.rules")}</h3>
+            <p className="text-white text-opacity-90 text-sm">
+              {t("navigation.rulesDescription")}
+            </p>
+          </div>
+        </Link>
 
         <Link
           href={`/sports/${sportParam}/events/${event.id}/announcements`}

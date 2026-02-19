@@ -40,6 +40,7 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
   const drawUrl = eventId ? `${basePath}/events/${eventId}/draw` : `${basePath}/draw`;
   const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule` : `${basePath}/schedule`;
   const playoffsUrl = eventId ? `${basePath}/events/${eventId}/playoffs` : `${basePath}/playoffs`;
+  const rulesUrl = eventId ? `${basePath}/events/${eventId}/rules` : `${basePath}/rules`;
   const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements` : `${basePath}/announcements`;
 
   const isActive = (path: string) => pathname === path;
@@ -70,7 +71,7 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
           </div>
 
           {/* Navigation Links - Full width buttons on mobile */}
-          <div className={`grid gap-2 ${tournamentType === "season_play" ? "grid-cols-4" : "grid-cols-3"}`}>
+          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             <Link
               href={drawUrl}
               className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
@@ -90,6 +91,16 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
               }`}
             >
               {t("navigation.schedule")}
+            </Link>
+            <Link
+              href={rulesUrl}
+              className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
+                isActive(rulesUrl)
+                  ? "bg-ntu-green text-white"
+                  : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
+              }`}
+            >
+              {t("navigation.rules")}
             </Link>
             {tournamentType === "season_play" && (
               <Link
@@ -165,6 +176,16 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
               }`}
             >
               {t("navigation.schedule")}
+            </Link>
+            <Link
+              href={rulesUrl}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center ${
+                isActive(rulesUrl)
+                  ? "bg-ntu-green text-white"
+                  : "text-gray-700 hover:bg-ntu-green hover:text-white"
+              }`}
+            >
+              {t("navigation.rules")}
             </Link>
             {tournamentType === "season_play" && (
               <Link
