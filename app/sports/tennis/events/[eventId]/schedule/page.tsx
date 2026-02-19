@@ -103,6 +103,7 @@ export default async function TennisEventSchedulePage({
             qualifiersPerGroup={(event as any)?.playoff_qualifiers_per_group ?? undefined}
             visibleTabs={{ regular: true, standings: false, playoffs: hasPlayoffs }}
             defaultView={defaultGamesView}
+            playoffsDisplayMode="schedule"
             registrationType={(event as any)?.registration_type ?? "player"}
             matchPlayerStats={matchPlayerStats}
             teamMembers={teamMembers}

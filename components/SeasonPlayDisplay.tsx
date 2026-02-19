@@ -45,6 +45,8 @@ interface SeasonPlayDisplayProps {
   designVariant?: DesignVariant;
   /** Tiebreaker rules (from event.tiebreaker_config). When null/undefined, default rules are used and shown. */
   tiebreakerConfig?: TiebreakerConfig | null;
+  /** When "schedule", playoffs view shows a match list (like regular season) instead of the bracket. Use on Games page. */
+  playoffsDisplayMode?: "bracket" | "schedule";
 }
 
 const TAIPEI_TZ = "Asia/Taipei";
@@ -77,7 +79,7 @@ function getDateRangeInTaipei(filter: DateFilter): { start: Date; end: Date } | 
   return { start, end };
 }
 
-export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant, tiebreakerConfig }: SeasonPlayDisplayProps) {
+export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant, tiebreakerConfig, playoffsDisplayMode = "bracket" }: SeasonPlayDisplayProps) {
   const { t, locale } = useI18n();
   const theme = designVariant ? seasonPlayThemes[designVariant] : seasonPlayDefault;
   const tabs = {
@@ -248,6 +250,20 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   const hasRegularSeason = matches.filter(m => m.round === 0).length > 0;
   const hasPlayoffs = playoffMatches.length > 0;
+
+  // Playoff matches sorted for schedule list (round, match number, time)
+  const playoffMatchesForSchedule = useMemo(() => {
+    if (playoffsDisplayMode !== "schedule" || !hasPlayoffs) return [];
+    const roundNum = (x: { round: unknown }) => Number(x.round) || 0;
+    const matchNum = (x: { matchNumber?: number }) => Number((x as { matchNumber?: number }).matchNumber) ?? 0;
+    return [...resolvedPlayoffMatches].sort((a, b) => {
+      if (roundNum(a) !== roundNum(b)) return roundNum(a) - roundNum(b);
+      if (matchNum(a) !== matchNum(b)) return matchNum(a) - matchNum(b);
+      const ta = (a as any).scheduled_time ? new Date((a as any).scheduled_time).getTime() : 0;
+      const tb = (b as any).scheduled_time ? new Date((b as any).scheduled_time).getTime() : 0;
+      return ta - tb;
+    });
+  }, [resolvedPlayoffMatches, playoffsDisplayMode, hasPlayoffs]);
 
   // Calculate top scorers for team events
   const topScorers = useMemo(() => {
@@ -1565,8 +1581,123 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         </div>
       )}
 
-      {/* Playoffs View */}
-      {view === "playoffs" && hasPlayoffs && (
+      {/* Playoffs View - Schedule list (Games page) */}
+      {view === "playoffs" && hasPlayoffs && playoffsDisplayMode === "schedule" && (
+        <div>
+          <div className={theme.tableWrapper}>
+            <div className="md:hidden space-y-3">
+              {playoffMatchesForSchedule.length === 0 ? (
+                <p className="px-4 py-8 text-center text-gray-500">{t("seasonPlay.noMatchesYet")}</p>
+              ) : (
+                playoffMatchesForSchedule.map((match) => {
+                  const matchData = match as any;
+                  const roundLabel = match.round === 1 ? t("bracket.quarterfinals") : match.round === 2 ? t("bracket.semifinals") : match.round >= 3 ? t("bracket.final") : t("bracket.roundOf").replace("{n}", String(1 << match.round));
+                  return (
+                    <Link
+                      key={match.id}
+                      href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
+                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.99]"
+                    >
+                      <div className="mb-2">
+                        <span className="inline-block px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">
+                          {roundLabel}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-sm font-medium text-gray-600">{formatDateTime(matchData.scheduled_time)}</span>
+                        {match.status === "completed" && <span className={theme.badgeCompleted}>{t("sports.completed")}</span>}
+                        {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
+                        {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
+                        {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
+                        {match.status === "bye" && <span className="text-xs text-gray-500">{t("bracket.bye")}</span>}
+                      </div>
+                      <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(matchData as any)}</div>
+                      <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
+                        <span className="truncate">{match.player1?.name || t("bracket.tbd")}</span>
+                        <span className="text-ntu-green shrink-0">VS</span>
+                        <span className="truncate">{match.player2?.name || t("bracket.tbd")}</span>
+                      </div>
+                      {match.score && (
+                        <div className="mt-2 text-sm font-semibold text-ntu-green">{(match as any).score}</div>
+                      )}
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className={theme.tableHeader}>
+                  <tr>
+                    <th className={theme.tableHeaderCell}>{t("schedule.roundLabel")}</th>
+                    <th className={`${theme.tableHeaderCell} hidden`}>Match #</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.player1")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.vs")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.player2")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.dateTime")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.court")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.score")}</th>
+                    <th className={theme.tableHeaderCell}>{t("seasonPlay.status")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {playoffMatchesForSchedule.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">{t("seasonPlay.noMatchesYet")}</td>
+                    </tr>
+                  ) : (
+                    playoffMatchesForSchedule.map((match, idx) => {
+                      const matchData = match as any;
+                      const roundLabel = match.round === 1 ? t("bracket.quarterfinals") : match.round === 2 ? t("bracket.semifinals") : match.round >= 3 ? t("bracket.final") : t("bracket.roundOf").replace("{n}", String(1 << match.round));
+                      return (
+                        <tr key={match.id} className={idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}>
+                          <td className="px-4 py-3">
+                            <span className="inline-block px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">
+                              {roundLabel}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-gray-700 hidden">#{match.matchNumber}</td>
+                          <td className="px-4 py-3">
+                            <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} className="hover:text-ntu-green hover:underline">
+                              {match.player1?.name || t("bracket.tbd")}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} className="text-lg font-bold text-ntu-green hover:text-green-700 hover:underline">
+                              {t("seasonPlay.vs")}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} className="hover:text-ntu-green hover:underline">
+                              {match.player2?.name || t("bracket.tbd")}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm font-medium text-gray-700">
+                            {formatDateTime(matchData.scheduled_time)}
+                            {matchData.slot_code && <div className="text-xs text-gray-500 mt-0.5">{matchData.slot_code}</div>}
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm text-gray-600">{getCourtDisplay(matchData as any)}</td>
+                          <td className="px-4 py-3 text-center font-semibold">{match.score || "-"}</td>
+                          <td className={theme.tableCell}>
+                            {match.status === "completed" && <span className={theme.badgeCompleted}>{t("sports.completed")}</span>}
+                            {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
+                            {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
+                            {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
+                            {match.status === "bye" && <span className="text-xs text-gray-500">{t("bracket.bye")}</span>}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Playoffs View - Bracket (Draw page) */}
+      {view === "playoffs" && hasPlayoffs && playoffsDisplayMode !== "schedule" && (
         <div>
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-lg">
             <p className="text-sm text-yellow-800">
