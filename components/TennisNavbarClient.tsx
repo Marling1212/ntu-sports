@@ -39,7 +39,6 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
   // Build URLs - use event-specific paths if eventId exists, otherwise use old structure
   const drawUrl = eventId ? `${basePath}/events/${eventId}/draw` : `${basePath}/draw`;
   const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule` : `${basePath}/schedule`;
-  const playoffsUrl = eventId ? `${basePath}/events/${eventId}/playoffs` : `${basePath}/playoffs`;
   const rulesUrl = eventId ? `${basePath}/events/${eventId}/rules` : `${basePath}/rules`;
   const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements` : `${basePath}/announcements`;
 
@@ -102,18 +101,6 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
             >
               {t("navigation.rules")}
             </Link>
-            {tournamentType === "season_play" && (
-              <Link
-                href={playoffsUrl}
-                className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
-                  isActive(playoffsUrl)
-                    ? "bg-ntu-green text-white"
-                    : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
-                }`}
-              >
-                {t("navigation.playoffs")}
-              </Link>
-            )}
             <Link
               href={announcementsUrl}
               className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
@@ -187,18 +174,6 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
             >
               {t("navigation.rules")}
             </Link>
-            {tournamentType === "season_play" && (
-              <Link
-                href={playoffsUrl}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center ${
-                  isActive(playoffsUrl)
-                    ? "bg-ntu-green text-white"
-                    : "text-gray-700 hover:bg-ntu-green hover:text-white"
-                }`}
-              >
-                {t("navigation.playoffs")}
-              </Link>
-            )}
             <Link
               href={announcementsUrl}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center ${

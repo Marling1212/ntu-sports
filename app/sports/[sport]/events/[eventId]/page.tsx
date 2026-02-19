@@ -313,35 +313,6 @@ export default async function SportEventPage({
           </div>
         </Link>
 
-        {event.tournament_type === "season_play" && (
-          <Link
-            href={`/sports/${sportParam}/events/${event.id}/playoffs`}
-            className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
-          >
-            <div className="text-center">
-              <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
-                <svg
-                  className="w-8 h-8 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-semibold mb-3">{t("playoffs.title")}</h3>
-              <p className="text-white text-opacity-90 text-sm">
-                {t("navigation.playoffsDescription")}
-              </p>
-            </div>
-          </Link>
-        )}
-
         <Link
           href={`/sports/${sportParam}/events/${event.id}/rules`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"

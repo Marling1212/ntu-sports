@@ -14,7 +14,7 @@ export default function TennisNavbar() {
           {/* Navigation Links */}
           <div className="flex gap-1">
             <NavLink href="/sports/tennis/draw" label="籤表 Draw" />
-            <NavLink href="/sports/tennis/schedule" label="賽程 Schedule" />
+            <NavLink href="/sports/tennis/schedule" label="比賽 Game" />
             <NavLink href="/sports/tennis/announcements" label="公告 Announcements" />
           </div>
 

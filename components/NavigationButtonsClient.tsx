@@ -17,13 +17,11 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
   const basePath = `/sports/${sport}`;
   const drawUrl = eventId ? `${basePath}/events/${eventId}/draw` : `${basePath}/draw`;
   const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule` : `${basePath}/schedule`;
-  const playoffsUrl = eventId ? `${basePath}/events/${eventId}/playoffs` : `${basePath}/playoffs`;
   const rulesUrl = eventId ? `${basePath}/events/${eventId}/rules` : `${basePath}/rules`;
   const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements` : `${basePath}/announcements`;
-  const showPlayoffs = tournamentType === "season_play";
 
   return (
-    <div className={`grid grid-cols-1 gap-6 ${showPlayoffs ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
       <Link
         href={drawUrl}
         className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
@@ -77,35 +75,6 @@ export default function NavigationButtonsClient({ eventId, sport = "tennis", tou
           </p>
         </div>
       </Link>
-
-      {showPlayoffs && (
-        <Link
-          href={playoffsUrl}
-          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
-        >
-          <div className="text-center">
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-semibold mb-3">{t('navigation.playoffs')}</h3>
-            <p className="text-white text-opacity-90 text-sm">
-              {t('navigation.playoffsDescription')}
-            </p>
-          </div>
-        </Link>
-      )}
 
       <Link
         href={rulesUrl}
