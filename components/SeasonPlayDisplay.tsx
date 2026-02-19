@@ -958,7 +958,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     <div className={theme.root}>
       {/* View Tabs */}
       <div className={theme.tabsContainer}>
-        <div className="flex overflow-x-auto">
+        <div className="flex w-full overflow-x-auto">
           {hasRegularSeason && tabs.regular && (
             <button
               onClick={() => setView("regular")}

@@ -374,7 +374,7 @@ export const translations = {
     navigation: {
       draw: 'Draw',
       standings: 'Standings',
-      schedule: 'Game',
+      schedule: 'Games',
       playoffs: 'Playoffs',
       announcements: 'Announcements',
       rules: 'Rules & schedule times',
