@@ -81,20 +81,26 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   );
 
   const qualifiersPerGroup = (event as any).playoff_qualifiers_per_group || 8;
-  const standingsByGroup = computeStandings(regularForLock, playersForStandings, (event as any).tiebreaker_config, {
-    matchPlayerStats,
-    teamMembers,
-    registrationType: ((event as any).registration_type as "player" | "team") || "player",
-  }) as Record<number, { player: { id: string } }[]>;
-  const seedGroupToPlayer = new Map<string, string>();
-  if (standingsByGroup && typeof standingsByGroup === "object") {
-    for (const [g, rows] of Object.entries(standingsByGroup)) {
-      const groupNum = parseInt(g, 10);
-      const arr = rows as { player: { id: string } }[];
-      arr.forEach((row, idx) => {
-        if (row?.player?.id && idx < qualifiersPerGroup) seedGroupToPlayer.set(`${idx + 1},${groupNum}`, row.player.id);
-      });
+  let seedGroupToPlayer = new Map<string, string>();
+  try {
+    const standingsResult = computeStandings(regularForLock, playersForStandings, (event as any).tiebreaker_config, {
+      matchPlayerStats,
+      teamMembers,
+      registrationType: ((event as any).registration_type as "player" | "team") || "player",
+    });
+    // computeStandings returns Record<number, StandingRow[]> when there are groups; otherwise StandingRow[]
+    if (standingsResult && !Array.isArray(standingsResult) && typeof standingsResult === "object") {
+      const standingsByGroup = standingsResult as Record<number, { player: { id: string } }[]>;
+      for (const [g, rows] of Object.entries(standingsByGroup)) {
+        const groupNum = parseInt(g, 10);
+        if (Number.isNaN(groupNum) || !Array.isArray(rows)) continue;
+        rows.forEach((row: { player?: { id: string } }, idx: number) => {
+          if (row?.player?.id && idx < qualifiersPerGroup) seedGroupToPlayer.set(`${idx + 1},${groupNum}`, row.player.id);
+        });
+      }
     }
+  } catch (_) {
+    // If standings fail (e.g. bad data after admin edit), continue with locked-only resolution
   }
 
   const resolveSlot = (seed: number, group: number) =>
