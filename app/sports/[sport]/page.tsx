@@ -318,7 +318,7 @@ export default async function SportPage(context: any) {
       )}
 
       {/* Navigation Buttons */}
-      <div className={`grid grid-cols-1 gap-6 ${singleEvent?.tournament_type === "season_play" ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         <Link
           href={`/sports/${sportParam}/events/${singleEvent.id}/draw`}
           className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
