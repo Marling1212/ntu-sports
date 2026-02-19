@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getT } from "@/lib/i18n/server";
+import { syncLockedPlayoffSeeds } from "@/lib/actions/syncLockedPlayoffSeeds";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,6 +46,7 @@ export default async function SportEventPlayoffsPage({
     );
   }
 
+  await syncLockedPlayoffSeeds(event.id);
   const dbMatches = await getSportMatches(event.id);
   const dbPlayers = await getSportPlayers(event.id);
 

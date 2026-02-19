@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "react-hot-toast";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { syncLockedPlayoffSeeds } from "@/lib/actions/syncLockedPlayoffSeeds";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -36,6 +37,9 @@ export default async function SportEventDrawPage({
     notFound();
   }
 
+  if (event.tournament_type === "season_play") {
+    await syncLockedPlayoffSeeds(event.id);
+  }
   const dbMatches = await getSportMatches(event.id);
   const dbPlayers = await getSportPlayers(event.id);
 
