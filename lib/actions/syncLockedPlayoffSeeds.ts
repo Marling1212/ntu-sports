@@ -81,6 +81,15 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   );
 
   const qualifiersPerGroup = (event as any).playoff_qualifiers_per_group || 8;
+  const playoffMatches = dbMatches.filter((m: any) => m.round >= 1) as any[];
+
+  // How many seeds we need: at least qualifiersPerGroup, or more if draw has higher seeds (e.g. Seed 6 in a "top 4" bracket)
+  let maxSeedNeeded = qualifiersPerGroup;
+  for (const m of playoffMatches) {
+    if (m.slot1_seed != null && m.slot1_seed > maxSeedNeeded) maxSeedNeeded = m.slot1_seed;
+    if (m.slot2_seed != null && m.slot2_seed > maxSeedNeeded) maxSeedNeeded = m.slot2_seed;
+  }
+
   let seedGroupToPlayer = new Map<string, string>();
   try {
     const standingsResult = computeStandings(regularForLock, playersForStandings, (event as any).tiebreaker_config, {
@@ -95,7 +104,7 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
         const groupNum = parseInt(g, 10);
         if (Number.isNaN(groupNum) || !Array.isArray(rows)) continue;
         rows.forEach((row: { player?: { id: string } }, idx: number) => {
-          if (row?.player?.id && idx < qualifiersPerGroup) seedGroupToPlayer.set(`${idx + 1},${groupNum}`, row.player.id);
+          if (row?.player?.id && idx < maxSeedNeeded) seedGroupToPlayer.set(`${idx + 1},${groupNum}`, row.player.id);
         });
       }
     }
@@ -106,15 +115,14 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   const resolveSlot = (seed: number, group: number) =>
     locked.get(`${seed},${group}`) ?? seedGroupToPlayer.get(`${seed},${group}`) ?? null;
 
-  const playoffMatches = dbMatches.filter((m: any) => m.round >= 1) as any[];
-
+  // Re-resolve every slot from standings/locked (so edited draws get correct player and BYE can advance)
   for (const m of playoffMatches) {
     const updates: { player1_id?: string; player2_id?: string; winner_id?: string; status?: string } = {};
-    if (m.slot1_seed != null && m.slot1_group != null && !m.player1_id) {
+    if (m.slot1_seed != null && m.slot1_group != null) {
       const id = resolveSlot(m.slot1_seed, m.slot1_group);
       if (id) updates.player1_id = id;
     }
-    if (m.slot2_seed != null && m.slot2_group != null && !m.player2_id) {
+    if (m.slot2_seed != null && m.slot2_group != null) {
       const id = resolveSlot(m.slot2_seed, m.slot2_group);
       if (id) updates.player2_id = id;
     }
