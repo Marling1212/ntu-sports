@@ -145,7 +145,8 @@ export default async function TennisEventDrawPage({
           matches={matches}
           players={players}
           sportName="Tennis"
-          visibleTabs={{ regular: true, standings: true, playoffs: false }}
+          visibleTabs={{ regular: false, standings: true, playoffs: false }}
+          defaultView="standings"
         />
       ) : (
         <BracketSection

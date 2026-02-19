@@ -144,7 +144,8 @@ export default async function SportEventDrawPage({
             players={players}
             sportName={sportName}
             qualifiersPerGroup={(event as any)?.playoff_qualifiers_per_group || undefined}
-            visibleTabs={{ regular: true, standings: true, playoffs: false }}
+            visibleTabs={{ regular: false, standings: true, playoffs: false }}
+            defaultView="standings"
             registrationType={event?.registration_type as "player" | "team" | undefined}
             matchPlayerStats={matchPlayerStats}
             teamMembers={teamMembers}
