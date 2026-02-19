@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
+import { useEventNav } from "@/lib/context/EventNavContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 interface TennisNavbarClientProps {
@@ -13,6 +14,14 @@ interface TennisNavbarClientProps {
 export default function TennisNavbarClient({ eventName, tournamentType }: TennisNavbarClientProps) {
   const pathname = usePathname();
   const { locale, t } = useI18n();
+  const { regularSeasonComplete, tournamentType: contextTournamentType } = useEventNav();
+  const effectiveTournamentType = contextTournamentType ?? tournamentType;
+  const drawLabel =
+    effectiveTournamentType === "season_play"
+      ? regularSeasonComplete
+        ? t("navigation.playoffs")
+        : t("navigation.standings")
+      : t("navigation.draw");
 
   // Derive current sport from the URL: /sports/[sport]/...
   const segments = pathname.split("/").filter(Boolean);
@@ -79,7 +88,7 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
                   : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
               }`}
             >
-              {tournamentType === "season_play" ? t("navigation.standings") : t("navigation.draw")}
+              {drawLabel}
             </Link>
             <Link
               href={scheduleUrl}
@@ -152,7 +161,7 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
                   : "text-gray-700 hover:bg-ntu-green hover:text-white"
               }`}
             >
-              {tournamentType === "season_play" ? t("navigation.standings") : t("navigation.draw")}
+              {drawLabel}
             </Link>
             <Link
               href={scheduleUrl}

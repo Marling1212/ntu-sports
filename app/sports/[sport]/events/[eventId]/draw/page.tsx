@@ -99,6 +99,11 @@ export default async function SportEventDrawPage({
     : (locale === "zh" ? "2025/11/8 - 11/9" : "11/8/2025 - 11/9/2025");
   const eventVenue = event.venue || t("common.defaultVenue");
 
+  // When all regular-season games are completed, default to Playoffs view
+  const regularSeasonMatches = matches.filter((m: { round: number }) => m.round === 0);
+  const allRegularComplete = regularSeasonMatches.length > 0 && regularSeasonMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye");
+  const defaultDrawView = allRegularComplete ? "playoffs" : "standings";
+
   return (
     <>
       <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
@@ -145,7 +150,7 @@ export default async function SportEventDrawPage({
             sportName={sportName}
             qualifiersPerGroup={(event as any)?.playoff_qualifiers_per_group || undefined}
             visibleTabs={{ regular: false, standings: true, playoffs: true }}
-            defaultView="standings"
+            defaultView={defaultDrawView}
             registrationType={event?.registration_type as "player" | "team" | undefined}
             matchPlayerStats={matchPlayerStats}
             teamMembers={teamMembers}

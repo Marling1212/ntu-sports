@@ -100,6 +100,11 @@ export default async function TennisEventDrawPage({
   
   const eventVenue = event.venue || "台大新生網球場 5-8 場";
 
+  // When all regular-season games are completed, default to Playoffs view
+  const regularSeasonMatches = matches.filter((m) => m.round === 0);
+  const allRegularComplete = regularSeasonMatches.length > 0 && regularSeasonMatches.every((m) => m.status === "completed" || m.status === "bye");
+  const defaultDrawView = allRegularComplete ? "playoffs" : "standings";
+
   return (
     <>
       <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
@@ -146,7 +151,7 @@ export default async function TennisEventDrawPage({
           players={players}
           sportName="Tennis"
           visibleTabs={{ regular: false, standings: true, playoffs: true }}
-          defaultView="standings"
+          defaultView={defaultDrawView}
         />
       ) : (
         <BracketSection
