@@ -108,7 +108,6 @@ export default async function SportEventSchedulePage({
   }
 
   const dbMatches = await getSportMatches(event.id);
-  const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
 
   return (
     <>
