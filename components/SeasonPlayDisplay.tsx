@@ -251,6 +251,16 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   const hasRegularSeason = matches.filter(m => m.round === 0).length > 0;
   const hasPlayoffs = playoffMatches.length > 0;
 
+  // Total matches per round (including bye) — used for labels: 4 games = Quarterfinals, 2 = Semifinals, 1 = Final
+  const playoffRoundTotalCount = useMemo(() => {
+    const countByRound = new Map<number, number>();
+    resolvedPlayoffMatches.forEach((m) => {
+      const r = Number(m.round) || 0;
+      countByRound.set(r, (countByRound.get(r) ?? 0) + 1);
+    });
+    return countByRound;
+  }, [resolvedPlayoffMatches]);
+
   // Playoff matches for schedule list: exclude bye, sort by round then match number then time
   const playoffMatchesForSchedule = useMemo(() => {
     if (playoffsDisplayMode !== "schedule" || !hasPlayoffs) return [];
@@ -265,16 +275,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       return ta - tb;
     });
   }, [resolvedPlayoffMatches, playoffsDisplayMode, hasPlayoffs]);
-
-  // Per-round match count for schedule labels: 4 games = Quarterfinals, 2 = Semifinals, 1 = Final
-  const playoffRoundMatchCount = useMemo(() => {
-    const countByRound = new Map<number, number>();
-    playoffMatchesForSchedule.forEach((m) => {
-      const r = Number(m.round) || 0;
-      countByRound.set(r, (countByRound.get(r) ?? 0) + 1);
-    });
-    return countByRound;
-  }, [playoffMatchesForSchedule]);
 
   // Calculate top scorers for team events
   const topScorers = useMemo(() => {
@@ -1602,7 +1602,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               ) : (
                 playoffMatchesForSchedule.map((match) => {
                   const matchData = match as any;
-                  const count = playoffRoundMatchCount.get(Number(match.round)) ?? 0;
+                  const count = playoffRoundTotalCount.get(Number(match.round)) ?? 0;
                   const roundLabel = count === 4 ? t("bracket.quarterfinalsBilingual") : count === 2 ? t("bracket.semifinalsBilingual") : count === 1 ? t("bracket.finalBilingual") : t("bracket.roundOfBilingual").replace(/\{n\}/g, String(count * 2));
                   return (
                     <Link
@@ -1659,7 +1659,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   ) : (
                     playoffMatchesForSchedule.map((match, idx) => {
                       const matchData = match as any;
-                      const count = playoffRoundMatchCount.get(Number(match.round)) ?? 0;
+                      const count = playoffRoundTotalCount.get(Number(match.round)) ?? 0;
                       const roundLabel = count === 4 ? t("bracket.quarterfinalsBilingual") : count === 2 ? t("bracket.semifinalsBilingual") : count === 1 ? t("bracket.finalBilingual") : t("bracket.roundOfBilingual").replace(/\{n\}/g, String(count * 2));
                       return (
                         <tr key={match.id} className={idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}>
