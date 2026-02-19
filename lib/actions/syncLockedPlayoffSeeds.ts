@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getSportMatches } from "@/lib/utils/getSportEvent";
-import { computeLockedSeeds } from "@/lib/standings";
+import { computeLockedSeeds, computeStandings } from "@/lib/standings";
 
 /**
  * Run lock detection and persist any newly locked (seed, group) into playoff match slots.
@@ -80,16 +80,36 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
     }
   );
 
+  const qualifiersPerGroup = (event as any).playoff_qualifiers_per_group || 8;
+  const standingsByGroup = computeStandings(regularForLock, playersForStandings, (event as any).tiebreaker_config, {
+    matchPlayerStats,
+    teamMembers,
+    registrationType: ((event as any).registration_type as "player" | "team") || "player",
+  }) as Record<number, { player: { id: string } }[]>;
+  const seedGroupToPlayer = new Map<string, string>();
+  if (standingsByGroup && typeof standingsByGroup === "object") {
+    for (const [g, rows] of Object.entries(standingsByGroup)) {
+      const groupNum = parseInt(g, 10);
+      const arr = rows as { player: { id: string } }[];
+      arr.forEach((row, idx) => {
+        if (row?.player?.id && idx < qualifiersPerGroup) seedGroupToPlayer.set(`${idx + 1},${groupNum}`, row.player.id);
+      });
+    }
+  }
+
+  const resolveSlot = (seed: number, group: number) =>
+    locked.get(`${seed},${group}`) ?? seedGroupToPlayer.get(`${seed},${group}`) ?? null;
+
   const playoffMatches = dbMatches.filter((m: any) => m.round >= 1) as any[];
 
   for (const m of playoffMatches) {
     const updates: { player1_id?: string; player2_id?: string; winner_id?: string; status?: string } = {};
     if (m.slot1_seed != null && m.slot1_group != null && !m.player1_id) {
-      const id = locked.get(`${m.slot1_seed},${m.slot1_group}`);
+      const id = resolveSlot(m.slot1_seed, m.slot1_group);
       if (id) updates.player1_id = id;
     }
     if (m.slot2_seed != null && m.slot2_group != null && !m.player2_id) {
-      const id = locked.get(`${m.slot2_seed},${m.slot2_group}`);
+      const id = resolveSlot(m.slot2_seed, m.slot2_group);
       if (id) updates.player2_id = id;
     }
     const hasSlot1 = m.slot1_seed != null && m.slot1_group != null;
