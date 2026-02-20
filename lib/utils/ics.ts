@@ -59,10 +59,30 @@ export interface ICSMatchOptions {
   url?: string;
 }
 
+/** Default match duration (minutes) when endTime is not provided. */
+const DEFAULT_MATCH_DURATION_MINUTES = 90;
+
 export function generateMatchICS(options: ICSMatchOptions): string {
   const { title, description, location, startTime, endTime, url } = options;
   const dtStart = formatICSTimeTaipei(startTime);
-  const dtEnd = formatICSTimeTaipei(endTime ?? startTime);
+  let dtEnd: string | null;
+  if (endTime != null && endTime !== "") {
+    dtEnd = formatICSTimeTaipei(endTime);
+  } else if (startTime) {
+    try {
+      const d = new Date(startTime);
+      if (!Number.isNaN(d.getTime())) {
+        const endDate = new Date(d.getTime() + DEFAULT_MATCH_DURATION_MINUTES * 60 * 1000);
+        dtEnd = formatICSTimeTaipei(endDate.toISOString());
+      } else {
+        dtEnd = dtStart;
+      }
+    } catch {
+      dtEnd = dtStart;
+    }
+  } else {
+    dtEnd = dtStart;
+  }
   const now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "") + "Z";
 
   const lines: string[] = [

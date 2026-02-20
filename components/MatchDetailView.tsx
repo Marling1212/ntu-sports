@@ -187,6 +187,13 @@ export default function MatchDetailView({
     : `${player1?.name ?? "TBD"} vs ${player2?.name ?? "TBD"}`;
   const calendarLocation = [getCourtDisplay(match), event?.venue].filter(Boolean).join(" — ") || undefined;
 
+  // Use slot's end_time as calendar end when available (時段有開始與結束)
+  const slot = match.slot;
+  const calendarEndTime =
+    slot?.slot_date && slot?.end_time
+      ? `${slot.slot_date}T${String(slot.end_time).length === 5 ? `${slot.end_time}:00` : slot.end_time}+08:00`
+      : undefined;
+
   return (
     <div>
       <div className="mb-6">
@@ -203,6 +210,7 @@ export default function MatchDetailView({
             description={event?.name}
             location={calendarLocation}
             startTime={match.scheduled_time}
+            endTime={calendarEndTime}
             url={undefined}
             className="min-h-[44px]"
           />
