@@ -1,12 +1,46 @@
+const TAIPEI = "Asia/Taipei";
+
 /**
- * Generate an .ics file content for a single match (RFC 5545).
- * Used for "Add to calendar" on match detail pages.
+ * Format time for ICS so the event shows at the same wall-clock time as the site display (no +8 hr).
+ * Uses TZID=Asia/Taipei and Taipei local time, consistent with formatScheduledTimeAsStored.
  */
-function formatICSTime(iso: string | null | undefined): string | null {
-  if (!iso) return null;
+function formatICSTimeTaipei(iso: string | null | undefined): string | null {
+  if (!iso || typeof iso !== "string" || !iso.trim()) return null;
   try {
     const d = new Date(iso);
-    return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    if (Number.isNaN(d.getTime())) return null;
+    const isUtc = iso.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(iso);
+    const utcHour = d.getUTCHours();
+    let y: number, m: number, day: number, h: number, min: number;
+    if (isUtc && utcHour >= 8 && utcHour <= 23) {
+      y = d.getUTCFullYear();
+      m = d.getUTCMonth() + 1;
+      day = d.getUTCDate();
+      h = d.getUTCHours();
+      min = d.getUTCMinutes();
+    } else {
+      const s = new Intl.DateTimeFormat("en-CA", {
+        timeZone: TAIPEI,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).formatToParts(d);
+      const get = (type: string) => s.find((p) => p.type === type)?.value ?? "0";
+      y = parseInt(get("year"), 10);
+      m = parseInt(get("month"), 10);
+      day = parseInt(get("day"), 10);
+      h = parseInt(get("hour"), 10);
+      min = parseInt(get("minute"), 10);
+    }
+    const Y = String(y);
+    const M = String(m).padStart(2, "0");
+    const D = String(day).padStart(2, "0");
+    const H = String(h).padStart(2, "0");
+    const Min = String(min).padStart(2, "0");
+    return `${Y}${M}${D}T${H}${Min}00`;
   } catch {
     return null;
   }
@@ -27,9 +61,9 @@ export interface ICSMatchOptions {
 
 export function generateMatchICS(options: ICSMatchOptions): string {
   const { title, description, location, startTime, endTime, url } = options;
-  const dtStart = formatICSTime(startTime);
-  const dtEnd = formatICSTime(endTime ?? startTime);
-  const now = formatICSTime(new Date().toISOString());
+  const dtStart = formatICSTimeTaipei(startTime);
+  const dtEnd = formatICSTimeTaipei(endTime ?? startTime);
+  const now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "") + "Z";
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -41,8 +75,8 @@ export function generateMatchICS(options: ICSMatchOptions): string {
     `UID:match-${now}@ntu-sports`,
     `DTSTAMP:${now}`,
   ];
-  if (dtStart) lines.push(`DTSTART:${dtStart}`);
-  if (dtEnd) lines.push(`DTEND:${dtEnd}`);
+  if (dtStart) lines.push(`DTSTART;TZID=${TAIPEI}:${dtStart}`);
+  if (dtEnd) lines.push(`DTEND;TZID=${TAIPEI}:${dtEnd}`);
   lines.push(`SUMMARY:${escapeICS(title)}`);
   if (description) lines.push(`DESCRIPTION:${escapeICS(description)}`);
   if (location) lines.push(`LOCATION:${escapeICS(location)}`);

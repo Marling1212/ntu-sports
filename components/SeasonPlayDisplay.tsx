@@ -1244,7 +1244,38 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       <div className="bg-blue-600 text-white px-6 py-3">
                         <h3 className="text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(groupNum))}</h3>
                       </div>
-                      <div className="overflow-x-auto">
+                      {/* Mobile: card per row with tier color */}
+                      <div className="md:hidden divide-y divide-gray-100">
+                        {groupStandings.map((standing, idx) => {
+                          const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
+                          const rowClass = getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
+                          return (
+                            <Link
+                              key={standing.player.id}
+                              href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
+                              className={`flex items-center gap-3 px-4 py-3 ${rowClass}`}
+                            >
+                              <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                              <div className="min-w-0 flex-1">
+                                <span className="font-semibold text-gray-800 block truncate">
+                                  {idx < qualifiersPerGroup && <span className="text-yellow-500 mr-1">🏆</span>}
+                                  {standing.player.name}
+                                </span>
+                                {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
+                              </div>
+                              <div className="flex gap-3 text-sm shrink-0">
+                                <span className="text-green-600 font-semibold">{standing.wins}W</span>
+                                <span className="text-gray-600">{standing.draws || 0}D</span>
+                                <span className="text-red-600 font-semibold">{standing.losses}L</span>
+                                <span className="font-bold text-ntu-green">{standing.points}</span>
+                                <span className="text-gray-700">{standing.goalDiff}</span>
+                                <span className="text-gray-600">{cardDisplay}</span>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                      <div className="hidden md:block overflow-x-auto">
                         <table className="w-full">
                           <thead className="bg-gray-100">
                             <tr>
@@ -1303,7 +1334,40 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   <div className="bg-blue-600 text-white px-6 py-3">
                     <h3 className="text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(selectedGroup))}</h3>
                   </div>
-                  <div className="overflow-x-auto">
+                  {Array.isArray(standings) && (
+                    <div className="md:hidden divide-y divide-gray-100">
+                      {standings.map((standing, idx) => {
+                        const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
+                        const groupNum = typeof selectedGroup === "number" ? selectedGroup : 1;
+                        const rowClass = getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
+                        return (
+                          <Link
+                            key={standing.player.id}
+                            href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
+                            className={`flex items-center gap-3 px-4 py-3 ${rowClass}`}
+                          >
+                            <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                            <div className="min-w-0 flex-1">
+                              <span className="font-semibold text-gray-800 block truncate">
+                                {idx < qualifiersPerGroup && <span className="text-yellow-500 mr-1">🏆</span>}
+                                {standing.player.name}
+                              </span>
+                              {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
+                            </div>
+                            <div className="flex gap-3 text-sm shrink-0">
+                              <span className="text-green-600 font-semibold">{standing.wins}W</span>
+                              <span className="text-gray-600">{standing.draws || 0}D</span>
+                              <span className="text-red-600 font-semibold">{standing.losses}L</span>
+                              <span className="font-bold text-ntu-green">{standing.points}</span>
+                              <span className="text-gray-700">{standing.goalDiff}</span>
+                              <span className="text-gray-600">{cardDisplay}</span>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gray-100">
                         <tr>
@@ -1360,7 +1424,40 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           ) : (
             // Display overall standings (no groups or single group selected)
             <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto">
+              {Array.isArray(standings) && (
+                <div className="md:hidden divide-y divide-gray-100">
+                  {standings.map((standing, idx) => {
+                    const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
+                    const groupNum = standing.group ?? 1;
+                    const rowClass = getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
+                    return (
+                      <Link
+                        key={standing.player.id}
+                        href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
+                        className={`flex items-center gap-3 px-4 py-3 ${rowClass}`}
+                      >
+                        <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                        <div className="min-w-0 flex-1">
+                          <span className="font-semibold text-gray-800 block truncate">
+                            {idx < qualifiersPerGroup && <span className="text-yellow-500 mr-1">🏆</span>}
+                            {standing.player.name}
+                          </span>
+                          {standing.player.seed && <span className="text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(standing.player.seed))})</span>}
+                        </div>
+                        <div className="flex gap-3 text-sm shrink-0">
+                          <span className="text-green-600 font-semibold">{standing.wins}W</span>
+                          <span className="text-gray-600">{standing.draws || 0}D</span>
+                          <span className="text-red-600 font-semibold">{standing.losses}L</span>
+                          <span className="font-bold text-ntu-green">{standing.points}</span>
+                          <span className="text-gray-700">{standing.goalDiff}</span>
+                          <span className="text-gray-600">{cardDisplay}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-ntu-green text-white">
                     <tr>
