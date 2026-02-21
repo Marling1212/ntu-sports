@@ -1,8 +1,9 @@
 "use client";
 
 import { Player, Match } from "@/types/tournament";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import TournamentBracket from "./TournamentBracket";
+import BracketPlayerSearch from "./BracketPlayerSearch";
 import { useI18n } from "@/lib/i18n/context";
 
 interface BracketSectionProps {
@@ -92,6 +93,36 @@ export default function BracketSection({
   };
 
   const sectionMatches = getMatchesForSection();
+
+  /** Which section (1-based) contains this match */
+  const getSectionForMatch = useCallback((matchId: string): number | null => {
+    const match = matches.find((m) => m.id === matchId);
+    if (!match) return null;
+    for (let i = 0; i < sections.length; i++) {
+      const { startPos, endPos, rounds } = sections[i];
+      const isFinalsSection = i === sections.length - 1;
+      const isThirdPlaceMatch = match.round === maxRound && match.matchNumber === 2;
+      if (isThirdPlaceMatch) return isFinalsSection ? i + 1 : null;
+      if (!rounds.includes(match.round)) continue;
+      if (isFinalsSection) return i + 1;
+      if (match.round === 1) {
+        const position1 = (match.matchNumber - 1) * 2 + 1;
+        const position2 = (match.matchNumber - 1) * 2 + 2;
+        if ((position1 >= startPos && position1 <= endPos) || (position2 >= startPos && position2 <= endPos))
+          return i + 1;
+      } else {
+        const playersPerMatch = Math.pow(2, match.round);
+        const matchStartPos = (match.matchNumber - 1) * playersPerMatch + 1;
+        const matchEndPos = match.matchNumber * playersPerMatch;
+        if (matchStartPos <= endPos && matchEndPos >= startPos) return i + 1;
+      }
+    }
+    return null;
+  }, [matches, sections, maxRound]);
+
+  const scrollToMatch = useCallback((matchId: string) => {
+    document.getElementById(`match-${matchId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
   
   // Get section-specific players (only players that appear in this section's Round 1)
   const getSectionPlayers = (): Player[] => {
@@ -118,6 +149,13 @@ export default function BracketSection({
 
   return (
     <div>
+      <BracketPlayerSearch
+        matches={matches}
+        players={players}
+        onScrollToMatch={scrollToMatch}
+        getSectionForMatch={sections.length > 1 ? getSectionForMatch : undefined}
+        onSectionChange={sections.length > 1 ? setCurrentSection : undefined}
+      />
       {/* Section Tabs */}
       {sections.length > 1 && (
         <div className="mb-6 bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

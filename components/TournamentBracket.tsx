@@ -291,8 +291,9 @@ export default function TournamentBracket({
                       return (
                         <Link
                           key={match.id}
+                          id={`match-${match.id}`}
                           href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
-                          className="absolute block cursor-pointer group rounded-lg -m-1 p-1 hover:bg-gray-50/80 transition-colors"
+                          className="absolute block cursor-pointer group rounded-lg -m-1 p-1 hover:bg-gray-50/80 transition-colors scroll-mt-24"
                           style={{ top: `${matchPosition}px` }}
                         >
                           <div className="relative flex flex-col gap-1">

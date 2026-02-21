@@ -3,6 +3,7 @@
 import { Match, Player, SlotPlaceholder } from "@/types/tournament";
 import { useState, useMemo } from "react";
 import TournamentBracket from "./TournamentBracket";
+import BracketPlayerSearch from "./BracketPlayerSearch";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import Link from "next/link";
@@ -1825,6 +1826,20 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               <strong>{t("seasonPlay.playoffBracketHint")}</strong>
             </p>
           </div>
+
+          <BracketPlayerSearch
+            matches={resolvedPlayoffMatches}
+            players={players}
+            teamMembers={teamMembers?.reduce<Record<string, Array<{ name?: string }>>>((acc, m) => {
+              const pid = m.player_id;
+              if (!acc[pid]) acc[pid] = [];
+              acc[pid].push({ name: m.name });
+              return acc;
+            }, {})}
+            onScrollToMatch={(matchId) => {
+              document.getElementById(`match-${matchId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+          />
 
           <TournamentBracket
             matches={resolvedPlayoffMatches}
