@@ -29,7 +29,8 @@ export default async function BracketMatchSchedule({
   const locale = await getLocale();
   const t = getT(locale);
 
-  const sorted = [...matches].sort((a, b) => {
+  const noBye = matches.filter((m) => m.status !== "bye");
+  const sorted = [...noBye].sort((a, b) => {
     const at = a.scheduled_time ? new Date(a.scheduled_time).getTime() : 0;
     const bt = b.scheduled_time ? new Date(b.scheduled_time).getTime() : 0;
     if (at !== bt) return at - bt;
