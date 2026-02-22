@@ -39,9 +39,8 @@ export default function BracketMatchScheduleClient({
   }, [matches, filterByPlayerId]);
 
   const getName = (id: string) =>
-    matches.find((m) => m.player1?.id === id)?.player1?.name ||
-    matches.find((m) => m.player2?.id === id)?.player2?.name ??
-    "?";
+    (matches.find((m) => m.player1?.id === id)?.player1?.name ||
+      matches.find((m) => m.player2?.id === id)?.player2?.name) ?? "?";
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
