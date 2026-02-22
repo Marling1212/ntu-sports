@@ -1170,7 +1170,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           )}
                           <td className="px-4 py-3 font-semibold text-gray-700 hidden">#{match.matchNumber}</td>
                           <td
-                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player1?.id ? "ring-2 ring-ntu-green bg-ntu-green/10" : ""} ${match.player1?.id ? "hover:bg-gray-50/80" : ""}`}
+                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${match.player1?.id ? "hover:bg-gray-50/80" : ""}`}
                             onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
                             title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                           >
@@ -1196,7 +1196,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             </Link>
                           </td>
                           <td
-                            className={`px-4 py-3 cursor-pointer ${match.player2?.id ? "hover:bg-gray-50/80" : ""}`}
+                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${match.player2?.id ? "hover:bg-gray-50/80" : ""}`}
                             onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
                             title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                           >
@@ -1839,7 +1839,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           </td>
                           <td className="px-4 py-3 font-semibold text-gray-700 hidden">#{match.matchNumber}</td>
                           <td
-                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player1?.id ? "ring-2 ring-ntu-green bg-ntu-green/10" : ""} ${match.player1?.id ? "hover:bg-gray-50/80" : ""}`}
+                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${match.player1?.id ? "hover:bg-gray-50/80" : ""}`}
                             onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
                             title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                           >
@@ -1859,7 +1859,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             </Link>
                           </td>
                           <td
-                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player2?.id ? "ring-2 ring-ntu-green bg-ntu-green/10" : ""} ${match.player2?.id ? "hover:bg-gray-50/80" : ""}`}
+                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${match.player2?.id ? "hover:bg-gray-50/80" : ""}`}
                             onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
                             title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                           >

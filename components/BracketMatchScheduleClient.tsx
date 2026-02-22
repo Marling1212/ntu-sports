@@ -98,7 +98,7 @@ export default function BracketMatchScheduleClient({
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{timeStr}</td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{court}</td>
                   <td
-                    className={`px-4 py-3 text-sm font-semibold cursor-pointer rounded ${filterByPlayerId === m.player1?.id ? "ring-2 ring-ntu-green bg-ntu-green/10" : ""} ${m.player1?.id ? "hover:bg-gray-50/80" : ""}`}
+                    className={`px-4 py-3 text-sm font-semibold cursor-pointer rounded ${filterByPlayerId === m.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${m.player1?.id ? "hover:bg-gray-50/80" : ""}`}
                     onClick={
                       m.player1?.id
                         ? () =>
@@ -133,7 +133,7 @@ export default function BracketMatchScheduleClient({
                     )}
                   </td>
                   <td
-                    className={`px-4 py-3 text-sm font-semibold cursor-pointer rounded ${filterByPlayerId === m.player2?.id ? "ring-2 ring-ntu-green bg-ntu-green/10" : ""} ${m.player2?.id ? "hover:bg-gray-50/80" : ""}`}
+                    className={`px-4 py-3 text-sm font-semibold cursor-pointer rounded ${filterByPlayerId === m.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${m.player2?.id ? "hover:bg-gray-50/80" : ""}`}
                     onClick={
                       m.player2?.id
                         ? () =>
