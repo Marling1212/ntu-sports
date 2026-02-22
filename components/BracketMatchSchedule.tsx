@@ -1,7 +1,5 @@
-import Link from "next/link";
-import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
-import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import { getLocale, getT } from "@/lib/i18n/server";
+import BracketMatchScheduleClient from "./BracketMatchScheduleClient";
 
 interface MatchRow {
   id: string;
@@ -49,61 +47,7 @@ export default async function BracketMatchSchedule({
         <p className="text-lg text-gray-600">{t("schedule.matchSchedulesDesc")}</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t("schedule.orderLabel")}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sports.time")}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sports.court")}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sports.matchup")}</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t("sports.status")}</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sorted.map((m, idx) => {
-                const timeStr = formatScheduledTimeAsStored(m.scheduled_time);
-                const court = getCourtDisplay(m);
-                const p1 = m.player1?.name ?? "TBD";
-                const p2 = m.player2?.name ?? "TBD";
-                const score = m.score1 != null && m.score2 != null ? `${m.score1}-${m.score2}` : null;
-                return (
-                  <tr key={m.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{idx + 1}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{timeStr}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{court}</td>
-                    <td className="px-4 py-3 text-sm text-gray-800">
-                      <span className="font-semibold">{p1}</span>
-                      <Link
-                        href={`/sports/${sportSlug}/matches/${m.id}`}
-                        className="mx-2 text-ntu-green hover:underline font-semibold"
-                      >
-                        {t("sports.vs")}
-                      </Link>
-                      <span className="font-semibold">{p2}</span>
-                      {score != null && (
-                        <span className="ml-2 text-gray-600">({score})</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                      {m.status === "completed" ? (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">{t("sports.completed")}</span>
-                      ) : m.status === "live" ? (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">{t("sports.live")}</span>
-                      ) : m.status === "delayed" ? (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">{t("sports.delayed")}</span>
-                      ) : (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">{t("sports.upcoming")}</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <BracketMatchScheduleClient matches={sorted} sportSlug={sportSlug} />
     </div>
   );
 }

@@ -96,6 +96,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   const [expandedScorers, setExpandedScorers] = useState(false);
   const [expandedYellowCards, setExpandedYellowCards] = useState(false);
   const [expandedRedCards, setExpandedRedCards] = useState(false);
+  /** Filter matches by team/player: click team box to show only their games; click again to clear */
+  const [filterByPlayerId, setFilterByPlayerId] = useState<string | null>(null);
 
   // Separate regular season (round 0) and playoff matches (round >= 1)
   // Get all groups from regular season matches
@@ -153,6 +155,14 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       return matchTime >= range.start.getTime() && matchTime <= range.end.getTime();
     });
   }, [regularSeasonMatches, dateFilter]);
+
+  /** Final display list: apply team/player filter when user clicks a team box */
+  const displayRegularMatches = useMemo(() => {
+    if (!filterByPlayerId) return filteredRegularSeasonMatches;
+    return filteredRegularSeasonMatches.filter(
+      (m) => m.player1?.id === filterByPlayerId || m.player2?.id === filterByPlayerId
+    );
+  }, [filteredRegularSeasonMatches, filterByPlayerId]);
 
   const playoffMatches = matches.filter(m => m.round >= 1);
 
@@ -281,6 +291,14 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       return ta - tb;
     });
   }, [resolvedPlayoffMatches, playoffsDisplayMode, hasPlayoffs]);
+
+  /** Apply team/player filter to playoff schedule list */
+  const displayPlayoffScheduleMatches = useMemo(() => {
+    if (!filterByPlayerId) return playoffMatchesForSchedule;
+    return playoffMatchesForSchedule.filter(
+      (m) => m.player1?.id === filterByPlayerId || m.player2?.id === filterByPlayerId
+    );
+  }, [playoffMatchesForSchedule, filterByPlayerId]);
 
   // Calculate top scorers for team events
   const topScorers = useMemo(() => {
@@ -1060,6 +1078,16 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                     {key === "all" ? t("seasonPlay.filterAll") : key === "today" ? t("seasonPlay.filterToday") : key === "tomorrow" ? t("seasonPlay.filterTomorrow") : t("seasonPlay.filterThisWeek")}
                   </button>
                 ))}
+                {filterByPlayerId && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterByPlayerId(null)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200"
+                    title={t("seasonPlay.filterShowAll")}
+                  >
+                    ✕ {t("seasonPlay.filterShowingOnly").replace("{name}", players.find((p) => p.id === filterByPlayerId)?.name ?? "?")}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1067,10 +1095,10 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           <div className={theme.tableWrapper}>
             {/* Mobile card view */}
             <div className="md:hidden space-y-3">
-              {filteredRegularSeasonMatches.length === 0 ? (
+              {displayRegularMatches.length === 0 ? (
                 <p className="px-4 py-8 text-center text-gray-500">{t("seasonPlay.noMatchesForGroup")}</p>
               ) : (
-                filteredRegularSeasonMatches.map((match) => {
+                displayRegularMatches.map((match) => {
                   const matchData = match as any;
                   return (
                     <Link
@@ -1122,14 +1150,14 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRegularSeasonMatches.length === 0 ? (
+                  {displayRegularMatches.length === 0 ? (
                     <tr>
                       <td colSpan={hasGroups ? 9 : 8} className="px-4 py-8 text-center text-gray-500">
                         {dateFilter === "all" ? t("seasonPlay.noMatchesForGroup") : t("seasonPlay.noMatchesForGroup")}
                       </td>
                     </tr>
                   ) : (
-                    filteredRegularSeasonMatches.map((match, idx) => {
+                    displayRegularMatches.map((match, idx) => {
                       const matchData = match as any;
                       return (
                         <tr key={match.id} className={idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}>
@@ -1141,31 +1169,49 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             </td>
                           )}
                           <td className="px-4 py-3 font-semibold text-gray-700 hidden">#{match.matchNumber}</td>
-                          <td className="px-4 py-3">
-                            <Link 
-                              href={`/sports/${sportName.toLowerCase()}/teams/${match.player1?.id}`}
-                              className={match.winner?.id === match.player1?.id ? 'font-bold text-ntu-green hover:underline' : 'hover:text-ntu-green hover:underline'}
-                            >
-                              {match.player1?.name || t("bracket.tbd")}
-                              {match.player1?.seed && <span className="ml-1 text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(match.player1.seed))})</span>}
-                            </Link>
+                          <td
+                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player1?.id ? "ring-2 ring-ntu-green bg-ntu-green/5" : ""} ${match.player1?.id ? "hover:bg-gray-50" : ""}`}
+                            onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
+                            title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                          >
+                            {match.player1?.id ? (
+                              <Link
+                                href={`/sports/${sportName.toLowerCase()}/teams/${match.player1.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className={match.winner?.id === match.player1?.id ? "font-bold text-ntu-green hover:underline" : "hover:text-ntu-green hover:underline"}
+                              >
+                                {match.player1.name}
+                                {match.player1.seed && <span className="ml-1 text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(match.player1.seed))})</span>}
+                              </Link>
+                            ) : (
+                              <span>{t("bracket.tbd")}</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <Link 
+                            <Link
                               href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
                               className="text-lg font-bold text-ntu-green hover:text-green-700 hover:underline cursor-pointer transition-colors"
                             >
                               {t("seasonPlay.vs")}
                             </Link>
                           </td>
-                          <td className="px-4 py-3">
-                            <Link 
-                              href={`/sports/${sportName.toLowerCase()}/teams/${match.player2?.id}`}
-                              className={match.winner?.id === match.player2?.id ? 'font-bold text-ntu-green hover:underline' : 'hover:text-ntu-green hover:underline'}
-                            >
-                              {match.player2?.name || t("bracket.tbd")}
-                              {match.player2?.seed && <span className="ml-1 text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(match.player2.seed))})</span>}
-                            </Link>
+                          <td
+                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player2?.id ? "ring-2 ring-ntu-green bg-ntu-green/5" : ""} ${match.player2?.id ? "hover:bg-gray-50" : ""}`}
+                            onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
+                            title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                          >
+                            {match.player2?.id ? (
+                              <Link
+                                href={`/sports/${sportName.toLowerCase()}/teams/${match.player2.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className={match.winner?.id === match.player2?.id ? "font-bold text-ntu-green hover:underline" : "hover:text-ntu-green hover:underline"}
+                              >
+                                {match.player2.name}
+                                {match.player2.seed && <span className="ml-1 text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(match.player2.seed))})</span>}
+                              </Link>
+                            ) : (
+                              <span>{t("bracket.tbd")}</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-center text-sm">
                             <div className="font-medium text-gray-700">
@@ -1698,12 +1744,24 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {/* Playoffs View - Schedule list (Games page) */}
       {view === "playoffs" && hasPlayoffs && playoffsDisplayMode === "schedule" && (
         <div>
+          {filterByPlayerId && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setFilterByPlayerId(null)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200"
+                title={t("seasonPlay.filterShowAll")}
+              >
+                ✕ {t("seasonPlay.filterShowingOnly").replace("{name}", players.find((p) => p.id === filterByPlayerId)?.name ?? "?")}
+              </button>
+            </div>
+          )}
           <div className={theme.tableWrapper}>
             <div className="md:hidden space-y-3">
-              {playoffMatchesForSchedule.length === 0 ? (
+              {displayPlayoffScheduleMatches.length === 0 ? (
                 <p className="px-4 py-8 text-center text-gray-500">{t("seasonPlay.noMatchesYet")}</p>
               ) : (
-                playoffMatchesForSchedule.map((match) => {
+                displayPlayoffScheduleMatches.map((match) => {
                   const matchData = match as any;
                   const count = playoffRoundTotalCount.get(Number(match.round)) ?? 0;
                   const isLastRound = Number(match.round) === maxPlayoffRound;
@@ -1759,12 +1817,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </tr>
                 </thead>
                 <tbody>
-                  {playoffMatchesForSchedule.length === 0 ? (
+                  {displayPlayoffScheduleMatches.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="px-4 py-8 text-center text-gray-500">{t("seasonPlay.noMatchesYet")}</td>
                     </tr>
                   ) : (
-                    playoffMatchesForSchedule.map((match, idx) => {
+                    displayPlayoffScheduleMatches.map((match, idx) => {
                       const matchData = match as any;
                       const count = playoffRoundTotalCount.get(Number(match.round)) ?? 0;
                       const isLastRound = Number(match.round) === maxPlayoffRound;
@@ -1780,20 +1838,40 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             </span>
                           </td>
                           <td className="px-4 py-3 font-semibold text-gray-700 hidden">#{match.matchNumber}</td>
-                          <td className="px-4 py-3">
-                            <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} className="hover:text-ntu-green hover:underline">
-                              {match.player1?.name || t("bracket.tbd")}
-                            </Link>
+                          <td
+                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player1?.id ? "ring-2 ring-ntu-green bg-ntu-green/5" : ""} ${match.player1?.id ? "hover:bg-gray-50" : ""}`}
+                            onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
+                            title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                          >
+                            {match.player1?.id ? (
+                              <Link href={`/sports/${sportName.toLowerCase()}/teams/${match.player1.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-ntu-green hover:underline">
+                                {match.player1.name}
+                              </Link>
+                            ) : (
+                              <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-ntu-green hover:underline">
+                                {t("bracket.tbd")}
+                              </Link>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-center">
                             <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} className="text-lg font-bold text-ntu-green hover:text-green-700 hover:underline">
                               {t("seasonPlay.vs")}
                             </Link>
                           </td>
-                          <td className="px-4 py-3">
-                            <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} className="hover:text-ntu-green hover:underline">
-                              {match.player2?.name || t("bracket.tbd")}
-                            </Link>
+                          <td
+                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player2?.id ? "ring-2 ring-ntu-green bg-ntu-green/5" : ""} ${match.player2?.id ? "hover:bg-gray-50" : ""}`}
+                            onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
+                            title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                          >
+                            {match.player2?.id ? (
+                              <Link href={`/sports/${sportName.toLowerCase()}/teams/${match.player2.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-ntu-green hover:underline">
+                                {match.player2.name}
+                              </Link>
+                            ) : (
+                              <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-ntu-green hover:underline">
+                                {t("bracket.tbd")}
+                              </Link>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-center text-sm font-medium text-gray-700">
                             {formatDateTime(matchData.scheduled_time)}
