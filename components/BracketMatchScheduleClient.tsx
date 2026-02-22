@@ -90,21 +90,15 @@ export default function BracketMatchScheduleClient({
               const p1 = m.player1?.name ?? "TBD";
               const p2 = m.player2?.name ?? "TBD";
               const score = m.score1 != null && m.score2 != null ? `${m.score1}-${m.score2}` : null;
-              const isHighlighted =
-                filterByPlayerId &&
-                (m.player1?.id === filterByPlayerId || m.player2?.id === filterByPlayerId);
               return (
-                <tr
-                  key={m.id}
-                  className={`hover:bg-gray-50 ${isHighlighted ? "border-l-4 border-ntu-green bg-ntu-green/10" : ""}`}
-                >
+                <tr key={m.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                     {idx + 1}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{timeStr}</td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{court}</td>
                   <td
-                    className={`px-4 py-3 text-sm font-semibold cursor-pointer ${m.player1?.id ? "hover:bg-gray-50/80" : ""}`}
+                    className={`px-4 py-3 text-sm font-semibold cursor-pointer rounded ${filterByPlayerId === m.player1?.id ? "ring-2 ring-ntu-green bg-ntu-green/10" : ""} ${m.player1?.id ? "hover:bg-gray-50/80" : ""}`}
                     onClick={
                       m.player1?.id
                         ? () =>
@@ -139,7 +133,7 @@ export default function BracketMatchScheduleClient({
                     )}
                   </td>
                   <td
-                    className={`px-4 py-3 text-sm font-semibold cursor-pointer ${m.player2?.id ? "hover:bg-gray-50/80" : ""}`}
+                    className={`px-4 py-3 text-sm font-semibold cursor-pointer rounded ${filterByPlayerId === m.player2?.id ? "ring-2 ring-ntu-green bg-ntu-green/10" : ""} ${m.player2?.id ? "hover:bg-gray-50/80" : ""}`}
                     onClick={
                       m.player2?.id
                         ? () =>
