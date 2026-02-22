@@ -72,8 +72,8 @@ function getDateRangeInTaipei(filter: DateFilter): { start: Date; end: Date } | 
     start = new Date(y, m, d + 1, 0, 0, 0, 0);
     end = new Date(y, m, d + 1, 23, 59, 59, 999);
   } else {
-    const dayOfWeek = new Date(y, m, d).getDay();
-    const weekStartOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const dayOfWeek = new Date(y, m, d).getDay(); // 0=Sun, 6=Sat
+    const weekStartOffset = -dayOfWeek; // Week starts on Sunday
     start = new Date(y, m, d + weekStartOffset, 0, 0, 0, 0);
     end = new Date(y, m, d + weekStartOffset + 6, 23, 59, 59, 999);
   }
@@ -1100,11 +1100,18 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               ) : (
                 displayRegularMatches.map((match) => {
                   const matchData = match as any;
+                  const isHighlighted =
+                    filterByPlayerId &&
+                    (match.player1?.id === filterByPlayerId || match.player2?.id === filterByPlayerId);
                   return (
                     <Link
                       key={match.id}
                       href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
-                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.99]"
+                      className={`block rounded-xl border p-4 shadow-sm transition-all active:scale-[0.99] ${
+                        isHighlighted
+                          ? "bg-ntu-green/10 border-ntu-green ring-2 ring-ntu-green"
+                          : "bg-white border-gray-200 hover:border-ntu-green hover:shadow-md"
+                      }`}
                     >
                       {hasGroups && (
                         <div className="mb-2">
@@ -1159,8 +1166,16 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   ) : (
                     displayRegularMatches.map((match, idx) => {
                       const matchData = match as any;
+                      const isHighlighted =
+                        filterByPlayerId &&
+                        (match.player1?.id === filterByPlayerId || match.player2?.id === filterByPlayerId);
                       return (
-                        <tr key={match.id} className={idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}>
+                        <tr
+                          key={match.id}
+                          className={`${idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd} ${
+                            isHighlighted ? "border-l-4 border-ntu-green bg-ntu-green/10" : ""
+                          }`}
+                        >
                           {hasGroups && (
                             <td className="px-4 py-3 text-center">
                               <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">
@@ -1170,7 +1185,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           )}
                           <td className="px-4 py-3 font-semibold text-gray-700 hidden">#{match.matchNumber}</td>
                           <td
-                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player1?.id ? "ring-2 ring-ntu-green bg-ntu-green/5" : ""} ${match.player1?.id ? "hover:bg-gray-50" : ""}`}
+                            className={`px-4 py-3 cursor-pointer ${match.player1?.id ? "hover:bg-gray-50/80" : ""}`}
                             onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
                             title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                           >
@@ -1196,7 +1211,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             </Link>
                           </td>
                           <td
-                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player2?.id ? "ring-2 ring-ntu-green bg-ntu-green/5" : ""} ${match.player2?.id ? "hover:bg-gray-50" : ""}`}
+                            className={`px-4 py-3 cursor-pointer ${match.player2?.id ? "hover:bg-gray-50/80" : ""}`}
                             onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
                             title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                           >
@@ -1763,6 +1778,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               ) : (
                 displayPlayoffScheduleMatches.map((match) => {
                   const matchData = match as any;
+                  const isHighlighted =
+                    filterByPlayerId &&
+                    (match.player1?.id === filterByPlayerId || match.player2?.id === filterByPlayerId);
                   const count = playoffRoundTotalCount.get(Number(match.round)) ?? 0;
                   const isLastRound = Number(match.round) === maxPlayoffRound;
                   const matchNum = Number((match as any).matchNumber) ?? 0;
@@ -1773,7 +1791,11 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                     <Link
                       key={match.id}
                       href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
-                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.99]"
+                      className={`block rounded-xl border p-4 shadow-sm transition-all active:scale-[0.99] ${
+                        isHighlighted
+                          ? "bg-ntu-green/10 border-ntu-green ring-2 ring-ntu-green"
+                          : "bg-white border-gray-200 hover:border-ntu-green hover:shadow-md"
+                      }`}
                     >
                       <div className="mb-2">
                         <span className="inline-block px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">
@@ -1824,6 +1846,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   ) : (
                     displayPlayoffScheduleMatches.map((match, idx) => {
                       const matchData = match as any;
+                      const isHighlighted =
+                        filterByPlayerId &&
+                        (match.player1?.id === filterByPlayerId || match.player2?.id === filterByPlayerId);
                       const count = playoffRoundTotalCount.get(Number(match.round)) ?? 0;
                       const isLastRound = Number(match.round) === maxPlayoffRound;
                       const matchNum = Number((match as any).matchNumber) ?? 0;
@@ -1831,7 +1856,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         ? (matchNum === 2 ? t("bracket.final") : t("bracket.thirdPlace"))
                         : count === 4 ? t("bracket.quarterfinals") : count === 2 ? t("bracket.semifinals") : count === 1 ? t("bracket.final") : t("bracket.roundOf").replace("{n}", String(count * 2));
                       return (
-                        <tr key={match.id} className={idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}>
+                        <tr
+                          key={match.id}
+                          className={`${idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd} ${
+                            isHighlighted ? "border-l-4 border-ntu-green bg-ntu-green/10" : ""
+                          }`}
+                        >
                           <td className="px-4 py-3">
                             <span className="inline-block px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">
                               {roundLabel}
@@ -1839,7 +1869,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           </td>
                           <td className="px-4 py-3 font-semibold text-gray-700 hidden">#{match.matchNumber}</td>
                           <td
-                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player1?.id ? "ring-2 ring-ntu-green bg-ntu-green/5" : ""} ${match.player1?.id ? "hover:bg-gray-50" : ""}`}
+                            className={`px-4 py-3 cursor-pointer ${match.player1?.id ? "hover:bg-gray-50/80" : ""}`}
                             onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
                             title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                           >
@@ -1859,7 +1889,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             </Link>
                           </td>
                           <td
-                            className={`px-4 py-3 cursor-pointer rounded ${filterByPlayerId === match.player2?.id ? "ring-2 ring-ntu-green bg-ntu-green/5" : ""} ${match.player2?.id ? "hover:bg-gray-50" : ""}`}
+                            className={`px-4 py-3 cursor-pointer ${match.player2?.id ? "hover:bg-gray-50/80" : ""}`}
                             onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
                             title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                           >
