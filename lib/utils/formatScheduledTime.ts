@@ -32,3 +32,18 @@ export function formatScheduledTimeAsStored(iso: string | null | undefined): str
     timeZone: TAIPEI,
   }).format(d);
 }
+
+/**
+ * Get match time for display. Prefer slot time range (e.g. "10:00-12:00") when available
+ * to avoid timezone issues; otherwise use formatted scheduled_time.
+ */
+export function getMatchTimeDisplay(match: { scheduled_time?: string | null; slot?: { start_time?: string; end_time?: string } | null }): string {
+  const slot = match.slot;
+  if (slot?.start_time && slot?.end_time) {
+    const start = slot.start_time.slice(0, 5);
+    const end = slot.end_time.slice(0, 5);
+    return `${start}-${end}`;
+  }
+  const full = formatScheduledTimeAsStored(match.scheduled_time ?? null);
+  return full.split(" ")[1] ?? "—";
+}

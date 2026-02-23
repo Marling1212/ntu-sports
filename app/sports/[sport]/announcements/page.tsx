@@ -2,7 +2,7 @@ import { getSportEvent, getSportAnnouncements, getSportMatches } from "@/lib/uti
 import MarkdownText from "@/components/MarkdownText";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
-import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
+import { getMatchTimeDisplay } from "@/lib/utils/formatScheduledTime";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -119,7 +119,7 @@ export default async function SportAnnouncementsPage(context: any) {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {matchesToShow.map((m: any) => {
-                      const timeStr = formatScheduledTimeAsStored(m.scheduled_time).split(" ")[1] ?? "—";
+                      const timeStr = getMatchTimeDisplay(m);
                       // Get court: use unified logic
                       const court = getCourtDisplay(m);
                       const p1 = m.player1?.name || "TBD";

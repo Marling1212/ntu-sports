@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import MarkdownText from "@/components/MarkdownText";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
+import { getMatchTimeDisplay } from "@/lib/utils/formatScheduledTime";
 import { getLocale, getT } from "@/lib/i18n/server";
 
 // Sport icons mapping
@@ -240,11 +241,7 @@ export default async function SportPage(context: any) {
                 </thead>
                 <tbody className="bg-white divide-y divide-yellow-200">
                   {matchesToShow.map((m: any) => {
-                    const timeStr = new Intl.DateTimeFormat(locale === "zh" ? "zh-TW" : "en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      timeZone: "Asia/Taipei",
-                    }).format(new Date(m.scheduled_time));
+                    const timeStr = getMatchTimeDisplay(m);
                     const court = getCourtDisplay(m);
                     const p1 = m.player1?.name || "TBD";
                     const p2 = m.player2?.name || "TBD";

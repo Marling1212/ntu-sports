@@ -5,7 +5,7 @@ import Link from "next/link";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
 import MarkdownText from "@/components/MarkdownText";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
-import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
+import { getMatchTimeDisplay } from "@/lib/utils/formatScheduledTime";
 import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = 'force-dynamic';
@@ -164,7 +164,7 @@ export default async function SportEventPage({
               </thead>
               <tbody className="bg-white divide-y divide-yellow-200">
                 {matchesToShow.map((m: any) => {
-                  const timeStr = formatScheduledTimeAsStored(m.scheduled_time).split(" ")[1] ?? "—";
+                  const timeStr = getMatchTimeDisplay(m);
                   const court = getCourtDisplay(m);
                   const p1 = m.player1?.name || "TBD";
                   const p2 = m.player2?.name || "TBD";

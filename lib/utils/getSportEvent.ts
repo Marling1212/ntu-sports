@@ -47,6 +47,9 @@ export async function getSportMatches(eventId: string) {
       slot:event_slots(
         id, 
         code, 
+        slot_date,
+        start_time,
+        end_time,
         court_id,
         event_courts!event_slots_court_id_fkey(name)
       )
