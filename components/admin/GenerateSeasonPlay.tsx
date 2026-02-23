@@ -48,7 +48,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         .gte("round", 1);
       setPlayoffMatchCount(count ?? 0);
     })();
-  }, [eventId]);
+  }, [eventId, supabase]);
 
   // Helper function to shuffle array randomly
   const shuffleArray = <T,>(array: T[]): T[] => {

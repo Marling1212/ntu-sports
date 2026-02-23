@@ -1,7 +1,7 @@
 "use client";
 
 import { Player, Match } from "@/types/tournament";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import TournamentBracket from "./TournamentBracket";
 import BracketPlayerSearch from "./BracketPlayerSearch";
 import { useI18n } from "@/lib/i18n/context";
@@ -26,26 +26,26 @@ export default function BracketSection({
   const bracketSize = round1Matches.length * 2;
   const has3rdPlaceMatch = matches.some(m => m.round === maxRound && m.matchNumber === 2);
 
-  // Determine sections based on bracket size
-  let sections: { name: string; startPos: number; endPos: number; rounds: number[] }[] = [];
-  
-  if (bracketSize > 32) {
-    // 64+ players: 5 sections (4 quarters to Round of 16 + finals)
-    const quarter = bracketSize / 4;
-    const round16 = maxRound - 3; // Round of 16 is 4 rounds before final
-    
-    sections = [
-      { name: t("bracket.sectionN").replace("{n}", "1").replace("{start}", "1").replace("{end}", String(quarter)), startPos: 1, endPos: quarter, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
-      { name: t("bracket.sectionN").replace("{n}", "2").replace("{start}", String(quarter + 1)).replace("{end}", String(quarter * 2)), startPos: quarter + 1, endPos: quarter * 2, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
-      { name: t("bracket.sectionN").replace("{n}", "3").replace("{start}", String(quarter * 2 + 1)).replace("{end}", String(quarter * 3)), startPos: quarter * 2 + 1, endPos: quarter * 3, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
-      { name: t("bracket.sectionN").replace("{n}", "4").replace("{start}", String(quarter * 3 + 1)).replace("{end}", String(bracketSize)), startPos: quarter * 3 + 1, endPos: quarter * 4, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
-      { name: t("bracket.finalsStage"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound - round16 }, (_, i) => round16 + i + 1) },
-    ];
-  } else {
-    sections = [
-      { name: t("bracket.fullBracket"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound }, (_, i) => i + 1) },
-    ];
-  }
+  // Determine sections based on bracket size (memoized to avoid useCallback dep churn)
+  const sections = useMemo(() => {
+    const out: { name: string; startPos: number; endPos: number; rounds: number[] }[] = [];
+    if (bracketSize > 32) {
+      const quarter = bracketSize / 4;
+      const round16 = maxRound - 3;
+      out.push(
+        { name: t("bracket.sectionN").replace("{n}", "1").replace("{start}", "1").replace("{end}", String(quarter)), startPos: 1, endPos: quarter, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
+        { name: t("bracket.sectionN").replace("{n}", "2").replace("{start}", String(quarter + 1)).replace("{end}", String(quarter * 2)), startPos: quarter + 1, endPos: quarter * 2, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
+        { name: t("bracket.sectionN").replace("{n}", "3").replace("{start}", String(quarter * 2 + 1)).replace("{end}", String(quarter * 3)), startPos: quarter * 2 + 1, endPos: quarter * 3, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
+        { name: t("bracket.sectionN").replace("{n}", "4").replace("{start}", String(quarter * 3 + 1)).replace("{end}", String(bracketSize)), startPos: quarter * 3 + 1, endPos: quarter * 4, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
+        { name: t("bracket.finalsStage"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound - round16 }, (_, i) => round16 + i + 1) },
+      );
+    } else {
+      out.push(
+        { name: t("bracket.fullBracket"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound }, (_, i) => i + 1) },
+      );
+    }
+    return out;
+  }, [bracketSize, maxRound, t]);
 
   // Get matches for current section
   const currentSectionConfig = sections[currentSection - 1];
