@@ -121,7 +121,7 @@ export default async function TennisEventDrawPage({
                 : 'Single-elimination tournament bracket'}
             </p>
           </div>
-          <div className="order-2 w-full md:w-auto min-w-0 flex flex-col sm:flex-row flex-wrap gap-2 md:shrink-0">
+          <div className="order-2 w-full md:w-auto min-w-0 flex flex-col gap-2 md:shrink-0">
           <ExportBracket 
             matches={matches}
             players={players}
