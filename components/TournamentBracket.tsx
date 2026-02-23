@@ -244,6 +244,7 @@ export default function TournamentBracket({
           </p>
         </div>
 
+        <p className="md:hidden text-sm text-gray-500 text-center mb-2">← {t("bracket.swipeHint")} →</p>
         <div className="overflow-x-auto pb-6">
           <div className="flex gap-12 min-w-max px-4 relative">
             {rounds.map((round, roundIndex) => {

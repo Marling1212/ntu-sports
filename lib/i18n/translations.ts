@@ -236,6 +236,7 @@ export const translations = {
       searchJumpToMatch: 'R{round}-{match}',
       searchJumpToSection: '第{section}區 R{round}-{match}',
       searchMore: '場',
+      swipeHint: '左右滑動查看更多',
     },
   },
   en: {
@@ -469,6 +470,7 @@ export const translations = {
       searchJumpToMatch: 'R{round}-{match}',
       searchJumpToSection: 'Section {section} R{round}-{match}',
       searchMore: 'more',
+      swipeHint: 'Swipe left/right for more',
     },
   },
 } as const;

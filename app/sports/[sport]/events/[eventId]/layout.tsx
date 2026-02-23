@@ -34,7 +34,7 @@ export default async function SportEventLayout({
       regularSeasonComplete={regularSeasonComplete}
       tournamentType={event?.tournament_type}
     >
-      {children}
+      <div className="pb-20 md:pb-0">{children}</div>
     </EventNavProvider>
   );
 }

@@ -56,81 +56,80 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
   return (
     <nav className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        {/* Mobile Layout: Stacked */}
-        <div className="md:hidden py-3 space-y-3">
-          {/* Breadcrumb - Smaller on mobile */}
-          <div className="flex items-center gap-1.5 text-xs overflow-x-auto">
-            <Link href="/" className="text-gray-500 hover:text-ntu-green transition-colors whitespace-nowrap">
-              {t("home.title")}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link href={basePath} className="text-gray-700 hover:text-ntu-green transition-colors font-medium whitespace-nowrap">
-              {sportIcon} {sportName}
-            </Link>
-            {eventName && (
-              <>
-                <span className="text-gray-400">/</span>
-                <span className="text-ntu-green font-semibold truncate max-w-[120px]">{eventName}</span>
-              </>
-            )}
-            <span className="ml-auto flex-shrink-0">
+        {/* Mobile Layout: Compact top + Bottom nav */}
+        <div className="md:hidden py-3">
+          {/* Breadcrumb + Language + Back - compact top bar */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-xs overflow-x-auto min-w-0">
+              <Link href="/" className="text-gray-500 hover:text-ntu-green transition-colors whitespace-nowrap shrink-0">
+                {t("home.title")}
+              </Link>
+              <span className="text-gray-400 shrink-0">/</span>
+              <Link href={basePath} className="text-gray-700 hover:text-ntu-green transition-colors font-medium whitespace-nowrap shrink-0">
+                {sportIcon} {sportName}
+              </Link>
+              {eventName && (
+                <>
+                  <span className="text-gray-400 shrink-0">/</span>
+                  <span className="text-ntu-green font-semibold truncate">{eventName}</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href={basePath}
+                className="text-xs text-gray-600 hover:text-ntu-green transition-colors whitespace-nowrap"
+              >
+                ← {t("navigation.backToSport").replace("{sport}", sportName)}
+              </Link>
               <LanguageSwitcher />
-            </span>
+            </div>
           </div>
+        </div>
 
-          {/* Navigation Links - Full width buttons on mobile */}
-          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        {/* Mobile Bottom Nav - only on event pages (eventId) where layout has pb-20 */}
+        {eventId && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-pb">
+          <div className="grid grid-cols-4 gap-px bg-gray-200">
             <Link
               href={drawUrl}
-              className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
-                isActive(drawUrl)
-                  ? "bg-ntu-green text-white"
-                  : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
+              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] ${
+                isActive(drawUrl) ? "text-ntu-green bg-ntu-green/5" : "text-gray-600"
               }`}
             >
-              {drawLabel}
+              <span className="text-lg">📊</span>
+              <span>{drawLabel}</span>
             </Link>
             <Link
               href={scheduleUrl}
-              className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
-                isActive(scheduleUrl)
-                  ? "bg-ntu-green text-white"
-                  : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
+              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] ${
+                isActive(scheduleUrl) ? "text-ntu-green bg-ntu-green/5" : "text-gray-600"
               }`}
             >
-              {t("navigation.schedule")}
+              <span className="text-lg">🏀</span>
+              <span>{t("navigation.schedule")}</span>
             </Link>
             <Link
               href={rulesUrl}
-              className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
-                isActive(rulesUrl)
-                  ? "bg-ntu-green text-white"
-                  : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
+              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] ${
+                isActive(rulesUrl) ? "text-ntu-green bg-ntu-green/5" : "text-gray-600"
               }`}
             >
-              {t("navigation.rules")}
+              <span className="text-lg">📋</span>
+              <span>{t("navigation.rules")}</span>
             </Link>
             <Link
               href={announcementsUrl}
-              className={`px-3 py-3 rounded-lg text-sm font-medium transition-colors text-center min-h-[44px] flex items-center justify-center ${
-                isActive(announcementsUrl)
-                  ? "bg-ntu-green text-white"
-                  : "text-gray-700 bg-gray-100 hover:bg-ntu-green hover:text-white"
+              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] ${
+                isActive(announcementsUrl) ? "text-ntu-green bg-ntu-green/5" : "text-gray-600"
               }`}
             >
-              {t("navigation.announcements")}
+              <span className="text-lg">📢</span>
+              <span>{t("navigation.announcements")}</span>
             </Link>
           </div>
-
-          {/* Back Button - Full width on mobile */}
-          <Link 
-            href={basePath} 
-            className="text-sm text-gray-600 hover:text-ntu-green transition-colors flex items-center justify-center gap-1 py-2 min-h-[44px]"
-          >
-            <span>←</span>
-            <span>{t("navigation.backToSport").replace("{sport}", sportName)}</span>
-          </Link>
         </div>
+        )}
 
         {/* Desktop Layout: Horizontal */}
         <div className="hidden md:flex items-center justify-between h-16">

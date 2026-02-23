@@ -1100,11 +1100,11 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               ) : (
                 displayRegularMatches.map((match) => {
                   const matchData = match as any;
+                  const matchUrl = `/sports/${sportName.toLowerCase()}/matches/${match.id}`;
                   return (
-                    <Link
+                    <div
                       key={match.id}
-                      href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
-                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.99]"
+                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all"
                     >
                       {hasGroups && (
                         <div className="mb-2">
@@ -1122,14 +1122,32 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       </div>
                       <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(matchData as any)}</div>
                       <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
-                        <span className="truncate">{match.player1?.name || t("bracket.tbd")}</span>
-                        <span className="text-ntu-green shrink-0">VS</span>
-                        <span className="truncate">{match.player2?.name || t("bracket.tbd")}</span>
+                        <button
+                          type="button"
+                          onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
+                          className="flex-1 min-w-0 text-left truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99]"
+                          title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                        >
+                          {match.player1?.name || t("bracket.tbd")}
+                        </button>
+                        <Link href={matchUrl} className="shrink-0 text-ntu-green font-bold px-2 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                          VS
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
+                          className="flex-1 min-w-0 text-right truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99]"
+                          title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                        >
+                          {match.player2?.name || t("bracket.tbd")}
+                        </button>
                       </div>
                       {match.score && (
-                        <div className="mt-2 text-sm font-semibold text-ntu-green">{(match as any).score}</div>
+                        <Link href={matchUrl} className="mt-2 block text-sm font-semibold text-ntu-green">
+                          {(match as any).score}
+                        </Link>
                       )}
-                    </Link>
+                    </div>
                   );
                 })
               )}
@@ -1310,13 +1328,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 </span>
                                 {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
                               </div>
-                              <div className="flex gap-3 text-sm shrink-0">
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm shrink-0">
                                 <span className="text-green-600 font-semibold">{standing.wins}W</span>
                                 <span className="text-gray-600">{standing.draws || 0}D</span>
                                 <span className="text-red-600 font-semibold">{standing.losses}L</span>
-                                <span className="font-bold text-ntu-green">{standing.points}</span>
-                                <span className="text-gray-700">{standing.goalDiff}</span>
-                                <span className="text-gray-600">{cardDisplay}</span>
+                                <span className="font-bold text-ntu-green">{t("seasonPlay.points")} {standing.points}</span>
+                                <span className="text-gray-700">{t("seasonPlay.gd")} {standing.goalDiff}</span>
+                                <span className="text-gray-600">{t("seasonPlay.yr")} {cardDisplay}</span>
                               </div>
                             </Link>
                           );
@@ -1401,13 +1419,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               </span>
                               {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
                             </div>
-                            <div className="flex gap-3 text-sm shrink-0">
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm shrink-0">
                               <span className="text-green-600 font-semibold">{standing.wins}W</span>
                               <span className="text-gray-600">{standing.draws || 0}D</span>
                               <span className="text-red-600 font-semibold">{standing.losses}L</span>
-                              <span className="font-bold text-ntu-green">{standing.points}</span>
-                              <span className="text-gray-700">{standing.goalDiff}</span>
-                              <span className="text-gray-600">{cardDisplay}</span>
+                              <span className="font-bold text-ntu-green">{t("seasonPlay.points")} {standing.points}</span>
+                              <span className="text-gray-700">{t("seasonPlay.gd")} {standing.goalDiff}</span>
+                              <span className="text-gray-600">{t("seasonPlay.yr")} {cardDisplay}</span>
                             </div>
                           </Link>
                         );
@@ -1491,13 +1509,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           </span>
                           {standing.player.seed && <span className="text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(standing.player.seed))})</span>}
                         </div>
-                        <div className="flex gap-3 text-sm shrink-0">
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm shrink-0">
                           <span className="text-green-600 font-semibold">{standing.wins}W</span>
                           <span className="text-gray-600">{standing.draws || 0}D</span>
                           <span className="text-red-600 font-semibold">{standing.losses}L</span>
-                          <span className="font-bold text-ntu-green">{standing.points}</span>
-                          <span className="text-gray-700">{standing.goalDiff}</span>
-                          <span className="text-gray-600">{cardDisplay}</span>
+                          <span className="font-bold text-ntu-green">{t("seasonPlay.points")} {standing.points}</span>
+                          <span className="text-gray-700">{t("seasonPlay.gd")} {standing.goalDiff}</span>
+                          <span className="text-gray-600">{t("seasonPlay.yr")} {cardDisplay}</span>
                         </div>
                       </Link>
                     );
@@ -1763,6 +1781,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               ) : (
                 displayPlayoffScheduleMatches.map((match) => {
                   const matchData = match as any;
+                  const matchUrl = `/sports/${sportName.toLowerCase()}/matches/${match.id}`;
                   const count = playoffRoundTotalCount.get(Number(match.round)) ?? 0;
                   const isLastRound = Number(match.round) === maxPlayoffRound;
                   const matchNum = Number((match as any).matchNumber) ?? 0;
@@ -1770,10 +1789,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                     ? (matchNum === 2 ? t("bracket.final") : t("bracket.thirdPlace"))
                     : count === 4 ? t("bracket.quarterfinals") : count === 2 ? t("bracket.semifinals") : count === 1 ? t("bracket.final") : t("bracket.roundOf").replace("{n}", String(count * 2));
                   return (
-                    <Link
+                    <div
                       key={match.id}
-                      href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
-                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.99]"
+                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all"
                     >
                       <div className="mb-2">
                         <span className="inline-block px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">
@@ -1789,14 +1807,32 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       </div>
                       <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(matchData as any)}</div>
                       <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
-                        <span className="truncate">{match.player1?.name || t("bracket.tbd")}</span>
-                        <span className="text-ntu-green shrink-0">VS</span>
-                        <span className="truncate">{match.player2?.name || t("bracket.tbd")}</span>
+                        <button
+                          type="button"
+                          onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
+                          className="flex-1 min-w-0 text-left truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99]"
+                          title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                        >
+                          {match.player1?.name || t("bracket.tbd")}
+                        </button>
+                        <Link href={matchUrl} className="shrink-0 text-ntu-green font-bold px-2 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                          VS
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
+                          className="flex-1 min-w-0 text-right truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99]"
+                          title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                        >
+                          {match.player2?.name || t("bracket.tbd")}
+                        </button>
                       </div>
                       {match.score && (
-                        <div className="mt-2 text-sm font-semibold text-ntu-green">{(match as any).score}</div>
+                        <Link href={matchUrl} className="mt-2 block text-sm font-semibold text-ntu-green">
+                          {(match as any).score}
+                        </Link>
                       )}
-                    </Link>
+                    </div>
                   );
                 })
               )}
