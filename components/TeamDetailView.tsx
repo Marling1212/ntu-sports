@@ -239,87 +239,136 @@ export default function TeamDetailView({
           <p className="text-gray-600 text-center py-8">尚無比賽記錄</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-ntu-green text-white">
-                <tr>
-                  <th className="px-4 py-3 text-left">對手</th>
-                  <th className="px-4 py-3 text-center">日期時間</th>
-                  <th className="px-4 py-3 text-center">場地</th>
-                  <th className="px-4 py-3 text-center">比分</th>
-                  <th className="px-4 py-3 text-center">狀態</th>
-                  <th className="px-4 py-3 text-center">詳情</th>
-                </tr>
-              </thead>
-              <tbody>
-                {matches.map((match: any, idx: number) => {
-                  const isPlayer1 = match.player1_id === team.id;
-                  const opponent = isPlayer1 ? match.player2 : match.player1;
-                  const isWinner = match.winner_id === team.id;
-                  
-                  return (
-                    <tr key={match.id} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="px-4 py-3">
-                        {opponent ? (
-                          <Link 
-                            href={`/sports/${sportParam}/teams/${opponent.id}`}
-                            className="font-semibold hover:text-ntu-green hover:underline"
+            {/* Mobile: card list (clickable to match page) */}
+            <div className="md:hidden space-y-3">
+              {matches.map((match: any) => {
+                const scoreStr = match.score1 != null && match.score2 != null
+                  ? `${match.score1}-${match.score2}` : "-";
+                return (
+                  <Link
+                    key={match.id}
+                    href={`/sports/${sportParam}/matches/${match.id}`}
+                    className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.99]"
+                  >
+                    {match.group_number != null && (
+                      <div className="mb-2">
+                        <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">
+                          Group {match.group_number}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-sm font-medium text-gray-600">{formatDateTimeDisplay(match.scheduled_time)}</span>
+                      {match.status === "completed" && (
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">已完成</span>
+                      )}
+                      {match.status === "live" && (
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">進行中</span>
+                      )}
+                      {match.status === "upcoming" && (
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">即將開始</span>
+                      )}
+                      {match.status === "delayed" && (
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">延遲</span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(match)}</div>
+                    <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
+                      <span className="truncate">{match.player1?.name || "TBD"}</span>
+                      <span className="text-ntu-green shrink-0">VS</span>
+                      <span className="truncate">{match.player2?.name || "TBD"}</span>
+                    </div>
+                    {scoreStr !== "-" && (
+                      <div className="mt-2 text-sm font-semibold text-ntu-green">{scoreStr}</div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+            {/* Desktop: table (same format as schedule, VS links to match) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-ntu-green text-white">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Player 1</th>
+                    <th className="px-4 py-3 text-center">VS</th>
+                    <th className="px-4 py-3 text-left">Player 2</th>
+                    <th className="px-4 py-3 text-center">日期時間</th>
+                    <th className="px-4 py-3 text-center">場地</th>
+                    <th className="px-4 py-3 text-center">比分</th>
+                    <th className="px-4 py-3 text-center">狀態</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matches.map((match: any, idx: number) => {
+                    const scoreStr = match.score1 != null && match.score2 != null
+                      ? `${match.score1}-${match.score2}` : "-";
+                    const matchUrl = `/sports/${sportParam}/matches/${match.id}`;
+                    return (
+                      <tr key={match.id} className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                        <td className="px-4 py-3">
+                          {match.player1 ? (
+                            <Link
+                              href={`/sports/${sportParam}/teams/${match.player1.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className={`font-semibold hover:text-ntu-green hover:underline ${match.winner_id === match.player1_id ? "text-ntu-green" : ""}`}
+                            >
+                              {match.player1.name}
+                            </Link>
+                          ) : (
+                            <span className="text-gray-400">TBD</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Link
+                            href={matchUrl}
+                            className="text-lg font-bold text-ntu-green hover:text-green-700 hover:underline"
                           >
-                            {opponent.name}
+                            VS
                           </Link>
-                        ) : (
-                          <span className="text-gray-400">TBD</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm">
-                        {formatDateTimeDisplay(match.scheduled_time)}
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm text-gray-600">
-                        {getCourtDisplay(match)}
-                      </td>
-                      <td className="px-4 py-3 text-center font-semibold">
-                        {match.score1 && match.score2 ? (
-                          <span className={isWinner ? 'text-green-600' : match.winner_id ? 'text-red-600' : ''}>
-                            {isPlayer1 ? `${match.score1} - ${match.score2}` : `${match.score2} - ${match.score1}`}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {match.status === 'completed' && (
-                          <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">
-                            已完成
-                          </span>
-                        )}
-                        {match.status === 'live' && (
-                          <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">
-                            進行中
-                          </span>
-                        )}
-                        {match.status === 'upcoming' && (
-                          <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">
-                            即將開始
-                          </span>
-                        )}
-                        {match.status === 'delayed' && (
-                          <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">
-                            延遲
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Link 
-                          href={`/sports/${sportParam}/matches/${match.id}`}
-                          className="text-ntu-green hover:underline text-sm"
-                        >
-                          查看詳情
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-4 py-3">
+                          {match.player2 ? (
+                            <Link
+                              href={`/sports/${sportParam}/teams/${match.player2.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className={`font-semibold hover:text-ntu-green hover:underline ${match.winner_id === match.player2_id ? "text-ntu-green" : ""}`}
+                            >
+                              {match.player2.name}
+                            </Link>
+                          ) : (
+                            <span className="text-gray-400">TBD</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center text-sm">
+                          {formatDateTimeDisplay(match.scheduled_time)}
+                        </td>
+                        <td className="px-4 py-3 text-center text-sm text-gray-600">
+                          {getCourtDisplay(match)}
+                        </td>
+                        <td className="px-4 py-3 text-center font-semibold">
+                          {scoreStr !== "-" ? scoreStr : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {match.status === "completed" && (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">已完成</span>
+                          )}
+                          {match.status === "live" && (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">進行中</span>
+                          )}
+                          {match.status === "upcoming" && (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">即將開始</span>
+                          )}
+                          {match.status === "delayed" && (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">延遲</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
