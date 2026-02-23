@@ -1311,6 +1311,18 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       </div>
                       {/* Mobile: card per row with tier color */}
                       <div className="md:hidden divide-y divide-gray-100">
+                        <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 text-xs text-gray-500 font-medium">
+                          <span className="w-8 text-center shrink-0">{t("seasonPlay.rank")}</span>
+                          <div className="min-w-0 flex-1">{t("seasonPlay.player")}</div>
+                          <div className="flex gap-x-2 shrink-0">
+                            <span className="w-6 text-center">{t("seasonPlay.wins").charAt(0)}</span>
+                            <span className="w-6 text-center">{t("seasonPlay.draws").charAt(0)}</span>
+                            <span className="w-6 text-center">{t("seasonPlay.losses").charAt(0)}</span>
+                            <span className="w-7 text-center">{t("seasonPlay.points")}</span>
+                            <span className="w-8 text-center">{t("seasonPlay.gd")}</span>
+                            <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
+                          </div>
+                        </div>
                         {groupStandings.map((standing, idx) => {
                           const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                           const rowClass = getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
@@ -1328,13 +1340,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 </span>
                                 {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
                               </div>
-                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm shrink-0">
-                                <span className="text-green-600 font-semibold">{standing.wins}W</span>
-                                <span className="text-gray-600">{standing.draws || 0}D</span>
-                                <span className="text-red-600 font-semibold">{standing.losses}L</span>
-                                <span className="font-bold text-ntu-green">{t("seasonPlay.points")} {standing.points}</span>
-                                <span className="text-gray-700">{t("seasonPlay.gd")} {standing.goalDiff}</span>
-                                <span className="text-gray-600">{t("seasonPlay.yr")} {cardDisplay}</span>
+                              <div className="flex gap-x-2 text-sm shrink-0">
+                                <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
+                                <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
+                                <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
+                                <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
+                                <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
+                                <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
                               </div>
                             </Link>
                           );
@@ -1401,6 +1413,18 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </div>
                   {Array.isArray(standings) && (
                     <div className="md:hidden divide-y divide-gray-100">
+                      <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 text-xs text-gray-500 font-medium">
+                        <span className="w-8 text-center shrink-0">{t("seasonPlay.rank")}</span>
+                        <div className="min-w-0 flex-1">{t("seasonPlay.player")}</div>
+                        <div className="flex gap-x-2 shrink-0">
+                          <span className="w-6 text-center">{t("seasonPlay.wins").charAt(0)}</span>
+                          <span className="w-6 text-center">{t("seasonPlay.draws").charAt(0)}</span>
+                          <span className="w-6 text-center">{t("seasonPlay.losses").charAt(0)}</span>
+                          <span className="w-7 text-center">{t("seasonPlay.points")}</span>
+                          <span className="w-8 text-center">{t("seasonPlay.gd")}</span>
+                          <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
+                        </div>
+                      </div>
                       {standings.map((standing, idx) => {
                         const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                         const groupNum = typeof selectedGroup === "number" ? selectedGroup : 1;
@@ -1419,13 +1443,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               </span>
                               {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
                             </div>
-                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm shrink-0">
-                              <span className="text-green-600 font-semibold">{standing.wins}W</span>
-                              <span className="text-gray-600">{standing.draws || 0}D</span>
-                              <span className="text-red-600 font-semibold">{standing.losses}L</span>
-                              <span className="font-bold text-ntu-green">{t("seasonPlay.points")} {standing.points}</span>
-                              <span className="text-gray-700">{t("seasonPlay.gd")} {standing.goalDiff}</span>
-                              <span className="text-gray-600">{t("seasonPlay.yr")} {cardDisplay}</span>
+                            <div className="flex gap-x-2 text-sm shrink-0">
+                              <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
+                              <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
+                              <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
+                              <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
+                              <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
+                              <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
                             </div>
                           </Link>
                         );
@@ -1491,6 +1515,18 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
               {Array.isArray(standings) && (
                 <div className="md:hidden divide-y divide-gray-100">
+                  <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 text-xs text-gray-500 font-medium">
+                    <span className="w-8 text-center shrink-0">{t("seasonPlay.rank")}</span>
+                    <div className="min-w-0 flex-1">{t("seasonPlay.player")}</div>
+                    <div className="flex gap-x-2 shrink-0">
+                      <span className="w-6 text-center">{t("seasonPlay.wins").charAt(0)}</span>
+                      <span className="w-6 text-center">{t("seasonPlay.draws").charAt(0)}</span>
+                      <span className="w-6 text-center">{t("seasonPlay.losses").charAt(0)}</span>
+                      <span className="w-7 text-center">{t("seasonPlay.points")}</span>
+                      <span className="w-8 text-center">{t("seasonPlay.gd")}</span>
+                      <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
+                    </div>
+                  </div>
                   {standings.map((standing, idx) => {
                     const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                     const groupNum = standing.group ?? 1;
@@ -1509,13 +1545,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           </span>
                           {standing.player.seed && <span className="text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(standing.player.seed))})</span>}
                         </div>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm shrink-0">
-                          <span className="text-green-600 font-semibold">{standing.wins}W</span>
-                          <span className="text-gray-600">{standing.draws || 0}D</span>
-                          <span className="text-red-600 font-semibold">{standing.losses}L</span>
-                          <span className="font-bold text-ntu-green">{t("seasonPlay.points")} {standing.points}</span>
-                          <span className="text-gray-700">{t("seasonPlay.gd")} {standing.goalDiff}</span>
-                          <span className="text-gray-600">{t("seasonPlay.yr")} {cardDisplay}</span>
+                        <div className="flex gap-x-2 text-sm shrink-0">
+                          <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
+                          <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
+                          <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
+                          <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
+                          <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
+                          <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
                         </div>
                       </Link>
                     );
