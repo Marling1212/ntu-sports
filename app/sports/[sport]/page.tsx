@@ -297,16 +297,6 @@ export default async function SportPage(context: any) {
         </div>
       )}
 
-      {/* Purpose Statement */}
-      {singleEvent?.description && (
-        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("sports.eventDescription")}</h2>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {singleEvent.description}
-          </p>
-        </div>
-      )}
-
       {/* Countdown Timer (only show before start) */}
       {!hasStarted && (
         <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
