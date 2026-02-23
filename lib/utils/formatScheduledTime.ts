@@ -2,12 +2,14 @@ const TAIPEI = "Asia/Taipei";
 
 /**
  * Format scheduled_time for display.
- * - Stored with +08:00 (e.g. 04:30 UTC = 12:30 Taiwan): show in Asia/Taipei → 12:30.
- * - Stored without timezone (e.g. 12:30 UTC = naive local): show UTC time as-is → 12:30 (so "today's" don't become 20:30).
+ * - Stored with +08:00 or Z: parse and show in Asia/Taipei.
+ * - Stored without timezone: assume Asia/Taipei local (e.g. "2025-01-15T12:00:00" = noon Taiwan), append +08:00 before parsing to avoid +8 hrs bug.
  */
 export function formatScheduledTimeAsStored(iso: string | null | undefined): string {
   if (!iso || typeof iso !== "string" || !iso.trim()) return "—";
-  const d = new Date(iso);
+  const hasTz = iso.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(iso);
+  const toParse = hasTz ? iso : iso.replace(/\.\d{3}$/, "") + "+08:00";
+  const d = new Date(toParse);
   if (Number.isNaN(d.getTime())) return "—";
   const isUtc = iso.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(iso);
   const utcHour = d.getUTCHours();
