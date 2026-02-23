@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSportMatches } from "@/lib/utils/getSportEvent";
 import { EventNavProvider } from "@/lib/context/EventNavContext";
+import BackToTop from "@/components/BackToTop";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -35,6 +36,7 @@ export default async function SportEventLayout({
       tournamentType={event?.tournament_type}
     >
       <div className="pb-20 md:pb-0">{children}</div>
+      <BackToTop />
     </EventNavProvider>
   );
 }
