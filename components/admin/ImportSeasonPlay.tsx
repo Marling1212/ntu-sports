@@ -764,7 +764,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-semibold text-blue-900 mb-2">📋 如何匯入：</h3>
           <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
-            <li>到前台<strong>賽程／籤表頁</strong>（例如 /sports/足球/draw）點「Download Bracket (Excel)」下載賽季 Excel。</li>
+            <li>到前台<strong>賽程／籤表頁</strong>（例如 /sports/足球/draw）點「Download Excel」下載賽季 Excel。</li>
             <li>下載的檔案會包含多張工作表：<strong>Regular Season</strong>（賽程列表）、<strong>Standings</strong>（排名）、若有球員統計則還有<strong>球員統計</strong>（哪位球員進球、黃牌等）。</li>
             <li>回到本頁，點下方「選擇 Excel 或 CSV 檔案」，選剛才下載的 .xlsx 檔。</li>
             <li>系統會依 Regular Season 還原比賽（對戰、比分、狀態、時間），若有「球員統計」工作表會一併還原球員級資料。</li>

@@ -581,7 +581,7 @@ export default function ExportBracket({
       className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-md flex items-center gap-2"
     >
       <span>📥</span>
-      <span>Download Bracket (Excel)</span>
+      <span>Download Excel</span>
     </button>
   );
 }
