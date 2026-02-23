@@ -1125,7 +1125,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         <button
                           type="button"
                           onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
-                          className="flex-1 min-w-0 text-left truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99]"
+                          className={`flex-1 min-w-0 text-left truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
                           title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                         >
                           {match.player1?.name || t("bracket.tbd")}
@@ -1136,7 +1136,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         <button
                           type="button"
                           onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
-                          className="flex-1 min-w-0 text-right truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99]"
+                          className={`flex-1 min-w-0 text-right truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
                           title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                         >
                           {match.player2?.name || t("bracket.tbd")}
@@ -1846,7 +1846,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         <button
                           type="button"
                           onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
-                          className="flex-1 min-w-0 text-left truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99]"
+                          className={`flex-1 min-w-0 text-left truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
                           title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                         >
                           {match.player1?.name || t("bracket.tbd")}
@@ -1857,7 +1857,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         <button
                           type="button"
                           onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
-                          className="flex-1 min-w-0 text-right truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99]"
+                          className={`flex-1 min-w-0 text-right truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
                           title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                         >
                           {match.player2?.name || t("bracket.tbd")}
