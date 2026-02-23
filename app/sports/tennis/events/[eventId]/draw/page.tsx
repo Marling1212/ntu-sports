@@ -110,8 +110,8 @@ export default async function TennisEventDrawPage({
       <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
       <Toaster position="top-right" />
       <div className="container mx-auto px-4 py-6 md:py-12">
-        <div className="mb-6 md:mb-8 flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
-          <div className="order-1 min-w-0">
+        <div className="mb-6 md:mb-8 flex flex-row justify-between items-start gap-4">
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl md:text-4xl font-bold text-ntu-green mb-2 md:mb-4 break-words">
               {event.name || "NTU Tennis – 114 Freshman Cup Draw"}
             </h1>
@@ -121,7 +121,7 @@ export default async function TennisEventDrawPage({
                 : 'Single-elimination tournament bracket'}
             </p>
           </div>
-          <div className="order-2 w-full md:w-auto min-w-0 flex flex-col gap-2 md:shrink-0">
+          <div className="flex flex-col md:flex-row gap-2 shrink-0">
           <ExportBracket 
             matches={matches}
             players={players}
