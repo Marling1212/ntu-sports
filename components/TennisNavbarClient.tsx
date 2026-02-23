@@ -93,39 +93,39 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
           <div className="grid grid-cols-4 gap-px bg-gray-200">
             <Link
               href={drawUrl}
-              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] ${
+              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] text-center ${
                 isActive(drawUrl) ? "text-ntu-green bg-ntu-green/5" : "text-gray-600"
               }`}
             >
               <span className="text-lg">📊</span>
-              <span>{drawLabel}</span>
+              <span className="text-center">{drawLabel}</span>
             </Link>
             <Link
               href={scheduleUrl}
-              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] ${
+              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] text-center ${
                 isActive(scheduleUrl) ? "text-ntu-green bg-ntu-green/5" : "text-gray-600"
               }`}
             >
               <span className="text-lg">🏀</span>
-              <span>{t("navigation.schedule")}</span>
+              <span className="text-center">{t("navigation.schedule")}</span>
             </Link>
             <Link
               href={rulesUrl}
-              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] ${
+              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] text-center ${
                 isActive(rulesUrl) ? "text-ntu-green bg-ntu-green/5" : "text-gray-600"
               }`}
             >
               <span className="text-lg">📋</span>
-              <span>{t("navigation.rules")}</span>
+              <span className="text-center">{t("navigation.rules")}</span>
             </Link>
             <Link
               href={announcementsUrl}
-              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] ${
+              className={`py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors bg-white min-h-[56px] text-center ${
                 isActive(announcementsUrl) ? "text-ntu-green bg-ntu-green/5" : "text-gray-600"
               }`}
             >
               <span className="text-lg">📢</span>
-              <span>{t("navigation.announcements")}</span>
+              <span className="text-center">{t("navigation.announcements")}</span>
             </Link>
           </div>
         </div>
