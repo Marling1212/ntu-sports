@@ -129,19 +129,19 @@ export default async function SportDrawPage(context: any) {
     <>
       <TennisNavbarClient eventName={event?.name} tournamentType={event?.tournament_type} />
       <Toaster position="top-right" />
-      <div className="container mx-auto px-4 py-12">
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-4xl font-bold text-ntu-green mb-4">
+      <div className="container mx-auto px-4 py-6 md:py-12">
+        <div className="mb-6 md:mb-8 flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
+          <div className="order-1 min-w-0">
+            <h1 className="text-2xl md:text-4xl font-bold text-ntu-green mb-2 md:mb-4 break-words">
               {event?.name || t("draw.pageTitleWithSport").replace("{sport}", sportName)}
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-base md:text-lg text-gray-600">
               {event?.tournament_type === 'season_play' 
                 ? t("draw.pageSubtitleSeason")
                 : t("draw.pageSubtitleBracket")}
             </p>
           </div>
-        <div className="flex gap-2">
+          <div className="order-2 w-full md:w-auto min-w-0 flex flex-col sm:flex-row flex-wrap gap-2 md:shrink-0">
           <ExportBracket 
             matches={matches}
             players={players}
