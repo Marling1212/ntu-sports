@@ -6,7 +6,6 @@ import { getColorTheme } from "../colorThemes";
 
 export default function ColorThemeDemoPage() {
   const params = useParams();
-  const router = useRouter();
   const themeId = (params?.themeId as string) || "";
   const theme = getColorTheme(themeId);
 
