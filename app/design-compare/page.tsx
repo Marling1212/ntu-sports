@@ -33,6 +33,15 @@ export default function DesignCompareIndexPage() {
         <p className="text-gray-600 mb-8">
           Choose one to view at full width — no squeezing.
         </p>
+        <div className="mb-8 p-5 bg-white rounded-xl shadow border-2 border-ntu-green">
+          <Link
+            href="/design-compare/colors"
+            className="block"
+          >
+            <span className="font-semibold text-gray-900">Color themes</span>
+            <p className="text-sm text-gray-500 mt-1">Pick a site color: current green, forest, ocean, amber, or slate. View demos and choose one.</p>
+          </Link>
+        </div>
         <ul className="space-y-4">
           {VARIANTS.map(({ id, label, desc }) => (
             <li key={id}>
