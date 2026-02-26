@@ -1,7 +1,23 @@
 /**
  * Color theme presets for design-compare. Pick one to apply site-wide later.
  */
-export type ColorThemeId = "current" | "forest" | "ocean" | "amber" | "slate";
+export type ColorThemeId =
+  | "current"
+  | "forest"
+  | "ocean"
+  | "amber"
+  | "slate"
+  | "red"
+  | "blue"
+  | "green"
+  | "yellow"
+  | "purple"
+  | "orange"
+  | "pink"
+  | "brown"
+  | "gray"
+  | "black"
+  | "white";
 
 export interface ColorTheme {
   id: ColorThemeId;
@@ -70,6 +86,127 @@ export const COLOR_THEMES: ColorTheme[] = [
     surface: "#f8fafc",
     footerStart: "#1e293b",
     footerEnd: "#475569",
+  },
+  {
+    id: "red",
+    name: "Red",
+    nameZh: "紅色",
+    description: "Red accent; passionate and energetic.",
+    primary: "#b91c1c",
+    primaryHover: "#991b1b",
+    surface: "#fafaf9",
+    footerStart: "#7f1d1d",
+    footerEnd: "#b91c1c",
+  },
+  {
+    id: "blue",
+    name: "Blue",
+    nameZh: "藍色",
+    description: "Blue accent; professional and calm.",
+    primary: "#1e40af",
+    primaryHover: "#1e3a8a",
+    surface: "#fafaf9",
+    footerStart: "#1e3a8a",
+    footerEnd: "#1e40af",
+  },
+  {
+    id: "green",
+    name: "Green",
+    nameZh: "綠色",
+    description: "Green accent; natural and refreshing.",
+    primary: "#166534",
+    primaryHover: "#14532d",
+    surface: "#fafaf9",
+    footerStart: "#14532d",
+    footerEnd: "#166534",
+  },
+  {
+    id: "yellow",
+    name: "Yellow",
+    nameZh: "黃色",
+    description: "Yellow accent; cheerful and warm.",
+    primary: "#d97706",
+    primaryHover: "#b45309",
+    surface: "#fafaf9",
+    footerStart: "#b45309",
+    footerEnd: "#d97706",
+  },
+  {
+    id: "purple",
+    name: "Purple",
+    nameZh: "紫色",
+    description: "Purple accent; elegant and sophisticated.",
+    primary: "#6b21a8",
+    primaryHover: "#581c87",
+    surface: "#fafaf9",
+    footerStart: "#581c87",
+    footerEnd: "#6b21a8",
+  },  
+  {
+    id: "orange",
+    name: "Orange",
+    nameZh: "橙色",
+    description: "Orange accent; warm and inviting.",
+    primary: "#d97706",
+    primaryHover: "#b45309",
+    surface: "#fafaf9",
+    footerStart: "#b45309",
+    footerEnd: "#d97706",
+  },
+  {
+    id: "pink",
+    name: "Pink",
+    nameZh: "粉色",
+    description: "Pink accent; soft and feminine.",
+    primary: "#db2777",
+    primaryHover: "#be185d",
+    surface: "#fdf2f8",
+    footerStart: "#9d174d",
+    footerEnd: "#db2777",
+  },
+  {
+    id: "brown",
+    name: "Brown",
+    nameZh: "棕色",
+    description: "Brown accent; natural and earthy.",
+    primary: "#78350f",
+    primaryHover: "#92400e",
+    surface: "#fafaf9",
+    footerStart: "#451a03",
+    footerEnd: "#78350f",
+  },
+  {
+    id: "gray",
+    name: "Gray",
+    nameZh: "灰色",
+    description: "Gray accent; neutral and subtle.",
+    primary: "#4b5563",
+    primaryHover: "#374151",
+    surface: "#f9fafb",
+    footerStart: "#1f2937",
+    footerEnd: "#4b5563",
+  },
+  {
+    id: "black",
+    name: "Black",
+    nameZh: "黑色",
+    description: "Black accent; bold and dramatic.",
+    primary: "#171717",
+    primaryHover: "#262626",
+    surface: "#fafafa",
+    footerStart: "#0a0a0a",
+    footerEnd: "#171717",
+  },
+  {
+    id: "white",
+    name: "White",
+    nameZh: "白色",
+    description: "White accent; clean and minimal.",
+    primary: "#fafafa",
+    primaryHover: "#e5e7eb",
+    surface: "#ffffff",
+    footerStart: "#e5e7eb",
+    footerEnd: "#fafafa",
   },
 ];
 
