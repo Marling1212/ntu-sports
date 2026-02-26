@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Primary: NTU green, slightly softened for broader appeal */
+  --color-primary: #00694E;
+  --color-primary-hover: #005a40;
+  --color-primary-muted: #e6f2ef;
+  /* Surfaces */
+  --color-surface: #f8faf9;
+  --color-surface-footer: #004d38;
+  --color-surface-footer-end: #00694E;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -9,6 +20,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-surface);
 }
 
 * {
@@ -79,12 +91,12 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #00694E;
+  background: var(--color-primary);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #005a3f;
+  background: var(--color-primary-hover);
 }
 
 /* 改善觸控體驗 */
@@ -92,5 +104,13 @@ html {
   button, a {
     -webkit-tap-highlight-color: rgba(0, 105, 78, 0.1);
   }
+}
+
+/* Optional: use CSS variables for buttons/links if you want one place to tweak primary */
+.btn-primary {
+  background-color: var(--color-primary);
+}
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
 }
 

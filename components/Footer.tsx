@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import FeedbackButton from "@/components/FeedbackButton";
 
 export default function Footer() {
   const { t } = useI18n();
@@ -10,7 +11,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   
   return (
-    <footer className="bg-gradient-to-r from-ntu-green to-green-700 text-white mt-auto">
+    <footer className="text-white mt-auto" style={{ background: `linear-gradient(to right, var(--color-surface-footer), var(--color-surface-footer-end))` }}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-6">
           <div className="animate-fadeIn">
@@ -56,6 +57,9 @@ export default function Footer() {
           </p>
           <p className="text-xs text-green-200 mt-2">
             {t('footer.madeWith')}
+          </p>
+          <p className="text-xs text-green-200 mt-2">
+            <FeedbackButton />
           </p>
         </div>
       </div>
