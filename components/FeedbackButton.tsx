@@ -66,7 +66,7 @@ export default function FeedbackButton() {
           aria-labelledby="feedback-title"
         >
           <div
-            className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6"
+            className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 text-gray-900"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="feedback-title" className="text-lg font-semibold text-gray-900 mb-2">
@@ -75,24 +75,25 @@ export default function FeedbackButton() {
             <p className="text-sm text-gray-600 mb-4">{t("feedback.description")}</p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="feedback-category" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="feedback-category" className="block text-sm font-medium text-gray-900 mb-1">
                   {t("feedback.category")}
                 </label>
                 <select
                   id="feedback-category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value as FeedbackCategory)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+                  style={{ color: "#111827" }}
                 >
                   {CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>
+                    <option key={c.value} value={c.value} className="text-gray-900 bg-white">
                       {t(c.labelKey)}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label htmlFor="feedback-message" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="feedback-message" className="block text-sm font-medium text-gray-900 mb-1">
                   {t("feedback.messageLabel")}
                 </label>
                 <textarea
@@ -102,12 +103,12 @@ export default function FeedbackButton() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t("feedback.messagePlaceholder")}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white resize-none"
                   maxLength={5000}
                 />
               </div>
               <div>
-                <label htmlFor="feedback-email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="feedback-email" className="block text-sm font-medium text-gray-900 mb-1">
                   {t("feedback.emailPlaceholder")}
                 </label>
                 <input
@@ -116,7 +117,7 @@ export default function FeedbackButton() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t("feedback.emailPlaceholder")}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
                 />
               </div>
               <div className="flex gap-3 justify-end pt-2">

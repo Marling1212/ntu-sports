@@ -76,3 +76,32 @@ export const COLOR_THEMES: ColorTheme[] = [
 export function getColorTheme(id: string): ColorTheme | undefined {
   return COLOR_THEMES.find((t) => t.id === id);
 }
+
+/** Hex with alpha (e.g. #00694E -> #00694E1a for 10%). */
+function hexWithAlpha(hex: string, alphaHex: string): string {
+  return hex.length === 7 ? hex + alphaHex : hex;
+}
+
+/** Generate CSS to override ntu-green with theme primary (for design-compare demos). */
+export function getThemeOverrideCss(theme: ColorTheme): string {
+  const p10 = hexWithAlpha(theme.primary, "1a");
+  const p20 = hexWithAlpha(theme.primary, "33");
+  const p80 = hexWithAlpha(theme.primary, "cc");
+  return `
+[data-color-theme="${theme.id}"] .bg-ntu-green { background-color: ${theme.primary} !important; }
+[data-color-theme="${theme.id}"] .bg-ntu-green\\/10 { background-color: ${p10} !important; }
+[data-color-theme="${theme.id}"] .bg-ntu-green\\/20 { background-color: ${p20} !important; }
+[data-color-theme="${theme.id}"] .bg-ntu-green\\/80 { background-color: ${p80} !important; }
+[data-color-theme="${theme.id}"] .text-ntu-green { color: ${theme.primary} !important; }
+[data-color-theme="${theme.id}"] .border-ntu-green,
+[data-color-theme="${theme.id}"] .border-ntu-green\\/20 { border-color: ${theme.primary} !important; }
+[data-color-theme="${theme.id}"] .from-ntu-green,
+[data-color-theme="${theme.id}"] .from-ntu-green\\/20,
+[data-color-theme="${theme.id}"] .from-ntu-green\\/80 { --tw-gradient-from: ${theme.primary} !important; --tw-gradient-to: ${theme.footerEnd} !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+[data-color-theme="${theme.id}"] .to-green-700,
+[data-color-theme="${theme.id}"] .to-green-600,
+[data-color-theme="${theme.id}"] .to-green-900 { --tw-gradient-to: ${theme.footerEnd} !important; }
+[data-color-theme="${theme.id}"] .hover\\:text-ntu-green:hover { color: ${theme.primary} !important; }
+[data-color-theme="${theme.id}"] .hover\\:border-ntu-green:hover { border-color: ${theme.primary} !important; }
+`.trim();
+}
