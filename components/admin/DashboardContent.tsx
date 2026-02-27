@@ -127,13 +127,7 @@ export default function DashboardContent({ user, initialEvents }: DashboardConte
             <h1 className="text-4xl font-bold text-ntu-green mb-2">Admin Dashboard</h1>
             <p className="text-lg text-gray-600">Welcome, {user.email}</p>
           </div>
-          <div className="flex gap-4 items-center">
-            <Link
-              href="/admin/feedback"
-              className="text-ntu-green font-medium hover:underline"
-            >
-              Site feedback
-            </Link>
+          <div className="flex gap-4">
             <button
               onClick={() => setShowCreateModal(true)}
               className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"

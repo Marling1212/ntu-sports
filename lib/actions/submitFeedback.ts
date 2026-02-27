@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { Resend } from "resend";
 
 export type FeedbackCategory = "bug" | "idea" | "general" | "design";
 
@@ -47,6 +48,25 @@ export async function submitFeedback(formData: {
       });
     } catch (e) {
       console.error("Feedback webhook error:", e);
+    }
+  }
+
+  const notifyEmail = process.env.FEEDBACK_NOTIFY_EMAIL;
+  const resendKey = process.env.RESEND_API_KEY;
+  if (notifyEmail && resendKey) {
+    try {
+      const resend = new Resend(resendKey);
+      const category = formData.category || "general";
+      const submitterEmail = (formData.email || "").trim() || "(none)";
+      const pageUrl = (formData.page_url || "").trim() || "(none)";
+      await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || "NTU Sports Feedback <onboarding@resend.dev>",
+        to: [notifyEmail],
+        subject: `[Site feedback] ${category}: ${message.slice(0, 60)}${message.length > 60 ? "…" : ""}`,
+        text: `Category: ${category}\nFrom (if provided): ${submitterEmail}\nPage: ${pageUrl}\n\nMessage:\n${message}`,
+      });
+    } catch (e) {
+      console.error("Feedback email error:", e);
     }
   }
 
