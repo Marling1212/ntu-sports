@@ -55,6 +55,13 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
     .order("day_number", { ascending: true })
     .order("order_number", { ascending: true });
 
+  // Get sponsors for this event
+  const { data: sponsors } = await supabase
+    .from("sponsors")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("tier", { ascending: true });
+
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
@@ -81,6 +88,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
           }}
           initialRules={rules || []}
           initialScheduleItems={scheduleItems || []}
+          initialSponsors={sponsors || []}
           scheduleNotes={event?.schedule_notes || ""}
           scheduleUpdatedAt={event?.schedule_updated_at || ""}
           contactInfo={event?.contact_info || ""}

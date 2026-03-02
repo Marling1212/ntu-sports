@@ -46,12 +46,24 @@ interface Game {
   is_system: boolean;
 }
 
+export type SponsorTier = 'Gold' | 'Silver' | 'Bronze';
+
+interface SponsorRow {
+  id: string;
+  event_id: string;
+  name: string;
+  logo_url?: string | null;
+  website_url?: string | null;
+  tier: SponsorTier;
+}
+
 interface SettingsContentProps {
   eventId: string;
   eventName: string;
   initialEventData: EventData;
   initialRules: TournamentRule[];
   initialScheduleItems: ScheduleItem[];
+  initialSponsors?: SponsorRow[];
   scheduleNotes: string;
   scheduleUpdatedAt: string;
   contactInfo: string;
@@ -67,6 +79,7 @@ export default function SettingsContent({
   initialEventData,
   initialRules, 
   initialScheduleItems,
+  initialSponsors = [],
   scheduleNotes: initialScheduleNotes,
   scheduleUpdatedAt: initialScheduleUpdatedAt,
   contactInfo: initialContactInfo,
@@ -77,6 +90,7 @@ export default function SettingsContent({
 }: SettingsContentProps) {
   const [rules, setRules] = useState<TournamentRule[]>(initialRules);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(initialScheduleItems);
+  const [sponsors, setSponsors] = useState<SponsorRow[]>(initialSponsors);
   const [scheduleNotes, setScheduleNotes] = useState<string>(initialScheduleNotes);
   const [scheduleUpdatedAt, setScheduleUpdatedAt] = useState<string>(initialScheduleUpdatedAt);
   const [contactInfo, setContactInfo] = useState<string>(initialContactInfo);
@@ -85,6 +99,11 @@ export default function SettingsContent({
   
   // Event metadata state
   const [eventData, setEventData] = useState<EventData>(initialEventData);
+  
+  // Sponsors modal state
+  const [showSponsorModal, setShowSponsorModal] = useState(false);
+  const [editingSponsorId, setEditingSponsorId] = useState<string | null>(null);
+  const [sponsorForm, setSponsorForm] = useState({ name: "", logoUrl: "", websiteUrl: "", tier: "Bronze" as SponsorTier });
   
   // Games management state
   const [games, setGames] = useState<Game[]>([]);
@@ -188,6 +207,90 @@ export default function SettingsContent({
       }
 
       toast.success("賽事規則已保存！");
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`);
+    }
+  };
+
+  // Event Sponsors management
+  const openAddSponsor = () => {
+    setEditingSponsorId(null);
+    setSponsorForm({ name: "", logoUrl: "", websiteUrl: "", tier: "Bronze" });
+    setShowSponsorModal(true);
+  };
+
+  const openEditSponsor = (sponsor: SponsorRow) => {
+    setEditingSponsorId(sponsor.id);
+    setSponsorForm({
+      name: sponsor.name,
+      logoUrl: sponsor.logo_url || "",
+      websiteUrl: sponsor.website_url || "",
+      tier: sponsor.tier,
+    });
+    setShowSponsorModal(true);
+  };
+
+  const closeSponsorModal = () => {
+    setShowSponsorModal(false);
+    setEditingSponsorId(null);
+    setSponsorForm({ name: "", logoUrl: "", websiteUrl: "", tier: "Bronze" });
+  };
+
+  const submitSponsorForm = () => {
+    const name = sponsorForm.name.trim();
+    if (!name) {
+      toast.error("請填寫贊助商名稱");
+      return;
+    }
+    const tier = sponsorForm.tier as SponsorTier;
+    if (editingSponsorId) {
+      setSponsors(sponsors.map((s) =>
+        s.id === editingSponsorId
+          ? { ...s, name, logo_url: sponsorForm.logoUrl || null, website_url: sponsorForm.websiteUrl || null, tier }
+          : s
+      ));
+      toast.success("贊助商已更新");
+    } else {
+      setSponsors([
+        ...sponsors,
+        {
+          id: `temp-${Date.now()}`,
+          event_id: eventId,
+          name,
+          logo_url: sponsorForm.logoUrl || null,
+          website_url: sponsorForm.websiteUrl || null,
+          tier,
+        },
+      ]);
+      toast.success("贊助商已加入列表");
+    }
+    closeSponsorModal();
+  };
+
+  const deleteSponsor = (id: string) => {
+    setSponsors(sponsors.filter((s) => s.id !== id));
+    toast.success("已從列表中移除");
+  };
+
+  const saveSponsors = async () => {
+    try {
+      await supabase.from("sponsors").delete().eq("event_id", eventId);
+
+      const toInsert = sponsors.map((s) => ({
+        event_id: eventId,
+        name: s.name,
+        logo_url: s.logo_url || null,
+        website_url: s.website_url || null,
+        tier: s.tier,
+      }));
+
+      if (toInsert.length > 0) {
+        const { error } = await supabase.from("sponsors").insert(toInsert);
+        if (error) throw error;
+      }
+
+      toast.success("Event sponsors saved!");
       setTimeout(() => window.location.reload(), 1000);
     } catch (error: any) {
       toast.error(`Error: ${error.message}`);
@@ -731,6 +834,150 @@ export default function SettingsContent({
             </button>
           </div>
         </div>
+
+      {/* Event Sponsors */}
+      <div id="settings-sponsors" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-ntu-green">Event Sponsors</h2>
+          <button
+            onClick={openAddSponsor}
+            className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            ➕ Add New Sponsor
+          </button>
+        </div>
+
+        <div className="space-y-4 mb-6">
+          {sponsors.length === 0 ? (
+            <p className="text-gray-500">No sponsors yet. Click &quot;Add New Sponsor&quot; to add one.</p>
+          ) : (
+            sponsors.map((sponsor) => (
+              <div
+                key={sponsor.id}
+                className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50"
+              >
+                {sponsor.logo_url ? (
+                  <img
+                    src={sponsor.logo_url}
+                    alt={sponsor.name}
+                    className="w-12 h-12 object-contain rounded"
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-sm">
+                    No logo
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900">{sponsor.name}</p>
+                  <p className="text-sm text-gray-500">
+                    Tier: {sponsor.tier}
+                    {sponsor.website_url && (
+                      <> · <a href={sponsor.website_url} target="_blank" rel="noopener noreferrer" className="text-ntu-green hover:underline">Website</a></>
+                    )}
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => openEditSponsor(sponsor)}
+                    className="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteSponsor(sponsor.id)}
+                    className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={saveSponsors}
+            className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+          >
+            💾 Save Sponsors
+          </button>
+        </div>
+      </div>
+
+      {/* Sponsor modal */}
+      {showSponsorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full my-8 max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0">
+              <h3 className="text-xl font-semibold text-ntu-green">
+                {editingSponsorId ? "Edit Sponsor" : "Add New Sponsor"}
+              </h3>
+              <button onClick={closeSponsorModal} className="text-gray-500 hover:text-gray-700 text-2xl">
+                ×
+              </button>
+            </div>
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                <input
+                  type="text"
+                  value={sponsorForm.name}
+                  onChange={(e) => setSponsorForm({ ...sponsorForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                  placeholder="Sponsor name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Logo Link</label>
+                <input
+                  type="url"
+                  value={sponsorForm.logoUrl}
+                  onChange={(e) => setSponsorForm({ ...sponsorForm, logoUrl: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Website Link</label>
+                <input
+                  type="url"
+                  value={sponsorForm.websiteUrl}
+                  onChange={(e) => setSponsorForm({ ...sponsorForm, websiteUrl: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tier</label>
+                <select
+                  value={sponsorForm.tier}
+                  onChange={(e) => setSponsorForm({ ...sponsorForm, tier: e.target.value as SponsorTier })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                >
+                  <option value="Gold">Gold</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Bronze">Bronze</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3 flex-shrink-0">
+              <button
+                onClick={closeSponsorModal}
+                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitSponsorForm}
+                className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90"
+              >
+                {editingSponsorId ? "Update" : "Add"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 比賽行程 */}
       <div id="settings-schedule" className="scroll-mt-24 space-y-6">

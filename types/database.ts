@@ -200,3 +200,16 @@ export interface BracketEditHistory {
   created_at: string;
 }
 
+export type SponsorTier = 'Gold' | 'Silver' | 'Bronze';
+
+export interface Sponsor {
+  id: string;
+  event_id: string;
+  name: string;
+  logo_url?: string | null;
+  website_url?: string | null;
+  tier: SponsorTier;
+  created_at: string;
+  updated_at: string;
+}
+
