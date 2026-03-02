@@ -85,12 +85,12 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Sports: 2-col grid on mobile, smaller cards so more fit on first screen */}
+      {/* Sports: labels subtle on mobile so cards are the focus */}
       <div className="mb-8 sm:mb-12 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-        <h2 className="text-lg sm:text-3xl font-semibold text-ntu-green mb-1 sm:mb-4 text-center">
+        <h2 className="text-sm sm:text-3xl font-semibold text-gray-500 sm:text-ntu-green mb-0.5 sm:mb-4 text-center">
           {t('home.sports')}
         </h2>
-        <p className="text-center text-xs sm:text-base text-gray-600 mb-3 sm:mb-8 px-2 sm:px-4">
+        <p className="text-center text-xs sm:text-base text-gray-400 sm:text-gray-600 mb-2 sm:mb-8 px-2 sm:px-4 hidden sm:block">
           {t('home.sportsDescription')}
         </p>
         {isLoading ? (
@@ -124,11 +124,11 @@ export default function Home() {
                     <h3 className="text-sm sm:text-2xl font-semibold text-ntu-green mb-0.5 sm:mb-3">
                       {sport}
                     </h3>
-                    <p className="text-gray-600 text-[10px] sm:text-sm leading-tight sm:leading-relaxed mb-1 sm:mb-4 hidden sm:block">
+                    <p className="text-gray-500 text-[10px] sm:text-sm leading-tight sm:leading-relaxed mb-1 sm:mb-4 hidden sm:block">
                       {t('home.viewDraw')}
                     </p>
-                    <div className="text-ntu-green font-medium text-[10px] sm:text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-0.5 sm:gap-1">
-                      {t('home.viewDetails')} <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    <div className="text-gray-400 sm:text-ntu-green font-medium text-[10px] sm:text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-0.5 sm:gap-1">
+                      <span className="hidden sm:inline">{t('home.viewDetails')}</span> <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </div>
                   </div>
                 </LoadingLink>
