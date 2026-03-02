@@ -154,9 +154,9 @@ export default async function SportEventPage({
       </div>
 
       {/* Sponsors */}
-      <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-6">Sponsors</h2>
-        {sponsors.length > 0 ? (
+      {sponsors.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
+          <h2 className="text-2xl font-semibold text-ntu-green mb-6">Sponsors</h2>
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
             {sponsors.map((s) => {
               const content = (
@@ -194,10 +194,8 @@ export default async function SportEventPage({
               );
             })}
           </div>
-        ) : (
-          <p className="text-gray-500 text-center">No sponsors for this event.</p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Today's or Tomorrow's Matches */}
       {matchesToShow.length > 0 && (
