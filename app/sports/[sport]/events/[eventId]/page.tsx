@@ -56,9 +56,17 @@ export default async function SportEventPage({
     : new Date("2025-11-08T08:00:00+08:00");
   const hasStarted = new Date() >= tournamentStartDate;
 
-  // Fetch matches and announcements
+  // Fetch matches, announcements, and sponsors
   const matches = await getSportMatches(event.id);
   const announcements = await getSportAnnouncements(event.id);
+  const { data: sponsorsRaw } = await supabase
+    .from("sponsors")
+    .select("id, name, logo_url, website_url, tier")
+    .eq("event_id", event.id);
+  const tierOrder = { Gold: 0, Silver: 1, Bronze: 2 } as const;
+  const sponsors = (sponsorsRaw || []).sort(
+    (a, b) => (tierOrder[a.tier as keyof typeof tierOrder] ?? 3) - (tierOrder[b.tier as keyof typeof tierOrder] ?? 3)
+  );
 
   // Process matches for display
   const tz = "Asia/Taipei";
@@ -144,6 +152,50 @@ export default async function SportEventPage({
           )}
         </div>
       </div>
+
+      {/* Sponsors */}
+      {sponsors.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
+          <h2 className="text-2xl font-semibold text-ntu-green mb-6">Sponsors</h2>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+            {sponsors.map((s) => {
+              const content = (
+                <>
+                  {s.logo_url ? (
+                    <img
+                      src={s.logo_url}
+                      alt={s.name}
+                      className="max-h-16 w-auto object-contain"
+                    />
+                  ) : (
+                    <span className="text-lg font-semibold text-gray-600">{s.name}</span>
+                  )}
+                  <span className={`text-xs font-medium ${
+                    s.tier === "Gold" ? "text-amber-600" : s.tier === "Silver" ? "text-gray-500" : "text-amber-800"
+                  }`}>
+                    {s.tier} Sponsor
+                  </span>
+                </>
+              );
+              return s.website_url ? (
+                <a
+                  key={s.id}
+                  href={s.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 group hover:opacity-80 transition-opacity"
+                >
+                  {content}
+                </a>
+              ) : (
+                <div key={s.id} className="flex flex-col items-center gap-2">
+                  {content}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Today's or Tomorrow's Matches */}
       {matchesToShow.length > 0 && (

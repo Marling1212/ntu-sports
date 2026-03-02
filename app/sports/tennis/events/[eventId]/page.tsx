@@ -37,6 +37,14 @@ export default async function TennisEventPage({
 
   // Fetch data for the event
   const matches = await getSportMatches(event.id);
+  const { data: sponsorsRaw } = await supabase
+    .from("sponsors")
+    .select("id, name, logo_url, website_url, tier")
+    .eq("event_id", event.id);
+  const tierOrder = { Gold: 0, Silver: 1, Bronze: 2 } as const;
+  const sponsors = (sponsorsRaw || []).sort(
+    (a, b) => (tierOrder[a.tier as keyof typeof tierOrder] ?? 3) - (tierOrder[b.tier as keyof typeof tierOrder] ?? 3)
+  );
   const tz = "Asia/Taipei";
   const now = new Date();
   const nowTz = new Date(now.toLocaleString("en-US", { timeZone: tz }));
@@ -93,6 +101,7 @@ export default async function TennisEventPage({
         hasUpcomingToday={hasUpcomingToday}
         latestAnnouncement={latest}
         eventId={event.id}
+        sponsors={sponsors}
       />
 
       {/* Navigation Buttons */}
