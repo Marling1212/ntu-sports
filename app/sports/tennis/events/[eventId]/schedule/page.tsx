@@ -5,6 +5,7 @@ import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import { getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
+import EventSponsorBanner from "@/components/EventSponsorBanner";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,6 +29,11 @@ export default async function TennisEventSchedulePage({
   if (error || !event) {
     notFound();
   }
+
+  const { data: sponsors } = await supabase
+    .from("sponsors")
+    .select("id, name, logo_url, website_url")
+    .eq("event_id", event.id);
 
   const isSeasonPlay = event.tournament_type === "season_play";
 
@@ -110,6 +116,7 @@ export default async function TennisEventSchedulePage({
             tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
           />
         </div>
+        {sponsors?.length ? <EventSponsorBanner sponsors={sponsors} label="Supported by" /> : null}
       </>
     );
   }
@@ -119,11 +126,16 @@ export default async function TennisEventSchedulePage({
   return (
     <>
       <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
-      <BracketMatchSchedule
-        matches={dbMatches || []}
-        sportSlug="tennis"
-        eventName={event.name}
-      />
+      <div className="container mx-auto px-4 py-12">
+        <BracketMatchSchedule
+          matches={dbMatches || []}
+          sportSlug="tennis"
+          eventName={event.name}
+        />
+        {sponsors && sponsors.length > 0 && (
+          <EventSponsorBanner sponsors={sponsors} label="Supported by" />
+        )}
+      </div>
     </>
   );
 }

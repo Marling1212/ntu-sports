@@ -6,13 +6,14 @@ import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { getMatchTimeDisplay } from "@/lib/utils/formatScheduledTime";
 import Link from "next/link";
 import MarkdownText from "./MarkdownText";
+import EventSponsorBanner from "./EventSponsorBanner";
 
 interface SponsorItem {
   id: string;
   name: string;
   logo_url?: string | null;
   website_url?: string | null;
-  tier: string;
+  tier?: string;
 }
 
 interface SportsPageClientProps {
@@ -80,50 +81,6 @@ export default function SportsPageClient({
                 <span>{singleEvent.description}</span>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Sponsors */}
-      {sponsors.length > 0 && (
-        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-6">Sponsors</h2>
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-            {sponsors.map((s) => {
-              const content = (
-                <>
-                  {s.logo_url ? (
-                    <img
-                      src={s.logo_url}
-                      alt={s.name}
-                      className="max-h-16 w-auto object-contain"
-                    />
-                  ) : (
-                    <span className="text-lg font-semibold text-gray-600">{s.name}</span>
-                  )}
-                  <span className={`text-xs font-medium ${
-                    s.tier === "Gold" ? "text-amber-600" : s.tier === "Silver" ? "text-gray-500" : "text-amber-800"
-                  }`}>
-                    {s.tier} Sponsor
-                  </span>
-                </>
-              );
-              return s.website_url ? (
-                <a
-                  key={s.id}
-                  href={s.website_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 group hover:opacity-80 transition-opacity"
-                >
-                  {content}
-                </a>
-              ) : (
-                <div key={s.id} className="flex flex-col items-center gap-2">
-                  {content}
-                </div>
-              );
-            })}
           </div>
         </div>
       )}
@@ -250,6 +207,14 @@ export default function SportsPageClient({
           </h2>
           <CountdownTimerWrapper targetDate={tournamentStartDate} />
         </div>
+      )}
+
+      {/* Sponsors - bottom of page */}
+      {sponsors.length > 0 && (
+        <EventSponsorBanner
+          sponsors={sponsors.map((s) => ({ id: s.id, name: s.name, logo_url: s.logo_url, website_url: s.website_url }))}
+          label="Supported by"
+        />
       )}
     </>
   );

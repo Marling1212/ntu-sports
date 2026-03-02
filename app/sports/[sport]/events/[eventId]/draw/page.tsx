@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { syncLockedPlayoffSeeds } from "@/lib/actions/syncLockedPlayoffSeeds";
+import EventSponsorBanner from "@/components/EventSponsorBanner";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -40,6 +41,10 @@ export default async function SportEventDrawPage({
   if (event.tournament_type === "season_play") {
     await syncLockedPlayoffSeeds(event.id);
   }
+  const { data: sponsors } = await supabase
+    .from("sponsors")
+    .select("id, name, logo_url, website_url")
+    .eq("event_id", event.id);
   const dbMatches = await getSportMatches(event.id);
   const dbPlayers = await getSportPlayers(event.id);
 
@@ -166,6 +171,9 @@ export default async function SportEventDrawPage({
             players={players}
             sportName={sportName}
           />
+        )}
+        {sponsors && sponsors.length > 0 && (
+          <EventSponsorBanner sponsors={sponsors} label="Supported by" />
         )}
       </div>
     </>

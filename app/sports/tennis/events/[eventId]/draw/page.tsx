@@ -7,6 +7,7 @@ import { getTennisMatches, getTennisPlayers } from "@/lib/utils/getTennisEvent";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "react-hot-toast";
 import { notFound } from "next/navigation";
+import EventSponsorBanner from "@/components/EventSponsorBanner";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -32,6 +33,11 @@ export default async function TennisEventDrawPage({
   if (error || !event) {
     notFound();
   }
+
+  const { data: sponsors } = await supabase
+    .from("sponsors")
+    .select("id, name, logo_url, website_url")
+    .eq("event_id", event.id);
 
   // Fetch from Supabase
   const dbMatches = await getTennisMatches(event.id);
@@ -159,6 +165,9 @@ export default async function TennisEventDrawPage({
           sportName="Tennis"
         />
       )}
+        {sponsors && sponsors.length > 0 && (
+          <EventSponsorBanner sponsors={sponsors} label="Supported by" />
+        )}
       </div>
     </>
   );
