@@ -117,13 +117,13 @@ export default async function SportEventDrawPage({
     <>
       <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
       <Toaster position="top-right" />
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-12">
-        <div className="mb-4 sm:mb-6 md:mb-8 flex flex-row justify-between items-start gap-4">
+      <div className="container mx-auto px-4 py-6 md:py-12">
+        <div className="mb-6 md:mb-8 flex flex-row justify-between items-start gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl md:text-4xl font-bold text-ntu-green mb-1 sm:mb-2 md:mb-4 break-words">
+            <h1 className="text-2xl md:text-4xl font-bold text-ntu-green mb-2 md:mb-4 break-words">
               {event.name || t("draw.pageTitleWithSport").replace("{sport}", sportName)}
             </h1>
-            <p className="text-xs sm:text-base md:text-lg text-gray-500 sm:text-gray-600 hidden sm:block">
+            <p className="text-base md:text-lg text-gray-600">
               {event.tournament_type === "season_play"
                 ? t("draw.pageSubtitleSeason")
                 : t("draw.pageSubtitleBracket")}
