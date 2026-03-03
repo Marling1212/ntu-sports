@@ -1,14 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
 /**
- * Lightweight middleware that does NOT import Supabase (avoids Edge bundle size
- * and Node API issues). Admin auth is enforced by cookie presence here and by
- * getSession/getUser in server components.
+ * Backup: lightweight middleware (no Supabase). Re-enable by renaming back to middleware.ts
  */
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
-
-  // Protect admin routes (except login and signup): require Supabase auth cookie
   if (
     path.startsWith('/admin') &&
     !path.startsWith('/admin/login') &&
@@ -21,7 +17,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
   }
-
   return NextResponse.next()
 }
 
