@@ -126,7 +126,7 @@ export default async function TennisEventSchedulePage({
   return (
     <>
       <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-12">
         <BracketMatchSchedule
           matches={dbMatches || []}
           sportSlug="tennis"

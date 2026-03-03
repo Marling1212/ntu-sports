@@ -42,21 +42,75 @@ export default function BracketMatchScheduleClient({
     (matches.find((m) => m.player1?.id === id)?.player1?.name ||
       matches.find((m) => m.player2?.id === id)?.player2?.name) ?? "?";
 
+  const timeStr = (m: MatchRow) => formatScheduledTimeAsStored(m.scheduled_time);
+
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
       {filterByPlayerId && (
-        <div className="px-4 py-2 bg-amber-50 border-b border-amber-200">
+        <div className="px-3 sm:px-4 py-2 bg-amber-50 border-b border-amber-200">
           <button
             type="button"
             onClick={() => setFilterByPlayerId(null)}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200"
+            className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200"
             title={t("seasonPlay.filterShowAll")}
           >
             ✕ {t("seasonPlay.filterShowingOnly").replace("{name}", getName(filterByPlayerId))}
           </button>
         </div>
       )}
-      <div className="overflow-x-auto">
+      {/* Mobile: card list */}
+      <div className="md:hidden divide-y divide-gray-100">
+        {displayMatches.length === 0 ? (
+          <p className="px-3 py-6 text-center text-sm text-gray-500">{t("seasonPlay.noMatchesForGroup")}</p>
+        ) : (
+          displayMatches.map((m, idx) => {
+            const court = getCourtDisplay(m);
+            const p1 = m.player1?.name ?? "TBD";
+            const p2 = m.player2?.name ?? "TBD";
+            const score = m.score1 != null && m.score2 != null ? `${m.score1}-${m.score2}` : null;
+            return (
+              <Link
+                key={m.id}
+                href={`/sports/${sportSlug}/matches/${m.id}`}
+                className="block p-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                  <span className="text-xs text-gray-500">{timeStr(m)}</span>
+                  {m.status === "completed" && (
+                    <span className="inline-block px-1.5 py-0.5 text-xs font-semibold text-green-800 bg-green-100 rounded">
+                      {t("sports.completed")}
+                    </span>
+                  )}
+                  {m.status === "live" && (
+                    <span className="inline-block px-1.5 py-0.5 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">
+                      {t("sports.live")}
+                    </span>
+                  )}
+                  {m.status === "upcoming" && (
+                    <span className="inline-block px-1.5 py-0.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded">
+                      {t("sports.upcoming")}
+                    </span>
+                  )}
+                  {m.status === "delayed" && (
+                    <span className="inline-block px-1.5 py-0.5 text-xs font-semibold text-amber-700 bg-amber-100 rounded">
+                      {t("sports.delayed")}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-gray-400 mb-1">{court}</div>
+                <div className="flex items-center justify-between gap-2 text-sm font-semibold text-gray-800">
+                  <span className="min-w-0 truncate">{p1}</span>
+                  <span className="shrink-0 text-ntu-green font-bold">
+                    {score ?? "VS"}
+                  </span>
+                  <span className="min-w-0 truncate text-right">{p2}</span>
+                </div>
+              </Link>
+            );
+          })
+        )}
+      </div>
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

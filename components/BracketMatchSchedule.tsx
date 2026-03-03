@@ -40,12 +40,12 @@ export default async function BracketMatchSchedule({
   });
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-ntu-green mb-4">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-12">
+      <div className="mb-4 sm:mb-8">
+        <h1 className="text-2xl sm:text-4xl font-bold text-ntu-green mb-1 sm:mb-4">
           {eventName || t("schedule.pageTitleWithSport").replace("{sport}", sportSlug)}
         </h1>
-        <p className="text-lg text-gray-600">{t("schedule.matchSchedulesDesc")}</p>
+        <p className="text-xs sm:text-lg text-gray-500 sm:text-gray-600 hidden sm:block">{t("schedule.matchSchedulesDesc")}</p>
       </div>
 
       <BracketMatchScheduleClient matches={sorted} sportSlug={sportSlug} />

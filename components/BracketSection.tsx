@@ -158,13 +158,13 @@ export default function BracketSection({
       />
       {/* Section Tabs */}
       {sections.length > 1 && (
-        <div className="mb-6 bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        <div className="mb-4 sm:mb-6 bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-100 overflow-hidden">
           <div className="flex overflow-x-auto">
             {sections.map((section, idx) => (
               <button
                 key={idx + 1}
                 onClick={() => setCurrentSection(idx + 1)}
-                className={`flex-1 min-w-[140px] px-6 py-4 font-semibold transition-colors border-b-4 ${
+                className={`flex-1 min-w-[7rem] sm:min-w-[8.75rem] px-3 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-semibold transition-colors border-b-4 ${
                   currentSection === idx + 1
                     ? "bg-ntu-green text-white border-ntu-green"
                     : "bg-white text-gray-700 hover:bg-gray-50 border-transparent"
@@ -179,12 +179,12 @@ export default function BracketSection({
 
       {/* Section Info Banner */}
       {sections.length > 1 && (
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-lg">
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-3 sm:p-4 mb-4 sm:mb-6 rounded-lg">
           <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-blue-800">
+            <p className="text-xs sm:text-sm text-blue-800">
               {t("bracket.viewingSection")}<strong>{currentSectionConfig.name}</strong>
               {currentSection === sections.length
                 ? " - " + t("bracket.sectionIncludesFinals").replace("{thirdPlace}", has3rdPlaceMatch ? t("bracket.andThirdPlace") : "")

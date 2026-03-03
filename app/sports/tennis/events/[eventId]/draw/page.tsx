@@ -115,8 +115,8 @@ export default async function TennisEventDrawPage({
     <>
       <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
       <Toaster position="top-right" />
-      <div className="container mx-auto px-4 py-6 md:py-12">
-        <div className="mb-6 md:mb-8 flex flex-row justify-between items-start gap-4">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-12">
+        <div className="mb-4 sm:mb-6 md:mb-8 flex flex-row justify-between items-start gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl md:text-4xl font-bold text-ntu-green mb-2 md:mb-4 break-words">
               {event.name || "NTU Tennis – 114 Freshman Cup Draw"}
