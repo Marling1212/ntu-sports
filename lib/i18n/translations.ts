@@ -231,10 +231,6 @@ export const translations = {
       noData: '尚無數據',
       goalsUnit: '球',
       cardsUnit: '張',
-      gamesTabsExplain: '例行賽＝循環賽程；戰績＝分組排名；季後賽＝淘汰賽。',
-      regularMatchesIntro: '以下為循環賽對戰，可依日期或分組篩選。點擊隊伍名稱可只顯示該隊比賽。',
-      matchListHeading: '賽程列表',
-      playoffsScheduleIntro: '例行賽結束後，各組晉級隊伍進行單淘汰季後賽。點擊「VS」或比分可看詳情。',
     },
     bracket: {
       final: '決賽',
@@ -486,10 +482,6 @@ export const translations = {
       noData: 'No data yet',
       goalsUnit: 'goals',
       cardsUnit: 'cards',
-      gamesTabsExplain: 'Regular = round-robin games; Standings = group table; Playoffs = knockout matches.',
-      regularMatchesIntro: 'Round-robin games below. Use the filters to show a date or group. Tap a team name to show only that team\'s games.',
-      matchListHeading: 'Match list',
-      playoffsScheduleIntro: 'After the regular season, top teams from each group advance to single-elimination playoffs. Tap VS or score for match details.',
     },
     bracket: {
       sectionN: 'Section {n} ({start}-{end})',

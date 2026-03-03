@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n/context";
 interface MatchRow {
   id: string;
   round?: number | string | null;
+  matchNumber?: number;
   scheduled_time?: string | null;
   court?: string | null;
   slot?: { code?: string | null } | null;
@@ -44,6 +45,21 @@ export default function BracketMatchScheduleClient({
 
   const timeStr = (m: MatchRow) => formatScheduledTimeAsStored(m.scheduled_time);
 
+  const maxRound = useMemo(() => {
+    const rounds = displayMatches.map((m) => Number(m.round) || 0);
+    return Math.max(...rounds, 1);
+  }, [displayMatches]);
+
+  const getRoundLabel = (m: MatchRow): string => {
+    const r = Number(m.round) || 1;
+    if (r === maxRound && m.matchNumber === 2) return t("bracket.thirdPlace");
+    if (r === maxRound) return t("bracket.final");
+    if (r === maxRound - 1) return t("bracket.semifinals");
+    if (r === maxRound - 2) return t("bracket.quarterfinals");
+    const n = Math.pow(2, maxRound - r + 1);
+    return t("bracket.roundOf").replace("{n}", String(n));
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
       {filterByPlayerId && (
@@ -58,12 +74,12 @@ export default function BracketMatchScheduleClient({
           </button>
         </div>
       )}
-      {/* Mobile: card list */}
-      <div className="md:hidden divide-y divide-gray-100">
+      {/* Mobile: card list with time, court, round labeled */}
+      <div className="md:hidden divide-y divide-gray-200">
         {displayMatches.length === 0 ? (
           <p className="px-3 py-6 text-center text-sm text-gray-500">{t("seasonPlay.noMatchesForGroup")}</p>
         ) : (
-          displayMatches.map((m, idx) => {
+          displayMatches.map((m) => {
             const court = getCourtDisplay(m);
             const p1 = m.player1?.name ?? "TBD";
             const p2 = m.player2?.name ?? "TBD";
@@ -72,10 +88,10 @@ export default function BracketMatchScheduleClient({
               <Link
                 key={m.id}
                 href={`/sports/${sportSlug}/matches/${m.id}`}
-                className="block p-3 hover:bg-gray-50 transition-colors"
+                className="block p-4 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                  <span className="text-xs text-gray-500">{timeStr(m)}</span>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-medium text-ntu-green">{getRoundLabel(m)}</span>
                   {m.status === "completed" && (
                     <span className="inline-block px-1.5 py-0.5 text-xs font-semibold text-green-800 bg-green-100 rounded">
                       {t("sports.completed")}
@@ -97,7 +113,10 @@ export default function BracketMatchScheduleClient({
                     </span>
                   )}
                 </div>
-                <div className="text-[11px] text-gray-400 mb-1">{court}</div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-700 mb-3">
+                  <span><span className="text-gray-500">{t("sports.time")}:</span> {timeStr(m)}</span>
+                  <span><span className="text-gray-500">{t("sports.court")}:</span> {court}</span>
+                </div>
                 <div className="flex items-center justify-between gap-2 text-sm font-semibold text-gray-800">
                   <span className="min-w-0 truncate">{p1}</span>
                   <span className="shrink-0 text-ntu-green font-bold">

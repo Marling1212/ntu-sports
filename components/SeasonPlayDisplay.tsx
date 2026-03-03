@@ -1037,13 +1037,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         </div>
       </div>
 
-      {/* Short explainer below tabs: what each tab is (uses space, adds clarity) */}
-      {(tabs.regular && tabs.standings) || (tabs.regular && tabs.playoffs) || (tabs.standings && tabs.playoffs) ? (
-        <p className="text-xs sm:text-sm text-gray-500 mb-4 px-0 sm:px-1">
-          {t("seasonPlay.gamesTabsExplain")}
-        </p>
-      ) : null}
-
       {/* Regular Season View */}
       {view === "regular" && hasRegularSeason && (
         <div>
@@ -1096,15 +1089,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </button>
                 )}
               </div>
-              <p className={`${theme.infoBoxText} text-gray-600 mt-2`}>
-                {t("seasonPlay.regularMatchesIntro")}
-              </p>
             </div>
           </div>
 
-          <div className="mb-2">
-            <h3 className="text-sm font-semibold text-gray-700">{t("seasonPlay.matchListHeading")}</h3>
-          </div>
           <div className={theme.tableWrapper}>
             {/* Mobile card view */}
             <div className="md:hidden space-y-3">
@@ -1828,9 +1815,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {/* Playoffs View - Schedule list (Games page) */}
       {view === "playoffs" && hasPlayoffs && playoffsDisplayMode === "schedule" && (
         <div>
-          <p className="text-sm text-gray-600 mb-4">
-            {t("seasonPlay.playoffsScheduleIntro")}
-          </p>
           {filterByPlayerId && (
             <div className="mb-4">
               <button
