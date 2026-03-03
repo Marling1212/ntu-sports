@@ -1007,8 +1007,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   return (
     <div className={theme.root}>
-      {/* View Tabs */}
-      <div className={theme.tabsContainer}>
+      {/* View Tabs: sticky on mobile so Games/Standings/Playoffs stay visible when scrolling */}
+      <div className={`${theme.tabsContainer} sticky top-0 z-10 md:static`}>
         <div className="flex w-full overflow-x-auto">
           {hasRegularSeason && tabs.regular && (
             <button

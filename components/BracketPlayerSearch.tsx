@@ -85,18 +85,18 @@ export default function BracketPlayerSearch({
   );
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-3">
-      <div className="relative flex-1 min-w-[200px] max-w-xs">
+    <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
+      <div className="relative flex-1 min-w-0 w-full sm:min-w-[200px] sm:max-w-xs">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("bracket.searchPlaceholder")}
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 pl-10 text-sm focus:border-ntu-green focus:outline-none focus:ring-1 focus:ring-ntu-green"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2.5 sm:px-4 sm:py-2 pl-9 sm:pl-10 text-sm min-h-[44px] sm:min-h-0 focus:border-ntu-green focus:outline-none focus:ring-1 focus:ring-ntu-green"
           aria-label={t("bracket.searchPlaceholder")}
         />
         <svg
-          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+          className="absolute left-2.5 sm:left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -136,7 +136,7 @@ export default function BracketPlayerSearch({
                     <button
                       key={m.id}
                       onClick={() => handleJumpTo(m.id)}
-                      className="rounded-md bg-ntu-green/10 px-2 py-1 text-xs font-medium text-ntu-green hover:bg-ntu-green/20"
+                      className="rounded-md bg-ntu-green/10 px-2.5 py-1.5 sm:px-2 sm:py-1 text-xs font-medium text-ntu-green hover:bg-ntu-green/20 min-h-[36px] sm:min-h-0 touch-manipulation"
                     >
                       {label}
                     </button>
