@@ -7,6 +7,7 @@ import { I18nProvider } from "@/lib/i18n/context";
 import { LoadingProvider } from "@/components/LoadingProvider";
 import PageLoader from "@/components/PageLoader";
 import { Toaster } from "react-hot-toast";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "NTU Sports - 台大運動賽事管理平台",
@@ -19,15 +20,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const htmlLang = locale === "zh" ? "zh-TW" : "en";
   return (
-    <html lang="zh-TW" suppressHydrationWarning>
+    <html lang={htmlLang} suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <I18nProvider>
+        <I18nProvider initialLocale={locale}>
           <LoadingProvider>
             <Navbar />
             <main className="min-h-screen bg-ntu-gray">

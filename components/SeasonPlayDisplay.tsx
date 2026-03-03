@@ -1013,7 +1013,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           {hasRegularSeason && tabs.regular && (
             <button
               onClick={() => setView("regular")}
-              className={view === "regular" ? theme.tabActive : theme.tabInactive}
+              className={`flex-1 min-w-[7rem] sm:min-w-[8.75rem] ${view === "regular" ? theme.tabActive : theme.tabInactive}`}
             >
               🏀 {t("seasonPlay.tabRegular")}
             </button>
@@ -1021,7 +1021,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           {hasRegularSeason && tabs.standings && (
             <button
               onClick={() => setView("standings")}
-              className={view === "standings" ? theme.tabActive : theme.tabInactive}
+              className={`flex-1 min-w-[7rem] sm:min-w-[8.75rem] ${view === "standings" ? theme.tabActive : theme.tabInactive}`}
             >
               📊 {t("seasonPlay.tabStandings")}
             </button>
@@ -1029,7 +1029,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           {hasPlayoffs && tabs.playoffs && (
             <button
               onClick={() => setView("playoffs")}
-              className={view === "playoffs" ? theme.tabActive : theme.tabInactive}
+              className={`flex-1 min-w-[7rem] sm:min-w-[8.75rem] ${view === "playoffs" ? theme.tabActive : theme.tabInactive}`}
             >
               🏆 {t("seasonPlay.tabPlayoffs")}
             </button>
@@ -1042,8 +1042,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         <div>
           <div className={theme.infoBox}>
             <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <p className={theme.infoBoxText}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                <p className={`${theme.infoBoxText} text-xs sm:text-sm whitespace-nowrap truncate max-w-full`}>
                   <strong>{t("seasonPlay.regularProgress")}</strong> {t("seasonPlay.matchesCompleted").replace("{completed}", String(completedRegularMatches)).replace("{total}", String(totalRegularMatches))}
                 </p>
                 {hasGroups && (
@@ -1062,14 +1062,14 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-gray-700">{t("seasonPlay.filterByDate")}</span>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="text-xs sm:text-sm font-semibold text-gray-700 shrink-0">{t("seasonPlay.filterByDate")}</span>
                 {(["all", "today", "tomorrow", "week"] as const).map((key) => (
                   <button
                     key={key}
                     type="button"
                     onClick={() => setDateFilter(key)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                       dateFilter === key
                         ? "bg-ntu-green text-white"
                         : "bg-white border border-gray-300 text-gray-700 hover:border-ntu-green hover:text-ntu-green"
@@ -1275,28 +1275,21 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {/* Standings View */}
       {view === "standings" && hasRegularSeason && (
         <div>
-          <div className={theme.infoBox}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <p className={theme.infoBoxText}>
-                <strong>{t("seasonPlay.standingsBased")}</strong>
-              </p>
-              {hasGroups && (
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-semibold text-blue-800">{t("seasonPlay.viewGroup")}</label>
-                  <select
-                    value={selectedGroup}
-                    onChange={(e) => setSelectedGroup(e.target.value === "all" ? "all" : parseInt(e.target.value))}
-                    className="px-3 py-1.5 border border-blue-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  >
-                    <option value="all">{t("seasonPlay.allGroups")}</option>
-                    {allGroups.map(groupNum => (
-                      <option key={groupNum} value={groupNum}>{t("seasonPlay.groupN").replace("{n}", String(groupNum))}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+          {hasGroups && (
+            <div className="flex items-center gap-2 mb-4">
+              <label className="text-sm font-semibold text-blue-800">{t("seasonPlay.viewGroup")}</label>
+              <select
+                value={selectedGroup}
+                onChange={(e) => setSelectedGroup(e.target.value === "all" ? "all" : parseInt(e.target.value))}
+                className="px-3 py-1.5 border border-blue-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                <option value="all">{t("seasonPlay.allGroups")}</option>
+                {allGroups.map(groupNum => (
+                  <option key={groupNum} value={groupNum}>{t("seasonPlay.groupN").replace("{n}", String(groupNum))}</option>
+                ))}
+              </select>
             </div>
-          </div>
+          )}
 
           {hasGroups && typeof standings === 'object' && !Array.isArray(standings) ? (
             // Display standings per group
@@ -1971,12 +1964,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {/* Playoffs View - Bracket (Draw page) */}
       {view === "playoffs" && hasPlayoffs && playoffsDisplayMode !== "schedule" && (
         <div>
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>{t("seasonPlay.playoffBracketHint")}</strong>
-            </p>
-          </div>
-
           <BracketPlayerSearch
             matches={resolvedPlayoffMatches}
             players={players}
