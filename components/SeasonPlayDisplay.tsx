@@ -1040,19 +1040,19 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {/* Regular Season View */}
       {view === "regular" && hasRegularSeason && (
         <div>
-          <div className={theme.infoBox}>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <p className={theme.infoBoxText}>
+          <div className={`${theme.infoBox} p-3 sm:p-5`}>
+            <div className="flex flex-col gap-2 sm:gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                <p className={`${theme.infoBoxText} text-xs sm:text-sm`}>
                   <strong>{t("seasonPlay.regularProgress")}</strong> {t("seasonPlay.matchesCompleted").replace("{completed}", String(completedRegularMatches)).replace("{total}", String(totalRegularMatches))}
                 </p>
                 {hasGroups && (
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-semibold text-blue-800">{t("seasonPlay.filterByGroup")}</label>
+                    <label className="text-xs sm:text-sm font-semibold text-blue-800 hidden sm:inline">{t("seasonPlay.filterByGroup")}</label>
                     <select
                       value={selectedGroup}
                       onChange={(e) => setSelectedGroup(e.target.value === "all" ? "all" : parseInt(e.target.value))}
-                      className="px-3 py-1.5 border border-blue-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="px-2 py-1 sm:px-3 sm:py-1.5 border border-blue-300 rounded-lg bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                     >
                       <option value="all">{t("seasonPlay.allGroups")}</option>
                       {allGroups.map(groupNum => (
@@ -1062,7 +1062,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 hidden sm:flex">
                 <span className="text-sm font-semibold text-gray-700">{t("seasonPlay.filterByDate")}</span>
                 {(["all", "today", "tomorrow", "week"] as const).map((key) => (
                   <button
@@ -1089,14 +1089,34 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </button>
                 )}
               </div>
+              {/* Mobile: date pills only + clear filter */}
+              <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 sm:hidden">
+                {(["all", "today"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setDateFilter(key)}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                      dateFilter === key ? "bg-ntu-green text-white" : "bg-white border border-gray-300 text-gray-600"
+                    }`}
+                  >
+                    {key === "all" ? t("seasonPlay.filterAll") : t("seasonPlay.filterToday")}
+                  </button>
+                ))}
+                {filterByPlayerId && (
+                  <button type="button" onClick={() => setFilterByPlayerId(null)} className="px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
           <div className={theme.tableWrapper}>
             {/* Mobile card view */}
-            <div className="md:hidden space-y-3">
+            <div className="md:hidden space-y-2">
               {displayRegularMatches.length === 0 ? (
-                <p className="px-4 py-8 text-center text-gray-500">{t("seasonPlay.noMatchesForGroup")}</p>
+                <p className="px-3 py-6 text-center text-sm text-gray-500">{t("seasonPlay.noMatchesForGroup")}</p>
               ) : (
                 displayRegularMatches.map((match) => {
                   const matchData = match as any;
@@ -1104,46 +1124,46 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   return (
                     <div
                       key={match.id}
-                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all"
+                      className="block bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:border-ntu-green transition-all"
                     >
-                      {hasGroups && (
-                        <div className="mb-2">
-                          <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">
-                            {t("seasonPlay.groupN").replace("{n}", String(matchData.group_number ?? "-"))}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-sm font-medium text-gray-600">{formatDateTime(matchData.scheduled_time)}</span>
-                        {match.status === "completed" && <span className={theme.badgeCompleted}>{t("sports.completed")}</span>}
-                        {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
-                        {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
-                        {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
+                      <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                        <span className="text-xs text-gray-500">{formatDateTime(matchData.scheduled_time)}</span>
+                        <span className="flex items-center gap-1">
+                          {hasGroups && (
+                            <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded">
+                              {t("seasonPlay.groupN").replace("{n}", String(matchData.group_number ?? "-"))}
+                            </span>
+                          )}
+                          {match.status === "completed" && <span className={theme.badgeCompleted}>{t("sports.completed")}</span>}
+                          {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
+                          {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
+                          {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
+                        </span>
                       </div>
-                      <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(matchData as any)}</div>
-                      <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
+                      <div className="text-[11px] text-gray-400 mb-1">{getCourtDisplay(matchData as any)}</div>
+                      <div className="flex items-center justify-between gap-2 text-sm font-semibold text-gray-800">
                         <button
                           type="button"
                           onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
-                          className={`flex-1 min-w-0 text-left truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
+                          className={`flex-1 min-w-0 text-left truncate py-1.5 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
                           title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                         >
                           {match.player1?.name || t("bracket.tbd")}
                         </button>
-                        <Link href={matchUrl} className="shrink-0 text-ntu-green font-bold px-2 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                        <Link href={matchUrl} className="shrink-0 text-ntu-green font-bold px-1.5 py-1.5 min-h-[40px] min-w-[40px] flex items-center justify-center text-sm">
                           VS
                         </Link>
                         <button
                           type="button"
                           onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
-                          className={`flex-1 min-w-0 text-right truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
+                          className={`flex-1 min-w-0 text-right truncate py-1.5 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
                           title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                         >
                           {match.player2?.name || t("bracket.tbd")}
                         </button>
                       </div>
                       {match.score && (
-                        <Link href={matchUrl} className="mt-2 block text-sm font-semibold text-ntu-green">
+                        <Link href={matchUrl} className="mt-1.5 block text-xs font-semibold text-ntu-green">
                           {(match as any).score}
                         </Link>
                       )}
@@ -1275,18 +1295,18 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       {/* Standings View */}
       {view === "standings" && hasRegularSeason && (
         <div>
-          <div className={theme.infoBox}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <p className={theme.infoBoxText}>
+          <div className={`${theme.infoBox} p-3 sm:p-5`}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <p className={`${theme.infoBoxText} text-xs sm:text-sm`}>
                 <strong>{t("seasonPlay.standingsBased")}</strong>
               </p>
               {hasGroups && (
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-semibold text-blue-800">{t("seasonPlay.viewGroup")}</label>
+                  <label className="text-xs sm:text-sm font-semibold text-blue-800 hidden sm:inline">{t("seasonPlay.viewGroup")}</label>
                   <select
                     value={selectedGroup}
                     onChange={(e) => setSelectedGroup(e.target.value === "all" ? "all" : parseInt(e.target.value))}
-                    className="px-3 py-1.5 border border-blue-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="px-2 py-1 sm:px-3 sm:py-1.5 border border-blue-300 rounded-lg bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
                     <option value="all">{t("seasonPlay.allGroups")}</option>
                     {allGroups.map(groupNum => (
@@ -1306,48 +1326,38 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   const groupStandings = standings[groupNum] || [];
                   return (
                     <div key={groupNum} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                      <div className="bg-blue-600 text-white px-6 py-3">
-                        <h3 className="text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(groupNum))}</h3>
+                      <div className="bg-blue-600 text-white px-3 sm:px-6 py-2 sm:py-3">
+                        <h3 className="text-sm sm:text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(groupNum))}</h3>
                       </div>
-                      {/* Mobile: card per row with tier color */}
+                      {/* Mobile: compact row — Rank, Name, W-D-L, Pts only */}
                       <div className="md:hidden divide-y divide-gray-100">
-                        <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 text-xs text-gray-500 font-medium">
-                          <span className="w-8 text-center shrink-0">{t("seasonPlay.rank")}</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-[10px] text-gray-500 font-medium">
+                          <span className="w-6 text-center shrink-0">#</span>
                           <div className="min-w-0 flex-1">{t("seasonPlay.player")}</div>
-                          <div className="flex gap-x-2 shrink-0">
-                            <span className="w-6 text-center">{t("seasonPlay.wins").charAt(0)}</span>
-                            <span className="w-6 text-center">{t("seasonPlay.draws").charAt(0)}</span>
-                            <span className="w-6 text-center">{t("seasonPlay.losses").charAt(0)}</span>
-                            <span className="w-7 text-center">{t("seasonPlay.points")}</span>
-                            <span className="w-8 text-center">{t("seasonPlay.gd")}</span>
-                            <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
-                          </div>
+                          <span className="w-5 text-center shrink-0">W</span>
+                          <span className="w-5 text-center shrink-0">D</span>
+                          <span className="w-5 text-center shrink-0">L</span>
+                          <span className="w-6 text-center shrink-0">{t("seasonPlay.points")}</span>
                         </div>
                         {groupStandings.map((standing, idx) => {
-                          const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                           const rowClass = getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
                           return (
                             <Link
                               key={standing.player.id}
                               href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
-                              className={`flex items-center gap-3 px-4 py-3 ${rowClass}`}
+                              className={`flex items-center gap-2 px-3 py-2 ${rowClass}`}
                             >
-                              <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                              <span className="w-6 text-center font-bold text-gray-700 text-xs shrink-0">{idx + 1}</span>
                               <div className="min-w-0 flex-1">
-                                <span className="font-semibold text-gray-800 block truncate">
-                                  {idx < qualifiersPerGroup && <span className="text-yellow-500 mr-1">🏆</span>}
+                                <span className="font-semibold text-gray-800 text-sm block truncate">
+                                  {idx < qualifiersPerGroup && <span className="text-yellow-500 mr-0.5">🏆</span>}
                                   {standing.player.name}
                                 </span>
-                                {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
                               </div>
-                              <div className="flex gap-x-2 text-sm shrink-0">
-                                <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
-                                <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
-                                <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
-                                <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
-                                <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
-                                <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
-                              </div>
+                              <span className="w-5 text-center text-green-600 font-semibold text-xs">{standing.wins}</span>
+                              <span className="w-5 text-center text-gray-600 text-xs">{standing.draws || 0}</span>
+                              <span className="w-5 text-center text-red-600 font-semibold text-xs">{standing.losses}</span>
+                              <span className="w-6 text-center font-bold text-ntu-green text-xs">{standing.points}</span>
                             </Link>
                           );
                         })}
@@ -1408,49 +1418,39 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               ) : (
                 // Display selected group standings
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                  <div className="bg-blue-600 text-white px-6 py-3">
-                    <h3 className="text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(selectedGroup))}</h3>
+                  <div className="bg-blue-600 text-white px-3 sm:px-6 py-2 sm:py-3">
+                    <h3 className="text-sm sm:text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(selectedGroup))}</h3>
                   </div>
                   {Array.isArray(standings) && (
                     <div className="md:hidden divide-y divide-gray-100">
-                      <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 text-xs text-gray-500 font-medium">
-                        <span className="w-8 text-center shrink-0">{t("seasonPlay.rank")}</span>
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-[10px] text-gray-500 font-medium">
+                        <span className="w-6 text-center shrink-0">#</span>
                         <div className="min-w-0 flex-1">{t("seasonPlay.player")}</div>
-                        <div className="flex gap-x-2 shrink-0">
-                          <span className="w-6 text-center">{t("seasonPlay.wins").charAt(0)}</span>
-                          <span className="w-6 text-center">{t("seasonPlay.draws").charAt(0)}</span>
-                          <span className="w-6 text-center">{t("seasonPlay.losses").charAt(0)}</span>
-                          <span className="w-7 text-center">{t("seasonPlay.points")}</span>
-                          <span className="w-8 text-center">{t("seasonPlay.gd")}</span>
-                          <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
-                        </div>
+                        <span className="w-5 text-center shrink-0">W</span>
+                        <span className="w-5 text-center shrink-0">D</span>
+                        <span className="w-5 text-center shrink-0">L</span>
+                        <span className="w-6 text-center shrink-0">{t("seasonPlay.points")}</span>
                       </div>
                       {standings.map((standing, idx) => {
-                        const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                         const groupNum = typeof selectedGroup === "number" ? selectedGroup : 1;
                         const rowClass = getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
                         return (
                           <Link
                             key={standing.player.id}
                             href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
-                            className={`flex items-center gap-3 px-4 py-3 ${rowClass}`}
+                            className={`flex items-center gap-2 px-3 py-2 ${rowClass}`}
                           >
-                            <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                            <span className="w-6 text-center font-bold text-gray-700 text-xs shrink-0">{idx + 1}</span>
                             <div className="min-w-0 flex-1">
-                              <span className="font-semibold text-gray-800 block truncate">
-                                {idx < qualifiersPerGroup && <span className="text-yellow-500 mr-1">🏆</span>}
+                              <span className="font-semibold text-gray-800 text-sm block truncate">
+                                {idx < qualifiersPerGroup && <span className="text-yellow-500 mr-0.5">🏆</span>}
                                 {standing.player.name}
                               </span>
-                              {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
                             </div>
-                            <div className="flex gap-x-2 text-sm shrink-0">
-                              <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
-                              <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
-                              <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
-                              <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
-                              <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
-                              <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
-                            </div>
+                            <span className="w-5 text-center text-green-600 font-semibold text-xs">{standing.wins}</span>
+                            <span className="w-5 text-center text-gray-600 text-xs">{standing.draws || 0}</span>
+                            <span className="w-5 text-center text-red-600 font-semibold text-xs">{standing.losses}</span>
+                            <span className="w-6 text-center font-bold text-ntu-green text-xs">{standing.points}</span>
                           </Link>
                         );
                       })}
@@ -1515,44 +1515,34 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
               {Array.isArray(standings) && (
                 <div className="md:hidden divide-y divide-gray-100">
-                  <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 text-xs text-gray-500 font-medium">
-                    <span className="w-8 text-center shrink-0">{t("seasonPlay.rank")}</span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-[10px] text-gray-500 font-medium">
+                    <span className="w-6 text-center shrink-0">#</span>
                     <div className="min-w-0 flex-1">{t("seasonPlay.player")}</div>
-                    <div className="flex gap-x-2 shrink-0">
-                      <span className="w-6 text-center">{t("seasonPlay.wins").charAt(0)}</span>
-                      <span className="w-6 text-center">{t("seasonPlay.draws").charAt(0)}</span>
-                      <span className="w-6 text-center">{t("seasonPlay.losses").charAt(0)}</span>
-                      <span className="w-7 text-center">{t("seasonPlay.points")}</span>
-                      <span className="w-8 text-center">{t("seasonPlay.gd")}</span>
-                      <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
-                    </div>
+                    <span className="w-5 text-center shrink-0">W</span>
+                    <span className="w-5 text-center shrink-0">D</span>
+                    <span className="w-5 text-center shrink-0">L</span>
+                    <span className="w-6 text-center shrink-0">{t("seasonPlay.points")}</span>
                   </div>
                   {standings.map((standing, idx) => {
-                    const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                     const groupNum = standing.group ?? 1;
                     const rowClass = getQualifierRowClass(idx, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
                     return (
                       <Link
                         key={standing.player.id}
                         href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
-                        className={`flex items-center gap-3 px-4 py-3 ${rowClass}`}
+                        className={`flex items-center gap-2 px-3 py-2 ${rowClass}`}
                       >
-                        <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                        <span className="w-6 text-center font-bold text-gray-700 text-xs shrink-0">{idx + 1}</span>
                         <div className="min-w-0 flex-1">
-                          <span className="font-semibold text-gray-800 block truncate">
-                            {idx < qualifiersPerGroup && <span className="text-yellow-500 mr-1">🏆</span>}
+                          <span className="font-semibold text-gray-800 text-sm block truncate">
+                            {idx < qualifiersPerGroup && <span className="text-yellow-500 mr-0.5">🏆</span>}
                             {standing.player.name}
                           </span>
-                          {standing.player.seed && <span className="text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(standing.player.seed))})</span>}
                         </div>
-                        <div className="flex gap-x-2 text-sm shrink-0">
-                          <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
-                          <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
-                          <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
-                          <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
-                          <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
-                          <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
-                        </div>
+                        <span className="w-5 text-center text-green-600 font-semibold text-xs">{standing.wins}</span>
+                        <span className="w-5 text-center text-gray-600 text-xs">{standing.draws || 0}</span>
+                        <span className="w-5 text-center text-red-600 font-semibold text-xs">{standing.losses}</span>
+                        <span className="w-6 text-center font-bold text-ntu-green text-xs">{standing.points}</span>
                       </Link>
                     );
                   })}
@@ -1612,7 +1602,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             </div>
           )}
 
-          <div className="mt-4 text-sm text-gray-600 flex items-center gap-2 flex-wrap">
+          <div className="mt-4 text-sm text-gray-600 flex items-center gap-2 flex-wrap hidden sm:flex">
             {playoffWinsNeededTier.tierColors.length > 0 && (
               <>
                 <span className="inline-block w-2 h-4 rounded-sm bg-amber-500" aria-hidden />
@@ -1623,9 +1613,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             <span>{t("seasonPlay.qualifyHint")}</span>
           </div>
 
-          {/* Statistics Charts */}
+          {/* Statistics Charts — hidden on mobile for cleaner view */}
           {(topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0) && (
-            <div className="mt-8">
+            <div className="mt-8 hidden md:block">
               {/* Top Performers: Goals, Yellow Cards, Red Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Top Scorers Chart */}
@@ -1784,7 +1774,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             </div>
           )}
 
-          <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+          <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 hidden md:block">
             <p className="font-semibold text-gray-800 mb-1">{locale === "zh" ? "排名規則（同分時依序比較）" : "Ranking rules (tiebreakers in order)"}</p>
             <ul className="list-none space-y-0.5">
               {tiebreakerRulesLines.map((line, i) => (
@@ -1811,9 +1801,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             </div>
           )}
           <div className={theme.tableWrapper}>
-            <div className="md:hidden space-y-3">
+            <div className="md:hidden space-y-2">
               {displayPlayoffScheduleMatches.length === 0 ? (
-                <p className="px-4 py-8 text-center text-gray-500">{t("seasonPlay.noMatchesYet")}</p>
+                <p className="px-3 py-6 text-center text-sm text-gray-500">{t("seasonPlay.noMatchesYet")}</p>
               ) : (
                 displayPlayoffScheduleMatches.map((match) => {
                   const matchData = match as any;
@@ -1827,44 +1817,44 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   return (
                     <div
                       key={match.id}
-                      className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all"
+                      className="block bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:border-ntu-green transition-all"
                     >
-                      <div className="mb-2">
-                        <span className="inline-block px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">
+                      <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 rounded">
                           {roundLabel}
                         </span>
+                        <span className="text-xs text-gray-500">{formatDateTime(matchData.scheduled_time)}</span>
+                        <span className="flex items-center gap-1">
+                          {match.status === "completed" && <span className={theme.badgeCompleted}>{t("sports.completed")}</span>}
+                          {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
+                          {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
+                          {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-sm font-medium text-gray-600">{formatDateTime(matchData.scheduled_time)}</span>
-                        {match.status === "completed" && <span className={theme.badgeCompleted}>{t("sports.completed")}</span>}
-                        {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
-                        {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
-                        {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
-                      </div>
-                      <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(matchData as any)}</div>
-                      <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
+                      <div className="text-[11px] text-gray-400 mb-1">{getCourtDisplay(matchData as any)}</div>
+                      <div className="flex items-center justify-between gap-2 text-sm font-semibold text-gray-800">
                         <button
                           type="button"
                           onClick={match.player1?.id ? () => setFilterByPlayerId((prev) => (prev === match.player1?.id ? null : match.player1?.id ?? null)) : undefined}
-                          className={`flex-1 min-w-0 text-left truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
+                          className={`flex-1 min-w-0 text-left truncate py-1.5 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
                           title={match.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                         >
                           {match.player1?.name || t("bracket.tbd")}
                         </button>
-                        <Link href={matchUrl} className="shrink-0 text-ntu-green font-bold px-2 py-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                        <Link href={matchUrl} className="shrink-0 text-ntu-green font-bold px-1.5 py-1.5 min-h-[40px] min-w-[40px] flex items-center justify-center text-sm">
                           VS
                         </Link>
                         <button
                           type="button"
                           onClick={match.player2?.id ? () => setFilterByPlayerId((prev) => (prev === match.player2?.id ? null : match.player2?.id ?? null)) : undefined}
-                          className={`flex-1 min-w-0 text-right truncate py-2 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
+                          className={`flex-1 min-w-0 text-right truncate py-1.5 -mx-1 px-1 rounded touch-manipulation active:scale-[0.99] ${filterByPlayerId === match.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""}`}
                           title={match.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
                         >
                           {match.player2?.name || t("bracket.tbd")}
                         </button>
                       </div>
                       {match.score && (
-                        <Link href={matchUrl} className="mt-2 block text-sm font-semibold text-ntu-green">
+                        <Link href={matchUrl} className="mt-1.5 block text-xs font-semibold text-ntu-green">
                           {(match as any).score}
                         </Link>
                       )}
