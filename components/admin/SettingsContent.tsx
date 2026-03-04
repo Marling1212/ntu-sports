@@ -129,10 +129,23 @@ export default function SettingsContent({
   const [divisionForm, setDivisionForm] = useState({ name: "", tournamentType: "single_elimination", registrationType: "player" });
   const [showAddDivision, setShowAddDivision] = useState(false);
   const [newDivisionSport, setNewDivisionSport] = useState("");
+  const [newDivisionSportOther, setNewDivisionSportOther] = useState("");
   const [newDivisionName, setNewDivisionName] = useState("");
   const [newDivisionTournamentType, setNewDivisionTournamentType] = useState("single_elimination");
   const [newDivisionRegistrationType, setNewDivisionRegistrationType] = useState("player");
-  
+
+  const COMMON_SPORTS = [
+    { value: "tennis", label: "Tennis (網球)" },
+    { value: "basketball", label: "Basketball (籃球)" },
+    { value: "volleyball", label: "Volleyball (排球)" },
+    { value: "badminton", label: "Badminton (羽球)" },
+    { value: "soccer", label: "Soccer (足球)" },
+    { value: "tabletennis", label: "Table Tennis (桌球)" },
+    { value: "baseball", label: "Baseball (棒球)" },
+    { value: "softball", label: "Softball (壘球)" },
+    { value: "other", label: "Other (其他)" },
+  ];
+
   const supabase = createClient();
 
   // Load games on mount (all sections are on one page)
@@ -648,9 +661,13 @@ export default function SettingsContent({
     }
   };
   const addDivision = async () => {
-    const sport = newDivisionSport.trim();
+    const sport = (newDivisionSport === "other" ? newDivisionSportOther.trim() : newDivisionSport).toLowerCase();
     if (!sport) {
-      toast.error("請選擇或輸入運動代碼");
+      toast.error("請選擇運動或輸入運動代碼");
+      return;
+    }
+    if (divisions.some((d) => d.sport.toLowerCase() === sport)) {
+      toast.error("此賽事已包含該運動項目，請選擇其他項目");
       return;
     }
     try {
@@ -671,6 +688,7 @@ export default function SettingsContent({
       setDivisions([...divisions, inserted as EventDivisionRow]);
       setShowAddDivision(false);
       setNewDivisionSport("");
+      setNewDivisionSportOther("");
       setNewDivisionName("");
       setNewDivisionTournamentType("single_elimination");
       setNewDivisionRegistrationType("player");
@@ -894,17 +912,17 @@ export default function SettingsContent({
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-2xl font-semibold text-ntu-green">賽事項目／分組</h2>
-              <p className="text-sm text-gray-600 mt-1">管理此賽事下的各運動／分組，可編輯名稱與賽制</p>
+              <p className="text-sm text-gray-600 mt-1">建立賽事後可在此新增或刪除單一運動項目，並編輯名稱與賽制</p>
             </div>
             <button
               onClick={() => setShowAddDivision(true)}
               className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
             >
-              ➕ 新增項目
+              ➕ 新增運動項目
             </button>
           </div>
           {divisions.length === 0 ? (
-            <p className="text-gray-500">尚無項目（單一運動賽事無需設定）</p>
+            <p className="text-gray-500">尚無項目，請點「新增運動項目」加入第一個運動。</p>
           ) : (
             <ul className="space-y-3">
               {divisions.map((d) => (
@@ -927,8 +945,9 @@ export default function SettingsContent({
                       <button
                         onClick={() => deleteDivision(d)}
                         className="text-red-600 text-sm font-medium hover:underline"
+                        title="移除此運動項目"
                       >
-                        刪除
+                        刪除此項目
                       </button>
                     )}
                   </div>
@@ -989,21 +1008,37 @@ export default function SettingsContent({
         {showAddDivision && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-ntu-green mb-4">新增項目</h3>
+              <h3 className="text-lg font-semibold text-ntu-green mb-4">新增運動項目</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">運動代碼 *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">運動類型 *</label>
                   <select
                     value={newDivisionSport}
-                    onChange={(e) => setNewDivisionSport(e.target.value)}
+                    onChange={(e) => { setNewDivisionSport(e.target.value); setNewDivisionSportOther(""); }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="">請選擇</option>
-                    {games.map((g) => (
-                      <option key={g.id} value={g.code}>{g.name} ({g.code})</option>
+                    {COMMON_SPORTS.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
+                    {games.length > 0 && (
+                      <>
+                        <option disabled>── 運動／遊戲管理 ──</option>
+                        {games.map((g) => (
+                          <option key={g.id} value={g.code}>{g.name} ({g.code})</option>
+                        ))}
+                      </>
+                    )}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">若列表無所需運動，請先在「運動／遊戲管理」建立</p>
+                  {newDivisionSport === "other" && (
+                    <input
+                      type="text"
+                      value={newDivisionSportOther}
+                      onChange={(e) => setNewDivisionSportOther(e.target.value)}
+                      placeholder="輸入運動代碼（英文小寫）"
+                      className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">顯示名稱（選填）</label>
@@ -1039,7 +1074,7 @@ export default function SettingsContent({
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">
-                <button onClick={() => { setShowAddDivision(false); setNewDivisionSport(""); setNewDivisionName(""); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+                <button onClick={() => { setShowAddDivision(false); setNewDivisionSport(""); setNewDivisionSportOther(""); setNewDivisionName(""); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
                 <button onClick={addDivision} className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90">新增</button>
               </div>
             </div>
