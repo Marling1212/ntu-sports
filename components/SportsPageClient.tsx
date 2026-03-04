@@ -129,7 +129,7 @@ export default function SportsPageClient({
                           {m.status === "completed" ? (
                             <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">{t('sports.completed')}</span>
                           ) : m.status === "live" ? (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">{t('sports.live')}</span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded">{t('sports.live')}</span>
                           ) : m.status === "delayed" ? (
                             <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">{t('sports.delayed')}</span>
                           ) : (
@@ -152,7 +152,7 @@ export default function SportsPageClient({
                   <Link
                     key={m.id}
                     href={`${matchesBasePath}/matches/${m.id}`}
-                    className={`block rounded-lg p-4 shadow-sm border border-yellow-200 hover:border-ntu-green hover:shadow-md transition-all ${m.status === "live" ? "bg-red-100" : "bg-white"}`}
+                    className={`block rounded-lg p-4 shadow-sm border border-yellow-200 hover:border-ntu-green hover:shadow-md transition-all ${m.status === "live" ? "bg-red-100 animate-pulse" : "bg-white"}`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-semibold text-gray-700">{timeStr}</span>
