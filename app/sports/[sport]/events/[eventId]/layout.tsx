@@ -1,10 +1,26 @@
-import { createClient } from "@/lib/supabase/server";
-import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getEventDivisions } from "@/lib/utils/getSportEvent";
 import { EventNavProvider } from "@/lib/context/EventNavContext";
 import BackToTop from "@/components/BackToTop";
+import EventSportSwitcher from "@/components/EventSportSwitcher";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const sportLabels: Record<string, string> = {
+  tennis: "Tennis",
+  basketball: "Basketball",
+  volleyball: "Volleyball",
+  badminton: "Badminton",
+  soccer: "Soccer",
+  tabletennis: "Table Tennis",
+  baseball: "Baseball",
+  softball: "Softball",
+  other: "Other",
+};
+
+function toLabel(slug: string): string {
+  return sportLabels[slug.toLowerCase()] ?? (slug.charAt(0).toUpperCase() + slug.slice(1).toLowerCase());
+}
 
 export default async function SportEventLayout({
   params,
@@ -27,11 +43,24 @@ export default async function SportEventLayout({
       regularMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye");
   }
 
+  const divisions = event ? await getEventDivisions(event.id) : [];
+  const bySport = new Map<string, { slug: string; label: string }>();
+  divisions.forEach((d) => {
+    const slug = d.sport.toLowerCase();
+    if (!bySport.has(slug)) bySport.set(slug, { slug, label: toLabel(d.sport) });
+  });
+  if (bySport.size === 0 && event?.sport) {
+    const slug = event.sport.toLowerCase();
+    bySport.set(slug, { slug, label: toLabel(event.sport) });
+  }
+  const distinctSports = Array.from(bySport.values()).sort((a, b) => a.label.localeCompare(b.label));
+
   return (
     <EventNavProvider
       regularSeasonComplete={regularSeasonComplete}
       tournamentType={event?.tournament_type ?? undefined}
     >
+      {distinctSports.length > 1 && <EventSportSwitcher sports={distinctSports} />}
       <div className="pb-20 md:pb-0">{children}</div>
       <BackToTop />
     </EventNavProvider>
