@@ -152,7 +152,7 @@ export default function SportsPageClient({
                   <Link
                     key={m.id}
                     href={`${matchesBasePath}/matches/${m.id}`}
-                    className={`block rounded-lg p-4 shadow-sm border border-yellow-200 hover:border-ntu-green hover:shadow-md transition-all ${m.status === "live" ? "bg-red-50/70" : "bg-white"}`}
+                    className={`block rounded-lg p-4 shadow-sm border border-yellow-200 hover:border-ntu-green hover:shadow-md transition-all ${m.status === "live" ? "bg-red-100" : "bg-white"}`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-semibold text-gray-700">{timeStr}</span>
