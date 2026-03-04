@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import LoadingLink from "@/components/LoadingLink";
 
-// Sport icons for badges
 const sportIcons: { [key: string]: string } = {
   Tennis: "🎾",
   Soccer: "⚽",
@@ -17,6 +16,17 @@ const sportIcons: { [key: string]: string } = {
   Baseball: "⚾",
   Softball: "🥎",
   Other: "🏆",
+};
+
+const sportColors: { [key: string]: string } = {
+  Tennis: "bg-green-500",
+  Soccer: "bg-emerald-500",
+  Basketball: "bg-orange-500",
+  Volleyball: "bg-blue-500",
+  Badminton: "bg-yellow-500",
+  TableTennis: "bg-red-500",
+  Baseball: "bg-indigo-500",
+  Softball: "bg-pink-500",
 };
 
 const sportLabels: { [key: string]: string } = {
@@ -36,77 +46,84 @@ function normalizeSport(s: string): string {
   return sportLabels[lower] ?? (s.charAt(0).toUpperCase() + s.slice(1).toLowerCase());
 }
 
-export interface HomeEvent {
+interface MultiSportEvent {
   id: string;
   name: string;
-  /** Primary sport for URL (first division or event.sport) */
   linkSport: string;
-  /** All sports in this event (one or many), display names */
   sports: string[];
-  startDate?: string;
   venue?: string;
 }
 
 export default function Home() {
   const { t } = useI18n();
-  const [events, setEvents] = useState<HomeEvent[]>([]);
+  const [sportsToShow, setSportsToShow] = useState<string[]>(["Tennis"]);
+  const [multiSportEvents, setMultiSportEvents] = useState<MultiSportEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
-    async function loadEvents() {
+    async function load() {
       setIsLoading(true);
       try {
         const { data: eventsData } = await supabase
           .from("events")
-          .select("id, name, sport, start_date, venue")
-          .eq("is_visible", true)
-          .order("start_date", { ascending: false });
+          .select("id, name, sport, venue")
+          .eq("is_visible", true);
 
         const list = eventsData || [];
-        if (list.length === 0) {
-          setEvents([]);
-          return;
+        const visibleEventIds = list.map((e) => e.id).filter(Boolean);
+
+        let divisions: { event_id: string; sport: string }[] = [];
+        if (visibleEventIds.length > 0) {
+          const { data: divData } = await supabase
+            .from("event_divisions")
+            .select("event_id, sport")
+            .in("event_id", visibleEventIds)
+            .order("display_order", { ascending: true });
+          divisions = divData ?? [];
         }
 
-        const eventIds = list.map((e) => e.id);
-        const { data: divisions } = await supabase
-          .from("event_divisions")
-          .select("event_id, sport")
-          .in("event_id", eventIds)
-          .order("display_order", { ascending: true });
-
         const divisionsByEvent: Record<string, string[]> = {};
-        (divisions || []).forEach((d) => {
+        divisions.forEach((d) => {
           if (!divisionsByEvent[d.event_id]) divisionsByEvent[d.event_id] = [];
           if (d.sport && !divisionsByEvent[d.event_id].includes(d.sport)) {
             divisionsByEvent[d.event_id].push(d.sport);
           }
         });
 
-        const homeEvents: HomeEvent[] = list.map((e) => {
+        const sportsFromEvents = list
+          .map((e) => e.sport)
+          .filter((s): s is string => !!s && typeof s === "string");
+        const sportsFromDivisions = divisions.map((d) => d.sport).filter((s): s is string => !!s);
+        const allSports = [...sportsFromEvents, ...sportsFromDivisions];
+        const uniqueSports = Array.from(new Set(allSports.map((s) => normalizeSport(s)))).sort();
+        setSportsToShow(uniqueSports.length > 0 ? uniqueSports : ["Tennis"]);
+
+        const multi: MultiSportEvent[] = [];
+        list.forEach((e) => {
           const divSports = divisionsByEvent[e.id] ?? [];
           const sports = divSports.length > 0 ? divSports : (e.sport ? [e.sport] : []);
-          const linkSport = sports[0] ?? e.sport ?? "tennis";
-          return {
-            id: e.id,
-            name: e.name ?? "Event",
-            linkSport: linkSport.toLowerCase(),
-            sports: [...new Set(sports)].map(normalizeSport),
-            startDate: e.start_date,
-            venue: e.venue ?? undefined,
-          };
+          const distinctSports = [...new Set(sports.map((s) => s.toLowerCase()))];
+          if (distinctSports.length > 1) {
+            multi.push({
+              id: e.id,
+              name: e.name ?? "Event",
+              linkSport: (distinctSports[0] ?? e.sport ?? "tennis").toLowerCase(),
+              sports: [...new Set(sports)].map(normalizeSport),
+              venue: e.venue ?? undefined,
+            });
+          }
         });
-
-        setEvents(homeEvents);
+        setMultiSportEvents(multi);
       } catch (error) {
-        console.error("Error loading events:", error);
-        setEvents([]);
+        console.error("Error loading home data:", error);
+        setSportsToShow(["Tennis"]);
+        setMultiSportEvents([]);
       } finally {
         setIsLoading(false);
       }
     }
-    loadEvents();
+    load();
   }, [supabase]);
 
   return (
@@ -128,6 +145,7 @@ export default function Home() {
         </p>
       </div>
 
+      {/* Sports section: one card per sport */}
       <div className="mb-8 sm:mb-12 animate-fadeIn" style={{ animationDelay: "0.2s" }}>
         <h2 className="text-sm sm:text-3xl font-semibold text-gray-500 sm:text-ntu-green mb-0.5 sm:mb-4 text-center">
           {t("home.sports")}
@@ -136,16 +154,57 @@ export default function Home() {
           {t("home.sportsDescription")}
         </p>
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <SkeletonLoader key={i} variant="card" className="animate-pulse min-h-[120px] sm:min-h-0" />
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonLoader key={i} variant="card" className="animate-pulse min-h-[88px] sm:min-h-0" />
             ))}
           </div>
-        ) : events.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">目前沒有公開賽事</p>
         ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-6">
+            {sportsToShow.map((sport, index) => {
+              const sportLower = sport.toLowerCase();
+              const icon = sportIcons[sport] || "🏆";
+              const colorClass = sportColors[sport] || "bg-ntu-green";
+              return (
+                <LoadingLink
+                  key={sport}
+                  href={`/sports/${sportLower.replace(/\s+/g, "")}`}
+                  className="bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-xl sm:hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-gray-100 group p-3 sm:p-8 animate-scaleIn active:scale-[0.98]"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="text-center">
+                    <div
+                      className={`w-10 h-10 sm:w-16 sm:h-16 ${colorClass} rounded-lg sm:rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-md sm:shadow-lg`}
+                    >
+                      <span className="text-2xl sm:text-4xl">{icon}</span>
+                    </div>
+                    <h3 className="text-sm sm:text-2xl font-semibold text-ntu-green mb-0.5 sm:mb-3">{sport}</h3>
+                    <p className="text-gray-500 text-[10px] sm:text-sm leading-tight sm:leading-relaxed mb-1 sm:mb-4 hidden sm:block">
+                      {t("home.viewDraw")}
+                    </p>
+                    <div className="text-gray-400 sm:text-ntu-green font-medium text-[10px] sm:text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-0.5 sm:gap-1">
+                      <span className="hidden sm:inline">{t("home.viewDetails")}</span>{" "}
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </div>
+                  </div>
+                </LoadingLink>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Multi-sport events: only events with more than one distinct sport */}
+      {!isLoading && multiSportEvents.length > 0 && (
+        <div className="mb-8 sm:mb-12 animate-fadeIn" style={{ animationDelay: "0.3s" }}>
+          <h2 className="text-sm sm:text-3xl font-semibold text-gray-500 sm:text-ntu-green mb-0.5 sm:mb-4 text-center">
+            綜合賽事 / Multi-sport events
+          </h2>
+          <p className="text-center text-xs sm:text-base text-gray-400 sm:text-gray-600 mb-2 sm:mb-8 px-2 sm:px-4">
+            同一賽事包含多種運動項目
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {events.map((evt, index) => (
+            {multiSportEvents.map((evt, index) => (
               <LoadingLink
                 key={evt.id}
                 href={`/sports/${evt.linkSport}/events/${evt.id}`}
@@ -177,9 +236,8 @@ export default function Home() {
               </LoadingLink>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
-
