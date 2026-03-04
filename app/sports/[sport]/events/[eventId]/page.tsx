@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements, getEventDivisions } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
@@ -108,8 +108,47 @@ export default async function SportEventPage({
   
   const latestAnnouncement = (announcements || [])[0];
 
+  const divisions = await getEventDivisions(event.id);
+  const distinctSportSlugs = Array.from(new Set(divisions.map((d) => d.sport.toLowerCase())));
+  const isMultiSport = distinctSportSlugs.length > 1;
+  const sportLabels: Record<string, string> = {
+    tennis: "Tennis", basketball: "Basketball", volleyball: "Volleyball", badminton: "Badminton",
+    soccer: "Soccer", tabletennis: "Table Tennis", baseball: "Baseball", softball: "Softball", other: "Other",
+  };
+  const sportIconsLower: Record<string, string> = {
+    tennis: "🎾", basketball: "🏀", volleyball: "🏐", badminton: "🏸", soccer: "⚽",
+    tabletennis: "🏓", baseball: "⚾", softball: "🥎", other: "🏆",
+  };
+
   return (
     <div className="container mx-auto px-4 py-12">
+      {/* Multi-sport: choose which sport to view (prominent at top) */}
+      {isMultiSport && (
+        <div className="mb-8 p-6 bg-ntu-green/10 border-2 border-ntu-green rounded-xl">
+          <h2 className="text-lg font-semibold text-ntu-green mb-3">此賽事包含多種運動 / This event has multiple sports</h2>
+          <p className="text-gray-700 text-sm mb-4">選擇要查看的運動項目：</p>
+          <div className="flex flex-wrap gap-3">
+            {distinctSportSlugs.map((slug) => {
+              const label = sportLabels[slug] ?? (slug.charAt(0).toUpperCase() + slug.slice(1));
+              const icon = sportIconsLower[slug] ?? "🏆";
+              const isCurrent = slug === sportParam;
+              return (
+                <Link
+                  key={slug}
+                  href={`/sports/${slug}/events/${eventId}`}
+                  className={`inline-flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                    isCurrent ? "bg-ntu-green text-white" : "bg-white text-gray-800 border-2 border-ntu-green hover:bg-ntu-green hover:text-white"
+                  }`}
+                >
+                  <span className="text-xl">{icon}</span>
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-ntu-green mb-4">

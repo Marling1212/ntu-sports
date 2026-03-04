@@ -28,9 +28,9 @@ export default function EventSportSwitcher({ sports }: EventSportSwitcherProps) 
   if (sports.length <= 1) return null;
 
   return (
-    <div className="bg-gray-50 border-b border-gray-200">
-      <div className="container mx-auto px-4 py-2">
-        <p className="text-xs text-gray-500 mb-1.5">View by sport / 依運動項目查看</p>
+    <div className="bg-ntu-green/10 border-b-2 border-ntu-green shadow-sm">
+      <div className="container mx-auto px-4 py-3">
+        <p className="text-sm font-medium text-ntu-green mb-2">View by sport / 依運動項目查看</p>
         <div className="flex flex-wrap gap-2">
           {sports.map(({ slug, label }) => {
             const href = pathname.replace(/\/sports\/[^/]+/, `/sports/${slug}`);
@@ -40,13 +40,13 @@ export default function EventSportSwitcher({ sports }: EventSportSwitcherProps) 
               <Link
                 key={slug}
                 href={href}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-ntu-green text-white"
-                    : "bg-white text-gray-700 border border-gray-200 hover:border-ntu-green hover:text-ntu-green"
+                    ? "bg-ntu-green text-white shadow"
+                    : "bg-white text-gray-700 border-2 border-gray-200 hover:border-ntu-green hover:text-ntu-green"
                 }`}
               >
-                <span>{icon}</span>
+                <span className="text-lg">{icon}</span>
                 {label}
               </Link>
             );
