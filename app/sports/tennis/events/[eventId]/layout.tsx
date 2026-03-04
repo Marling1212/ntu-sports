@@ -1,9 +1,26 @@
-import { createClient } from "@/lib/supabase/server";
-import { getSportMatches } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getEventDivisions } from "@/lib/utils/getSportEvent";
 import { EventNavProvider } from "@/lib/context/EventNavContext";
+import BackToTop from "@/components/BackToTop";
+import EventSportSwitcher from "@/components/EventSportSwitcher";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const sportLabels: Record<string, string> = {
+  tennis: "Tennis",
+  basketball: "Basketball",
+  volleyball: "Volleyball",
+  badminton: "Badminton",
+  soccer: "Soccer",
+  tabletennis: "Table Tennis",
+  baseball: "Baseball",
+  softball: "Softball",
+  other: "Other",
+};
+
+function toLabel(slug: string): string {
+  return sportLabels[slug.toLowerCase()] ?? (slug.charAt(0).toUpperCase() + slug.slice(1).toLowerCase());
+}
 
 export default async function TennisEventLayout({
   params,
@@ -13,29 +30,38 @@ export default async function TennisEventLayout({
   children: React.ReactNode;
 }) {
   const { eventId } = await params;
-  const supabase = await createClient();
-  const { data: event } = await supabase
-    .from("events")
-    .select("tournament_type")
-    .eq("id", eventId)
-    .eq("sport", "tennis")
-    .maybeSingle();
+  const event = await getEventByIdAndSport(eventId, "tennis");
+  const divisionIds = event ? await getDivisionIdsForEventAndSport(event.id, "tennis") : [];
 
   let regularSeasonComplete: boolean | undefined;
   if (event?.tournament_type === "season_play") {
-    const dbMatches = await getSportMatches(eventId);
+    const dbMatches = await getSportMatches(eventId, divisionIds.length > 0 ? divisionIds : undefined);
     const regularMatches = (dbMatches || []).filter((m: { round: number }) => m.round === 0);
     regularSeasonComplete =
       regularMatches.length > 0 &&
       regularMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye");
   }
 
+  const divisions = event ? await getEventDivisions(event.id) : [];
+  const bySport = new Map<string, { slug: string; label: string }>();
+  divisions.forEach((d) => {
+    const slug = (d.sport ?? "").toLowerCase();
+    if (slug && !bySport.has(slug)) bySport.set(slug, { slug, label: toLabel(d.sport) });
+  });
+  if (bySport.size === 0) {
+    bySport.set("tennis", { slug: "tennis", label: "Tennis" });
+  }
+  const distinctSports = Array.from(bySport.values()).sort((a, b) => a.label.localeCompare(b.label));
+  const showSwitcher = divisions.length >= 2 && distinctSports.length >= 1;
+
   return (
     <EventNavProvider
       regularSeasonComplete={regularSeasonComplete}
       tournamentType={event?.tournament_type}
     >
-      {children}
+      {showSwitcher && <EventSportSwitcher sports={distinctSports} />}
+      <div className="pb-20 md:pb-0">{children}</div>
+      <BackToTop />
     </EventNavProvider>
   );
 }
