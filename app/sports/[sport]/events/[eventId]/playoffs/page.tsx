@@ -1,6 +1,6 @@
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
-import { getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -21,17 +21,8 @@ export default async function SportEventPlayoffsPage({
   const supabase = await createClient();
   const t = getT("zh");
 
-  const { data: event, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .eq("sport", sportParam)
-    .eq("is_visible", true)
-    .maybeSingle();
-
-  if (error || !event) {
-    notFound();
-  }
+  const event = await getEventByIdAndSport(eventId, sportParam);
+  if (!event) notFound();
 
   if (event.tournament_type !== "season_play") {
     return (
@@ -47,8 +38,10 @@ export default async function SportEventPlayoffsPage({
   }
 
   await syncLockedPlayoffSeeds(event.id);
-  const dbMatches = await getSportMatches(event.id);
-  const dbPlayers = await getSportPlayers(event.id);
+  const divisionIds = await getDivisionIdsForEventAndSport(event.id, sportParam);
+  const divisionFilter = divisionIds.length > 0 ? divisionIds : undefined;
+  const dbMatches = await getSportMatches(event.id, divisionFilter);
+  const dbPlayers = await getSportPlayers(event.id, divisionFilter);
 
   let matchPlayerStats: any[] = [];
   let teamMembers: any[] = [];

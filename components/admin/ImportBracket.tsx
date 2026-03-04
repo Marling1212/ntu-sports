@@ -9,6 +9,7 @@ import { Player } from "@/types/database";
 interface ImportBracketProps {
   eventId: string;
   players: Player[];
+  defaultDivisionId?: string | null;
 }
 
 interface ParsedPosition {
@@ -31,6 +32,7 @@ interface ParsedBracket {
 
 interface MatchInsertPayload {
   event_id: string;
+  division_id?: string | null;
   round: number;
   match_number: number;
   player1_id?: string | null;
@@ -39,7 +41,7 @@ interface MatchInsertPayload {
   status: "upcoming" | "live" | "completed" | "bye";
 }
 
-export default function ImportBracket({ eventId, players }: ImportBracketProps) {
+export default function ImportBracket({ eventId, players, defaultDivisionId }: ImportBracketProps) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -194,6 +196,7 @@ export default function ImportBracket({ eventId, players }: ImportBracketProps) 
         players,
         parsedBracket,
         mapping: finalMappings,
+        defaultDivisionId,
       });
 
       if (!payload.matches.length) {
@@ -574,15 +577,18 @@ function buildMatchesPayload({
   players,
   parsedBracket,
   mapping,
+  defaultDivisionId,
 }: {
   eventId: string;
   players: Player[];
   parsedBracket: ParsedBracket;
   mapping: Record<number, string | null>;
+  defaultDivisionId?: string | null;
 }): { matches: MatchInsertPayload[]; hasThirdPlace?: boolean } {
   const positions = parsedBracket.positions;
   const bracketSize = positions.length;
   const totalRounds = Math.log2(bracketSize);
+  const divisionPayload = defaultDivisionId ? { division_id: defaultDivisionId } : {};
 
   const getPlayerIdByOrder = (order: number): string | null => {
     const mapped = mapping[order];
@@ -612,6 +618,7 @@ function buildMatchesPayload({
         if (player1Id && !player2Id) {
           round2Advances.set(slotKey, player1Id);
           matches.push({
+            ...divisionPayload,
             event_id: eventId,
             round,
             match_number: matchNumber,
@@ -623,6 +630,7 @@ function buildMatchesPayload({
         } else if (!player1Id && player2Id) {
           round2Advances.set(slotKey, player2Id);
           matches.push({
+            ...divisionPayload,
             event_id: eventId,
             round,
             match_number: matchNumber,
@@ -633,6 +641,7 @@ function buildMatchesPayload({
           });
         } else if (!player1Id && !player2Id) {
           matches.push({
+            ...divisionPayload,
             event_id: eventId,
             round,
             match_number: matchNumber,
@@ -642,6 +651,7 @@ function buildMatchesPayload({
           });
         } else {
           matches.push({
+            ...divisionPayload,
             event_id: eventId,
             round,
             match_number: matchNumber,
@@ -657,6 +667,7 @@ function buildMatchesPayload({
         const player2Id = round2Advances.get(player2Key) || null;
 
         matches.push({
+          ...divisionPayload,
           event_id: eventId,
           round,
           match_number: matchNumber,
@@ -666,6 +677,7 @@ function buildMatchesPayload({
         });
       } else {
         matches.push({
+          ...divisionPayload,
           event_id: eventId,
           round,
           match_number: matchNumber,
@@ -680,6 +692,7 @@ function buildMatchesPayload({
   if (parsedBracket.hasThirdPlace && totalRounds >= 2) {
     const thirdPlacePlayers = parsedBracket.thirdPlacePlayers || {};
     const thirdPlaceMatch: MatchInsertPayload = {
+      ...divisionPayload,
       event_id: eventId,
       round: totalRounds,
       match_number: 2,

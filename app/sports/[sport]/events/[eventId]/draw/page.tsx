@@ -3,7 +3,7 @@ import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import ExportBracket from "@/components/ExportBracket";
 import ExportPDF from "@/components/ExportPDF";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
-import { getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getFirstDivisionForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "react-hot-toast";
 import { notFound } from "next/navigation";
@@ -26,27 +26,24 @@ export default async function SportEventDrawPage({
   const locale = await getLocale();
   const t = getT(locale);
 
-  const { data: event, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .eq("sport", sportParam)
-    .eq("is_visible", true)
-    .maybeSingle();
+  const event = await getEventByIdAndSport(eventId, sportParam);
+  if (!event) notFound();
 
-  if (error || !event) {
-    notFound();
-  }
+  const divisionIds = await getDivisionIdsForEventAndSport(event.id, sportParam);
+  const divisionFilter = divisionIds.length > 0 ? divisionIds : undefined;
+  const division = await getFirstDivisionForEventAndSport(event.id, sportParam);
+  const tournamentType = (division?.tournament_type ?? event.tournament_type) as "single_elimination" | "season_play" | undefined;
+  const registrationType = (division?.registration_type ?? event.registration_type) as "player" | "team" | undefined;
 
-  if (event.tournament_type === "season_play") {
+  if (tournamentType === "season_play") {
     await syncLockedPlayoffSeeds(event.id);
   }
   const { data: sponsors } = await supabase
     .from("sponsors")
     .select("id, name, logo_url, website_url")
     .eq("event_id", event.id);
-  const dbMatches = await getSportMatches(event.id);
-  const dbPlayers = await getSportPlayers(event.id);
+  const dbMatches = await getSportMatches(event.id, divisionFilter);
+  const dbPlayers = await getSportPlayers(event.id, divisionFilter);
 
   let matchPlayerStats: any[] = [];
   let statDefinitions: any[] = [];
@@ -61,10 +58,10 @@ export default async function SportEventDrawPage({
   const { data: defs } = await supabase
     .from("sport_stat_definitions")
     .select("stat_name, stat_label, display_order, stat_level")
-    .eq("sport", event.sport)
+    .eq("sport", sportParam)
     .order("display_order", { ascending: true });
   statDefinitions = defs || [];
-  if (event.registration_type === "team" && dbPlayers?.length) {
+  if (registrationType === "team" && dbPlayers?.length) {
     const teamIds = dbPlayers.filter((p: any) => p.type === "team").map((p: any) => p.id);
     if (teamIds.length > 0) {
       const { data: members } = await supabase
@@ -115,7 +112,7 @@ export default async function SportEventDrawPage({
 
   return (
     <>
-      <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
+      <TennisNavbarClient eventName={event.name} tournamentType={tournamentType} />
       <Toaster position="top-right" />
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-12">
         <div className="mb-6 md:mb-8 flex flex-row justify-between items-start gap-4">
@@ -124,7 +121,7 @@ export default async function SportEventDrawPage({
               {event.name || t("draw.pageTitleWithSport").replace("{sport}", sportName)}
             </h1>
             <p className="text-base md:text-lg text-gray-600">
-              {event.tournament_type === "season_play"
+              {tournamentType === "season_play"
                 ? t("draw.pageSubtitleSeason")
                 : t("draw.pageSubtitleBracket")}
             </p>
@@ -136,7 +133,7 @@ export default async function SportEventDrawPage({
               eventName={event.name || t("sports.ntuSportTournament").replace("{sport}", sportName)}
               eventDate={eventDate}
               eventVenue={eventVenue}
-              tournamentType={event.tournament_type || "single_elimination"}
+              tournamentType={tournamentType || "single_elimination"}
               matchPlayerStats={matchPlayerStats}
               statDefinitions={statDefinitions}
               teamMembers={teamMembers}
@@ -147,12 +144,12 @@ export default async function SportEventDrawPage({
               eventName={event.name || t("sports.ntuSportTournament").replace("{sport}", sportName)}
               eventDate={eventDate}
               eventVenue={eventVenue}
-              tournamentType={event.tournament_type || "single_elimination"}
+              tournamentType={tournamentType || "single_elimination"}
             />
           </div>
         </div>
 
-        {event.tournament_type === "season_play" ? (
+        {tournamentType === "season_play" ? (
           <SeasonPlayDisplay
             matches={matches}
             players={players}
@@ -160,7 +157,7 @@ export default async function SportEventDrawPage({
             qualifiersPerGroup={(event as any)?.playoff_qualifiers_per_group || undefined}
             visibleTabs={{ regular: false, standings: true, playoffs: true }}
             defaultView={defaultDrawView}
-            registrationType={event?.registration_type as "player" | "team" | undefined}
+            registrationType={registrationType}
             matchPlayerStats={matchPlayerStats}
             teamMembers={teamMembers}
             tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}

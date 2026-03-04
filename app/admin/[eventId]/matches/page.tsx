@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getEventDivisions } from "@/lib/utils/getSportEvent";
 import AdminNavbar from "@/components/admin/Navbar";
 import MatchesTable from "@/components/admin/MatchesTable";
 import PlayerStats from "@/components/admin/PlayerStats";
@@ -103,6 +104,9 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
     teamMembers = members || [];
   }
 
+  const divisions = await getEventDivisions(eventId);
+  const defaultDivisionId = divisions.length === 1 ? divisions[0].id : null;
+
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
@@ -147,6 +151,8 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
           tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
           registrationType={event?.registration_type as 'player' | 'team' | undefined}
           matchPlayerStats={matchPlayerStats || []}
+          divisions={divisions}
+          defaultDivisionId={defaultDivisionId}
         />
         </div>
 

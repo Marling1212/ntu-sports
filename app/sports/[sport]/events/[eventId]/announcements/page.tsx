@@ -1,5 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
-import { getSportAnnouncementsForList } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getSportAnnouncementsForList } from "@/lib/utils/getSportEvent";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import AnnouncementsPageClient from "@/components/AnnouncementsPageClient";
 import { notFound } from "next/navigation";
@@ -14,19 +13,9 @@ export default async function SportEventAnnouncementsPage({
 }) {
   const { sport, eventId } = await params;
   const sportParam = sport.toLowerCase();
-  const supabase = await createClient();
 
-  const { data: event, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .eq("sport", sportParam)
-    .eq("is_visible", true)
-    .maybeSingle();
-
-  if (error || !event) {
-    notFound();
-  }
+  const event = await getEventByIdAndSport(eventId, sportParam);
+  if (!event) notFound();
 
   const announcements = await getSportAnnouncementsForList(event.id);
 

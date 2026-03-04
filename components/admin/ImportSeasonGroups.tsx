@@ -9,6 +9,7 @@ import { Player } from "@/types/database";
 interface ImportSeasonGroupsProps {
   eventId: string;
   players: Player[];
+  defaultDivisionId?: string | null;
 }
 
 interface ParsedGroup {
@@ -16,7 +17,7 @@ interface ParsedGroup {
   playerNames: string[];
 }
 
-export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGroupsProps) {
+export default function ImportSeasonGroups({ eventId, players, defaultDivisionId }: ImportSeasonGroupsProps) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(false);
@@ -455,9 +456,11 @@ export default function ImportSeasonGroups({ eventId, players }: ImportSeasonGro
           .filter((p): p is Player => p !== null);
 
         // Generate round-robin matches for this group
+        const divisionPayload = defaultDivisionId ? { division_id: defaultDivisionId } : {};
         for (let i = 0; i < groupPlayers.length; i++) {
           for (let j = i + 1; j < groupPlayers.length; j++) {
             matchesToInsert.push({
+              ...divisionPayload,
               event_id: eventId,
               round: 0, // Regular season
               match_number: matchNumber++,

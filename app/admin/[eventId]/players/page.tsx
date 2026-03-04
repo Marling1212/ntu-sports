@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getEventDivisions } from "@/lib/utils/getSportEvent";
 import AdminNavbar from "@/components/admin/Navbar";
 import PlayersTable from "@/components/admin/PlayersTable";
 import GenerateBracket from "@/components/admin/GenerateBracket";
@@ -83,6 +84,9 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
     .order("day_of_week", { ascending: true })
     .order("start_time", { ascending: true });
 
+  const divisions = await getEventDivisions(eventId);
+  const defaultDivisionId = divisions.length === 1 ? divisions[0].id : null;
+
   return (
     <>
       <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
@@ -106,6 +110,8 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
           initialBlackoutLimit={event?.blackout_limit ?? null}
           initialSlotTemplates={slotTemplates || []}
           initialBlackoutTemplates={blackoutTemplates || []}
+          divisions={divisions}
+          defaultDivisionId={defaultDivisionId}
         />
         </div>
 
@@ -117,6 +123,7 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
                 eventId={eventId}
                 players={players || []}
                 initialQualifiersPerGroup={event?.playoff_qualifiers_per_group ?? undefined}
+                defaultDivisionId={defaultDivisionId}
               />
             </div>
             <div id="edit-playoff-draw" className="scroll-mt-24">
@@ -124,18 +131,21 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
                 eventId={eventId}
                 numGroups={playoffNumGroups}
                 qualifiersPerGroup={event?.playoff_qualifiers_per_group ?? 4}
+                defaultDivisionId={defaultDivisionId}
               />
             </div>
             <div id="import-season-groups" className="scroll-mt-24">
               <ImportSeasonGroups 
                 eventId={eventId}
                 players={players || []}
+                defaultDivisionId={defaultDivisionId}
               />
             </div>
             <div id="import-season-play" className="scroll-mt-24">
               <ImportSeasonPlay 
                 eventId={eventId}
                 players={players || []}
+                defaultDivisionId={defaultDivisionId}
               />
             </div>
           </div>
@@ -145,18 +155,21 @@ export default async function PlayersPage({ params }: { params: Promise<{ eventI
               <GenerateBracket 
                 eventId={eventId}
                 players={players || []}
+                defaultDivisionId={defaultDivisionId}
               />
             </div>
             <div id="manual-bracket" className="scroll-mt-24">
               <ManualBracketEditor 
                 eventId={eventId}
                 players={players || []}
+                defaultDivisionId={defaultDivisionId}
               />
             </div>
             <div id="import-bracket" className="scroll-mt-24">
               <ImportBracket 
                 eventId={eventId}
                 players={players || []}
+                defaultDivisionId={defaultDivisionId}
               />
             </div>
           </div>

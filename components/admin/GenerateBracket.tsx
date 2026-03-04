@@ -8,9 +8,10 @@ import { Player } from "@/types/database";
 interface GenerateBracketProps {
   eventId: string;
   players: Player[];
+  defaultDivisionId?: string | null;
 }
 
-export default function GenerateBracket({ eventId, players }: GenerateBracketProps) {
+export default function GenerateBracket({ eventId, players, defaultDivisionId }: GenerateBracketProps) {
   const [loading, setLoading] = useState(false);
   const [hasThirdPlaceMatch, setHasThirdPlaceMatch] = useState(true); // 預設舉辦季軍賽
   const supabase = createClient();
@@ -387,6 +388,7 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
 
       // Generate matches for all rounds
       // Key: Create ALL matches including BYE, but mark BYE matches with status 'bye'
+      const divisionPayload = defaultDivisionId ? { division_id: defaultDivisionId } : {};
       const matches = [];
       // Store which player advances to which position in Round 2
       // Key: "round2-match-slot" (e.g., "1-1" = Round 2 Match 1 Player 1)
@@ -416,6 +418,7 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
               
               // Create BYE match record
               matches.push({
+                ...divisionPayload,
                 event_id: eventId,
                 round: round,
                 match_number: matchNum,
@@ -432,6 +435,7 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
               
               // Create BYE match record
               matches.push({
+                ...divisionPayload,
                 event_id: eventId,
                 round: round,
                 match_number: matchNum,
@@ -445,6 +449,7 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
               // Both BYE
               console.log(`Match ${matchNum}: Both BYE`);
               matches.push({
+                ...divisionPayload,
                 event_id: eventId,
                 round: round,
                 match_number: matchNum,
@@ -456,6 +461,7 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
             } else if (player1 && player2) {
               // Normal match
               matches.push({
+                ...divisionPayload,
                 event_id: eventId,
                 round: round,
                 match_number: matchNum,
@@ -478,6 +484,7 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
             }
             
             matches.push({
+              ...divisionPayload,
               event_id: eventId,
               round: round,
               match_number: matchNum,
@@ -488,6 +495,7 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
           } else {
             // Later rounds: empty matches
             matches.push({
+              ...divisionPayload,
               event_id: eventId,
               round: round,
               match_number: i + 1,
@@ -556,6 +564,7 @@ export default function GenerateBracket({ eventId, players }: GenerateBracketPro
         console.log("\n=== 創建季軍賽 ===");
         
         const thirdPlaceMatch = {
+          ...divisionPayload,
           event_id: eventId,
           round: numRounds, // Same round as final
           match_number: 2, // Match number 2 in the final round (Match 1 is the final)

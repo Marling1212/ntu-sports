@@ -3,6 +3,7 @@ import TennisNavbarClient from "@/components/TennisNavbarClient";
 import EventScheduleContent from "@/components/EventScheduleContent";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { getEventByIdAndSport } from "@/lib/utils/getSportEvent";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,17 +17,8 @@ export default async function SportEventRulesPage({
   const sportParam = sport.toLowerCase();
   const supabase = await createClient();
 
-  const { data: event, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .eq("sport", sportParam)
-    .eq("is_visible", true)
-    .maybeSingle();
-
-  if (error || !event) {
-    notFound();
-  }
+  const event = await getEventByIdAndSport(eventId, sportParam);
+  if (!event) notFound();
 
   const { data: rules } = await supabase
     .from("tournament_rules")

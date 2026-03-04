@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getSportMatches } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches } from "@/lib/utils/getSportEvent";
 import { EventNavProvider } from "@/lib/context/EventNavContext";
 import BackToTop from "@/components/BackToTop";
 
@@ -13,17 +13,14 @@ export default async function SportEventLayout({
   params: Promise<{ sport: string; eventId: string }>;
   children: React.ReactNode;
 }) {
-  const { eventId } = await params;
-  const supabase = await createClient();
-  const { data: event } = await supabase
-    .from("events")
-    .select("tournament_type")
-    .eq("id", eventId)
-    .maybeSingle();
+  const { sport, eventId } = await params;
+  const sportParam = sport.toLowerCase();
+  const event = await getEventByIdAndSport(eventId, sportParam);
+  const divisionIds = event ? await getDivisionIdsForEventAndSport(event.id, sportParam) : [];
 
   let regularSeasonComplete: boolean | undefined;
   if (event?.tournament_type === "season_play") {
-    const dbMatches = await getSportMatches(eventId);
+    const dbMatches = await getSportMatches(eventId, divisionIds.length > 0 ? divisionIds : undefined);
     const regularMatches = (dbMatches || []).filter((m: { round: number }) => m.round === 0);
     regularSeasonComplete =
       regularMatches.length > 0 &&
@@ -33,7 +30,7 @@ export default async function SportEventLayout({
   return (
     <EventNavProvider
       regularSeasonComplete={regularSeasonComplete}
-      tournamentType={event?.tournament_type}
+      tournamentType={event?.tournament_type ?? undefined}
     >
       <div className="pb-20 md:pb-0">{children}</div>
       <BackToTop />

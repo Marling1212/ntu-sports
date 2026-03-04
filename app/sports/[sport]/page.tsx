@@ -1,7 +1,7 @@
 import Link from "next/link";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
 import { createClient } from "@/lib/supabase/server";
-import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
+import { getEventIdsForSport, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import MarkdownText from "@/components/MarkdownText";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { getMatchTimeDisplay } from "@/lib/utils/formatScheduledTime";
@@ -31,17 +31,16 @@ export default async function SportPage(context: any) {
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const sportIcon = sportIcons[sportName] || "🏆";
 
-  // Get all active events for this sport (case-insensitive)
-  // Database stores sport names in lowercase, so normalize the input
-  // Only get visible events for public display
-  const sportLower = sportParam;
-  const { data: events } = await supabase
-    .from("events")
-    .select("*")
-    .eq("sport", sportLower)
-    .eq("is_visible", true)
-    .order("start_date", { ascending: false });
-
+  // Get all visible events that have this sport (event.sport or event_divisions)
+  const eventIds = await getEventIdsForSport(sportParam);
+  const { data: events } = eventIds.length > 0
+    ? await supabase
+        .from("events")
+        .select("*")
+        .in("id", eventIds)
+        .eq("is_visible", true)
+        .order("start_date", { ascending: false })
+    : { data: [] };
   const activeEvents = events || [];
 
   if (activeEvents.length === 0) {
@@ -128,7 +127,8 @@ export default async function SportPage(context: any) {
   let announcements: any[] = [];
   
   if (singleEvent) {
-    matches = await getSportMatches(singleEvent.id);
+    const divisionIds = await getDivisionIdsForEventAndSport(singleEvent.id, sportParam);
+    matches = await getSportMatches(singleEvent.id, divisionIds.length > 0 ? divisionIds : undefined);
     announcements = await getSportAnnouncements(singleEvent.id);
   }
 

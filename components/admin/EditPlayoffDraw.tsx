@@ -9,6 +9,7 @@ interface EditPlayoffDrawProps {
   eventId: string;
   numGroups: number;
   qualifiersPerGroup: number;
+  defaultDivisionId?: string | null;
 }
 
 interface R1Match {
@@ -28,7 +29,7 @@ function expectedR1MatchCount(numGroups: number, qualifiersPerGroup: number): nu
   return bracketSize / 2;
 }
 
-export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup }: EditPlayoffDrawProps) {
+export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup, defaultDivisionId }: EditPlayoffDrawProps) {
   const [matches, setMatches] = useState<R1Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -55,7 +56,9 @@ export default function EditPlayoffDraw({ eventId, numGroups, qualifiersPerGroup
       if (list.length < expected) {
         const toAdd = expected - list.length;
         const nextMatchNum = list.length + 1;
+        const divisionPayload = defaultDivisionId ? { division_id: defaultDivisionId } : {};
         const inserts = Array.from({ length: toAdd }, (_, i) => ({
+          ...divisionPayload,
           event_id: eventId,
           round: 1,
           match_number: nextMatchNum + i,

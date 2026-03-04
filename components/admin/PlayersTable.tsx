@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
-import { Player, TeamMember, EventSlotTemplate, TeamBlackoutTemplate } from "@/types/database";
+import { Player, TeamMember, EventSlotTemplate, TeamBlackoutTemplate, EventDivision } from "@/types/database";
 import BulkPlayerImport from "./BulkPlayerImport";
 import BulkTeamMemberImport from "./BulkTeamMemberImport";
 import { getEnabledFields, getFieldConfig, getCustomFields, getDefaultFieldConfig, type FieldConfig } from "@/lib/utils/fieldConfig";
@@ -17,6 +17,8 @@ interface PlayersTableProps {
   initialBlackoutLimit?: number | null;
   initialSlotTemplates?: EventSlotTemplate[];
   initialBlackoutTemplates?: TeamBlackoutTemplate[];
+  divisions?: EventDivision[];
+  defaultDivisionId?: string | null;
 }
 
 export default function PlayersTable({
@@ -26,11 +28,14 @@ export default function PlayersTable({
   initialBlackoutLimit = null,
   initialSlotTemplates = [],
   initialBlackoutTemplates = [],
+  divisions = [],
+  defaultDivisionId = null,
 }: PlayersTableProps) {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [isAdding, setIsAdding] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [newPlayer, setNewPlayer] = useState<any>({ name: "", department: "", email: "", seed: "" });
+  const [selectedDivisionId, setSelectedDivisionId] = useState<string>(() => defaultDivisionId || divisions[0]?.id ?? "");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSeed, setFilterSeed] = useState<string>("all");
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
@@ -91,6 +96,11 @@ export default function PlayersTable({
     setBlackoutLimit(initialBlackoutLimit != null ? String(initialBlackoutLimit) : "");
     setBlackoutTemplates(initialBlackoutTemplates);
   }, [initialBlackoutLimit, initialBlackoutTemplates]);
+
+  useEffect(() => {
+    const id = defaultDivisionId || divisions[0]?.id ?? "";
+    if (id) setSelectedDivisionId(id);
+  }, [defaultDivisionId, divisions]);
 
   const handleSaveBlackoutLimit = async () => {
     setSavingBlackoutLimit(true);
@@ -253,8 +263,10 @@ export default function PlayersTable({
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const divisionId = defaultDivisionId ?? (divisions.length > 1 ? selectedDivisionId : divisions[0]?.id) ?? null;
     const playerData: any = {
       event_id: eventId,
+      ...(divisionId ? { division_id: divisionId } : {}),
       name: newPlayer.name,
       email_opt_in: true,
       type: registrationType,
@@ -589,6 +601,22 @@ export default function PlayersTable({
               <p className="text-sm text-gray-600 mb-4">
                 名稱為必填欄位，其他欄位根據您的設定顯示
               </p>
+              {divisions.length > 1 && (
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sport / Division</label>
+                  <select
+                    value={selectedDivisionId}
+                    onChange={(e) => setSelectedDivisionId(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                  >
+                    {divisions.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name ? `${d.sport} – ${d.name}` : d.sport}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${Math.min(enabledFields.length + 1, 5)} gap-4`}>
               {enabledFields.map((field) => {

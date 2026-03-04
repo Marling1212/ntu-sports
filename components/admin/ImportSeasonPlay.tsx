@@ -9,6 +9,7 @@ import { Player } from "@/types/database";
 interface ImportSeasonPlayProps {
   eventId: string;
   players: Player[];
+  defaultDivisionId?: string | null;
 }
 
 interface ParsedMatch {
@@ -31,7 +32,7 @@ interface ParsedPlayerStatRow {
   stats: Record<string, string>;
 }
 
-export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayProps) {
+export default function ImportSeasonPlay({ eventId, players, defaultDivisionId }: ImportSeasonPlayProps) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(false);
@@ -600,6 +601,7 @@ export default function ImportSeasonPlay({ eventId, players }: ImportSeasonPlayP
         }
 
         const matchData: any = {
+          ...(defaultDivisionId ? { division_id: defaultDivisionId } : {}),
           event_id: eventId,
           round: 0,
           match_number: match.matchNumber,

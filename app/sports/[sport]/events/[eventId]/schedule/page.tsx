@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import TennisNavbarClient from "@/components/TennisNavbarClient";
 import BracketMatchSchedule from "@/components/BracketMatchSchedule";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
-import { getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
 import EventSponsorBanner from "@/components/EventSponsorBanner";
@@ -20,17 +20,11 @@ export default async function SportEventSchedulePage({
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const supabase = await createClient();
 
-  const { data: event, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .eq("sport", sportParam)
-    .eq("is_visible", true)
-    .maybeSingle();
+  const event = await getEventByIdAndSport(eventId, sportParam);
+  if (!event) notFound();
 
-  if (error || !event) {
-    notFound();
-  }
+  const divisionIds = await getDivisionIdsForEventAndSport(event.id, sportParam);
+  const divisionFilter = divisionIds.length > 0 ? divisionIds : undefined;
 
   const { data: sponsors } = await supabase
     .from("sponsors")
@@ -40,8 +34,8 @@ export default async function SportEventSchedulePage({
   const isSeasonPlay = event.tournament_type === "season_play";
 
   if (isSeasonPlay) {
-    const dbMatches = await getSportMatches(event.id);
-    const dbPlayers = await getSportPlayers(event.id);
+    const dbMatches = await getSportMatches(event.id, divisionFilter);
+    const dbPlayers = await getSportPlayers(event.id, divisionFilter);
     const matches = (dbMatches || []).map((m: any) => ({
       id: m.id,
       round: m.round,
@@ -123,7 +117,7 @@ export default async function SportEventSchedulePage({
     );
   }
 
-  const dbMatches = await getSportMatches(event.id);
+  const dbMatches = await getSportMatches(event.id, divisionFilter);
 
   return (
     <>

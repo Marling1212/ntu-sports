@@ -13,6 +13,8 @@ interface CreateMatchModalProps {
   defaultRound?: number;
   defaultPlayer1Id?: string;
   defaultPlayer2Id?: string;
+  divisions?: Array<{ id: string; sport: string; name?: string | null }>;
+  defaultDivisionId?: string | null;
 }
 
 export default function CreateMatchModal({
@@ -23,7 +25,10 @@ export default function CreateMatchModal({
   defaultRound = 0,
   defaultPlayer1Id,
   defaultPlayer2Id,
+  divisions = [],
+  defaultDivisionId = null,
 }: CreateMatchModalProps) {
+  const divisionId = defaultDivisionId ?? (divisions[0]?.id ?? null);
   const [formData, setFormData] = useState({
     round: defaultRound,
     matchNumber: 1,
@@ -71,6 +76,7 @@ export default function CreateMatchModal({
 
       const matchData: any = {
         event_id: eventId,
+        ...(divisionId ? { division_id: divisionId } : {}),
         round: formData.round,
         match_number: matchNumber,
         status: formData.status,

@@ -10,6 +10,8 @@ interface CreateEventModalProps {
   onClose: () => void;
 }
 
+type ExtraDivision = { sport: string; tournamentType: string; registrationType: string };
+
 export default function CreateEventModal({ userId, onEventCreated, onClose }: CreateEventModalProps) {
   const [formData, setFormData] = useState({
     sport: "tennis",
@@ -18,8 +20,10 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
     endDate: "",
     venue: "",
     description: "",
-    tournamentType: "single_elimination", // Default to single elimination
-    registrationType: "player", // Default to player for backward compatibility
+    tournamentType: "single_elimination",
+    registrationType: "player",
+    isMultiSport: false,
+    extraSports: [] as ExtraDivision[],
   });
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
@@ -71,8 +75,33 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
         return;
       }
 
+      // Create division(s) for this event; each can have its own tournament_type (e.g. Tennis single elim, Basketball season play)
+      const divisionsToCreate: { sport: string; tournament_type: string; registration_type: string }[] = formData.extraSports?.length
+        ? [
+            { sport: formData.sport, tournament_type: formData.tournamentType, registration_type: formData.registrationType },
+            ...formData.extraSports.map((e) => ({
+              sport: e.sport,
+              tournament_type: e.tournamentType ?? formData.tournamentType,
+              registration_type: e.registrationType ?? formData.registrationType,
+            })),
+          ]
+        : [{ sport: formData.sport, tournament_type: formData.tournamentType, registration_type: formData.registrationType }];
+      for (let i = 0; i < divisionsToCreate.length; i++) {
+        const d = divisionsToCreate[i];
+        const { error: divError } = await supabase.from("event_divisions").insert({
+          event_id: event.id,
+          sport: d.sport,
+          display_order: i,
+          tournament_type: d.tournament_type,
+          registration_type: d.registration_type,
+        });
+        if (divError) {
+          console.error("Division insert error:", divError);
+          toast.error(`Event created but failed to add division: ${divError.message}`);
+        }
+      }
+
       console.log("Event created:", event);
-      console.log("Organizer added:", organizer);
       toast.success("Event created successfully! Refreshing...");
       
       // Wait a moment then refresh
@@ -158,6 +187,100 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
               選擇此賽事的報名類型。選擇「隊伍」時，您可以為每個隊伍添加個別球員的名稱與背號。
             </p>
           </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="multiSport"
+              checked={formData.isMultiSport}
+              onChange={(e) => setFormData({ ...formData, isMultiSport: e.target.checked })}
+              className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green"
+            />
+            <label htmlFor="multiSport" className="text-sm font-medium text-gray-700">
+              Multi-sport event (one event, multiple sports/divisions)
+            </label>
+          </div>
+          {formData.isMultiSport && (
+            <div className="pl-4 border-l-2 border-ntu-green/30 space-y-3">
+              <p className="text-xs text-gray-600">Additional sports — each can be Single Elim or Season Play:</p>
+              {(formData.extraSports || []).map((_, i) => (
+                <div key={i} className="p-3 bg-gray-50 rounded-lg space-y-2">
+                  <div className="flex gap-2 items-center flex-wrap">
+                    <select
+                      value={formData.extraSports[i].sport}
+                      onChange={(e) => {
+                        const next = [...(formData.extraSports || [])];
+                        next[i] = { ...next[i], sport: e.target.value };
+                        setFormData({ ...formData, extraSports: next });
+                      }}
+                      className="flex-1 min-w-[120px] px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="tennis">Tennis</option>
+                      <option value="basketball">Basketball</option>
+                      <option value="volleyball">Volleyball</option>
+                      <option value="badminton">Badminton</option>
+                      <option value="soccer">Soccer</option>
+                      <option value="tabletennis">Table Tennis</option>
+                      <option value="baseball">Baseball</option>
+                      <option value="softball">Softball</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <select
+                      value={formData.extraSports[i].tournamentType}
+                      onChange={(e) => {
+                        const next = [...(formData.extraSports || [])];
+                        next[i] = { ...next[i], tournamentType: e.target.value };
+                        setFormData({ ...formData, extraSports: next });
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="single_elimination">Single elimination</option>
+                      <option value="season_play">Season play (groups)</option>
+                    </select>
+                    <select
+                      value={formData.extraSports[i].registrationType}
+                      onChange={(e) => {
+                        const next = [...(formData.extraSports || [])];
+                        next[i] = { ...next[i], registrationType: e.target.value };
+                        setFormData({ ...formData, extraSports: next });
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="player">Player</option>
+                      <option value="team">Team</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          extraSports: formData.extraSports.filter((_, j) => j !== i),
+                        })
+                      }
+                      className="text-red-600 hover:underline text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData({
+                    ...formData,
+                    extraSports: [
+                      ...(formData.extraSports || []),
+                      { sport: "tennis", tournamentType: "single_elimination", registrationType: "player" },
+                    ],
+                  })
+                }
+                className="text-sm text-ntu-green hover:underline"
+              >
+                + Add another sport
+              </button>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

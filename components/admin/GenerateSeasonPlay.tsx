@@ -22,9 +22,11 @@ interface GenerateSeasonPlayProps {
   players: Player[];
   /** Initial playoff qualifiers per group from event (for display & when generating playoffs) */
   initialQualifiersPerGroup?: number;
+  /** When event has divisions (multi-sport), set on inserted matches */
+  defaultDivisionId?: string | null;
 }
 
-export default function GenerateSeasonPlay({ eventId, players, initialQualifiersPerGroup }: GenerateSeasonPlayProps) {
+export default function GenerateSeasonPlay({ eventId, players, initialQualifiersPerGroup, defaultDivisionId }: GenerateSeasonPlayProps) {
   const [loading, setLoading] = useState(false);
   const [numGroups, setNumGroups] = useState(1); // Default: 1 group (single round-robin)
   const [playoffTeams, setPlayoffTeams] = useState(initialQualifiersPerGroup ?? 4);
@@ -180,6 +182,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
       }
 
       // Generate round-robin matches within each group (Round 0)
+      const divisionPayload = defaultDivisionId ? { division_id: defaultDivisionId } : {};
       const regularSeasonMatches = [];
       let globalMatchNumber = 1;
 
@@ -190,6 +193,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         for (let i = 0; i < group.length; i++) {
           for (let j = i + 1; j < group.length; j++) {
             regularSeasonMatches.push({
+              ...divisionPayload,
               event_id: eventId,
               round: 0, // Round 0 = Regular Season
               match_number: globalMatchNumber++,
@@ -278,9 +282,11 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
       }
 
       // Standard bracket order for round 1 (1v8, 4v5, 2v7, 3v6 for 8 teams)
+      const playoffDivisionPayload = defaultDivisionId ? { division_id: defaultDivisionId } : {};
       const seedOrder = getBracketSeedOrder(bracketSize);
       const playoffMatches: Array<{
         event_id: string;
+        division_id?: string;
         round: number;
         match_number: number;
         player1_id?: null;
@@ -299,6 +305,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         const isBye2 = p2.seed === 0;
         if (isBye1 && isBye2) continue;
         playoffMatches.push({
+          ...playoffDivisionPayload,
           event_id: eventId,
           round: 1,
           match_number: matchNumber++,
@@ -332,6 +339,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
                 : { slot2_seed: prev2.slot2_seed!, slot2_group: prev2.slot2_group! }
               : {};
           playoffMatches.push({
+            ...playoffDivisionPayload,
             event_id: eventId,
             round,
             match_number: i,
@@ -347,6 +355,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
       // 季軍賽：與決賽同 round，match_number = 2（決賽為 1）
       if (numRounds >= 2) {
         playoffMatches.push({
+          ...playoffDivisionPayload,
           event_id: eventId,
           round: numRounds,
           match_number: 2,

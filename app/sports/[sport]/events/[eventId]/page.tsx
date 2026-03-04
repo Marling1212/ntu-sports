@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
@@ -37,29 +37,19 @@ export default async function SportEventPage({
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const sportIcon = sportIcons[sportName] || "🏆";
   
-  // Get the specific event (only visible events for public)
-  const { data: event, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .eq("sport", sportParam)
-    .eq("is_visible", true)
-    .maybeSingle();
+  // Get the specific event (visible, and must have this sport via event.sport or a division)
+  const event = await getEventByIdAndSport(eventId, sportParam);
+  if (!event) notFound();
 
-  // If event not found, doesn't match the sport, or not visible, show 404
-  if (error || !event) {
-    notFound();
-  }
+  // Division filter: show only matches/players for this sport within the event
+  const divisionIds = await getDivisionIdsForEventAndSport(event.id, sportParam);
+  const matches = await getSportMatches(event.id, divisionIds.length > 0 ? divisionIds : undefined);
+  const announcements = await getSportAnnouncements(event.id);
 
-  // Tournament start date
-  const tournamentStartDate = event.start_date 
-    ? new Date(event.start_date) 
+  const tournamentStartDate = event.start_date
+    ? new Date(event.start_date)
     : new Date("2025-11-08T08:00:00+08:00");
   const hasStarted = new Date() >= tournamentStartDate;
-
-  // Fetch matches, announcements, and sponsors
-  const matches = await getSportMatches(event.id);
-  const announcements = await getSportAnnouncements(event.id);
   const { data: sponsorsRaw } = await supabase
     .from("sponsors")
     .select("id, name, logo_url, website_url, tier")

@@ -8,6 +8,7 @@ import { Player, Event, BracketEditHistory } from "@/types/database";
 interface ManualBracketEditorProps {
   eventId: string;
   players: Player[];
+  defaultDivisionId?: string | null;
 }
 
 interface BracketPosition {
@@ -15,8 +16,9 @@ interface BracketPosition {
   player: Player | null;
 }
 
-export default function ManualBracketEditor({ eventId, players }: ManualBracketEditorProps) {
+export default function ManualBracketEditor({ eventId, players, defaultDivisionId }: ManualBracketEditorProps) {
   const supabase = createClient();
+  const divisionPayload = defaultDivisionId ? { division_id: defaultDivisionId } : {};
   const [loading, setLoading] = useState(false);
   const [hasThirdPlaceMatch, setHasThirdPlaceMatch] = useState(true);
   const [draggedPlayer, setDraggedPlayer] = useState<Player | null>(null);
@@ -470,6 +472,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
             if (player1 && !player2) {
               round2Advances.set(slotKey, player1.id);
               matches.push({
+                ...divisionPayload,
                 event_id: eventId,
                 round: round,
                 match_number: matchNum,
@@ -481,6 +484,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
             } else if (!player1 && player2) {
               round2Advances.set(slotKey, player2.id);
               matches.push({
+                ...divisionPayload,
                 event_id: eventId,
                 round: round,
                 match_number: matchNum,
@@ -491,6 +495,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
               });
             } else if (!player1 && !player2) {
               matches.push({
+                ...divisionPayload,
                 event_id: eventId,
                 round: round,
                 match_number: matchNum,
@@ -500,6 +505,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
               });
             } else if (player1 && player2) {
               matches.push({
+                ...divisionPayload,
                 event_id: eventId,
                 round: round,
                 match_number: matchNum,
@@ -516,6 +522,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
             const player2Id = round2Advances.get(player2Key) || null;
 
             matches.push({
+              ...divisionPayload,
               event_id: eventId,
               round: round,
               match_number: matchNum,
@@ -525,6 +532,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
             });
           } else {
             matches.push({
+              ...divisionPayload,
               event_id: eventId,
               round: round,
               match_number: i + 1,
@@ -572,6 +580,7 @@ export default function ManualBracketEditor({ eventId, players }: ManualBracketE
       // Create 3rd place match if enabled
       if (hasThirdPlaceMatch && numRounds >= 2) {
         const thirdPlaceMatch = {
+          ...divisionPayload,
           event_id: eventId,
           round: numRounds,
           match_number: 2,

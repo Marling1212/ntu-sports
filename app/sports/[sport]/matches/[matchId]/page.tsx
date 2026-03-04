@@ -33,17 +33,17 @@ export default async function MatchDetailPage(context: any) {
     notFound();
   }
 
-  // Fetch the event (match may belong to any event, not just the "current" one)
-  const { data: event, error: eventError } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", match.event_id)
-    .eq("is_visible", true)
-    .maybeSingle();
+  // Fetch the event; must be visible and have this sport (event.sport or a division)
+  const { getEventByIdAndSport, getDivisionIdsForEventAndSport } = await import("@/lib/utils/getSportEvent");
+  const event = await getEventByIdAndSport(match.event_id, sportParam);
+  if (!event) notFound();
 
-  if (eventError || !event || event.sport?.toLowerCase() !== sportParam) {
+  // For multi-sport events, match must belong to this sport's division(s)
+  const divisionIds = await getDivisionIdsForEventAndSport(event.id, sportParam);
+  if (divisionIds.length > 0 && match.division_id != null && !divisionIds.includes(match.division_id)) {
     notFound();
   }
+  if (divisionIds.length === 0 && event.sport !== sportParam) notFound();
 
   // Get all players for this match
   const playerIds = [match.player1_id, match.player2_id].filter(Boolean) as string[];

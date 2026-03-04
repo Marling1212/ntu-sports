@@ -113,6 +113,8 @@ interface MatchesTableProps {
     created_at?: string;
     updated_at?: string;
   }>;
+  divisions?: Array<{ id: string; sport: string; name?: string | null }>;
+  defaultDivisionId?: string | null;
 }
 
 export default function MatchesTable({
@@ -124,6 +126,8 @@ export default function MatchesTable({
   tournamentType,
   registrationType = 'player',
   matchPlayerStats = [],
+  divisions = [],
+  defaultDivisionId = null,
 }: MatchesTableProps) {
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
@@ -1730,6 +1734,8 @@ export default function MatchesTable({
             window.location.reload();
           }}
           onClose={() => setShowCreateMatch(false)}
+          divisions={divisions}
+          defaultDivisionId={defaultDivisionId}
         />
       )}
     </>

@@ -50,9 +50,23 @@ export interface Organizer {
   created_at: string;
 }
 
+/** A sport/division within an event. One event can have multiple (multi-sport events). */
+export interface EventDivision {
+  id: string;
+  event_id: string;
+  sport: string;
+  name?: string | null;
+  display_order: number;
+  tournament_type?: 'single_elimination' | 'season_play';
+  registration_type?: 'player' | 'team';
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Player {
   id: string;
   event_id: string;
+  division_id?: string | null;
   name: string;
   department?: string;
   seed?: number;
@@ -77,6 +91,7 @@ export interface TeamMember {
 export interface Match {
   id: string;
   event_id: string;
+  division_id?: string | null;
   round: number;
   match_number: number;
   group_number?: number | null;
