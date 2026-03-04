@@ -46,21 +46,22 @@ export default async function SportEventLayout({
   const divisions = event ? await getEventDivisions(event.id) : [];
   const bySport = new Map<string, { slug: string; label: string }>();
   divisions.forEach((d) => {
-    const slug = d.sport.toLowerCase();
-    if (!bySport.has(slug)) bySport.set(slug, { slug, label: toLabel(d.sport) });
+    const slug = (d.sport ?? "").toLowerCase();
+    if (slug && !bySport.has(slug)) bySport.set(slug, { slug, label: toLabel(d.sport) });
   });
   if (bySport.size === 0 && event?.sport) {
     const slug = event.sport.toLowerCase();
     bySport.set(slug, { slug, label: toLabel(event.sport) });
   }
   const distinctSports = Array.from(bySport.values()).sort((a, b) => a.label.localeCompare(b.label));
+  const showSwitcher = divisions.length >= 2 && distinctSports.length >= 1;
 
   return (
     <EventNavProvider
       regularSeasonComplete={regularSeasonComplete}
       tournamentType={event?.tournament_type ?? undefined}
     >
-      {distinctSports.length > 1 && <EventSportSwitcher sports={distinctSports} />}
+      {showSwitcher && <EventSportSwitcher sports={distinctSports} />}
       <div className="pb-20 md:pb-0">{children}</div>
       <BackToTop />
     </EventNavProvider>

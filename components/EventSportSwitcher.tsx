@@ -25,7 +25,7 @@ export default function EventSportSwitcher({ sports }: EventSportSwitcherProps) 
   const segments = pathname.split("/").filter(Boolean);
   const currentSport = segments[1]?.toLowerCase() ?? "";
 
-  if (sports.length <= 1) return null;
+  if (sports.length === 0) return null;
 
   return (
     <div className="bg-ntu-green/10 border-b-2 border-ntu-green shadow-sm">
