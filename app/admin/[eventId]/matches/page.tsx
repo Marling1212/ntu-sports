@@ -9,9 +9,17 @@ import MatchHistory from "@/components/admin/MatchHistory";
 import BracketSeedingManagerWrapper from "@/components/admin/BracketSeedingManagerWrapper";
 import MatchesPageNav from "@/components/admin/MatchesPageNav";
 
-export default async function MatchesPage({ params }: { params: Promise<{ eventId: string }> }) {
+export default async function MatchesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ divisionId?: string }>;
+}) {
   const supabase = await createClient();
   const { eventId } = await params;
+  const { divisionId: divisionIdParam } = await searchParams;
+  const currentDivisionId = divisionIdParam ?? null;
 
   const {
     data: { user },
@@ -45,9 +53,15 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
     .eq("id", eventId)
     .single();
 
-  // Get matches with player information
-  // Filter out BYE matches (status='bye') for management view
-  const { data: matches } = await supabase
+  const divisions = await getEventDivisions(eventId);
+  if (divisions.length > 1 && !currentDivisionId) {
+    redirect(`/admin/${eventId}/matches?divisionId=${divisions[0].id}`);
+  }
+  const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : (divisions[0] ?? null);
+  const effectiveDivisionId = selectedDivision?.id ?? (divisions.length === 1 ? divisions[0].id : null);
+
+  // Get matches with player information (filter by division when multi-division)
+  let matchesQuery = supabase
     .from("matches")
     .select(`
       *,
@@ -62,17 +76,21 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
       )
     `)
     .eq("event_id", eventId)
-    .neq("status", "bye") // Don't show BYE matches in management view
-    .order("scheduled_time", { ascending: true, nullsFirst: false }) // Scheduled matches first, sorted by time
+    .neq("status", "bye")
+    .order("scheduled_time", { ascending: true, nullsFirst: false })
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });
+  if (effectiveDivisionId) {
+    matchesQuery = matchesQuery.eq("division_id", effectiveDivisionId);
+  }
+  const { data: matches } = await matchesQuery;
 
-  // Get all players for dropdown
-  const { data: players } = await supabase
-    .from("players")
-    .select("*")
-    .eq("event_id", eventId)
-    .order("name", { ascending: true });
+  // Get all players for dropdown (filter by division when multi-division)
+  let playersQuery = supabase.from("players").select("*").eq("event_id", eventId).order("name", { ascending: true });
+  if (effectiveDivisionId) {
+    playersQuery = playersQuery.eq("division_id", effectiveDivisionId);
+  }
+  const { data: players } = await playersQuery;
 
   const { data: slots } = await supabase
     .from("event_slots")
@@ -94,9 +112,10 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
     .select("*")
     .in("match_id", (matches || []).map(m => m.id));
 
-  // Get team members if team event
+  // Get team members if team event (use division's registration_type when in a division)
+  const effectiveRegistrationType = selectedDivision?.registration_type ?? event?.registration_type;
   let teamMembers: any[] = [];
-  if (event?.registration_type === 'team') {
+  if (effectiveRegistrationType === 'team') {
     const { data: members } = await supabase
       .from("team_members")
       .select("*")
@@ -104,23 +123,36 @@ export default async function MatchesPage({ params }: { params: Promise<{ eventI
     teamMembers = members || [];
   }
 
-  const divisions = await getEventDivisions(eventId);
-  const defaultDivisionId = divisions.length === 1 ? divisions[0].id : null;
+  const defaultDivisionId = effectiveDivisionId;
 
   return (
     <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
+      <AdminNavbar
+        eventId={eventId}
+        eventName={event?.name}
+        sport={event?.sport}
+        divisions={divisions}
+        currentDivisionId={defaultDivisionId}
+      />
       <div className="flex">
         <MatchesPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">
           <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">比賽</h1>
-          <p className="text-lg text-gray-600">{event?.name} — 列表、比分、統計</p>
+          <p className="text-lg text-gray-600">
+            {event?.name}
+            {selectedDivision && (
+              <span className="ml-2 text-ntu-green font-medium">
+                · {selectedDivision.name ? `${selectedDivision.sport} – ${selectedDivision.name}` : selectedDivision.sport}
+              </span>
+            )}
+            {" "}— 列表、比分、統計
+          </p>
         </div>
 
-        {/* Bracket Seeding Manager - show for single elimination or season play */}
-        {(event?.tournament_type === "single_elimination" || event?.tournament_type === "season_play") && players && players.length > 0 && (
+        {/* Bracket Seeding Manager - show for single elimination or season play (use division type when in a division) */}
+        {((selectedDivision?.tournament_type ?? event?.tournament_type) === "single_elimination" || (selectedDivision?.tournament_type ?? event?.tournament_type) === "season_play") && players && players.length > 0 && (
           <div id="bracket-seeding" className="scroll-mt-24">
           <BracketSeedingManagerWrapper
             eventId={eventId}

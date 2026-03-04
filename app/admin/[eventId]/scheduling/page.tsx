@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getEventDivisions } from "@/lib/utils/getSportEvent";
 import AdminNavbar from "@/components/admin/Navbar";
 import SchedulingManager from "@/components/admin/SchedulingManager";
 import ImportMatchSchedule from "@/components/admin/ImportMatchSchedule";
@@ -8,11 +9,15 @@ import SchedulingPageNav from "@/components/admin/SchedulingPageNav";
 
 export default async function SchedulingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ divisionId?: string }>;
 }) {
   const supabase = await createClient();
   const { eventId } = await params;
+  const { divisionId: divisionIdParam } = await searchParams;
+  const currentDivisionId = divisionIdParam ?? null;
 
   const {
     data: { user },
@@ -64,13 +69,20 @@ export default async function SchedulingPage({
     .order("day_of_week", { ascending: true })
     .order("start_time", { ascending: true });
 
+  const divisions = await getEventDivisions(eventId);
+  if (divisions.length > 1 && !currentDivisionId) {
+    redirect(`/admin/${eventId}/scheduling?divisionId=${divisions[0].id}`);
+  }
+  const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : (divisions[0] ?? null);
+  const effectiveDivisionId = selectedDivision?.id ?? (divisions.length === 1 ? divisions[0].id : null);
+
   const { data: players } = await supabase
     .from("players")
     .select("*")
     .eq("event_id", eventId)
     .order("name", { ascending: true });
 
-  const { data: matches } = await supabase
+  let matchesQuery = supabase
     .from("matches")
     .select(`
       *,
@@ -83,6 +95,10 @@ export default async function SchedulingPage({
     .order("scheduled_time", { ascending: true, nullsFirst: false })
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });
+  if (effectiveDivisionId) {
+    matchesQuery = matchesQuery.eq("division_id", effectiveDivisionId);
+  }
+  const { data: matches } = await matchesQuery;
 
   const { data: blackoutTemplates } = await supabase
     .from("team_blackout_templates")
@@ -113,7 +129,13 @@ export default async function SchedulingPage({
 
   return (
     <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
+      <AdminNavbar
+        eventId={eventId}
+        eventName={event?.name}
+        sport={event?.sport}
+        divisions={divisions}
+        currentDivisionId={effectiveDivisionId}
+      />
       <div className="flex">
         <SchedulingPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">

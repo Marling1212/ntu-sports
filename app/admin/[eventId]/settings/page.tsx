@@ -1,12 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getEventDivisions } from "@/lib/utils/getSportEvent";
 import AdminNavbar from "@/components/admin/Navbar";
 import SettingsContent from "@/components/admin/SettingsContent";
 import SettingsPageNav from "@/components/admin/SettingsPageNav";
 
-export default async function SettingsPage({ params }: { params: Promise<{ eventId: string }> }) {
+export default async function SettingsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ divisionId?: string }>;
+}) {
   const supabase = await createClient();
   const { eventId } = await params;
+  const { divisionId: divisionIdParam } = await searchParams;
+  const currentDivisionId = divisionIdParam ?? null;
 
   const {
     data: { user },
@@ -62,21 +71,42 @@ export default async function SettingsPage({ params }: { params: Promise<{ event
     .eq("event_id", eventId)
     .order("tier", { ascending: true });
 
+  const divisions = await getEventDivisions(eventId);
+  if (divisions.length > 1 && !currentDivisionId) {
+    redirect(`/admin/${eventId}/settings?divisionId=${divisions[0].id}`);
+  }
+  const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : (divisions[0] ?? null);
+  const effectiveDivisionId = selectedDivision?.id ?? (divisions.length === 1 ? divisions[0].id : null);
+
   return (
     <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
+      <AdminNavbar
+        eventId={eventId}
+        eventName={event?.name}
+        sport={event?.sport}
+        divisions={divisions}
+        currentDivisionId={effectiveDivisionId}
+      />
       <div className="flex">
         <SettingsPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">
           <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">Event Settings</h1>
-          <p className="text-lg text-gray-600">{event?.name}</p>
+          <p className="text-lg text-gray-600">
+            {event?.name}
+            {selectedDivision && (
+              <span className="ml-2 text-ntu-green font-medium">
+                · {selectedDivision.name ? `${selectedDivision.sport} – ${selectedDivision.name}` : selectedDivision.sport}
+              </span>
+            )}
+          </p>
         </div>
 
         <SettingsContent 
           eventId={eventId}
           eventName={event?.name || ""}
+          initialDivisions={divisions}
           initialEventData={{
             name: event?.name || "",
             sport: event?.sport || "",

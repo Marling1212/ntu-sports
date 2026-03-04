@@ -57,6 +57,16 @@ interface SponsorRow {
   tier: SponsorTier;
 }
 
+interface EventDivisionRow {
+  id: string;
+  event_id: string;
+  sport: string;
+  name?: string | null;
+  display_order: number;
+  tournament_type?: string;
+  registration_type?: string;
+}
+
 interface SettingsContentProps {
   eventId: string;
   eventName: string;
@@ -64,6 +74,7 @@ interface SettingsContentProps {
   initialRules: TournamentRule[];
   initialScheduleItems: ScheduleItem[];
   initialSponsors?: SponsorRow[];
+  initialDivisions?: EventDivisionRow[];
   scheduleNotes: string;
   scheduleUpdatedAt: string;
   contactInfo: string;
@@ -80,6 +91,7 @@ export default function SettingsContent({
   initialRules, 
   initialScheduleItems,
   initialSponsors = [],
+  initialDivisions = [],
   scheduleNotes: initialScheduleNotes,
   scheduleUpdatedAt: initialScheduleUpdatedAt,
   contactInfo: initialContactInfo,
@@ -110,6 +122,16 @@ export default function SettingsContent({
   const [loadingGames, setLoadingGames] = useState(false);
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [newGame, setNewGame] = useState({ name: "", code: "", icon: "", color: "", description: "" });
+
+  // Event divisions (multi-sport) state
+  const [divisions, setDivisions] = useState<EventDivisionRow[]>(initialDivisions);
+  const [editingDivisionId, setEditingDivisionId] = useState<string | null>(null);
+  const [divisionForm, setDivisionForm] = useState({ name: "", tournamentType: "single_elimination", registrationType: "player" });
+  const [showAddDivision, setShowAddDivision] = useState(false);
+  const [newDivisionSport, setNewDivisionSport] = useState("");
+  const [newDivisionName, setNewDivisionName] = useState("");
+  const [newDivisionTournamentType, setNewDivisionTournamentType] = useState("single_elimination");
+  const [newDivisionRegistrationType, setNewDivisionRegistrationType] = useState("player");
   
   const supabase = createClient();
 
@@ -592,6 +614,82 @@ export default function SettingsContent({
     }
   };
 
+  // Event divisions: edit
+  const openEditDivision = (d: EventDivisionRow) => {
+    setEditingDivisionId(d.id);
+    setDivisionForm({
+      name: d.name ?? "",
+      tournamentType: d.tournament_type ?? "single_elimination",
+      registrationType: d.registration_type ?? "player",
+    });
+  };
+  const saveDivisionEdit = async () => {
+    if (!editingDivisionId) return;
+    try {
+      const { error } = await supabase
+        .from("event_divisions")
+        .update({
+          name: divisionForm.name || null,
+          tournament_type: divisionForm.tournamentType,
+          registration_type: divisionForm.registrationType,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editingDivisionId);
+      if (error) throw error;
+      setDivisions(divisions.map((d) =>
+        d.id === editingDivisionId
+          ? { ...d, name: divisionForm.name || null, tournament_type: divisionForm.tournamentType, registration_type: divisionForm.registrationType }
+          : d
+      ));
+      setEditingDivisionId(null);
+      toast.success("已更新項目");
+    } catch (e: any) {
+      toast.error(e?.message ?? "更新失敗");
+    }
+  };
+  const addDivision = async () => {
+    const sport = newDivisionSport.trim();
+    if (!sport) {
+      toast.error("請選擇或輸入運動代碼");
+      return;
+    }
+    try {
+      const maxOrder = divisions.length === 0 ? 0 : Math.max(...divisions.map((d) => d.display_order), 0);
+      const { data: inserted, error } = await supabase
+        .from("event_divisions")
+        .insert({
+          event_id: eventId,
+          sport,
+          name: newDivisionName.trim() || null,
+          display_order: maxOrder + 1,
+          tournament_type: newDivisionTournamentType,
+          registration_type: newDivisionRegistrationType,
+        })
+        .select("id, event_id, sport, name, display_order, tournament_type, registration_type")
+        .single();
+      if (error) throw error;
+      setDivisions([...divisions, inserted as EventDivisionRow]);
+      setShowAddDivision(false);
+      setNewDivisionSport("");
+      setNewDivisionName("");
+      setNewDivisionTournamentType("single_elimination");
+      setNewDivisionRegistrationType("player");
+      toast.success("已新增項目");
+    } catch (e: any) {
+      toast.error(e?.message ?? "新增失敗");
+    }
+  };
+  const deleteDivision = async (d: EventDivisionRow) => {
+    if (!confirm(`確定要刪除此項目「${d.sport}${d.name ? " – " + d.name : ""}」？若有選手或比賽屬於此項目，將改為未分類。`)) return;
+    try {
+      await supabase.from("event_divisions").delete().eq("id", d.id);
+      setDivisions(divisions.filter((x) => x.id !== d.id));
+      toast.success("已刪除項目");
+    } catch (e: any) {
+      toast.error(e?.message ?? "刪除失敗");
+    }
+  };
+
   return (
     <>
       <Toaster position="top-right" />
@@ -789,6 +887,165 @@ export default function SettingsContent({
             tournamentType={eventData.tournamentType || tournamentTypeProp}
           />
         </div>
+
+      {/* 賽事項目／分組 (multi-sport event divisions) */}
+      <div id="settings-divisions" className="scroll-mt-24 space-y-6">
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-ntu-green">賽事項目／分組</h2>
+              <p className="text-sm text-gray-600 mt-1">管理此賽事下的各運動／分組，可編輯名稱與賽制</p>
+            </div>
+            <button
+              onClick={() => setShowAddDivision(true)}
+              className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+            >
+              ➕ 新增項目
+            </button>
+          </div>
+          {divisions.length === 0 ? (
+            <p className="text-gray-500">尚無項目（單一運動賽事無需設定）</p>
+          ) : (
+            <ul className="space-y-3">
+              {divisions.map((d) => (
+                <li key={d.id} className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-gray-50 border border-gray-100">
+                  <div>
+                    <span className="font-medium text-gray-900">{d.sport}</span>
+                    {d.name && <span className="text-gray-600 ml-2">– {d.name}</span>}
+                    <span className="ml-2 text-xs text-gray-500">
+                      {d.tournament_type === "season_play" ? "賽季" : "單淘汰"} · {d.registration_type === "team" ? "隊伍" : "個人"}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openEditDivision(d)}
+                      className="text-ntu-green text-sm font-medium hover:underline"
+                    >
+                      編輯
+                    </button>
+                    {divisions.length > 1 && (
+                      <button
+                        onClick={() => deleteDivision(d)}
+                        className="text-red-600 text-sm font-medium hover:underline"
+                      >
+                        刪除
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Edit division modal */}
+        {editingDivisionId && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold text-ntu-green mb-4">編輯項目</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">顯示名稱（選填）</label>
+                  <input
+                    type="text"
+                    value={divisionForm.name}
+                    onChange={(e) => setDivisionForm((f) => ({ ...f, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="例：男子組"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">賽制</label>
+                  <select
+                    value={divisionForm.tournamentType}
+                    onChange={(e) => setDivisionForm((f) => ({ ...f, tournamentType: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="single_elimination">單淘汰</option>
+                    <option value="season_play">賽季（分組＋季後賽）</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">報名類型</label>
+                  <select
+                    value={divisionForm.registrationType}
+                    onChange={(e) => setDivisionForm((f) => ({ ...f, registrationType: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="player">個人</option>
+                    <option value="team">隊伍</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button onClick={() => setEditingDivisionId(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+                <button onClick={saveDivisionEdit} className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90">儲存</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add division modal */}
+        {showAddDivision && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+              <h3 className="text-lg font-semibold text-ntu-green mb-4">新增項目</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">運動代碼 *</label>
+                  <select
+                    value={newDivisionSport}
+                    onChange={(e) => setNewDivisionSport(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="">請選擇</option>
+                    {games.map((g) => (
+                      <option key={g.id} value={g.code}>{g.name} ({g.code})</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">若列表無所需運動，請先在「運動／遊戲管理」建立</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">顯示名稱（選填）</label>
+                  <input
+                    type="text"
+                    value={newDivisionName}
+                    onChange={(e) => setNewDivisionName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="例：女子組"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">賽制</label>
+                  <select
+                    value={newDivisionTournamentType}
+                    onChange={(e) => setNewDivisionTournamentType(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="single_elimination">單淘汰</option>
+                    <option value="season_play">賽季（分組＋季後賽）</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">報名類型</label>
+                  <select
+                    value={newDivisionRegistrationType}
+                    onChange={(e) => setNewDivisionRegistrationType(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="player">個人</option>
+                    <option value="team">隊伍</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button onClick={() => { setShowAddDivision(false); setNewDivisionSport(""); setNewDivisionName(""); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+                <button onClick={addDivision} className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90">新增</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 賽事規則 */}
       <div id="settings-rules" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">

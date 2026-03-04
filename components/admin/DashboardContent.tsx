@@ -8,12 +8,21 @@ import CreateEventModal from "@/components/admin/CreateEventModal";
 import toast, { Toaster } from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 
+interface DivisionInfo {
+  id: string;
+  event_id: string;
+  sport: string;
+  name?: string | null;
+  display_order: number;
+}
+
 interface EventCardProps {
   event: any;
+  divisions: DivisionInfo[];
   onVisibilityChange: (eventId: string, newVisibility: boolean) => void;
 }
 
-function EventCard({ event, onVisibilityChange }: EventCardProps) {
+function EventCard({ event, divisions, onVisibilityChange }: EventCardProps) {
   const [isVisible, setIsVisible] = useState(event.is_visible ?? false);
   const [isToggling, setIsToggling] = useState(false);
   const supabase = createClient();
@@ -51,9 +60,15 @@ function EventCard({ event, onVisibilityChange }: EventCardProps) {
           {event.name}
         </h2>
         <div className="flex items-center gap-2">
-          <span className="text-xs uppercase font-semibold px-2 py-1 bg-ntu-green bg-opacity-10 text-ntu-green rounded">
-            {event.sport}
-          </span>
+          {divisions.length > 1 ? (
+            <span className="text-xs uppercase font-semibold px-2 py-1 bg-ntu-green bg-opacity-10 text-ntu-green rounded">
+              {divisions.length} 項目
+            </span>
+          ) : (
+            <span className="text-xs uppercase font-semibold px-2 py-1 bg-ntu-green bg-opacity-10 text-ntu-green rounded">
+              {event.sport}
+            </span>
+          )}
           <button
             onClick={toggleVisibility}
             disabled={isToggling}
@@ -81,20 +96,47 @@ function EventCard({ event, onVisibilityChange }: EventCardProps) {
           </p>
         )}
       </div>
-      <div className="mt-4 flex items-center gap-4">
-        <Link
-          href={`/sports/${event.sport}/events/${event.id}`}
-          className="text-ntu-green font-medium text-sm hover:underline"
-          title="View on public site"
-        >
-          看前台
-        </Link>
-        <Link
-          href={`/admin/${event.id}/players`}
-          className="text-ntu-green font-medium text-sm hover:underline"
-        >
-          Manage →
-        </Link>
+      <div className="mt-4 space-y-2">
+        {divisions.length > 1 ? (
+          divisions.map((d) => (
+            <div key={d.id} className="flex items-center justify-between gap-2 py-1 border-b border-gray-100 last:border-0">
+              <span className="text-sm text-gray-700 font-medium">
+                {d.name ? `${d.sport} – ${d.name}` : d.sport}
+              </span>
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/sports/${d.sport}/events/${event.id}`}
+                  className="text-ntu-green text-sm font-medium hover:underline"
+                  title="看前台"
+                >
+                  看前台
+                </Link>
+                <Link
+                  href={`/admin/${event.id}/players?divisionId=${d.id}`}
+                  className="text-ntu-green text-sm font-medium hover:underline"
+                >
+                  Manage →
+                </Link>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="flex items-center gap-4">
+            <Link
+              href={divisions[0] ? `/sports/${divisions[0].sport}/events/${event.id}` : `/sports/${event.sport}/events/${event.id}`}
+              className="text-ntu-green font-medium text-sm hover:underline"
+              title="View on public site"
+            >
+              看前台
+            </Link>
+            <Link
+              href={divisions[0] ? `/admin/${event.id}/players?divisionId=${divisions[0].id}` : `/admin/${event.id}/players`}
+              className="text-ntu-green font-medium text-sm hover:underline"
+            >
+              Manage →
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -103,9 +145,10 @@ function EventCard({ event, onVisibilityChange }: EventCardProps) {
 interface DashboardContentProps {
   user: any;
   initialEvents: any[];
+  divisionsByEventId?: Record<string, DivisionInfo[]>;
 }
 
-export default function DashboardContent({ user, initialEvents }: DashboardContentProps) {
+export default function DashboardContent({ user, initialEvents, divisionsByEventId = {} }: DashboardContentProps) {
   const [events, setEvents] = useState(initialEvents);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
@@ -157,8 +200,9 @@ export default function DashboardContent({ user, initialEvents }: DashboardConte
               <EventCard
                 key={event.id}
                 event={event}
+                divisions={divisionsByEventId[event.id] ?? []}
                 onVisibilityChange={(eventId, newVisibility) => {
-                  setEvents(events.map(e => 
+                  setEvents(events.map(e =>
                     e.id === eventId ? { ...e, is_visible: newVisibility } : e
                   ));
                 }}

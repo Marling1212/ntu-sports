@@ -1,12 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getEventDivisions } from "@/lib/utils/getSportEvent";
 import AdminNavbar from "@/components/admin/Navbar";
 import AnnouncementsManager from "@/components/admin/AnnouncementsManager";
 import AnnouncementsPageNav from "@/components/admin/AnnouncementsPageNav";
 
-export default async function AnnouncementsPage({ params }: { params: Promise<{ eventId: string }> }) {
+export default async function AnnouncementsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ divisionId?: string }>;
+}) {
   const supabase = await createClient();
   const { eventId } = await params;
+  const { divisionId: divisionIdParam } = await searchParams;
+  const currentDivisionId = divisionIdParam ?? null;
 
   const {
     data: { user },
@@ -49,16 +58,36 @@ export default async function AnnouncementsPage({ params }: { params: Promise<{ 
     .order("pinned_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
 
+  const divisions = await getEventDivisions(eventId);
+  if (divisions.length > 1 && !currentDivisionId) {
+    redirect(`/admin/${eventId}/announcements?divisionId=${divisions[0].id}`);
+  }
+  const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : (divisions[0] ?? null);
+  const effectiveDivisionId = selectedDivision?.id ?? (divisions.length === 1 ? divisions[0].id : null);
+
   return (
     <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
+      <AdminNavbar
+        eventId={eventId}
+        eventName={event?.name}
+        sport={event?.sport}
+        divisions={divisions}
+        currentDivisionId={effectiveDivisionId}
+      />
       <div className="flex">
         <AnnouncementsPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">
           <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">Manage Announcements</h1>
-          <p className="text-lg text-gray-600">{event?.name}</p>
+          <p className="text-lg text-gray-600">
+            {event?.name}
+            {selectedDivision && (
+              <span className="ml-2 text-ntu-green font-medium">
+                · {selectedDivision.name ? `${selectedDivision.sport} – ${selectedDivision.name}` : selectedDivision.sport}
+              </span>
+            )}
+          </p>
           <p className="text-sm text-gray-500 mt-2">
             明日賽程將自動顯示於此頁，不需手動發布
           </p>
