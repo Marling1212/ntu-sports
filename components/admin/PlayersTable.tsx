@@ -35,7 +35,7 @@ export default function PlayersTable({
   const [isAdding, setIsAdding] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [newPlayer, setNewPlayer] = useState<any>({ name: "", department: "", email: "", seed: "" });
-  const [selectedDivisionId, setSelectedDivisionId] = useState<string>(() => defaultDivisionId || divisions[0]?.id ?? "");
+  const [selectedDivisionId, setSelectedDivisionId] = useState<string>(() => (defaultDivisionId || divisions[0]?.id) ?? "");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSeed, setFilterSeed] = useState<string>("all");
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
@@ -98,7 +98,7 @@ export default function PlayersTable({
   }, [initialBlackoutLimit, initialBlackoutTemplates]);
 
   useEffect(() => {
-    const id = defaultDivisionId || divisions[0]?.id ?? "";
+    const id = (defaultDivisionId || divisions[0]?.id) ?? "";
     if (id) setSelectedDivisionId(id);
   }, [defaultDivisionId, divisions]);
 
