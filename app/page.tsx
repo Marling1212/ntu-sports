@@ -43,16 +43,28 @@ export default function Home() {
       try {
         const { data: events } = await supabase
           .from("events")
-          .select("sport")
-          .eq("is_visible", true)
-          .not("sport", "is", null);
+          .select("id, sport")
+          .eq("is_visible", true);
 
-        const uniqueSports = Array.from(
-          new Set((events || []).map((e) => {
-            if (!e.sport) return null;
-            return e.sport.charAt(0).toUpperCase() + e.sport.slice(1).toLowerCase();
-          }).filter(Boolean))
-        ).sort();
+        const visibleEventIds = (events || []).map((e) => e.id).filter(Boolean);
+
+        const sportsFromEvents = (events || [])
+          .map((e) => e.sport)
+          .filter((s): s is string => !!s && typeof s === "string");
+
+        let sportsFromDivisions: string[] = [];
+        if (visibleEventIds.length > 0) {
+          const { data: divisions } = await supabase
+            .from("event_divisions")
+            .select("sport")
+            .in("event_id", visibleEventIds);
+          sportsFromDivisions = (divisions || []).map((d) => d.sport).filter((s): s is string => !!s);
+        }
+
+        const normalize = (s: string) =>
+          s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+        const allSports = [...sportsFromEvents, ...sportsFromDivisions];
+        const uniqueSports = Array.from(new Set(allSports.map(normalize))).sort();
 
         setSportsToShow(uniqueSports.length > 0 ? uniqueSports : ["Tennis"]);
       } catch (error) {
