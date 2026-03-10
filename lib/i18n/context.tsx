@@ -6,7 +6,7 @@ import { Locale, translations, defaultLocale } from "./translations";
 interface I18nContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -31,7 +31,7 @@ export function I18nProvider({ children, initialLocale = defaultLocale }: { chil
     }
   };
 
-  const t = (key: string): string => {
+  const t = (key: string, params?: Record<string, string | number>): string => {
     const keys = key.split('.');
     let value: any = translations[locale];
     
@@ -47,7 +47,16 @@ export function I18nProvider({ children, initialLocale = defaultLocale }: { chil
       }
     }
     
-    return typeof value === 'string' ? value : key;
+    let result = typeof value === 'string' ? value : key;
+    
+    // Replace parameters if provided
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        result = result.replace(new RegExp(`{${k}}`, 'g'), String(v));
+      });
+    }
+    
+    return result;
   };
 
   return (

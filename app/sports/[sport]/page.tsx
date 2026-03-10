@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Metadata } from "next";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
 import { createClient } from "@/lib/supabase/server";
 import { getEventIdsForSport, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
@@ -22,6 +23,23 @@ const sportIcons: { [key: string]: string } = {
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+export async function generateMetadata(context: any): Promise<Metadata> {
+  const params = await context.params;
+  const sportParam = (params?.sport || "").toLowerCase();
+  const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
+  const title = `NTU ${sportName} | 臺大體育賽事`;
+  
+  return {
+    title,
+    description: `NTU ${sportName} tournaments, matches, and standings.`,
+    openGraph: {
+      title,
+      description: `NTU ${sportName} tournaments, matches, and standings.`,
+      type: "website",
+    },
+  };
+}
 
 export default async function SportPage(context: any) {
   const locale = await getLocale();

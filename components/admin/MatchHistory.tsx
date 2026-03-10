@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useI18n } from "@/lib/i18n/context";
 import { Player, Match } from "@/types/database";
 
 interface MatchHistoryProps {
@@ -21,6 +22,8 @@ interface HeadToHead {
 export default function MatchHistory({ players, matches, registrationType = 'player' }: MatchHistoryProps) {
   const [selectedPlayer1, setSelectedPlayer1] = useState<string>("");
   const [selectedPlayer2, setSelectedPlayer2] = useState<string>("");
+  const { t } = useI18n();
+  const typeStr = registrationType === 'team' ? t('admin.registration.entityTeam') : t('admin.registration.entityPlayer');
 
   // Calculate head-to-head records
   const headToHead = useMemo(() => {
@@ -77,20 +80,20 @@ export default function MatchHistory({ players, matches, registrationType = 'pla
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
       <div className="p-6 border-b border-gray-200">
-        <h2 className="text-2xl font-semibold text-ntu-green">歷史對戰記錄</h2>
-        <p className="text-sm text-gray-600 mt-1">查看兩位{registrationType === 'team' ? '隊伍' : '選手'}之間的對戰歷史</p>
+        <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.matchHistory.title')}</h2>
+        <p className="text-sm text-gray-600 mt-1">{t('admin.matchHistory.description', { type: typeStr })}</p>
       </div>
 
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{registrationType === 'team' ? '隊伍' : '選手'} 1</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.matchHistory.player1', { type: typeStr })}</label>
             <select
               value={selectedPlayer1}
               onChange={(e) => setSelectedPlayer1(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
             >
-              <option value="">選擇{registrationType === 'team' ? '隊伍' : '選手'}...</option>
+              <option value="">{t('admin.matchHistory.selectPlayer', { type: typeStr })}</option>
               {players.map(player => (
                 <option key={player.id} value={player.id}>
                   {player.name} {player.department ? `(${player.department})` : ""}
@@ -100,13 +103,13 @@ export default function MatchHistory({ players, matches, registrationType = 'pla
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{registrationType === 'team' ? '隊伍' : '選手'} 2</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.matchHistory.player2', { type: typeStr })}</label>
             <select
               value={selectedPlayer2}
               onChange={(e) => setSelectedPlayer2(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
             >
-              <option value="">選擇{registrationType === 'team' ? '隊伍' : '選手'}...</option>
+              <option value="">{t('admin.matchHistory.selectPlayer', { type: typeStr })}</option>
               {players
                 .filter(p => p.id !== selectedPlayer1)
                 .map(player => (
@@ -122,19 +125,19 @@ export default function MatchHistory({ players, matches, registrationType = 'pla
           <div className="space-y-4">
             {/* Summary */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-3">對戰總覽</h3>
+              <h3 className="font-semibold text-blue-900 mb-3">{t('admin.matchHistory.summary')}</h3>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold text-blue-700">{headToHead.player1Wins}</div>
-                  <div className="text-sm text-blue-600">{headToHead.player1.name} 勝</div>
+                  <div className="text-sm text-blue-600">{t('admin.matchHistory.wins', { name: headToHead.player1.name })}</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-gray-700">{headToHead.draws}</div>
-                  <div className="text-sm text-gray-600">平手</div>
+                  <div className="text-sm text-gray-600">{t('admin.matchHistory.draws')}</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-blue-700">{headToHead.player2Wins}</div>
-                  <div className="text-sm text-blue-600">{headToHead.player2.name} 勝</div>
+                  <div className="text-sm text-blue-600">{t('admin.matchHistory.wins', { name: headToHead.player2.name })}</div>
                 </div>
               </div>
             </div>
@@ -142,15 +145,15 @@ export default function MatchHistory({ players, matches, registrationType = 'pla
             {/* Match Details */}
             {headToHead.matches.length > 0 ? (
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">對戰詳情</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">{t('admin.matchHistory.details')}</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">日期</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">比分</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">獲勝者</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">場地</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('admin.matchHistory.date')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('admin.matchHistory.score')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('admin.matchHistory.winner')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('admin.matchHistory.court')}</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -187,7 +190,7 @@ export default function MatchHistory({ players, matches, registrationType = 'pla
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <p>這兩位{registrationType === 'team' ? '隊伍' : '選手'}尚未有對戰記錄</p>
+                <p>{t('admin.matchHistory.noRecords')}</p>
               </div>
             )}
           </div>
@@ -195,7 +198,7 @@ export default function MatchHistory({ players, matches, registrationType = 'pla
 
         {!headToHead && selectedPlayer1 && selectedPlayer2 && (
           <div className="text-center py-8 text-gray-500">
-            <p>請選擇兩位不同的{registrationType === 'team' ? '隊伍' : '選手'}查看對戰記錄</p>
+            <p>{t('admin.matchHistory.selectDifferent', { type: typeStr })}</p>
           </div>
         )}
       </div>

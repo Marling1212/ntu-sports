@@ -1,5 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import HomeClient, { MultiSportEvent } from "@/components/HomeClient";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "NTU Sports | 臺大體育賽事",
+  description: "NTU Sports Tournament Tracker. View brackets, schedules, and standings for all NTU sports events.",
+  openGraph: {
+    title: "NTU Sports | 臺大體育賽事",
+    description: "NTU Sports Tournament Tracker. View brackets, schedules, and standings for all NTU sports events.",
+    type: "website",
+  },
+};
 
 const sportLabels: { [key: string]: string } = {
   tennis: "Tennis",
@@ -23,6 +34,7 @@ export default async function Home() {
 
   let sportsToShow: string[] = ["Tennis"];
   let multiSportEvents: MultiSportEvent[] = [];
+  let globalSponsors: any[] = [];
 
   try {
     const { data: eventsData } = await supabase
@@ -74,9 +86,19 @@ export default async function Home() {
         });
       }
     });
+
+    const { data: sponsorsData } = await supabase
+      .from("sponsors")
+      .select("*")
+      .is("event_id", null)
+      .order("tier", { ascending: true })
+      .order("name", { ascending: true });
+    
+    globalSponsors = sponsorsData || [];
+
   } catch (error) {
     console.error("Error loading home data:", error);
   }
 
-  return <HomeClient sportsToShow={sportsToShow} multiSportEvents={multiSportEvents} />;
+  return <HomeClient sportsToShow={sportsToShow} multiSportEvents={multiSportEvents} globalSponsors={globalSponsors} />;
 }

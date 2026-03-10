@@ -9,6 +9,7 @@ import {
   EventSlotTemplate,
 } from "@/types/database";
 import SchedulePreviewEditor from "@/components/admin/SchedulePreviewEditor";
+import { useI18n } from "@/lib/i18n/context";
 
 type SlotRecord = EventSlot & { court?: EventCourt | null };
 type SlotTemplateRecord = EventSlotTemplate & { court?: EventCourt | null };
@@ -223,6 +224,7 @@ export default function SchedulingManager({
   initialSlotTemplates,
 }: SchedulingManagerProps) {
   const supabase = createClient();
+  const { t } = useI18n();
 
   const [courts, setCourts] = useState<EventCourt[]>(initialCourts);
   const [slots, setSlots] = useState<SlotRecord[]>(initialSlots);
@@ -921,7 +923,7 @@ export default function SchedulingManager({
         <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-gray-200">
           <div className="w-1 h-8 bg-blue-500 rounded"></div>
           <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-ntu-green">場地管理</h2>
+            <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.scheduling.manageCourts')}</h2>
             <p className="text-sm text-gray-600 mt-1">
               若賽事有多個場地，可在這裡建立並標註資訊。下方所有設定都可引用這些場地。
             </p>
@@ -930,18 +932,18 @@ export default function SchedulingManager({
 
         <form onSubmit={handleAddCourt} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">場地名稱 *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.courtName')} *</label>
             <input
               type="text"
               value={courtForm.name}
               onChange={(e) => setCourtForm({ ...courtForm, name: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              placeholder="例如：Court 1"
+              placeholder="e.g. Court 1"
               required
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">場地類型</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.courtType')}</label>
             <input
               type="text"
               value={courtForm.surface}
@@ -966,7 +968,7 @@ export default function SchedulingManager({
               disabled={submittingCourt}
               className="w-full sm:w-auto bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {submittingCourt ? "新增中..." : "新增場地"}
+              {submittingCourt ? t('admin.loading') : t('admin.scheduling.addCourt')}
             </button>
           </div>
         </form>
@@ -995,7 +997,7 @@ export default function SchedulingManager({
                         onClick={() => handleDeleteCourt(court.id)}
                         className="text-red-600 hover:text-red-700 font-semibold"
                       >
-                        刪除
+                        {t('admin.delete')}
                       </button>
                     </td>
                   </tr>
@@ -1010,7 +1012,7 @@ export default function SchedulingManager({
         <div className="flex items-center gap-3 pb-3 border-b-2 border-gray-200">
           <div className="w-1 h-8 bg-purple-500 rounded"></div>
           <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-ntu-green">每週比賽時段模板</h2>
+            <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.scheduling.templates')}</h2>
             <p className="text-sm text-gray-600 mt-1">
               定義「每週哪些時段可以排比賽」（例如週一 18:00–20:00、週三 18:00–20:00）。同一套時段會作為<strong>選手頁「不可出賽」</strong>的選項；建立後可在此頁用「依模板生成時段」產出下面的「所有可用時段」。
             </p>
@@ -1020,7 +1022,7 @@ export default function SchedulingManager({
         <div className="border-2 border-dashed border-purple-300 rounded-lg p-4 mb-6 bg-purple-50/30">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-800">📥 匯入每週模板（含代號）</h3>
+              <h3 className="text-lg font-semibold text-gray-800">{t('admin.scheduling.importCsv')}</h3>
               <p className="text-sm text-gray-600">
                 <strong>資料結構（7 欄，前 4 欄必填）：</strong>
               </p>
@@ -1157,7 +1159,7 @@ export default function SchedulingManager({
               disabled={submittingSlotTemplate}
               className="w-full bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {submittingSlotTemplate ? "新增中..." : "新增模板"}
+              {submittingSlotTemplate ? t('admin.loading') : t('admin.add')}
             </button>
           </div>
         </form>
@@ -1183,7 +1185,7 @@ export default function SchedulingManager({
                         onClick={() => handleDeleteSlotTemplate(template.id)}
                         className="text-red-600 hover:text-red-700 font-semibold"
                       >
-                        刪除
+                        {t('admin.delete')}
                       </button>
                     </div>
                   ))}
@@ -1237,7 +1239,7 @@ export default function SchedulingManager({
         <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-gray-200">
           <div className="w-1 h-8 bg-indigo-500 rounded"></div>
           <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-ntu-green">所有可用時段</h2>
+            <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.scheduling.availableSlots')}</h2>
             <p className="text-sm text-gray-600 mt-1">
               由上方「每週時段模板」依日期區間<strong>生成</strong>的實際日曆時段（例如 2025/3/10 18:00–20:00），或手動新增。排程演算法會用這些 slot 來排比賽。
             </p>
@@ -1249,7 +1251,7 @@ export default function SchedulingManager({
               disabled={deletingAllSlots}
               className="shrink-0 px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors disabled:opacity-50"
             >
-              {deletingAllSlots ? "刪除中…" : "刪除全部"}
+              {deletingAllSlots ? t('admin.loading') : t('admin.scheduling.deleteAll')}
             </button>
           )}
         </div>
@@ -1338,7 +1340,7 @@ export default function SchedulingManager({
               disabled={submittingSlot}
               className="w-full sm:w-auto bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {submittingSlot ? "新增中..." : "新增時段"}
+              {submittingSlot ? t('admin.loading') : t('admin.add')}
             </button>
           </div>
         </form>
@@ -1389,7 +1391,7 @@ export default function SchedulingManager({
         <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-gray-200">
           <div className="w-1 h-8 bg-emerald-600 rounded"></div>
           <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-ntu-green">一鍵排程</h2>
+            <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.scheduling.autoSchedule')}</h2>
             <p className="text-sm text-gray-600 mt-1">
               依「所有可用時段」與各時段的<strong>場地數（capacity）</strong>、選手頁設定的<strong>不可出賽</strong>自動分配時段；演算法會避免<strong>同一隊伍連續出賽</strong>（可設時段間隔與日曆天間隔）。建議先「預覽排程」確認後再儲存，並可拖曳調整。
             </p>
@@ -1429,7 +1431,7 @@ export default function SchedulingManager({
               onChange={(e) => setAutoScheduleClearExisting(e.target.checked)}
               className="h-4 w-4"
             />
-            清除既有排程後重排
+            {t('admin.scheduling.clearExisting')}
           </label>
           <button
             type="button"
@@ -1437,7 +1439,7 @@ export default function SchedulingManager({
             disabled={autoScheduling}
             className="bg-emerald-700 text-white px-5 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {autoScheduling ? "產生中…" : "預覽排程（可拖曳編輯）"}
+            {autoScheduling ? t('admin.loading') : t('admin.scheduling.previewSchedule')}
           </button>
           <button
             type="button"
@@ -1445,7 +1447,7 @@ export default function SchedulingManager({
             disabled={autoScheduling}
             className="bg-emerald-600 text-white px-5 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {autoScheduling ? "排程中…" : "直接排程（不預覽）"}
+            {autoScheduling ? t('admin.loading') : t('admin.scheduling.directSchedule')}
           </button>
         </div>
         <p className="mt-3 text-xs text-gray-500">

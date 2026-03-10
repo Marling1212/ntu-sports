@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
 import Link from "next/link";
 import CountdownTimerWrapper from "@/components/CountdownTimerWrapper";
 import MarkdownText from "@/components/MarkdownText";
@@ -12,6 +13,34 @@ import EventSponsorBanner from "@/components/EventSponsorBanner";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ sport: string; eventId: string }>;
+}): Promise<Metadata> {
+  const resolvedParams = await params;
+  const event = await getEventByIdAndSport(resolvedParams.eventId, resolvedParams.sport.toLowerCase());
+  
+  if (!event) {
+    return {
+      title: 'Event Not Found | NTU Sports',
+    };
+  }
+
+  const title = `${event.name} | 臺大體育賽事`;
+  const description = event.description || `View schedules, draws, and announcements for ${event.name}.`;
+  
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+    },
+  };
+}
 
 // Sport icons mapping
 const sportIcons: { [key: string]: string } = {

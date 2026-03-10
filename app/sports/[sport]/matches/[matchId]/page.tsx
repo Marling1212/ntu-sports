@@ -1,10 +1,52 @@
 import { createClient } from "@/lib/supabase/server";
+import { Metadata } from "next";
 import PublicNavbar from "@/components/PublicNavbar";
 import MatchDetailView from "@/components/MatchDetailView";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ sport: string; matchId: string }>;
+}): Promise<Metadata> {
+  const resolvedParams = await params;
+  const matchId = resolvedParams.matchId;
+  const sportParam = (resolvedParams.sport || "").toLowerCase();
+  const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
+
+  const supabase = await createClient();
+  const { data: match } = await supabase
+    .from("matches")
+    .select(`
+      *,
+      player1:players!matches_player1_id_fkey(name),
+      player2:players!matches_player2_id_fkey(name)
+    `)
+    .eq("id", matchId)
+    .single();
+
+  if (!match) {
+    return { title: 'Match Not Found | NTU Sports' };
+  }
+
+  const p1 = match.player1?.name || "TBD";
+  const p2 = match.player2?.name || "TBD";
+  const title = `${p1} vs ${p2} | NTU ${sportName}`;
+  const description = `View match stats, details, and results for ${p1} vs ${p2} in NTU ${sportName}.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+    },
+  };
+}
 
 export default async function MatchDetailPage(context: any) {
   const supabase = await createClient();

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import TiebreakerConfigEditor from "./TiebreakerConfigEditor";
+import { useI18n } from "@/lib/i18n/context";
 
 interface TournamentRule {
   id: string;
@@ -111,6 +112,7 @@ export default function SettingsContent({
   
   // Event metadata state
   const [eventData, setEventData] = useState<EventData>(initialEventData);
+  const { t } = useI18n();
   
   // Sponsors modal state
   const [showSponsorModal, setShowSponsorModal] = useState(false);
@@ -715,13 +717,13 @@ export default function SettingsContent({
       <div className="space-y-8">
       {/* 基本資訊 */}
       <div id="settings-basic" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-6">基本資訊設定</h2>
+          <h2 className="text-2xl font-semibold text-ntu-green mb-6">{t('admin.basicInfo')}</h2>
           
           <div className="space-y-6">
             {/* Event Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                賽事名稱 (Event Name) *
+                {t('admin.eventName')} *
               </label>
               <input
                 type="text"
@@ -735,7 +737,7 @@ export default function SettingsContent({
             {/* Sport Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                運動類型 (Sport/Game) *
+                {t('admin.sportType')} *
               </label>
               <select
                 value={eventData.sport}
@@ -760,7 +762,7 @@ export default function SettingsContent({
             {/* Tournament Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                賽事模式 (Tournament Type) *
+                {t('admin.tournamentMode')} *
               </label>
               <select
                 value={eventData.tournamentType}
@@ -776,7 +778,7 @@ export default function SettingsContent({
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  開始日期 (Start Date) *
+                  {t('admin.dates')} (Start) *
                 </label>
                 <input
                   type="date"
@@ -790,7 +792,7 @@ export default function SettingsContent({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  結束日期 (End Date) *
+                  {t('admin.dates')} (End) *
                 </label>
                 <input
                   type="date"
@@ -807,7 +809,7 @@ export default function SettingsContent({
             {/* Venue */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                比賽場地 (Venue) *
+                {t('admin.venue')}
               </label>
               <input
                 type="text"
@@ -821,7 +823,7 @@ export default function SettingsContent({
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                賽事描述 (Description)
+                {t('admin.description')}
               </label>
               <textarea
                 value={eventData.description}
@@ -1642,9 +1644,9 @@ export default function SettingsContent({
       {/* Danger Zone */}
       <div className="mt-10">
         <div className="bg-white rounded-xl border-2 border-red-300 p-6">
-          <h3 className="text-xl font-semibold text-red-600 mb-2">Danger Zone</h3>
+          <h3 className="text-xl font-semibold text-red-600 mb-2">{t('admin.dangerZone')}</h3>
           <p className="text-sm text-red-600 mb-4">
-            刪除此賽事將永久移除所有相關資料（選手、比賽、時段、場地、公告、賽程、黑名單等），且無法復原。請謹慎操作。
+            {t('admin.dangerZoneDesc')}
           </p>
           {!showDanger ? (
             <button

@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/lib/i18n/context";
 import LoadingLink from "@/components/LoadingLink";
+import GlobalSponsorBanner, { GlobalSponsorItem } from "@/components/GlobalSponsorBanner";
 
 const sportIcons: { [key: string]: string } = {
   Tennis: "🎾",
@@ -37,9 +38,10 @@ export interface MultiSportEvent {
 interface HomeClientProps {
   sportsToShow: string[];
   multiSportEvents: MultiSportEvent[];
+  globalSponsors?: GlobalSponsorItem[];
 }
 
-export default function HomeClient({ sportsToShow, multiSportEvents }: HomeClientProps) {
+export default function HomeClient({ sportsToShow, multiSportEvents, globalSponsors = [] }: HomeClientProps) {
   const { t } = useI18n();
 
   return (
@@ -146,6 +148,9 @@ export default function HomeClient({ sportsToShow, multiSportEvents }: HomeClien
           </div>
         </div>
       )}
+
+      {/* Global Sponsors */}
+      <GlobalSponsorBanner sponsors={globalSponsors} />
     </div>
   );
 }

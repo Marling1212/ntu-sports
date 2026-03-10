@@ -13,6 +13,15 @@ export default async function DashboardPage() {
     redirect("/admin/login");
   }
 
+  // Check if user is a platform admin
+  const { data: platformAdmin } = await supabase
+    .from("platform_admins")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  const isPlatformAdmin = !!platformAdmin;
+
   // Get events where user is an organizer
   const { data: organizers, error: organizersError } = await supabase
     .from("organizers")
@@ -50,6 +59,6 @@ export default async function DashboardPage() {
     }
   }
 
-  return <DashboardContent user={user} initialEvents={events} divisionsByEventId={divisionsByEventId} />;
+  return <DashboardContent user={user} initialEvents={events} divisionsByEventId={divisionsByEventId} isPlatformAdmin={isPlatformAdmin} />;
 }
 

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
+import { useI18n } from "@/lib/i18n/context";
 import { Player, Event, BracketEditHistory } from "@/types/database";
 
 interface ManualBracketEditorProps {
@@ -18,6 +19,7 @@ interface BracketPosition {
 
 export default function ManualBracketEditor({ eventId, players, defaultDivisionId }: ManualBracketEditorProps) {
   const supabase = createClient();
+  const { t } = useI18n();
   const divisionPayload = defaultDivisionId ? { division_id: defaultDivisionId } : {};
   const [loading, setLoading] = useState(false);
   const [hasThirdPlaceMatch, setHasThirdPlaceMatch] = useState(true);
@@ -615,7 +617,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
     return (
       <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
         <h3 className="text-xl font-semibold text-ntu-green mb-4">
-          手動分配籤表
+          {t('admin.manualBracket.title')}
         </h3>
         <p className="text-gray-600">
           至少需要 2 位選手才能生成籤表。目前有 {players.length} 位選手。
@@ -665,7 +667,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
               )}
               <div>
                 <p className="font-semibold text-gray-800">
-                  籤表狀態：{getGenerationMethodText() || '未生成'}
+                  {t('admin.manualBracket.status')}{getGenerationMethodText() || '未生成'}
                   {isLocked && <span className="ml-2 text-red-600">（已鎖定）</span>}
                 </p>
                 {event.bracket_generated_at && (
@@ -680,21 +682,21 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
                 onClick={loadAndShowHistory}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium border border-gray-300"
               >
-                📋 查看歷史
+                📋 {t('admin.manualBracket.history')}
               </button>
               {isLocked ? (
                 <button
                   onClick={() => setShowUnlockModal(true)}
                   className="px-4 py-2 bg-ntu-green text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
                 >
-                  🔓 解鎖編輯
+                  🔓 {t('admin.manualBracket.unlockBracket')}
                 </button>
               ) : (
                 <button
                   onClick={handleLock}
                   className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
                 >
-                  🔒 鎖定籤表
+                  🔒 {t('admin.manualBracket.lockBracket')}
                 </button>
               )}
             </div>
@@ -744,14 +746,14 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
       {showUnlockModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">解鎖籤表</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">{t('admin.manualBracket.unlockBracket')}</h3>
             <p className="text-gray-600 mb-4">
-              解鎖後可以編輯籤表。請填寫解鎖原因以記錄在審計日誌中。
+              {t('admin.manualBracket.unlockDetails')}
             </p>
             <textarea
               value={unlockReason}
               onChange={(e) => setUnlockReason(e.target.value)}
-              placeholder="例如：需要調整選手位置、修正錯誤等..."
+              placeholder={t('admin.manualBracket.unlockReason')}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green mb-4"
               rows={4}
             />
@@ -770,7 +772,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
                 disabled={!unlockReason.trim()}
                 className="px-4 py-2 bg-ntu-green text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                確認解鎖
+                {t('admin.manualBracket.confirmUnlock')}
               </button>
             </div>
           </div>
@@ -780,10 +782,10 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
       <div className="flex items-start justify-between mb-6">
         <div>
           <h3 className="text-xl font-semibold text-ntu-green mb-2">
-            🎯 手動分配籤表
+            🎯 {t('admin.manualBracket.title')}
           </h3>
           <p className="text-sm text-gray-600">
-            拖曳選手到籤表位置，或點擊位置後從下拉選單選擇選手
+            {t('admin.manualBracket.dragHint')}
             {isLocked && <span className="text-red-600 ml-2">（目前鎖定中）</span>}
           </p>
         </div>
@@ -793,14 +795,14 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
             disabled={isLocked}
             className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            清除全部
+            {t('admin.manualBracket.clearAll')}
           </button>
           <button
             onClick={handleAutoFill}
             disabled={unassignedPlayers.length === 0 || isLocked}
             className="px-4 py-2 text-sm border border-ntu-green text-ntu-green rounded-lg hover:bg-ntu-green hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            自動填充
+            {t('admin.manualBracket.autoAssign')}
           </button>
         </div>
       </div>
@@ -831,7 +833,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
             htmlFor="thirdPlaceMatch"
             className="text-sm text-gray-700 cursor-pointer hover:text-ntu-green"
           >
-            🥉 舉辦季軍賽（準決賽敗者爭奪第三名）
+            🥉 {t('admin.manualBracket.thirdPlace')}
           </label>
         </div>
       )}

@@ -7,6 +7,7 @@ import { Player, TeamMember, EventSlotTemplate, TeamBlackoutTemplate, EventDivis
 import BulkPlayerImport from "./BulkPlayerImport";
 import BulkTeamMemberImport from "./BulkTeamMemberImport";
 import { getEnabledFields, getFieldConfig, getCustomFields, getDefaultFieldConfig, type FieldConfig } from "@/lib/utils/fieldConfig";
+import { useI18n } from "@/lib/i18n/context";
 
 const WEEKDAY_LABELS = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
 
@@ -51,6 +52,7 @@ export default function PlayersTable({
   const [savingBlackoutLimit, setSavingBlackoutLimit] = useState(false);
   const [addingBlackoutForPlayer, setAddingBlackoutForPlayer] = useState<string | null>(null);
   const supabase = createClient();
+  const { t } = useI18n();
 
   // Load field configuration
   useEffect(() => {
@@ -489,7 +491,7 @@ export default function PlayersTable({
         {/* 不可出賽時段上限 - 以周為單位，每隊可申報的上限 */}
         <div className="px-6 py-4 bg-amber-50 border-b border-amber-100">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-medium text-gray-800">不可出賽時段上限（每隊每週）：</span>
+            <span className="text-sm font-medium text-gray-800">{t('admin.registration.blackoutLimit')}</span>
             <input
               type="number"
               min={0}
@@ -519,7 +521,7 @@ export default function PlayersTable({
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold text-ntu-green">
-              {registrationType === 'team' ? '隊伍列表' : '選手列表'}
+              {registrationType === 'team' ? t('admin.registration.titleTeam') : t('admin.registration.titlePlayer')}
             </h2>
             <div className="text-sm text-gray-500">
               顯示 {filteredPlayers.length} / {players.length} {registrationType === 'team' ? '支隊伍' : '位選手'}
@@ -532,7 +534,7 @@ export default function PlayersTable({
             <div className="md:col-span-2">
               <input
                 type="text"
-                placeholder={registrationType === 'team' ? "搜尋隊伍名稱、科系或 Email..." : "搜尋選手名稱、科系或 Email..."}
+                placeholder={registrationType === 'team' ? t('admin.registration.searchTeam') : t('admin.registration.searchPlayer')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
@@ -546,9 +548,9 @@ export default function PlayersTable({
                 onChange={(e) => setFilterSeed(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
               >
-                <option value="all">{registrationType === 'team' ? '所有隊伍' : '所有選手'}</option>
-                <option value="seeded">有種子序號</option>
-                <option value="unseeded">無種子序號</option>
+                <option value="all">{registrationType === 'team' ? t('admin.registration.allTeams') : t('admin.registration.allPlayers')}</option>
+                <option value="seeded">{t('admin.registration.seeded')}</option>
+                <option value="unseeded">{t('admin.registration.unseeded')}</option>
               </select>
             </div>
           </div>
@@ -563,7 +565,7 @@ export default function PlayersTable({
                 }}
                 className="text-sm text-ntu-green hover:underline"
               >
-                ✕ 清除所有篩選
+                ✕ {t('admin.registration.clearFilters')}
               </button>
             </div>
           )}
@@ -574,7 +576,7 @@ export default function PlayersTable({
                 onClick={handleDeleteAll}
                 className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-medium border-2 border-red-200 hover:bg-red-600 hover:text-white transition-colors"
               >
-                🗑️ Delete All
+                🗑️ {t('admin.registration.deleteAll')}
               </button>
             )}
             <button
@@ -587,7 +589,7 @@ export default function PlayersTable({
               onClick={() => setIsAdding(!isAdding)}
               className="bg-ntu-green text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
-              {isAdding ? "Cancel" : `+ Add ${registrationType === 'team' ? 'Team' : 'Player'}`}
+              {isAdding ? t('admin.cancel') : `+ ${registrationType === 'team' ? t('admin.registration.addTeam') : t('admin.registration.addPlayer')}`}
             </button>
           </div>
         </div>
@@ -713,13 +715,13 @@ export default function PlayersTable({
                   </th>
                 ))}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  {t('admin.registration.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  不可出賽
+                  {t('admin.registration.blackouts')}
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {t('admin.actions')}
                 </th>
               </tr>
             </thead>

@@ -14,9 +14,10 @@ interface DashboardContentProps {
   user: any;
   initialEvents: any[];
   divisionsByEventId?: Record<string, DivisionInfo[]>;
+  isPlatformAdmin?: boolean;
 }
 
-export default function DashboardContent({ user, initialEvents, divisionsByEventId = {} }: DashboardContentProps) {
+export default function DashboardContent({ user, initialEvents, divisionsByEventId = {}, isPlatformAdmin = false }: DashboardContentProps) {
   const [events, setEvents] = useState(initialEvents);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
@@ -46,6 +47,14 @@ export default function DashboardContent({ user, initialEvents, divisionsByEvent
             >
               + Create Event
             </button>
+            {isPlatformAdmin && (
+              <Link
+                href="/admin/sponsors"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
+              >
+                🌍 Global Sponsors
+              </Link>
+            )}
             <LogoutButton />
           </div>
         </div>

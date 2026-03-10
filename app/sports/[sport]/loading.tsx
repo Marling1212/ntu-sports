@@ -8,7 +8,7 @@ export default function SportLoading() {
         <SkeletonLoader variant="text" lines={2} className="max-w-md mx-auto" />
       </div>
       <div className="flex justify-center">
-        <LoadingSpinner size="lg" text="載入賽事資料中..." />
+        <LoadingSpinner size="lg" />
       </div>
     </div>
   );

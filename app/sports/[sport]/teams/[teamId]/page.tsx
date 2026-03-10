@@ -1,11 +1,54 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSportEvent } from "@/lib/utils/getSportEvent";
+import { Metadata } from "next";
 import PublicNavbar from "@/components/PublicNavbar";
 import TeamDetailView from "@/components/TeamDetailView";
 import { notFound } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ sport: string; teamId: string }>;
+}): Promise<Metadata> {
+  const resolvedParams = await params;
+  const teamId = resolvedParams.teamId;
+  const sportParam = (resolvedParams.sport || "").toLowerCase();
+  const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
+
+  const event = sportParam ? await getSportEvent(sportParam) : null;
+  
+  if (!event || !teamId) {
+    return { title: 'Not Found | NTU Sports' };
+  }
+
+  const supabase = await createClient();
+  const { data: team } = await supabase
+    .from("players")
+    .select("name, department")
+    .eq("id", teamId)
+    .eq("event_id", event.id)
+    .single();
+
+  if (!team) {
+    return { title: 'Not Found | NTU Sports' };
+  }
+
+  const title = `${team.name} | NTU ${sportName}`;
+  const description = `View profile, match history, and statistics for ${team.name} (${team.department || 'NTU'}) in NTU ${sportName}.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+    },
+  };
+}
 
 export default async function TeamDetailPage(context: any) {
   const supabase = await createClient();
