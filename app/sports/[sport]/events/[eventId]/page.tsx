@@ -68,7 +68,7 @@ export default async function SportEventPage({
   const latestAnnouncement = (announcements || [])[0];
 
   return (
-    <div className="container mx-auto px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
+    <div className="container mx-auto px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
       {/* Header Section */}
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-ntu-green mb-4">

@@ -46,7 +46,7 @@ export default async function SportEventRulesPage({
   return (
     <>
       <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
-      <div className="pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
+      <div className="pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
         <EventScheduleContent
           event={event}
           rules={rules || []}

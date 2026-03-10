@@ -58,8 +58,8 @@ export default function PublicNavbar({ eventName, tournamentType }: PublicNavbar
         {/* Mobile Layout: Compact top + Bottom nav */}
         <div className="md:hidden py-3">
           {/* Breadcrumb + Language + Back - compact top bar */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-xs overflow-x-auto min-w-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-2">
+            <div className="flex items-center gap-1.5 text-xs overflow-x-auto min-w-0 pb-1 sm:pb-0">
               <Link href="/" className="text-gray-500 hover:text-ntu-green transition-colors whitespace-nowrap shrink-0">
                 {t("home.title")}
               </Link>

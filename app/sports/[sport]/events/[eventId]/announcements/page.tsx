@@ -22,7 +22,7 @@ export default async function SportEventAnnouncementsPage({
   return (
     <>
       <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
-      <div className="pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
+      <div className="pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
         <AnnouncementsPageClient announcements={announcements} />
       </div>
     </>

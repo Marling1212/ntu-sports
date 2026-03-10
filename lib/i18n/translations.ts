@@ -510,7 +510,7 @@ export const translations = {
       schedule: 'Games',
       playoffs: 'Playoffs',
       announcements: 'Announcements',
-      rules: 'Rules & schedule times',
+      rules: 'Rules',
       backToSport: 'Back to {sport}',
       drawDescription: 'View tournament draw and bracket information',
       scheduleDescription: 'View games and match times',
