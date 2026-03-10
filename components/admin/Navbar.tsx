@@ -71,10 +71,10 @@ export default function AdminNavbar({ eventId, eventName, sport, divisions = [],
                 {t("admin.matches")}
               </Link>
               <Link href={`/admin/${eventId}/scheduling${q}`} className="hover:opacity-80 transition-opacity">
-                排程
+                {t("admin.schedule")}
               </Link>
               <Link href={`/admin/${eventId}/announcements${q}`} className="hover:opacity-80 transition-opacity">
-                公告
+                {t("admin.announcements")}
               </Link>
               <Link href={`/admin/${eventId}/brackets${q}`} className="hover:opacity-80 transition-opacity">
                 {t("admin.brackets")}

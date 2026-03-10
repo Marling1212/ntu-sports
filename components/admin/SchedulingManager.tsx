@@ -53,7 +53,6 @@ interface SlotTemplateGenerateFormState {
   includeExisting: boolean;
 }
 
-const WEEKDAY_LABELS = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
 const TAIPEI_TZ = "Asia/Taipei";
 
 const emptySlotForm: SlotFormState = {
@@ -225,6 +224,7 @@ export default function SchedulingManager({
 }: SchedulingManagerProps) {
   const supabase = createClient();
   const { t } = useI18n();
+  const WEEKDAY_LABELS = [t("admin.weekday0"), t("admin.weekday1"), t("admin.weekday2"), t("admin.weekday3"), t("admin.weekday4"), t("admin.weekday5"), t("admin.weekday6")];
 
   const [courts, setCourts] = useState<EventCourt[]>(initialCourts);
   const [slots, setSlots] = useState<SlotRecord[]>(initialSlots);
@@ -332,7 +332,7 @@ export default function SchedulingManager({
   const handleAddCourt = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!courtForm.name.trim()) {
-      toast.error("請輸入場地名稱");
+      toast.error(t("admin.scheduling.enterCourtName"));
       return;
     }
 
@@ -358,17 +358,17 @@ export default function SchedulingManager({
 
       setCourts([...courts, data as EventCourt]);
       setCourtForm(emptyCourtForm);
-      toast.success("新增場地成功");
+      toast.success(t("admin.scheduling.courtAddedSuccess"));
     } catch (error: any) {
       console.error("Add court error", error);
-      toast.error(error?.message || "新增失敗");
+      toast.error(error?.message || t("admin.error"));
     } finally {
       setSubmittingCourt(false);
     }
   };
 
   const handleDeleteCourt = async (courtId: string) => {
-    if (!confirm("確定要刪除這個場地嗎？已排定於此場地的時段會保留但不再連結")) {
+    if (!confirm(t("admin.scheduling.confirmDeleteCourt"))) {
       return;
     }
 
@@ -394,24 +394,24 @@ export default function SchedulingManager({
         ),
       );
 
-      toast.success("場地已刪除");
+      toast.success(t("admin.scheduling.courtDeleted"));
     } catch (error: any) {
       console.error("Delete court error", error);
-      toast.error(error?.message || "刪除失敗");
+      toast.error(error?.message || t("admin.error"));
     }
   };
 
   const handleAddSlot = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!slotForm.date || !slotForm.start || !slotForm.end) {
-      toast.error("請完整填寫日期與時間");
+      toast.error(t("admin.scheduling.fillDateAndTime"));
       return;
     }
 
     const start = parseTime(slotForm.start);
     const end = parseTime(slotForm.end);
     if (start >= end) {
-      toast.error("結束時間必須晚於開始時間");
+      toast.error(t("admin.scheduling.endAfterStart"));
       return;
     }
 
@@ -441,17 +441,17 @@ export default function SchedulingManager({
 
       setSlots([...slots, data as SlotRecord]);
       setSlotForm(emptySlotForm);
-      toast.success("新增可用時段成功");
+      toast.success(t("admin.scheduling.slotAddedSuccess"));
     } catch (error: any) {
       console.error("Add slot error", error);
-      toast.error(error?.message || "新增失敗");
+      toast.error(error?.message || t("admin.error"));
     } finally {
       setSubmittingSlot(false);
     }
   };
 
   const handleDeleteSlot = async (slotId: string) => {
-    if (!confirm("確定要刪除此時段嗎？已指派到這個時段的比賽會保留 slot_id = null")) {
+    if (!confirm(t("admin.scheduling.confirmDeleteSlot"))) {
       return;
     }
 
@@ -464,19 +464,19 @@ export default function SchedulingManager({
       if (error) throw error;
 
       setSlots(slots.filter((slot) => slot.id !== slotId));
-      toast.success("時段已刪除");
+      toast.success(t("admin.scheduling.slotDeleted"));
     } catch (error: any) {
       console.error("Delete slot error", error);
-      toast.error(error?.message || "刪除失敗");
+      toast.error(error?.message || t("admin.error"));
     }
   };
 
   const handleDeleteAllSlots = async () => {
     if (slots.length === 0) {
-      toast("目前沒有任何時段可刪除。", { icon: "ℹ️" });
+      toast(t("admin.scheduling.noSlotsToDelete"), { icon: "ℹ️" });
       return;
     }
-    if (!confirm(`確定要刪除全部 ${slots.length} 筆可用時段嗎？已指派到這些時段的比賽會改為未排程。`)) {
+    if (!confirm(t("admin.scheduling.confirmDeleteAllSlots", { n: slots.length }))) {
       return;
     }
     setDeletingAllSlots(true);
@@ -487,10 +487,10 @@ export default function SchedulingManager({
         .eq("event_id", eventId);
       if (error) throw error;
       setSlots([]);
-      toast.success("已刪除全部可用時段");
+      toast.success(t("admin.scheduling.allSlotsDeleted"));
     } catch (error: any) {
       console.error("Delete all slots error", error);
-      toast.error(error?.message || "刪除失敗");
+      toast.error(error?.message || t("admin.error"));
     } finally {
       setDeletingAllSlots(false);
     }
@@ -499,14 +499,14 @@ export default function SchedulingManager({
   const handleAddSlotTemplate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!slotTemplateForm.start || !slotTemplateForm.end) {
-      toast.error("請填寫開始與結束時間");
+      toast.error(t("admin.scheduling.fillStartEnd"));
       return;
     }
 
     const start = parseTime(slotTemplateForm.start);
     const end = parseTime(slotTemplateForm.end);
     if (start >= end) {
-      toast.error("結束時間必須晚於開始時間");
+      toast.error(t("admin.scheduling.endAfterStart"));
       return;
     }
 
@@ -536,17 +536,17 @@ export default function SchedulingManager({
 
       setSlotTemplates([...slotTemplates, data as SlotTemplateRecord]);
       setSlotTemplateForm(emptySlotTemplateForm);
-      toast.success("已新增每週時段模板");
+      toast.success(t("admin.scheduling.templateAdded"));
     } catch (error: any) {
       console.error("Add slot template error", error);
-      toast.error(error?.message || "新增失敗");
+      toast.error(error?.message || t("admin.error"));
     } finally {
       setSubmittingSlotTemplate(false);
     }
   };
 
   const handleDeleteSlotTemplate = async (templateId: string) => {
-    if (!confirm("確定要刪除此模板嗎？")) return;
+    if (!confirm(t("admin.scheduling.confirmDeleteTemplate"))) return;
     try {
       const { error } = await supabase
         .from("event_slot_templates")
@@ -556,29 +556,29 @@ export default function SchedulingManager({
       if (error) throw error;
 
       setSlotTemplates(slotTemplates.filter((template) => template.id !== templateId));
-      toast.success("模板已刪除");
+      toast.success(t("admin.scheduling.templateDeleted"));
     } catch (error: any) {
       console.error("Delete slot template error", error);
-      toast.error(error?.message || "刪除失敗");
+      toast.error(error?.message || t("admin.error"));
     }
   };
 
   const handleGenerateSlotsFromTemplates = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!slotTemplateGenerateForm.startDate || !slotTemplateGenerateForm.endDate) {
-      toast.error("請選擇套用的起訖日期");
+      toast.error(t("admin.scheduling.selectDateRange"));
       return;
     }
 
     if (slotTemplates.length === 0) {
-      toast.error("請先建立至少一個每週時段模板");
+      toast.error(t("admin.scheduling.addOneTemplateFirst"));
       return;
     }
 
     const startDate = parseDateOnly(slotTemplateGenerateForm.startDate);
     const endDate = parseDateOnly(slotTemplateGenerateForm.endDate);
     if (startDate > endDate) {
-      toast.error("結束日期必須晚於開始日期");
+      toast.error(t("admin.scheduling.endAfterStartDate"));
       return;
     }
 
@@ -625,7 +625,7 @@ export default function SchedulingManager({
     }
 
     if (records.length === 0) {
-      toast("沒有新增任何時段，可能是已存在或日期未對應模板。", { icon: "ℹ️" });
+      toast(t("admin.scheduling.noNewSlots"), { icon: "ℹ️" });
       return;
     }
 
@@ -645,10 +645,10 @@ export default function SchedulingManager({
 
       setSlots([...slots, ...inserted]);
       setSlotTemplateGenerateForm(emptySlotTemplateGenerateForm);
-      toast.success(`已新增 ${inserted.length} 筆時段`);
+      toast.success(t("admin.scheduling.slotsGeneratedCount", { n: inserted.length }));
     } catch (error: any) {
       console.error("Generate slots error", error);
-      toast.error(error?.message || "生成失敗");
+      toast.error(error?.message || t("admin.error"));
     } finally {
       setGeneratingSlots(false);
     }
@@ -666,7 +666,7 @@ export default function SchedulingManager({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "每週時段模板範例.csv";
+    a.download = t("admin.scheduling.sampleFileName");
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -871,7 +871,7 @@ export default function SchedulingManager({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.message || "預覽失敗");
+        toast.error(data.message || t("admin.error"));
         return;
       }
       if (data.dryRun && data.slots && data.assignments && data.matches) {
@@ -883,7 +883,7 @@ export default function SchedulingManager({
         });
       }
     } catch (e: any) {
-      toast.error(e?.message || "預覽失敗");
+      toast.error(e?.message || t("admin.error"));
     } finally {
       setAutoScheduling(false);
     }
@@ -903,7 +903,7 @@ export default function SchedulingManager({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.message || "自動排程失敗");
+        toast.error(data.message || t("admin.error"));
         return;
       }
       toast.success(data.message);
@@ -911,7 +911,7 @@ export default function SchedulingManager({
         window.location.href = `/admin/${eventId}/matches`;
       }
     } catch (e: any) {
-      toast.error(e?.message || "自動排程失敗");
+      toast.error(e?.message || t("admin.error"));
     } finally {
       setAutoScheduling(false);
     }
@@ -925,7 +925,7 @@ export default function SchedulingManager({
           <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.scheduling.manageCourts')}</h2>
             <p className="text-sm text-gray-600 mt-1">
-              若賽事有多個場地，可在這裡建立並標註資訊。下方所有設定都可引用這些場地。
+              {t('admin.scheduling.courtsIntro')}
             </p>
           </div>
         </div>
@@ -953,13 +953,13 @@ export default function SchedulingManager({
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">備註</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.notes')}</label>
             <input
               type="text"
               value={courtForm.notes}
               onChange={(e) => setCourtForm({ ...courtForm, notes: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              placeholder="例如：有照明設備"
+              placeholder={t('admin.scheduling.notes')}
             />
           </div>
           <div>
@@ -974,16 +974,16 @@ export default function SchedulingManager({
         </form>
 
         {courts.length === 0 ? (
-          <p className="text-sm text-gray-500">尚未建立任何場地。</p>
+          <p className="text-sm text-gray-500">{t('admin.scheduling.noCourtsYet')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 text-gray-700 uppercase">
                 <tr>
-                  <th className="px-4 py-2 text-left">名稱</th>
-                  <th className="px-4 py-2 text-left">類型</th>
-                  <th className="px-4 py-2 text-left">備註</th>
-                  <th className="px-4 py-2 text-right">操作</th>
+                  <th className="px-4 py-2 text-left">{t('admin.scheduling.name')}</th>
+                  <th className="px-4 py-2 text-left">{t('admin.scheduling.type')}</th>
+                  <th className="px-4 py-2 text-left">{t('admin.scheduling.notes')}</th>
+                  <th className="px-4 py-2 text-right">{t('admin.scheduling.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1014,7 +1014,7 @@ export default function SchedulingManager({
           <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.scheduling.templates')}</h2>
             <p className="text-sm text-gray-600 mt-1">
-              定義「每週哪些時段可以排比賽」（例如週一 18:00–20:00、週三 18:00–20:00）。同一套時段會作為<strong>選手頁「不可出賽」</strong>的選項；建立後可在此頁用「依模板生成時段」產出下面的「所有可用時段」。
+              {t('admin.scheduling.templatesIntro')}
             </p>
           </div>
         </div>
@@ -1024,17 +1024,14 @@ export default function SchedulingManager({
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-800">{t('admin.scheduling.importCsv')}</h3>
               <p className="text-sm text-gray-600">
-                <strong>資料結構（7 欄，前 4 欄必填）：</strong>
+                <strong>{t('admin.scheduling.dataStructure')}</strong>
               </p>
               <ul className="text-sm text-gray-600 list-disc list-inside space-y-0.5">
-                <li><span className="font-mono">code</span> — 時段代號（同一活動內不可重複，選手頁「不可出賽」會用此代號）</li>
-                <li><span className="font-mono">weekday</span> — 星期：0=週日～6=週六，或 週一、Mon、一 等</li>
-                <li><span className="font-mono">start_time, end_time</span> — 時間 HH:MM 或 HH:MM:SS</li>
-                <li><span className="font-mono">court, capacity, notes</span> — 選填：場地名（須先建好）、同時可打場數、備註</li>
+                <li><span className="font-mono">code</span> — {t('admin.scheduling.code')}</li>
+                <li><span className="font-mono">weekday</span> — {t('admin.scheduling.dayOfWeek')}: 0–6</li>
+                <li><span className="font-mono">start_time, end_time</span> — HH:MM</li>
+                <li><span className="font-mono">court, capacity, notes</span> — {t('admin.scheduling.notes')}</li>
               </ul>
-              <p className="text-xs text-gray-500">
-                第一列可為標題列（含 code），有標題時會自動略過。同一 <span className="font-mono">code</span> 重複時以最後一筆為準。
-              </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <button
@@ -1042,7 +1039,7 @@ export default function SchedulingManager({
                 onClick={downloadSlotTemplateSample}
                 className="text-sm font-medium text-purple-700 hover:text-purple-800 underline"
               >
-                下載範例 CSV
+                {t('admin.scheduling.downloadSampleCsv')}
               </button>
               <label className="flex items-center gap-2 text-sm text-gray-600">
                 <input
@@ -1051,7 +1048,7 @@ export default function SchedulingManager({
                   onChange={(e) => setSlotTemplateImportReplace(e.target.checked)}
                   className="h-4 w-4"
                 />
-                匯入前清空既有模板
+                {t('admin.scheduling.clearTemplatesOnImport')}
               </label>
               <input
                 ref={slotTemplateFileRef}
@@ -1072,7 +1069,7 @@ export default function SchedulingManager({
 
         <form onSubmit={handleAddSlotTemplate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">代號</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.code')}</label>
             <input
               type="text"
               value={slotTemplateForm.code}
@@ -1083,7 +1080,7 @@ export default function SchedulingManager({
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">星期 *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.dayOfWeek')} *</label>
             <select
               value={slotTemplateForm.dayOfWeek}
               onChange={(e) => setSlotTemplateForm({ ...slotTemplateForm, dayOfWeek: e.target.value })}
@@ -1098,7 +1095,7 @@ export default function SchedulingManager({
             </select>
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">開始 *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.startTime')} *</label>
             <input
               type="time"
               value={slotTemplateForm.start}
@@ -1108,7 +1105,7 @@ export default function SchedulingManager({
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">結束 *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.endTime')} *</label>
             <input
               type="time"
               value={slotTemplateForm.end}
@@ -1118,13 +1115,13 @@ export default function SchedulingManager({
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">場地</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.courtName')}</label>
             <select
               value={slotTemplateForm.courtId}
               onChange={(e) => setSlotTemplateForm({ ...slotTemplateForm, courtId: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
             >
-              <option value="">未指定</option>
+              <option value="">{t('admin.scheduling.unspecified')}</option>
               {courts.map((court) => (
                 <option key={court.id} value={court.id}>
                   {court.name}
@@ -1133,24 +1130,24 @@ export default function SchedulingManager({
             </select>
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">同時可進行場數</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.concurrentMatches')}</label>
             <input
               type="number"
               min={1}
               value={slotTemplateForm.capacity}
               onChange={(e) => setSlotTemplateForm({ ...slotTemplateForm, capacity: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              placeholder="默認 1"
+              placeholder={t('admin.scheduling.defaultOne')}
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">備註</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.notes')}</label>
             <input
               type="text"
               value={slotTemplateForm.notes}
               onChange={(e) => setSlotTemplateForm({ ...slotTemplateForm, notes: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              placeholder="例如：決賽預留"
+              placeholder={t('admin.scheduling.notes')}
             />
           </div>
           <div className="sm:col-span-2 lg:col-span-1 flex items-end">
@@ -1165,7 +1162,7 @@ export default function SchedulingManager({
         </form>
 
         {slotTemplates.length === 0 ? (
-          <p className="text-sm text-gray-500">尚未建立任何模板。</p>
+          <p className="text-sm text-gray-500">{t('admin.scheduling.noSlotsYet')}</p>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             {Object.entries(slotTemplateGroups).map(([day, templates]) => (
@@ -1178,7 +1175,7 @@ export default function SchedulingManager({
                     <div key={template.id} className="px-4 py-3 flex items-center justify-between text-sm">
                       <div className="flex flex-col">
                         <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
-                          代號：{getSlotCodeFromTemplate(template)}
+                          {t('admin.scheduling.code')}: {getSlotCodeFromTemplate(template)}
                         </span>
                       </div>
                       <button
@@ -1197,7 +1194,7 @@ export default function SchedulingManager({
 
         <form onSubmit={handleGenerateSlotsFromTemplates} className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end">
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">套用日期（開始）*</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.applyDateStart')}</label>
             <input
               type="date"
               value={slotTemplateGenerateForm.startDate}
@@ -1207,7 +1204,7 @@ export default function SchedulingManager({
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">套用日期（結束）*</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.applyDateEnd')}</label>
             <input
               type="date"
               value={slotTemplateGenerateForm.endDate}
@@ -1223,14 +1220,14 @@ export default function SchedulingManager({
               onChange={(e) => setSlotTemplateGenerateForm({ ...slotTemplateGenerateForm, includeExisting: e.target.checked })}
               className="h-4 w-4"
             />
-            覆蓋已存在的同時段
+            {t('admin.scheduling.overwriteExisting')}
           </label>
           <button
             type="submit"
             disabled={generatingSlots}
             className="bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {generatingSlots ? "產生中..." : "依模板生成時段"}
+            {generatingSlots ? t('admin.scheduling.generating') : t('admin.scheduling.generateFromTemplates')}
           </button>
         </form>
       </section>
@@ -1241,7 +1238,7 @@ export default function SchedulingManager({
           <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.scheduling.availableSlots')}</h2>
             <p className="text-sm text-gray-600 mt-1">
-              由上方「每週時段模板」依日期區間<strong>生成</strong>的實際日曆時段（例如 2025/3/10 18:00–20:00），或手動新增。排程演算法會用這些 slot 來排比賽。
+              {t('admin.scheduling.availableSlotsIntro')}
             </p>
           </div>
           {slots.length > 0 && (
@@ -1258,7 +1255,7 @@ export default function SchedulingManager({
 
         <form onSubmit={handleAddSlot} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">代號</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.code')}</label>
             <input
               type="text"
               value={slotForm.code}
@@ -1269,7 +1266,7 @@ export default function SchedulingManager({
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">日期 *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.dateRequired')}</label>
             <input
               type="date"
               value={slotForm.date}
@@ -1279,7 +1276,7 @@ export default function SchedulingManager({
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">開始時間 *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.startTimeRequired')}</label>
             <input
               type="time"
               value={slotForm.start}
@@ -1289,7 +1286,7 @@ export default function SchedulingManager({
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">結束時間 *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.endTimeRequired')}</label>
             <input
               type="time"
               value={slotForm.end}
@@ -1299,13 +1296,13 @@ export default function SchedulingManager({
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">場地</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.courtName')}</label>
             <select
               value={slotForm.courtId}
               onChange={(e) => setSlotForm({ ...slotForm, courtId: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
             >
-              <option value="">未指定</option>
+              <option value="">{t('admin.scheduling.unspecified')}</option>
               {courts.map((court) => (
                 <option key={court.id} value={court.id}>
                   {court.name}
@@ -1314,24 +1311,24 @@ export default function SchedulingManager({
             </select>
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">同時可進行場數</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.concurrentMatches')}</label>
             <input
               type="number"
               min={1}
               value={slotForm.capacity}
               onChange={(e) => setSlotForm({ ...slotForm, capacity: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              placeholder="默認 1"
+              placeholder={t('admin.scheduling.defaultOne')}
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">備註</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('admin.scheduling.notes')}</label>
             <input
               type="text"
               value={slotForm.notes}
               onChange={(e) => setSlotForm({ ...slotForm, notes: e.target.value })}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-              placeholder="例如：決賽預留"
+              placeholder={t('admin.scheduling.notes')}
             />
           </div>
           <div>
@@ -1346,7 +1343,7 @@ export default function SchedulingManager({
         </form>
 
         {slots.length === 0 ? (
-          <p className="text-sm text-gray-500">尚未建立任何時段。</p>
+          <p className="text-sm text-gray-500">{t('admin.scheduling.noSlotsYet')}</p>
         ) : (
           <div className="space-y-4">
             {Object.entries(slotsGroupedByDate).map(([date, items]) => (
@@ -1360,23 +1357,23 @@ export default function SchedulingManager({
                       <div className="flex flex-col text-sm">
                         {slot.code && (
                           <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
-                            代號：{slot.code}
+                            {t('admin.scheduling.code')}: {slot.code}
                           </span>
                         )}
                         <span className="font-semibold text-gray-700">
                           {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                         </span>
                         <span className="text-gray-600">
-                          場地：{slot.court?.name || "—"}
-                          {slot.capacity ? `｜可同時 ${slot.capacity} 場` : ""}
+                          {t('admin.scheduling.courtLabelShort')}{slot.court?.name || "—"}
+                          {slot.capacity ? ` | ${t('admin.scheduling.concurrentCount', { n: slot.capacity })}` : ""}
                         </span>
-                        {slot.notes && <span className="text-gray-500">備註：{slot.notes}</span>}
+                        {slot.notes && <span className="text-gray-500">{t('admin.scheduling.notes')}: {slot.notes}</span>}
                       </div>
                       <button
                         onClick={() => handleDeleteSlot(slot.id)}
                         className="text-red-600 hover:text-red-700 text-sm font-semibold"
                       >
-                        刪除
+                        {t('admin.delete')}
                       </button>
                     </div>
                   ))}
@@ -1393,36 +1390,36 @@ export default function SchedulingManager({
           <div className="flex-1">
             <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.scheduling.autoSchedule')}</h2>
             <p className="text-sm text-gray-600 mt-1">
-              依「所有可用時段」與各時段的<strong>場地數（capacity）</strong>、選手頁設定的<strong>不可出賽</strong>自動分配時段；演算法會避免<strong>同一隊伍連續出賽</strong>（可設時段間隔與日曆天間隔）。建議先「預覽排程」確認後再儲存，並可拖曳調整。
+              {t('admin.scheduling.autoScheduleIntro')}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-gray-700">
-            <span>同一隊伍至少間隔</span>
+            <span>{t('admin.scheduling.sameTeamMinSlots')}</span>
             <select
               value={minSlotsBetweenSameTeam}
               onChange={(e) => setMinSlotsBetweenSameTeam(Number(e.target.value))}
               className="border border-gray-300 rounded px-2 py-1 text-sm"
             >
-              <option value={0}>0（可連續）</option>
-              <option value={1}>1 個時段</option>
-              <option value={2}>2 個時段</option>
+              <option value={0}>{t('admin.scheduling.slot0')}</option>
+              <option value={1}>{t('admin.scheduling.slot1')}</option>
+              <option value={2}>{t('admin.scheduling.slot2')}</option>
             </select>
-            <span>再排下一場</span>
+            <span>{t('admin.scheduling.daysBetween')}</span>
           </label>
           <label className="flex items-center gap-2 text-sm text-gray-700">
-            <span>同一隊伍至少隔</span>
+            <span>{t('admin.scheduling.sameTeamMinDays')}</span>
             <select
               value={minDaysBetweenSameTeam}
               onChange={(e) => setMinDaysBetweenSameTeam(Number(e.target.value))}
               className="border border-gray-300 rounded px-2 py-1 text-sm"
             >
-              <option value={0}>0 天（可連日）</option>
-              <option value={1}>1 天（不連日，建議多場地時使用）</option>
-              <option value={2}>2 天</option>
+              <option value={0}>{t('admin.scheduling.day0')}</option>
+              <option value={1}>{t('admin.scheduling.day1')}</option>
+              <option value={2}>{t('admin.scheduling.day2')}</option>
             </select>
-            <span>再排下一場</span>
+            <span>{t('admin.scheduling.daysBetween')}</span>
           </label>
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input
@@ -1451,7 +1448,7 @@ export default function SchedulingManager({
           </button>
         </div>
         <p className="mt-3 text-xs text-gray-500">
-          預覽後可拖曳比賽到不同時段或「未排入」，再按儲存。直接排程會寫入後導向賽程頁。
+          {t('admin.scheduling.previewDragHint')}
         </p>
       </section>
 

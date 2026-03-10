@@ -836,7 +836,7 @@ export default function SettingsContent({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                公開顯示 (Public Visibility)
+                {t('admin.publicVisibility')}
               </label>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -847,7 +847,7 @@ export default function SettingsContent({
                     className="w-5 h-5 text-ntu-green border-gray-300 rounded focus:ring-ntu-green"
                   />
                   <span className="text-sm text-gray-700">
-                    {isVisible ? '顯示在公開網站上' : '隱藏在公開網站上'}
+                    {isVisible ? t('admin.showOnSite') : t('admin.hideOnSite')}
                   </span>
                 </label>
                 <span className={`text-xs px-2 py-1 rounded ${
@@ -855,35 +855,35 @@ export default function SettingsContent({
                     ? 'bg-green-100 text-green-700' 
                     : 'bg-gray-100 text-gray-600'
                 }`}>
-                  {isVisible ? '✓ 可見' : '✗ 隱藏'}
+                  {isVisible ? t('admin.visible') : t('admin.hidden')}
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                隱藏的賽事不會在公開網站上顯示，但仍可在管理後台進行編輯和管理。
+                {t('admin.visibilityHint')}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                報名類型 (Registration Type) *
+                {t('admin.registrationTypeLabel')}
               </label>
               <select
                 value={registrationType}
                 onChange={(e) => setRegistrationType(e.target.value as 'player' | 'team')}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               >
-                <option value="player">選手 (Player) - 個人報名</option>
-                <option value="team">隊伍 (Team) - 團隊報名</option>
+                <option value="player">{t('admin.playerOption')}</option>
+                <option value="team">{t('admin.teamOption')}</option>
               </select>
               <p className="text-xs text-gray-500 mt-2">
                 {registrationType === 'team' 
-                  ? '選擇「隊伍」時，您可以為每個隊伍添加個別球員的名稱與背號。'
-                  : '選擇「選手」時，每個報名單位為個人。'}
+                  ? t('admin.registrationTypeHintTeam')
+                  : t('admin.registrationTypeHintPlayer')}
               </p>
               {registrationType !== initialRegistrationType && (
                 <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
-                    ⚠️ 您已更改報名類型。保存後，所有現有記錄的類型也會相應更新。
+                    ⚠️ {t('admin.registrationChangeWarning')}
                   </p>
                 </div>
               )}
@@ -894,7 +894,7 @@ export default function SettingsContent({
                 onClick={saveBasicInfo}
                 className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
               >
-                💾 保存基本資訊
+                💾 {t('admin.saveBasicInfo')}
               </button>
             </div>
           </div>
@@ -913,18 +913,18 @@ export default function SettingsContent({
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-2xl font-semibold text-ntu-green">賽事項目／分組</h2>
-              <p className="text-sm text-gray-600 mt-1">建立賽事後可在此新增或刪除單一運動項目，並編輯名稱與賽制</p>
+              <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.divisionsTitle')}</h2>
+              <p className="text-sm text-gray-600 mt-1">{t('admin.divisionsDesc')}</p>
             </div>
             <button
               onClick={() => setShowAddDivision(true)}
               className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
             >
-              ➕ 新增運動項目
+              ➕ {t('admin.addDivision')}
             </button>
           </div>
           {divisions.length === 0 ? (
-            <p className="text-gray-500">尚無項目，請點「新增運動項目」加入第一個運動。</p>
+            <p className="text-gray-500">{t('admin.noDivisionsYet')}</p>
           ) : (
             <ul className="space-y-3">
               {divisions.map((d) => (
@@ -1087,12 +1087,12 @@ export default function SettingsContent({
       {/* 賽事規則 */}
       <div id="settings-rules" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-ntu-green">重要賽事規則</h2>
+            <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.importantRules')}</h2>
             <button
               onClick={addRule}
               className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
             >
-              ➕ 新增規則
+              ➕ {t('admin.addRule')}
             </button>
           </div>
 
@@ -1124,7 +1124,7 @@ export default function SettingsContent({
               onClick={saveRules}
               className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
             >
-              💾 保存規則
+              💾 {t('admin.saveRules')}
             </button>
           </div>
         </div>
@@ -1653,7 +1653,7 @@ export default function SettingsContent({
               onClick={() => setShowDanger(true)}
               className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
             >
-              🗑️ 刪除整個賽事
+              🗑️ {t('admin.deleteEvent')}
             </button>
           ) : (
             <div className="space-y-4">

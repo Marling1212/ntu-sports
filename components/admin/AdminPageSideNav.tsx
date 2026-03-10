@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
+
 export interface AdminPageSideNavLink {
   href: string;
   label: string;
@@ -13,10 +15,12 @@ interface AdminPageSideNavProps {
 }
 
 export default function AdminPageSideNav({ title, links }: AdminPageSideNavProps) {
+  const { t } = useI18n();
+  const hoverLabel = t("admin.sideNav.hoverToExpand");
   return (
     <div
       className="group peer flex w-12 shrink-0 transition-[width] duration-300 ease-out hover:w-56"
-      aria-label={`${title}（滑過展開）`}
+      aria-label={`${title} (${hoverLabel})`}
     >
       <nav
         className="fixed left-0 top-24 z-40 flex h-[calc(100vh-6rem)] w-12 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-sm transition-[width] duration-300 ease-out hover:w-56 group-hover:w-56"
@@ -27,7 +31,7 @@ export default function AdminPageSideNav({ title, links }: AdminPageSideNavProps
           <p className="ml-2.5 shrink-0 whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-gray-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
             {title}
           </p>
-          <span className="ml-auto text-xs text-gray-400 opacity-100 transition-opacity group-hover:opacity-0" aria-hidden="true" title="滑過展開">
+          <span className="ml-auto text-xs text-gray-400 opacity-100 transition-opacity group-hover:opacity-0" aria-hidden="true" title={hoverLabel}>
             »
           </span>
         </div>
