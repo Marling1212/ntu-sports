@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import AdminNavbar from "@/components/admin/Navbar";
 import MatchDetailContent from "@/components/admin/MatchDetailContent";
 
 export default async function MatchDetailPage({ 
@@ -125,9 +124,7 @@ export default async function MatchDetailPage({
     .order("start_time", { ascending: true });
 
   return (
-    <>
-      <AdminNavbar eventId={eventId} eventName={event?.name} sport={event?.sport} />
-      <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-12">
         <MatchDetailContent
           eventId={eventId}
           match={match}
@@ -139,8 +136,7 @@ export default async function MatchDetailPage({
           courts={courts || []}
           slots={slots || []}
         />
-      </div>
-    </>
+    </div>
   );
 }
 

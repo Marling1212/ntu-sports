@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getEventDivisions } from "@/lib/utils/getSportEvent";
-import AdminNavbar from "@/components/admin/Navbar";
 import AnnouncementsManager from "@/components/admin/AnnouncementsManager";
 import AnnouncementsPageNav from "@/components/admin/AnnouncementsPageNav";
 
@@ -66,15 +65,7 @@ export default async function AnnouncementsPage({
   const effectiveDivisionId = selectedDivision?.id ?? (divisions.length === 1 ? divisions[0].id : null);
 
   return (
-    <>
-      <AdminNavbar
-        eventId={eventId}
-        eventName={event?.name}
-        sport={event?.sport}
-        divisions={divisions}
-        currentDivisionId={effectiveDivisionId}
-      />
-      <div className="flex">
+    <div className="flex">
         <AnnouncementsPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">
           <div className="container mx-auto px-4">
@@ -101,8 +92,7 @@ export default async function AnnouncementsPage({
         </div>
           </div>
         </main>
-      </div>
-    </>
+    </div>
   );
 }
 
