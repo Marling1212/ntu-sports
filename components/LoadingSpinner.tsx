@@ -24,7 +24,7 @@ export default function LoadingSpinner({
         role="status"
         aria-label="載入中"
       >
-        <span className="sr-only">載入中...</span>
+        <span className="sr-only">Loading</span>
       </div>
       {text && (
         <p className="mt-2 text-sm text-gray-600 animate-pulse">{text}</p>

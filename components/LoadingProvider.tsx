@@ -13,7 +13,7 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 
 export function LoadingProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState("載入中...");
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   const setLoading = (loading: boolean) => {
     setIsLoading(loading);

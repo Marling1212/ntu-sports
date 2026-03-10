@@ -53,7 +53,7 @@ export default function AdminNavbar({ eventId, eventName, sport, divisions = [],
             )}
           </div>
           {eventId && (
-            <div className="flex gap-5 text-sm font-medium items-center">
+            <div className="flex gap-4 md:gap-5 text-sm font-medium items-center overflow-x-auto pb-1 min-h-[40px] whitespace-nowrap scrollbar-hide w-full md:w-auto">
               {viewerUrl && (
                 <Link href={viewerUrl} className="hover:opacity-80 transition-opacity" title="看前台 View on site">
                   看前台

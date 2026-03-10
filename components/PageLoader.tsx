@@ -21,7 +21,7 @@ export default function PageLoader() {
   return (
     <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8">
-        <LoadingSpinner size="lg" text="載入頁面中..." />
+        <LoadingSpinner size="lg" />
       </div>
     </div>
   );
