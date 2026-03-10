@@ -195,15 +195,15 @@ export default async function SportEventPage({
       )}
 
       {/* Navigation Buttons */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+      <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-6 md:grid-cols-4">
         <Link
           href={`/sports/${sportParam}/events/${event.id}/draw`}
-          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+          className="bg-ntu-green text-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 text-center group"
         >
           <div className="text-center">
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
+            <div className="w-10 h-10 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-4 group-hover:bg-opacity-30 transition-colors">
               <svg
-                className="w-8 h-8 text-white"
+                className="w-5 h-5 sm:w-8 sm:h-8 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -216,10 +216,10 @@ export default async function SportEventPage({
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-semibold mb-3">
+            <h3 className="text-base sm:text-2xl font-semibold mb-1 sm:mb-3">
               {event.tournament_type === 'season_play' ? t("navigation.seasonOverview") : t("navigation.draw")}
             </h3>
-            <p className="text-white text-opacity-90 text-sm">
+            <p className="text-white text-opacity-90 text-xs sm:text-sm hidden sm:block">
               {event.tournament_type === 'season_play'
                 ? t("navigation.seasonOverviewDescription")
                 : t("navigation.drawDescription")}
@@ -229,12 +229,12 @@ export default async function SportEventPage({
 
         <Link
           href={`/sports/${sportParam}/events/${event.id}/schedule`}
-          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+          className="bg-ntu-green text-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 text-center group"
         >
           <div className="text-center">
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
+            <div className="w-10 h-10 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-4 group-hover:bg-opacity-30 transition-colors">
               <svg
-                className="w-8 h-8 text-white"
+                className="w-5 h-5 sm:w-8 sm:h-8 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -247,8 +247,8 @@ export default async function SportEventPage({
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-semibold mb-3">{t("navigation.schedule")}</h3>
-            <p className="text-white text-opacity-90 text-sm">
+            <h3 className="text-base sm:text-2xl font-semibold mb-1 sm:mb-3">{t("navigation.schedule")}</h3>
+            <p className="text-white text-opacity-90 text-xs sm:text-sm hidden sm:block">
               {event.tournament_type === 'season_play'
                 ? t("schedule.fullSeasonDesc")
                 : t("schedule.matchSchedulesDesc")}
@@ -258,12 +258,12 @@ export default async function SportEventPage({
 
         <Link
           href={`/sports/${sportParam}/events/${event.id}/rules`}
-          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+          className="bg-ntu-green text-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 text-center group"
         >
           <div className="text-center">
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
+            <div className="w-10 h-10 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-4 group-hover:bg-opacity-30 transition-colors">
               <svg
-                className="w-8 h-8 text-white"
+                className="w-5 h-5 sm:w-8 sm:h-8 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -276,8 +276,8 @@ export default async function SportEventPage({
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-semibold mb-3">{t("navigation.rules")}</h3>
-            <p className="text-white text-opacity-90 text-sm">
+            <h3 className="text-base sm:text-2xl font-semibold mb-1 sm:mb-3">{t("navigation.rules")}</h3>
+            <p className="text-white text-opacity-90 text-xs sm:text-sm hidden sm:block">
               {t("navigation.rulesDescription")}
             </p>
           </div>
@@ -285,12 +285,12 @@ export default async function SportEventPage({
 
         <Link
           href={`/sports/${sportParam}/events/${event.id}/announcements`}
-          className="bg-ntu-green text-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 text-center group"
+          className="bg-ntu-green text-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 text-center group"
         >
           <div className="text-center">
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-opacity-30 transition-colors">
+            <div className="w-10 h-10 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-4 group-hover:bg-opacity-30 transition-colors">
               <svg
-                className="w-8 h-8 text-white"
+                className="w-5 h-5 sm:w-8 sm:h-8 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -303,8 +303,8 @@ export default async function SportEventPage({
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-semibold mb-3">{t("navigation.announcements")}</h3>
-            <p className="text-white text-opacity-90 text-sm">
+            <h3 className="text-base sm:text-2xl font-semibold mb-1 sm:mb-3">{t("navigation.announcements")}</h3>
+            <p className="text-white text-opacity-90 text-xs sm:text-sm hidden sm:block">
               {t("navigation.announcementsDescription")}
             </p>
           </div>
