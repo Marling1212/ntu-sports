@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/context";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
@@ -31,6 +32,7 @@ export default function MatchDetailView({
   matchStats,
   sportName,
 }: MatchDetailViewProps) {
+  const { t } = useI18n();
   const player1 = match.player1_id ? players.find(p => p.id === match.player1_id) : null;
   const player2 = match.player2_id ? players.find(p => p.id === match.player2_id) : null;
   const isTeamEvent = event?.registration_type === 'team';
@@ -201,7 +203,7 @@ export default function MatchDetailView({
           href={`/sports/${sportParam}/schedule`}
           className="text-ntu-green hover:underline mb-4 inline-block"
         >
-          ← 返回賽程
+          {t("matchDetail.backToSchedule")}
         </Link>
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <CopyMatchLinkButton className="min-h-[44px]" />
@@ -216,22 +218,22 @@ export default function MatchDetailView({
           />
         </div>
         <h1 className="text-4xl font-bold text-ntu-green mb-2">
-          比賽詳情
+          {t("matchDetail.title")}
         </h1>
         <p className="text-lg text-gray-600">
-          {match.round === 0 ? 'Regular Season' : `Round ${match.round}`}, Match {match.match_number}
-          {match.group_number && ` - Group ${match.group_number}`}
+          {match.round === 0 ? t("matchDetail.regularSeason") : t("matchDetail.round").replace("{n}", String(match.round))}, Match {match.match_number}
+          {match.group_number && ` - ${t("matchDetail.group").replace("{n}", String(match.group_number))}`}
         </p>
       </div>
 
       {/* Match Basic Info */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">比賽基本信息</h2>
+        <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("matchDetail.basicInfo")}</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {isTeamEvent ? '隊伍 1' : '選手 1'}
+              {isTeamEvent ? t("matchDetail.team1") : t("matchDetail.player1")}
             </label>
             <div className="px-4 py-2 bg-gray-50 rounded-lg">
               {player1 ? (
@@ -259,7 +261,7 @@ export default function MatchDetailView({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {isTeamEvent ? '隊伍 2' : '選手 2'}
+              {isTeamEvent ? t("matchDetail.team2") : t("matchDetail.player2")}
             </label>
             <div className="px-4 py-2 bg-gray-50 rounded-lg">
               {player2 ? (
@@ -286,17 +288,17 @@ export default function MatchDetailView({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">比分</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.score")}</label>
             <div className="px-4 py-2 bg-gray-50 rounded-lg text-lg font-semibold">
               {match.score1 && match.score2 ? `${match.score1} - ${match.score2}` : "—"}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">獲勝者</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.winner")}</label>
             <div className="px-4 py-2 bg-gray-50 rounded-lg">
               {isDrawMatch(match.winner_id, match.status, match.score1, match.score2) ? (
-                <span className="font-semibold text-gray-600">平局 (Draw)</span>
+                <span className="font-semibold text-gray-600">{t("matchDetail.draw")}</span>
               ) : match.winner ? (
                 <Link 
                   href={`/sports/${sportParam}/teams/${match.winner.id}`}
@@ -311,7 +313,7 @@ export default function MatchDetailView({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">狀態</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.status")}</label>
             <div className="px-4 py-2 bg-gray-50 rounded-lg">
               {match.status === 'completed' && (
                 <span className="inline-block px-3 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
@@ -337,14 +339,14 @@ export default function MatchDetailView({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">場地</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.court")}</label>
             <div className="px-4 py-2 bg-gray-50 rounded-lg">
               {getCourtDisplay(match)}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">比賽時間</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.matchTime")}</label>
             <div className="px-4 py-2 bg-gray-50 rounded-lg">
               {formatDateTimeDisplay(match.scheduled_time)}
               {match.slot?.code && (
@@ -359,7 +361,7 @@ export default function MatchDetailView({
       {allStats.length > 0 && (player1 || player2) && (
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
           <h2 className="text-2xl font-semibold text-ntu-green mb-4">
-            {isTeamEvent ? '隊伍統計' : '選手統計'}
+            {isTeamEvent ? t("matchDetail.teamStats") : t("matchDetail.playerStats")}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -375,7 +377,7 @@ export default function MatchDetailView({
                   </Link>
                   {isTeamEvent && teamMembers[player1.id] && (
                     <span className="text-sm text-gray-500 ml-2">
-                      ({teamMembers[player1.id].length} 位球員)
+                      ({t("matchDetail.playersCount").replace("{n}", String(teamMembers[player1.id].length))})
                     </span>
                   )}
                 </h3>
@@ -383,7 +385,7 @@ export default function MatchDetailView({
                 {/* Player-level Stats for Team Members */}
                 {isTeamEvent && playerLevelStats.length > 0 && teamMembers[player1.id] && teamMembers[player1.id].length > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-md font-medium text-gray-700 mb-3">個別球員統計</h4>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">{t("matchDetail.individualStats")}</h4>
                     <div className="space-y-3">
                       {teamMembers[player1.id]
                         .filter((member: any) => {
@@ -440,7 +442,7 @@ export default function MatchDetailView({
                           return (
                             <div className="border border-green-200 rounded-lg p-4 bg-green-50">
                               <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">來自對手烏龍球:</span>
+                                <span className="text-gray-600">{t("matchDetail.fromOpponentOwnGoals")}:</span>
                                 <span className="font-semibold text-green-700">{opponentOwnGoalsTotal}</span>
                               </div>
                             </div>
@@ -455,7 +457,7 @@ export default function MatchDetailView({
                 {/* Team-level Stats */}
                 {isTeamEvent && teamLevelStats.length > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計</h4>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">{t("matchDetail.teamOverallStats")}</h4>
                     <div className="space-y-2">
                       {teamLevelStats.map(stat => {
                         const value = displayPlayer1Stats[stat.stat_name];
@@ -501,7 +503,7 @@ export default function MatchDetailView({
                   </Link>
                   {isTeamEvent && teamMembers[player2.id] && (
                     <span className="text-sm text-gray-500 ml-2">
-                      ({teamMembers[player2.id].length} 位球員)
+                      ({t("matchDetail.playersCount").replace("{n}", String(teamMembers[player2.id].length))})
                     </span>
                   )}
                 </h3>
@@ -509,7 +511,7 @@ export default function MatchDetailView({
                 {/* Player-level Stats for Team Members */}
                 {isTeamEvent && playerLevelStats.length > 0 && teamMembers[player2.id] && teamMembers[player2.id].length > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-md font-medium text-gray-700 mb-3">個別球員統計</h4>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">{t("matchDetail.individualStats")}</h4>
                     <div className="space-y-3">
                       {teamMembers[player2.id]
                         .filter((member: any) => {
@@ -566,7 +568,7 @@ export default function MatchDetailView({
                           return (
                             <div className="border border-green-200 rounded-lg p-4 bg-green-50">
                               <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">來自對手烏龍球:</span>
+                                <span className="text-gray-600">{t("matchDetail.fromOpponentOwnGoals")}:</span>
                                 <span className="font-semibold text-green-700">{opponentOwnGoalsTotal}</span>
                               </div>
                             </div>
@@ -581,7 +583,7 @@ export default function MatchDetailView({
                 {/* Team-level Stats */}
                 {isTeamEvent && teamLevelStats.length > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-md font-medium text-gray-700 mb-3">隊伍整體統計</h4>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">{t("matchDetail.teamOverallStats")}</h4>
                     <div className="space-y-2">
                       {teamLevelStats.map(stat => {
                         const value = displayPlayer2Stats[stat.stat_name];

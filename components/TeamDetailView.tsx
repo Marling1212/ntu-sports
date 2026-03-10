@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/context";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 
@@ -38,6 +39,7 @@ export default function TeamDetailView({
   statistics,
   sportName,
 }: TeamDetailViewProps) {
+  const { t } = useI18n();
   const isTeamEvent = event?.registration_type === 'team';
   const sportParam = event?.sport?.toLowerCase() || "";
 
@@ -92,25 +94,25 @@ export default function TeamDetailView({
           href={`/sports/${sportParam}/schedule`}
           className="text-ntu-green hover:underline mb-4 inline-block"
         >
-          ← 返回賽程
+          {t("matchDetail.backToSchedule")}
         </Link>
         <h1 className="text-4xl font-bold text-ntu-green mb-2">
-          {isTeamEvent ? '隊伍詳情' : '選手詳情'}
+          {isTeamEvent ? t("teamDetail.titleTeam") : t("teamDetail.titlePlayer")}
         </h1>
         <p className="text-lg text-gray-600">
           {team.name}
           {team.department && ` (${team.department})`}
-          {team.seed && ` - Seed ${team.seed}`}
+          {team.seed && ` - {t("matchDetail.seed").replace("{n}", String(team.seed))}`}
         </p>
       </div>
 
       {/* Team/Player Basic Info */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">基本信息</h2>
+        <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("teamDetail.basicInfo")}</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">名稱</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t("teamDetail.name")}</label>
             <div className="px-4 py-2 bg-gray-50 rounded-lg font-semibold">
               {team.name}
             </div>
@@ -118,7 +120,7 @@ export default function TeamDetailView({
 
           {team.department && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">科系</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t("teamDetail.department")}</label>
               <div className="px-4 py-2 bg-gray-50 rounded-lg">
                 {team.department}
               </div>
@@ -127,7 +129,7 @@ export default function TeamDetailView({
 
           {team.seed && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">種子序號</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t("teamDetail.seed")}</label>
               <div className="px-4 py-2 bg-gray-50 rounded-lg">
                 <span className="px-2 py-0.5 bg-ntu-green text-white text-xs rounded">
                   Seed {team.seed}
@@ -140,7 +142,7 @@ export default function TeamDetailView({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">隊員人數</label>
               <div className="px-4 py-2 bg-gray-50 rounded-lg">
-                {teamMembers.length} 位球員
+                {t("matchDetail.playersCount").replace("{n}", String(teamMembers.length))}
               </div>
             </div>
           )}
@@ -149,41 +151,41 @@ export default function TeamDetailView({
 
       {/* Team Statistics */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">戰績統計</h2>
+        <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("teamDetail.statisticsTitle")}</h2>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <div className="text-2xl font-bold text-green-600">{statistics.wins}</div>
-            <div className="text-sm text-gray-600">勝場</div>
+            <div className="text-sm text-gray-600">{t("teamDetail.wins")}</div>
           </div>
           <div className="text-center p-4 bg-red-50 rounded-lg">
             <div className="text-2xl font-bold text-red-600">{statistics.losses}</div>
-            <div className="text-sm text-gray-600">敗場</div>
+            <div className="text-sm text-gray-600">{t("teamDetail.losses")}</div>
           </div>
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <div className="text-2xl font-bold text-gray-600">{statistics.draws}</div>
-            <div className="text-sm text-gray-600">平局</div>
+            <div className="text-sm text-gray-600">{t("teamDetail.draws")}</div>
           </div>
           <div className="text-center p-4 bg-ntu-green bg-opacity-10 rounded-lg">
             <div className="text-2xl font-bold text-ntu-green">{statistics.points}</div>
-            <div className="text-sm text-gray-600">積分</div>
+            <div className="text-sm text-gray-600">{t("teamDetail.points")}</div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
             <div className="text-2xl font-bold text-blue-600">{statistics.goalsFor}</div>
-            <div className="text-sm text-gray-600">進球</div>
+            <div className="text-sm text-gray-600">{t("teamDetail.goalsFor")}</div>
           </div>
           <div className="text-center p-4 bg-orange-50 rounded-lg">
             <div className="text-2xl font-bold text-orange-600">{statistics.goalsAgainst}</div>
-            <div className="text-sm text-gray-600">失球</div>
+            <div className="text-sm text-gray-600">{t("teamDetail.goalsAgainst")}</div>
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-lg">
             <div className={`text-2xl font-bold ${statistics.goalDiff > 0 ? 'text-green-600' : statistics.goalDiff < 0 ? 'text-red-600' : 'text-gray-600'}`}>
               {statistics.goalDiff > 0 ? '+' : ''}{statistics.goalDiff}
             </div>
-            <div className="text-sm text-gray-600">得失分差</div>
+            <div className="text-sm text-gray-600">{t("teamDetail.goalDiff")}</div>
           </div>
         </div>
       </div>
@@ -191,7 +193,7 @@ export default function TeamDetailView({
       {/* Team Members */}
       {isTeamEvent && teamMembers.length > 0 && (
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-4">隊員名單</h2>
+          <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("teamDetail.membersList")}</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {teamMembers.map((member: any) => {
@@ -233,10 +235,10 @@ export default function TeamDetailView({
 
       {/* Match History */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">比賽記錄</h2>
+        <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("teamDetail.matchHistory")}</h2>
         
         {matches.length === 0 ? (
-          <p className="text-gray-600 text-center py-8">尚無比賽記錄</p>
+          <p className="text-gray-600 text-center py-8">{t("teamDetail.noMatches")}</p>
         ) : (
           <div className="overflow-x-auto">
             {/* Mobile: card list (clickable to match page) */}
@@ -260,22 +262,22 @@ export default function TeamDetailView({
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className="text-sm font-medium text-gray-600">{formatDateTimeDisplay(match.scheduled_time)}</span>
                       {match.status === "completed" && (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">已完成</span>
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">{t("sports.completed")}</span>
                       )}
                       {match.status === "live" && (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">進行中</span>
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">{t("sports.live")}</span>
                       )}
                       {match.status === "upcoming" && (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">即將開始</span>
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">{t("sports.upcoming")}</span>
                       )}
                       {match.status === "delayed" && (
-                        <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">延遲</span>
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">{t("sports.delayed")}</span>
                       )}
                     </div>
                     <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(match)}</div>
                     <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
                       <span className="truncate">{match.player1?.name || "TBD"}</span>
-                      <span className="text-ntu-green shrink-0">VS</span>
+                      <span className="text-ntu-green shrink-0">{t("seasonPlay.vs")}</span>
                       <span className="truncate">{match.player2?.name || "TBD"}</span>
                     </div>
                     {scoreStr !== "-" && (
@@ -290,13 +292,13 @@ export default function TeamDetailView({
               <table className="w-full">
                 <thead className="bg-ntu-green text-white">
                   <tr>
-                    <th className="px-4 py-3 text-left">Player 1</th>
-                    <th className="px-4 py-3 text-center">VS</th>
-                    <th className="px-4 py-3 text-left">Player 2</th>
-                    <th className="px-4 py-3 text-center">日期時間</th>
-                    <th className="px-4 py-3 text-center">場地</th>
-                    <th className="px-4 py-3 text-center">比分</th>
-                    <th className="px-4 py-3 text-center">狀態</th>
+                    <th className="px-4 py-3 text-left">{t("seasonPlay.player1")}</th>
+                    <th className="px-4 py-3 text-center">{t("seasonPlay.vs")}</th>
+                    <th className="px-4 py-3 text-left">{t("seasonPlay.player2")}</th>
+                    <th className="px-4 py-3 text-center">{t("matchDetail.matchTime")}</th>
+                    <th className="px-4 py-3 text-center">{t("matchDetail.court")}</th>
+                    <th className="px-4 py-3 text-center">{t("matchDetail.score")}</th>
+                    <th className="px-4 py-3 text-center">{t("matchDetail.status")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -351,16 +353,16 @@ export default function TeamDetailView({
                         </td>
                         <td className="px-4 py-3 text-center">
                           {match.status === "completed" && (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">已完成</span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded">{t("sports.completed")}</span>
                           )}
                           {match.status === "live" && (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">進行中</span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">{t("sports.live")}</span>
                           )}
                           {match.status === "upcoming" && (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">即將開始</span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">{t("sports.upcoming")}</span>
                           )}
                           {match.status === "delayed" && (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">延遲</span>
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">{t("sports.delayed")}</span>
                           )}
                         </td>
                       </tr>
