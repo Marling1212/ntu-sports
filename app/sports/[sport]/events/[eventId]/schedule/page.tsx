@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import TennisNavbarClient from "@/components/TennisNavbarClient";
+import PublicNavbar from "@/components/PublicNavbar";
 import BracketMatchSchedule from "@/components/BracketMatchSchedule";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
@@ -90,8 +90,8 @@ export default async function SportEventSchedulePage({
 
     return (
       <>
-        <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
-        <div className="container mx-auto px-4 py-12">
+        <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
+        <div className="container mx-auto px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-ntu-green mb-4">
               {event.name || t("schedule.pageTitleWithSport").replace("{sport}", sportName)}
@@ -121,8 +121,8 @@ export default async function SportEventSchedulePage({
 
   return (
     <>
-      <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-12">
+      <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
         <BracketMatchSchedule
           matches={dbMatches || []}
           sportSlug={sportParam}

@@ -2,7 +2,7 @@ import BracketSection from "@/components/BracketSection";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import ExportBracket from "@/components/ExportBracket";
 import ExportPDF from "@/components/ExportPDF";
-import TennisNavbarClient from "@/components/TennisNavbarClient";
+import PublicNavbar from "@/components/PublicNavbar";
 import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getFirstDivisionForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "react-hot-toast";
@@ -112,9 +112,9 @@ export default async function SportEventDrawPage({
 
   return (
     <>
-      <TennisNavbarClient eventName={event.name} tournamentType={tournamentType} />
+      <PublicNavbar eventName={event.name} tournamentType={tournamentType} />
       <Toaster position="top-right" />
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
         <div className="mb-6 md:mb-8 flex flex-row justify-between items-start gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl md:text-4xl font-bold text-ntu-green mb-2 md:mb-4 break-words">

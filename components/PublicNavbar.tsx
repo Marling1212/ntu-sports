@@ -6,12 +6,12 @@ import { useI18n } from "@/lib/i18n/context";
 import { useEventNav } from "@/lib/context/EventNavContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 
-interface TennisNavbarClientProps {
+interface PublicNavbarProps {
   eventName?: string;
   tournamentType?: string;
 }
 
-export default function TennisNavbarClient({ eventName, tournamentType }: TennisNavbarClientProps) {
+export default function PublicNavbar({ eventName, tournamentType }: PublicNavbarProps) {
   const pathname = usePathname();
   const { locale, t } = useI18n();
   const { regularSeasonComplete, tournamentType: contextTournamentType } = useEventNav();
@@ -41,11 +41,10 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
   const basePath = `/sports/${sport}`;
 
   // Check if we're on an event-specific page (e.g., /sports/tennis/events/[eventId]/draw)
-  // If segments are: ["sports", "tennis", "events", "eventId", "draw"]
   const eventIdIndex = segments.indexOf("events");
   const eventId = eventIdIndex !== -1 && segments[eventIdIndex + 1] ? segments[eventIdIndex + 1] : null;
   
-  // Build URLs - use event-specific paths if eventId exists, otherwise use old structure
+  // Build URLs
   const drawUrl = eventId ? `${basePath}/events/${eventId}/draw` : `${basePath}/draw`;
   const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule` : `${basePath}/schedule`;
   const rulesUrl = eventId ? `${basePath}/events/${eventId}/rules` : `${basePath}/rules`;
@@ -87,9 +86,9 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
           </div>
         </div>
 
-        {/* Mobile Bottom Nav - only on event pages (eventId) where layout has pb-20 */}
+        {/* Mobile Bottom Nav - only on event pages (eventId) where layout has pb-safe */}
         {eventId && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-pb">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-[100] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
           <div className="grid grid-cols-4 gap-px bg-gray-200">
             <Link
               href={drawUrl}
@@ -209,4 +208,3 @@ export default function TennisNavbarClient({ eventName, tournamentType }: Tennis
     </nav>
   );
 }
-

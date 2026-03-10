@@ -1,5 +1,5 @@
 import { getEventByIdAndSport, getSportAnnouncementsForList } from "@/lib/utils/getSportEvent";
-import TennisNavbarClient from "@/components/TennisNavbarClient";
+import PublicNavbar from "@/components/PublicNavbar";
 import AnnouncementsPageClient from "@/components/AnnouncementsPageClient";
 import { notFound } from "next/navigation";
 
@@ -21,8 +21,10 @@ export default async function SportEventAnnouncementsPage({
 
   return (
     <>
-      <TennisNavbarClient eventName={event.name} tournamentType={event.tournament_type} />
-      <AnnouncementsPageClient announcements={announcements} />
+      <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
+      <div className="pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
+        <AnnouncementsPageClient announcements={announcements} />
+      </div>
     </>
   );
 }

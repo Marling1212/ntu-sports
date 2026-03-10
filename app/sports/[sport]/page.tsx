@@ -5,6 +5,7 @@ import { getEventIdsForSport, getDivisionIdsForEventAndSport, getSportMatches, g
 import MarkdownText from "@/components/MarkdownText";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { getMatchTimeDisplay } from "@/lib/utils/formatScheduledTime";
+import { processMatchesForDisplay } from "@/lib/utils/matchFilters";
 import { getLocale, getT } from "@/lib/i18n/server";
 
 // Sport icons mapping
@@ -132,57 +133,15 @@ export default async function SportPage(context: any) {
     announcements = await getSportAnnouncements(singleEvent.id);
   }
 
-  // Process matches for display
-  const tz = "Asia/Taipei";
-  const now = new Date();
-  const nowTz = new Date(now.toLocaleString("en-US", { timeZone: tz }));
-  
-  // Calculate today's date range
-  const todayStart = new Date(nowTz);
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(nowTz);
-  todayEnd.setHours(23, 59, 59, 999);
-  
-  // Calculate tomorrow's date range
-  const nextDayStart = new Date(nowTz);
-  nextDayStart.setDate(nextDayStart.getDate() + 1);
-  nextDayStart.setHours(0, 0, 0, 0);
-  const nextDayEnd = new Date(nextDayStart);
-  nextDayEnd.setHours(23, 59, 59, 999);
-  
-  // Get today's matches
-  const todayMatches = (matches || [])
-    .filter((m: any) => !!m.scheduled_time)
-    .filter((m: any) => {
-      const d = new Date(m.scheduled_time);
-      const dTz = new Date(d.toLocaleString("en-US", { timeZone: tz }));
-      return dTz >= todayStart && dTz <= todayEnd;
-    })
-    .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
-  
-  // Check if any of today's matches haven't started yet (scheduled_time > now)
-  const hasUpcomingToday = todayMatches.some((m: any) => {
-    const matchTime = new Date(m.scheduled_time);
-    return matchTime > now && m.status !== "completed";
-  });
-  
-  // Determine which matches to show
-  const matchesToShow = hasUpcomingToday ? todayMatches : (matches || [])
-    .filter((m: any) => !!m.scheduled_time)
-    .filter((m: any) => {
-      const d = new Date(m.scheduled_time);
-      const dTz = new Date(d.toLocaleString("en-US", { timeZone: tz }));
-      return dTz >= nextDayStart && dTz <= nextDayEnd;
-    })
-    .sort((a: any, b: any) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
-  
-  const title = hasUpcomingToday ? t("sports.todayScheduleWithSport").replace("{sport}", sportName) : t("sports.tomorrowScheduleWithSport").replace("{sport}", sportName);
-  const emptyMessage = hasUpcomingToday ? t("sports.noMatchesToday") : t("sports.noMatchesTomorrow");
+  // Process matches for display using shared utility
+  const { matchesToShow, titleKey, emptyMessageKey } = processMatchesForDisplay(matches);
+  const title = t(titleKey).replace("{sport}", sportName);
+  const emptyMessage = t(emptyMessageKey);
   
   const latestAnnouncement = (announcements || [])[0];
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
+    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+40px)]">
       {/* Header Section: compact on mobile */}
       <div className="text-center mb-4 sm:mb-12">
         <h1 className="text-2xl sm:text-5xl font-bold text-ntu-green mb-2 sm:mb-4 leading-tight">
