@@ -45,7 +45,7 @@ export default async function SportPage(context: any) {
   const locale = await getLocale();
   const t = getT(locale);
   const supabase = await createClient();
-  const params = (context?.params || {}) as { sport?: string };
+  const params = (await context?.params) || {};
   const sportParam = (params.sport || "").toLowerCase();
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const sportIcon = sportIcons[sportName] || "🏆";

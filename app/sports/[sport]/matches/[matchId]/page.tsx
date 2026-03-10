@@ -50,7 +50,7 @@ export async function generateMetadata({
 
 export default async function MatchDetailPage(context: any) {
   const supabase = await createClient();
-  const params = (context?.params || {}) as { sport?: string; matchId?: string };
+  const params = (await context?.params) || {};
   const sportParam = (params.sport || "").toLowerCase();
   const matchId = params.matchId;
 

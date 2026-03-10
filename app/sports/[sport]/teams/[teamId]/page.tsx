@@ -52,7 +52,7 @@ export async function generateMetadata({
 
 export default async function TeamDetailPage(context: any) {
   const supabase = await createClient();
-  const params = (context?.params || {}) as { sport?: string; teamId?: string };
+  const params = (await context?.params) || {};
   const sportParam = (params.sport || "").toLowerCase();
   const teamId = params.teamId;
 

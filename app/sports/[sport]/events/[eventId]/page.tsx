@@ -59,7 +59,9 @@ export default async function SportEventPage({
 }: {
   params: Promise<{ sport: string; eventId: string }>;
 }) {
-  const { sport, eventId } = await params;
+  const resolvedParams = await params;
+  const sport = resolvedParams.sport;
+  const eventId = resolvedParams.eventId;
   const locale = await getLocale();
   const t = getT(locale);
   const supabase = await createClient();
