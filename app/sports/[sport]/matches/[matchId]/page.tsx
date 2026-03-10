@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import TennisNavbarClient from "@/components/TennisNavbarClient";
+import PublicNavbar from "@/components/PublicNavbar";
 import MatchDetailView from "@/components/MatchDetailView";
 import { notFound } from "next/navigation";
 
@@ -93,8 +93,8 @@ export default async function MatchDetailPage(context: any) {
 
   return (
     <>
-      <TennisNavbarClient eventName={event?.name} tournamentType={event?.tournament_type} />
-      <div className="container mx-auto px-4 py-12">
+      <PublicNavbar eventName={event?.name} tournamentType={event?.tournament_type} />
+      <div className="container mx-auto px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
         <MatchDetailView
           match={match}
           event={event}
