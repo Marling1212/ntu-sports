@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getEventDivisions } from "@/lib/utils/getSportEvent";
-import AdminNavbar from "@/components/admin/Navbar";
 import SchedulingManager from "@/components/admin/SchedulingManager";
 import ImportMatchSchedule from "@/components/admin/ImportMatchSchedule";
 import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
@@ -19,29 +18,7 @@ export default async function SchedulingPage({
   const { divisionId: divisionIdParam } = await searchParams;
   const currentDivisionId = divisionIdParam ?? null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/admin/login");
-  }
-
-  const { data: organizer } = await supabase
-    .from("organizers")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("event_id", eventId)
-    .single();
-
-  if (!organizer) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-red-600 mb-4">Access Denied</h1>
-        <p>You are not an authorized organizer for this event.</p>
-      </div>
-    );
-  }
+  // SchedulingPage now relies on layout.tsx for Auth, Organizer check, and Navbar rendering
 
   const { data: event } = await supabase
     .from("events")
@@ -129,13 +106,6 @@ export default async function SchedulingPage({
 
   return (
     <>
-      <AdminNavbar
-        eventId={eventId}
-        eventName={event?.name}
-        sport={event?.sport}
-        divisions={divisions}
-        currentDivisionId={effectiveDivisionId}
-      />
       <div className="flex">
         <SchedulingPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">

@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getEventDivisions } from "@/lib/utils/getSportEvent";
-import AdminNavbar from "@/components/admin/Navbar";
 import PlayersTable from "@/components/admin/PlayersTable";
 import GenerateBracket from "@/components/admin/GenerateBracket";
 import GenerateSeasonPlay from "@/components/admin/GenerateSeasonPlay";
@@ -24,37 +23,7 @@ export default async function PlayersPage({
   const { divisionId: divisionIdParam } = await searchParams;
   const currentDivisionId = divisionIdParam ?? null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/admin/login");
-  }
-
-  // Check if user is an organizer for this event
-  const { data: organizer } = await supabase
-    .from("organizers")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("event_id", eventId)
-    .single();
-
-  if (!organizer) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-red-600 mb-4">Access Denied</h1>
-        <p>You are not an authorized organizer for this event.</p>
-      </div>
-    );
-  }
-
-  // Get event details
-  const { data: event } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .single();
+  // PlayersPage now relies on layout.tsx for Auth, Organizer check, and Navbar rendering
 
   const divisions = await getEventDivisions(eventId);
   // Multi-division: require a division (redirect to first so each division feels like a separate event)
@@ -62,6 +31,14 @@ export default async function PlayersPage({
     redirect(`/admin/${eventId}/players?divisionId=${divisions[0].id}`);
   }
   const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : (divisions[0] ?? null);
+
+  // Get event details specifically for tournament_type fallback and registration checks
+  const { data: event } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", eventId)
+    .single();
+
   const effectiveTournamentType = (selectedDivision?.tournament_type ?? event?.tournament_type) as "season_play" | "single_elimination" | undefined;
   const effectiveDefaultDivisionId = selectedDivision?.id ?? (divisions.length === 1 ? divisions[0].id : null);
 
@@ -106,13 +83,6 @@ export default async function PlayersPage({
 
   return (
     <>
-      <AdminNavbar
-        eventId={eventId}
-        eventName={event?.name}
-        sport={event?.sport}
-        divisions={divisions}
-        currentDivisionId={effectiveDefaultDivisionId}
-      />
       <div className="flex">
         <PlayersPageNav tournamentType={effectiveTournamentType} />
         <main className="min-w-0 flex-1 pt-6 pb-12">
@@ -146,62 +116,71 @@ export default async function PlayersPage({
         </div>
 
         {/* Step 2: 生成籤表/賽季 - 需要先有選手才能生成 (use selected division's type when one is selected) */}
-        {effectiveTournamentType === "season_play" ? (
-          <div className="space-y-6 mt-8">
-            <div id="generate-season-play" className="scroll-mt-24">
-              <GenerateSeasonPlay 
-                eventId={eventId}
-                players={players || []}
-                initialQualifiersPerGroup={event?.playoff_qualifiers_per_group ?? undefined}
-                defaultDivisionId={effectiveDefaultDivisionId}
-              />
+        {(players && players.length > 0) ? (
+          effectiveTournamentType === "season_play" ? (
+            <div className="space-y-6 mt-8">
+              <div id="generate-season-play" className="scroll-mt-24">
+                <GenerateSeasonPlay 
+                  eventId={eventId}
+                  players={players || []}
+                  initialQualifiersPerGroup={event?.playoff_qualifiers_per_group ?? undefined}
+                  defaultDivisionId={effectiveDefaultDivisionId}
+                />
+              </div>
+              <div id="edit-playoff-draw" className="scroll-mt-24">
+                <EditPlayoffDraw
+                  eventId={eventId}
+                  numGroups={playoffNumGroups}
+                  qualifiersPerGroup={event?.playoff_qualifiers_per_group ?? 4}
+                  defaultDivisionId={effectiveDefaultDivisionId}
+                />
+              </div>
+              <div id="import-season-groups" className="scroll-mt-24">
+                <ImportSeasonGroups 
+                  eventId={eventId}
+                  players={players || []}
+                  defaultDivisionId={effectiveDefaultDivisionId}
+                />
+              </div>
+              <div id="import-season-play" className="scroll-mt-24">
+                <ImportSeasonPlay 
+                  eventId={eventId}
+                  players={players || []}
+                  defaultDivisionId={effectiveDefaultDivisionId}
+                />
+              </div>
             </div>
-            <div id="edit-playoff-draw" className="scroll-mt-24">
-              <EditPlayoffDraw
-                eventId={eventId}
-                numGroups={playoffNumGroups}
-                qualifiersPerGroup={event?.playoff_qualifiers_per_group ?? 4}
-                defaultDivisionId={effectiveDefaultDivisionId}
-              />
+          ) : (
+            <div className="space-y-6 mt-8">
+              <div id="generate-bracket" className="scroll-mt-24">
+                <GenerateBracket 
+                  eventId={eventId}
+                  players={players || []}
+                  defaultDivisionId={effectiveDefaultDivisionId}
+                />
+              </div>
+              <div id="manual-bracket" className="scroll-mt-24">
+                <ManualBracketEditor 
+                  eventId={eventId}
+                  players={players || []}
+                  defaultDivisionId={effectiveDefaultDivisionId}
+                />
+              </div>
+              <div id="import-bracket" className="scroll-mt-24">
+                <ImportBracket 
+                  eventId={eventId}
+                  players={players || []}
+                  defaultDivisionId={effectiveDefaultDivisionId}
+                />
+              </div>
             </div>
-            <div id="import-season-groups" className="scroll-mt-24">
-              <ImportSeasonGroups 
-                eventId={eventId}
-                players={players || []}
-                defaultDivisionId={effectiveDefaultDivisionId}
-              />
-            </div>
-            <div id="import-season-play" className="scroll-mt-24">
-              <ImportSeasonPlay 
-                eventId={eventId}
-                players={players || []}
-                defaultDivisionId={effectiveDefaultDivisionId}
-              />
-            </div>
-          </div>
+          )
         ) : (
-          <div className="space-y-6 mt-8">
-            <div id="generate-bracket" className="scroll-mt-24">
-              <GenerateBracket 
-                eventId={eventId}
-                players={players || []}
-                defaultDivisionId={effectiveDefaultDivisionId}
-              />
-            </div>
-            <div id="manual-bracket" className="scroll-mt-24">
-              <ManualBracketEditor 
-                eventId={eventId}
-                players={players || []}
-                defaultDivisionId={effectiveDefaultDivisionId}
-              />
-            </div>
-            <div id="import-bracket" className="scroll-mt-24">
-              <ImportBracket 
-                eventId={eventId}
-                players={players || []}
-                defaultDivisionId={effectiveDefaultDivisionId}
-              />
-            </div>
+          <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-xl text-center">
+            <h3 className="text-xl font-bold text-blue-800 mb-2">Step 2 waiting for participants...</h3>
+            <p className="text-blue-600">
+              Once you have added players or teams above, your bracket management tools will appear here.
+            </p>
           </div>
         )}
           </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import LogoutButton from "./LogoutButton";
 import DivisionSwitcher from "./DivisionSwitcher";
+import EventVisibilityToggle from "./EventVisibilityToggle";
 
 interface Division {
   id: string;
@@ -19,9 +20,10 @@ interface AdminNavbarProps {
   /** When event has multiple divisions, show switcher and preserve divisionId in links */
   divisions?: Division[];
   currentDivisionId?: string | null;
+  isVisible?: boolean;
 }
 
-export default function AdminNavbar({ eventId, eventName, sport, divisions = [], currentDivisionId = null }: AdminNavbarProps) {
+export default function AdminNavbar({ eventId, eventName, sport, divisions = [], currentDivisionId = null, isVisible }: AdminNavbarProps) {
   const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : null;
   const viewerSport = selectedDivision?.sport ?? sport;
   const viewerUrl = eventId && viewerSport ? `/sports/${viewerSport}/events/${eventId}` : null;
@@ -36,10 +38,13 @@ export default function AdminNavbar({ eventId, eventName, sport, divisions = [],
               後台
             </Link>
             {eventId && eventName && (
-              <>
+              <div className="flex items-center gap-3">
                 <span className="text-white opacity-50">|</span>
                 <span className="text-lg">{eventName}</span>
-              </>
+                {isVisible !== undefined && (
+                  <EventVisibilityToggle eventId={eventId} initialVisibility={isVisible} />
+                )}
+              </div>
             )}
             {eventId && divisions.length > 1 && (
               <Suspense fallback={null}>

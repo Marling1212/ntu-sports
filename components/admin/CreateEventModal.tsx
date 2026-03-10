@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 
 interface CreateEventModalProps {
   userId: string;
-  onEventCreated: () => void;
+  onEventCreated: (newId?: string) => void;
   onClose: () => void;
 }
 
@@ -105,10 +105,10 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
       toast.success("Event created successfully! Refreshing...");
       
       // Wait a moment then refresh
+      // Wait a moment then redirect to settings
       setTimeout(() => {
-        onEventCreated();
-        onClose();
-      }, 1000);
+        onEventCreated(event.id); 
+      }, 500);
     } catch (err) {
       console.error("Error:", err);
       toast.error("An unexpected error occurred");

@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getEventDivisions } from "@/lib/utils/getSportEvent";
-import AdminNavbar from "@/components/admin/Navbar";
 import SettingsContent from "@/components/admin/SettingsContent";
 import SettingsPageNav from "@/components/admin/SettingsPageNav";
 
@@ -17,37 +16,7 @@ export default async function SettingsPage({
   const { divisionId: divisionIdParam } = await searchParams;
   const currentDivisionId = divisionIdParam ?? null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/admin/login");
-  }
-
-  // Check if user is an organizer for this event
-  const { data: organizer } = await supabase
-    .from("organizers")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("event_id", eventId)
-    .single();
-
-  if (!organizer) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-red-600 mb-4">Access Denied</h1>
-        <p>You are not an authorized organizer for this event.</p>
-      </div>
-    );
-  }
-
-  // Get event details
-  const { data: event } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .single();
+  // SettingsPage now relies on layout.tsx for Auth, Organizer check, and Navbar rendering
 
   // Get tournament rules
   const { data: rules } = await supabase
@@ -78,15 +47,15 @@ export default async function SettingsPage({
   const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : (divisions[0] ?? null);
   const effectiveDivisionId = selectedDivision?.id ?? (divisions.length === 1 ? divisions[0].id : null);
 
+  // Get event details specifically for the Settings Content payload
+  const { data: event } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", eventId)
+    .single();
+
   return (
     <>
-      <AdminNavbar
-        eventId={eventId}
-        eventName={event?.name}
-        sport={event?.sport}
-        divisions={divisions}
-        currentDivisionId={effectiveDivisionId}
-      />
       <div className="flex">
         <SettingsPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">

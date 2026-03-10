@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getEventDivisions } from "@/lib/utils/getSportEvent";
-import AdminNavbar from "@/components/admin/Navbar";
 import MatchesTable from "@/components/admin/MatchesTable";
 import PlayerStats from "@/components/admin/PlayerStats";
 import MatchHistory from "@/components/admin/MatchHistory";
@@ -21,37 +20,7 @@ export default async function MatchesPage({
   const { divisionId: divisionIdParam } = await searchParams;
   const currentDivisionId = divisionIdParam ?? null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/admin/login");
-  }
-
-  // Check if user is an organizer for this event
-  const { data: organizer } = await supabase
-    .from("organizers")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("event_id", eventId)
-    .single();
-
-  if (!organizer) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-red-600 mb-4">Access Denied</h1>
-        <p>You are not an authorized organizer for this event.</p>
-      </div>
-    );
-  }
-
-  // Get event details
-  const { data: event } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .single();
+  // MatchesPage now relies on layout.tsx for Auth, Organizer check, and Navbar rendering
 
   const divisions = await getEventDivisions(eventId);
   if (divisions.length > 1 && !currentDivisionId) {
@@ -59,6 +28,15 @@ export default async function MatchesPage({
   }
   const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : (divisions[0] ?? null);
   const effectiveDivisionId = selectedDivision?.id ?? (divisions.length === 1 ? divisions[0].id : null);
+
+  // Get event details specifically for the tournament type checks
+  const { data: event } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", eventId)
+    .single();
+
+  // Get matches with player information (filter by division when multi-division)
 
   // Get matches with player information (filter by division when multi-division)
   let matchesQuery = supabase
@@ -127,13 +105,6 @@ export default async function MatchesPage({
 
   return (
     <>
-      <AdminNavbar
-        eventId={eventId}
-        eventName={event?.name}
-        sport={event?.sport}
-        divisions={divisions}
-        currentDivisionId={defaultDivisionId}
-      />
       <div className="flex">
         <MatchesPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">
@@ -151,63 +122,81 @@ export default async function MatchesPage({
           </p>
         </div>
 
-        {/* Bracket Seeding Manager - show for single elimination or season play (use division type when in a division) */}
-        {((selectedDivision?.tournament_type ?? event?.tournament_type) === "single_elimination" || (selectedDivision?.tournament_type ?? event?.tournament_type) === "season_play") && players && players.length > 0 && (
-          <div id="bracket-seeding" className="scroll-mt-24">
-          <BracketSeedingManagerWrapper
-            eventId={eventId}
-            players={players || []}
-            matches={matches || []}
-            tournamentType={event?.tournament_type as "single_elimination" | "season_play" | null}
-          />
+        {(!players || players.length === 0) ? (
+          <div className="bg-white rounded-xl shadow-md p-10 text-center border border-gray-100 max-w-2xl mx-auto mt-12">
+            <div className="text-6xl mb-4">👥</div>
+            <h2 className="text-2xl font-bold text-ntu-green mb-2">No players or teams found</h2>
+            <p className="text-gray-600 mb-8">
+              Before you can generate brackets or schedule matches, you need to add participants to your event.
+            </p>
+            <Link 
+              href={`/admin/${eventId}/players${currentDivisionId ? `?divisionId=${currentDivisionId}` : ''}`}
+              className="inline-block bg-ntu-green text-white px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
+            >
+              Step 1: Go to Players & Teams Management
+            </Link>
           </div>
+        ) : (
+          <>
+            {/* Bracket Seeding Manager - show for single elimination or season play (use division type when in a division) */}
+            {((selectedDivision?.tournament_type ?? event?.tournament_type) === "single_elimination" || (selectedDivision?.tournament_type ?? event?.tournament_type) === "season_play") && (
+              <div id="bracket-seeding" className="scroll-mt-24">
+              <BracketSeedingManagerWrapper
+                eventId={eventId}
+                players={players || []}
+                matches={matches || []}
+                tournamentType={event?.tournament_type as "single_elimination" | "season_play" | null}
+              />
+              </div>
+            )}
+
+            <div id="matches-table" className="scroll-mt-24">
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-900">
+                要排定比賽時間（拖曳比賽到時段），請至{" "}
+                <Link href={`/admin/${eventId}/scheduling#schedule-editor`} className="font-medium text-ntu-green underline hover:no-underline">
+                  排程
+                </Link>{" "}
+                頁面。
+              </p>
+            </div>
+
+            <MatchesTable 
+              eventId={eventId} 
+              initialMatches={matches || []} 
+              players={players || []}
+              slots={slots || []}
+              courts={courts || []}
+              tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
+              registrationType={event?.registration_type as 'player' | 'team' | undefined}
+              matchPlayerStats={matchPlayerStats || []}
+              divisions={divisions}
+              defaultDivisionId={defaultDivisionId}
+            />
+            </div>
+
+            {/* Player Statistics */}
+            <div id="player-stats" className="mt-8 scroll-mt-24">
+              <PlayerStats
+                players={players || []}
+                matches={matches || []}
+                tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
+                registrationType={event?.registration_type as 'player' | 'team' | undefined}
+                matchPlayerStats={matchPlayerStats || []}
+                teamMembers={teamMembers}
+              />
+            </div>
+
+            {/* Match History */}
+            <div id="match-history" className="mt-8 scroll-mt-24">
+              <MatchHistory
+                players={players || []}
+                matches={matches || []}
+                registrationType={event?.registration_type as 'player' | 'team' | undefined}
+              />
+            </div>
+          </>
         )}
-
-        <div id="matches-table" className="scroll-mt-24">
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-sm text-amber-900">
-            要排定比賽時間（拖曳比賽到時段），請至{" "}
-            <Link href={`/admin/${eventId}/scheduling#schedule-editor`} className="font-medium text-ntu-green underline hover:no-underline">
-              排程
-            </Link>{" "}
-            頁面。
-          </p>
-        </div>
-
-        <MatchesTable 
-          eventId={eventId} 
-          initialMatches={matches || []} 
-          players={players || []}
-          slots={slots || []}
-          courts={courts || []}
-          tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
-          registrationType={event?.registration_type as 'player' | 'team' | undefined}
-          matchPlayerStats={matchPlayerStats || []}
-          divisions={divisions}
-          defaultDivisionId={defaultDivisionId}
-        />
-        </div>
-
-        {/* Player Statistics */}
-        <div id="player-stats" className="mt-8 scroll-mt-24">
-          <PlayerStats
-            players={players || []}
-            matches={matches || []}
-            tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
-            registrationType={event?.registration_type as 'player' | 'team' | undefined}
-            matchPlayerStats={matchPlayerStats || []}
-            teamMembers={teamMembers}
-          />
-        </div>
-
-        {/* Match History */}
-        <div id="match-history" className="mt-8 scroll-mt-24">
-          <MatchHistory
-            players={players || []}
-            matches={matches || []}
-            registrationType={event?.registration_type as 'player' | 'team' | undefined}
-          />
-        </div>
           </div>
         </main>
       </div>
