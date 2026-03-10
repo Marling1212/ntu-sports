@@ -98,6 +98,7 @@ export default async function SportEventSchedulePage({
             </h1>
             <p className="text-lg text-gray-600">{t("schedule.pageSubtitleSeason")}</p>
           </div>
+          {sponsors?.length ? <EventSponsorBanner sponsors={sponsors} label="Supported by" /> : null}
           <SeasonPlayDisplay
             matches={matches}
             players={players}
@@ -112,7 +113,6 @@ export default async function SportEventSchedulePage({
             tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
           />
         </div>
-        {sponsors?.length ? <EventSponsorBanner sponsors={sponsors} label="Supported by" /> : null}
       </>
     );
   }
@@ -123,14 +123,14 @@ export default async function SportEventSchedulePage({
     <>
       <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
+        {sponsors && sponsors.length > 0 && (
+          <EventSponsorBanner sponsors={sponsors} label="Supported by" />
+        )}
         <BracketMatchSchedule
           matches={dbMatches || []}
           sportSlug={sportParam}
           eventName={event.name}
         />
-        {sponsors && sponsors.length > 0 && (
-          <EventSponsorBanner sponsors={sponsors} label="Supported by" />
-        )}
       </div>
     </>
   );

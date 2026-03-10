@@ -76,6 +76,14 @@ export default async function SportEventPage({
         </h1>
       </div>
 
+      {/* Sponsors - moved to top for maximum visibility */}
+      {sponsors.length > 0 && (
+        <EventSponsorBanner
+          sponsors={sponsors.map((s) => ({ id: s.id, name: s.name, logo_url: s.logo_url, website_url: s.website_url }))}
+          label="Supported by"
+        />
+      )}
+
       {/* Tournament Overview */}
       <div className="bg-white rounded-xl shadow-md p-8 mb-8 border border-gray-100">
         <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("sports.tournamentOverview")}</h2>
@@ -311,13 +319,6 @@ export default async function SportEventPage({
         </Link>
       </div>
 
-      {/* Sponsors - bottom of page */}
-      {sponsors.length > 0 && (
-        <EventSponsorBanner
-          sponsors={sponsors.map((s) => ({ id: s.id, name: s.name, logo_url: s.logo_url, website_url: s.website_url }))}
-          label="Supported by"
-        />
-      )}
     </div>
   );
 }

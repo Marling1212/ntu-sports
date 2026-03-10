@@ -149,6 +149,10 @@ export default async function SportEventDrawPage({
           </div>
         </div>
 
+        {sponsors && sponsors.length > 0 && (
+          <EventSponsorBanner sponsors={sponsors} label="Supported by" />
+        )}
+
         {tournamentType === "season_play" ? (
           <SeasonPlayDisplay
             matches={matches}
@@ -168,9 +172,6 @@ export default async function SportEventDrawPage({
             players={players}
             sportName={sportName}
           />
-        )}
-        {sponsors && sponsors.length > 0 && (
-          <EventSponsorBanner sponsors={sponsors} label="Supported by" />
         )}
       </div>
     </>

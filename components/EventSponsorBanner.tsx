@@ -17,7 +17,7 @@ export default function EventSponsorBanner({ sponsors, label = "Supported by" }:
   if (!sponsors?.length) return null;
 
   return (
-    <section className="mt-10 pt-8 pb-4 border-t border-gray-100" aria-label="Event sponsors">
+    <section className="mb-8" aria-label="Event sponsors">
       <p className="text-xs font-medium text-gray-400 uppercase tracking-wider text-center mb-4">
         {label}
       </p>
@@ -48,7 +48,7 @@ function SponsorLogo({ sponsorName, logoUrl, websiteUrl }: SponsorLogoProps) {
         <img
           src={logoUrl}
           alt={sponsorName}
-          className="max-h-12 md:max-h-16 w-auto object-contain grayscale group-hover:grayscale-0 transition-all duration-300"
+          className="max-h-12 md:max-h-16 w-auto object-contain transition-all duration-300 group-hover:scale-110"
         />
       ) : (
         <span className="text-sm font-semibold text-gray-600 text-center">{sponsorName}</span>
