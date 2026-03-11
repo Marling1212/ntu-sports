@@ -22,6 +22,7 @@ interface TeamDetailViewProps {
     goalDiff: number;
   };
   sportName: string;
+  scoringConfig?: any;
 }
 
 const formatDateTimeDisplay = (iso?: string | null): string => {
@@ -38,36 +39,43 @@ export default function TeamDetailView({
   statDefinitions,
   statistics,
   sportName,
+  scoringConfig,
 }: TeamDetailViewProps) {
   const { t } = useI18n();
   const isTeamEvent = event?.registration_type === 'team';
-  const sportParam = event?.sport?.toLowerCase() || "";
 
-  // Determine sport-specific terminology
-  const isBasketball = sportParam === 'basketball';
-  const isRacketOrVolleyball = ['tennis', 'tabletennis', 'badminton', 'volleyball'].includes(sportParam);
-  const hideDraws = ['tennis', 'tabletennis', 'badminton', 'volleyball', 'basketball'].includes(sportParam);
+  // Determine sport-specific terminology from configuration (fallback to old logic)
+  const configObj = scoringConfig || {};
+  const sportParam = event?.sport?.toLowerCase() || "";
+  
+  // Use scoring config if available, otherwise fallback to guessing
+  const hideDraws = "hideDraws" in configObj 
+    ? configObj.hideDraws 
+    : ['tennis', 'tabletennis', 'badminton', 'volleyball', 'basketball'].includes(sportParam);
+    
+  const hideLeaguePoints = "hideLeaguePoints" in configObj 
+    ? configObj.hideLeaguePoints 
+    : false;
+    
+  // Resolve generic labels (scoreName can be goals, points, sets, games, runs)
+  const scoreName = configObj.scoreName || 
+    (sportParam === 'basketball' ? 'points' : 
+    (['tennis', 'tabletennis', 'badminton', 'volleyball'].includes(sportParam) ? 'sets' : 'goals'));
 
   const getScoreLabels = () => {
-    if (isBasketball) {
-      return {
-        for: "teamDetail.pointsFor",
-        against: "teamDetail.pointsAgainst",
-        diff: "teamDetail.pointDiff"
-      };
+    switch (scoreName) {
+      case 'points':
+        return { for: "teamDetail.pointsFor", against: "teamDetail.pointsAgainst", diff: "teamDetail.pointDiff" };
+      case 'sets':
+        return { for: "teamDetail.setsWon", against: "teamDetail.setsLost", diff: "teamDetail.setDiff" };
+      case 'games':
+        return { for: "teamDetail.statsGames", against: "teamDetail.statsGamesLost", diff: "teamDetail.statsGamesDiff" }; // requires new translations or fallback
+      case 'runs':
+        return { for: "teamDetail.statsRuns", against: "teamDetail.statsRunsAgainst", diff: "teamDetail.statsRunDiff" }; // requires new translations or fallback
+      case 'goals':
+      default:
+        return { for: "teamDetail.goalsFor", against: "teamDetail.goalsAgainst", diff: "teamDetail.goalDiff" };
     }
-    if (isRacketOrVolleyball) {
-      return {
-        for: "teamDetail.setsWon",
-        against: "teamDetail.setsLost",
-        diff: "teamDetail.setDiff"
-      };
-    }
-    return {
-      for: "teamDetail.goalsFor",
-      against: "teamDetail.goalsAgainst",
-      diff: "teamDetail.goalDiff"
-    };
   };
 
   const scoreLabels = getScoreLabels();
@@ -182,7 +190,7 @@ export default function TeamDetailView({
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
         <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("teamDetail.statisticsTitle")}</h2>
         
-        <div className={`grid grid-cols-2 md:grid-cols-${hideDraws ? '3' : '4'} gap-4`}>
+        <div className={`grid grid-cols-2 md:grid-cols-${(hideDraws && hideLeaguePoints) ? '2' : (hideDraws || hideLeaguePoints) ? '3' : '4'} gap-4`}>
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <div className="text-2xl font-bold text-green-600">{statistics.wins}</div>
             <div className="text-sm text-gray-600">{t("teamDetail.wins")}</div>
@@ -197,10 +205,12 @@ export default function TeamDetailView({
               <div className="text-sm text-gray-600">{t("teamDetail.draws")}</div>
             </div>
           )}
-          <div className="text-center p-4 bg-ntu-green bg-opacity-10 rounded-lg">
-            <div className="text-2xl font-bold text-ntu-green">{statistics.points}</div>
-            <div className="text-sm text-gray-600">{t("teamDetail.points")}</div>
-          </div>
+          {!hideLeaguePoints && (
+            <div className="text-center p-4 bg-ntu-green bg-opacity-10 rounded-lg">
+              <div className="text-2xl font-bold text-ntu-green">{statistics.points}</div>
+              <div className="text-sm text-gray-600">{t("teamDetail.points")}</div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">

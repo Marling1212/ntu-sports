@@ -66,6 +66,11 @@ interface EventDivisionRow {
   display_order: number;
   tournament_type?: string;
   registration_type?: string;
+  scoring_config?: {
+    scoreName: string;
+    hideLeaguePoints: boolean;
+    hideDraws: boolean;
+  } | null;
 }
 
 interface SettingsContentProps {
@@ -128,13 +133,16 @@ export default function SettingsContent({
   // Event divisions (multi-sport) state
   const [divisions, setDivisions] = useState<EventDivisionRow[]>(initialDivisions);
   const [editingDivisionId, setEditingDivisionId] = useState<string | null>(null);
-  const [divisionForm, setDivisionForm] = useState({ name: "", tournamentType: "single_elimination", registrationType: "player" });
+  const [divisionForm, setDivisionForm] = useState({ name: "", tournamentType: "single_elimination", registrationType: "player", scoreName: "goals", hideLeaguePoints: false, hideDraws: false });
   const [showAddDivision, setShowAddDivision] = useState(false);
   const [newDivisionSport, setNewDivisionSport] = useState("");
   const [newDivisionSportOther, setNewDivisionSportOther] = useState("");
   const [newDivisionName, setNewDivisionName] = useState("");
   const [newDivisionTournamentType, setNewDivisionTournamentType] = useState("single_elimination");
   const [newDivisionRegistrationType, setNewDivisionRegistrationType] = useState("player");
+  const [newDivisionScoreName, setNewDivisionScoreName] = useState("goals");
+  const [newDivisionHideLeaguePoints, setNewDivisionHideLeaguePoints] = useState(false);
+  const [newDivisionHideDraws, setNewDivisionHideDraws] = useState(false);
 
   const COMMON_SPORTS = [
     { value: "tennis", label: "Tennis (網球)" },
@@ -632,10 +640,14 @@ export default function SettingsContent({
   // Event divisions: edit
   const openEditDivision = (d: EventDivisionRow) => {
     setEditingDivisionId(d.id);
+    const config = d.scoring_config || { scoreName: "goals", hideLeaguePoints: false, hideDraws: false };
     setDivisionForm({
       name: d.name ?? "",
       tournamentType: d.tournament_type ?? "single_elimination",
       registrationType: d.registration_type ?? "player",
+      scoreName: config.scoreName || "goals",
+      hideLeaguePoints: !!config.hideLeaguePoints,
+      hideDraws: !!config.hideDraws,
     });
   };
   const saveDivisionEdit = async () => {
@@ -647,13 +659,28 @@ export default function SettingsContent({
           name: divisionForm.name || null,
           tournament_type: divisionForm.tournamentType,
           registration_type: divisionForm.registrationType,
+          scoring_config: {
+            scoreName: divisionForm.scoreName,
+            hideLeaguePoints: divisionForm.hideLeaguePoints,
+            hideDraws: divisionForm.hideDraws
+          },
           updated_at: new Date().toISOString(),
         })
         .eq("id", editingDivisionId);
       if (error) throw error;
       setDivisions(divisions.map((d) =>
         d.id === editingDivisionId
-          ? { ...d, name: divisionForm.name || null, tournament_type: divisionForm.tournamentType, registration_type: divisionForm.registrationType }
+          ? { 
+              ...d, 
+              name: divisionForm.name || null, 
+              tournament_type: divisionForm.tournamentType, 
+              registration_type: divisionForm.registrationType,
+              scoring_config: {
+                scoreName: divisionForm.scoreName,
+                hideLeaguePoints: divisionForm.hideLeaguePoints,
+                hideDraws: divisionForm.hideDraws
+              }
+            }
           : d
       ));
       setEditingDivisionId(null);
@@ -683,8 +710,13 @@ export default function SettingsContent({
           display_order: maxOrder + 1,
           tournament_type: newDivisionTournamentType,
           registration_type: newDivisionRegistrationType,
+          scoring_config: {
+            scoreName: newDivisionScoreName,
+            hideLeaguePoints: newDivisionHideLeaguePoints,
+            hideDraws: newDivisionHideDraws
+          }
         })
-        .select("id, event_id, sport, name, display_order, tournament_type, registration_type")
+        .select("id, event_id, sport, name, display_order, tournament_type, registration_type, scoring_config")
         .single();
       if (error) throw error;
       setDivisions([...divisions, inserted as EventDivisionRow]);
@@ -694,6 +726,9 @@ export default function SettingsContent({
       setNewDivisionName("");
       setNewDivisionTournamentType("single_elimination");
       setNewDivisionRegistrationType("player");
+      setNewDivisionScoreName("goals");
+      setNewDivisionHideLeaguePoints(false);
+      setNewDivisionHideDraws(false);
       toast.success("已新增項目");
     } catch (e: any) {
       toast.error(e?.message ?? "新增失敗");
@@ -996,6 +1031,43 @@ export default function SettingsContent({
                       <option value="team">{t('admin.teamOption')}</option>
                     </select>
                   </div>
+                  <div className="pt-4 border-t border-gray-100">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">排版與計分用詞 (Scoring & UI)</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">主要計分單位 (Primary Stat)</label>
+                        <select
+                          value={divisionForm.scoreName}
+                          onChange={(e) => setDivisionForm((f) => ({ ...f, scoreName: e.target.value }))}
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+                        >
+                          <option value="goals">Goals (進球)</option>
+                          <option value="points">Points (得分)</option>
+                          <option value="sets">Sets (局數)</option>
+                          <option value="games">Games (單局)</option>
+                          <option value="runs">Runs (得分-棒壘)</option>
+                        </select>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={divisionForm.hideLeaguePoints}
+                          onChange={(e) => setDivisionForm((f) => ({ ...f, hideLeaguePoints: e.target.checked }))}
+                          className="rounded text-ntu-green focus:ring-ntu-green"
+                        />
+                        <span className="text-sm text-gray-700">隱藏戰績積分 (Hide League Points)</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={divisionForm.hideDraws}
+                          onChange={(e) => setDivisionForm((f) => ({ ...f, hideDraws: e.target.checked }))}
+                          className="rounded text-ntu-green focus:ring-ntu-green"
+                        />
+                        <span className="text-sm text-gray-700">隱藏和局/平手 (Hide Draws)</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">
@@ -1072,6 +1144,43 @@ export default function SettingsContent({
                       <option value="player">{t('admin.playerOption')}</option>
                       <option value="team">{t('admin.teamOption')}</option>
                     </select>
+                  </div>
+                  <div className="pt-4 border-t border-gray-100">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">排版與計分用詞 (Scoring & UI)</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">主要計分單位 (Primary Stat)</label>
+                        <select
+                          value={newDivisionScoreName}
+                          onChange={(e) => setNewDivisionScoreName(e.target.value)}
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+                        >
+                          <option value="goals">Goals (進球)</option>
+                          <option value="points">Points (得分)</option>
+                          <option value="sets">Sets (局數)</option>
+                          <option value="games">Games (單局)</option>
+                          <option value="runs">Runs (得分-棒壘)</option>
+                        </select>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newDivisionHideLeaguePoints}
+                          onChange={(e) => setNewDivisionHideLeaguePoints(e.target.checked)}
+                          className="rounded text-ntu-green focus:ring-ntu-green"
+                        />
+                        <span className="text-sm text-gray-700">隱藏戰績積分 (Hide League Points)</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newDivisionHideDraws}
+                          onChange={(e) => setNewDivisionHideDraws(e.target.checked)}
+                          className="rounded text-ntu-green focus:ring-ntu-green"
+                        />
+                        <span className="text-sm text-gray-700">隱藏和局/平手 (Hide Draws)</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end gap-2">

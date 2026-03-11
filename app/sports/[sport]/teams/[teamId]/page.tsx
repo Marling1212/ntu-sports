@@ -77,6 +77,18 @@ export default async function TeamDetailPage(context: any) {
     notFound();
   }
 
+  // Fetch scoring config from division
+  let scoringConfig = null;
+  if (team.division_id) {
+    const { data: division } = await supabase
+      .from("event_divisions")
+      .select("scoring_config")
+      .eq("id", team.division_id)
+      .single();
+    
+    scoringConfig = division?.scoring_config || null;
+  }
+
   // Get team members if this is a team event
   let teamMembers: any[] = [];
   if (event?.registration_type === 'team' && team.type === 'team') {
@@ -181,6 +193,7 @@ export default async function TeamDetailPage(context: any) {
             goalDiff,
           }}
           sportName={sportName}
+          scoringConfig={scoringConfig}
         />
       </div>
     </>
