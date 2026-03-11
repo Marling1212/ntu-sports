@@ -10,18 +10,20 @@ import {
   DEFAULT_TIEBREAKER_ORDER,
   ALL_TIEBREAKER_CRITERIA,
 } from "@/lib/standings";
+import { useI18n } from "@/lib/i18n/context";
 
-const CRITERIA_LABELS: { value: TiebreakerCriteria; labelZh: string; labelEn: string }[] = [
-  { value: "points", labelZh: "積分", labelEn: "Points" },
-  { value: "wins", labelZh: "勝場數", labelEn: "Wins" },
-  { value: "losses", labelZh: "敗場數（少者較前）", labelEn: "Losses (fewer first)" },
-  { value: "draws", labelZh: "和局數", labelEn: "Draws" },
-  { value: "head_to_head", labelZh: "對戰成績（H2H）", labelEn: "Head-to-head" },
-  { value: "goal_difference", labelZh: "得失差", labelEn: "Goal difference" },
-  { value: "goals_for", labelZh: "得分", labelEn: "Goals for" },
-  { value: "goals_against", labelZh: "失分（少者較前）", labelEn: "Goals against (fewer first)" },
-  { value: "fair_play", labelZh: "公平競賽（黃／紅牌）", labelEn: "Fair play (cards)" },
-];
+const CRITERIA_KEYS: Record<TiebreakerCriteria, string> = {
+  points: "admin.tiebreakerPoints",
+  wins: "admin.tiebreakerWins",
+  losses: "admin.tiebreakerLosses",
+  draws: "admin.tiebreakerDraws",
+  head_to_head: "admin.tiebreakerH2H",
+  goal_difference: "admin.tiebreakerGD",
+  goals_for: "admin.tiebreakerGF",
+  goals_against: "admin.tiebreakerGA",
+  fair_play: "admin.tiebreakerFairPlay",
+  final: "admin.tiebreakerFinalStep",
+};
 
 interface TiebreakerConfigEditorProps {
   eventId: string;
@@ -45,6 +47,7 @@ export default function TiebreakerConfigEditor({
   );
   const [saving, setSaving] = useState(false);
   const supabase = createClient();
+  const { t } = useI18n();
 
   useEffect(() => {
     const n = normalizeTiebreakerConfig(initialConfig);
@@ -71,12 +74,12 @@ export default function TiebreakerConfigEditor({
   const restoreDefault = () => {
     setOrder(DEFAULT_TIEBREAKER_ORDER.filter((c) => c !== "final"));
     setFinalTiebreaker(getDefaultTiebreakerConfig().final_tiebreaker);
-    toast.success("已還原為預設（含預設順序與選項）");
+    toast.success(t("admin.tiebreakerRestoreSuccess"));
   };
 
   const save = async () => {
     if (order.length === 0) {
-      toast.error("請至少勾選一項排名依據");
+      toast.error(t("admin.tiebreakerErrorMinOne"));
       return;
     }
     setSaving(true);
@@ -93,28 +96,27 @@ export default function TiebreakerConfigEditor({
         .update({ tiebreaker_config: config })
         .eq("id", eventId);
       if (error) throw error;
-      toast.success("排名規則已儲存");
+      toast.success(t("admin.tiebreakerSaveSuccess"));
       onSaved?.();
     } catch (e: any) {
-      toast.error(e?.message || "儲存失敗");
+      toast.error(e?.message || t("admin.tiebreakerSaveFail"));
     } finally {
       setSaving(false);
     }
   };
 
-  const label = (crit: TiebreakerCriteria) =>
-    CRITERIA_LABELS.find((o) => o.value === crit)?.labelZh ?? crit;
+  const label = (crit: TiebreakerCriteria) => t(CRITERIA_KEYS[crit] as any);
 
   return (
     <section className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200">
-      <h2 className="text-xl font-semibold text-ntu-green mb-2">季後賽／排名 Tiebreaker 規則</h2>
+      <h2 className="text-xl font-semibold text-ntu-green mb-2">{t("admin.tiebreakerTitle")}</h2>
       <p className="text-sm text-gray-600 mb-4">
-        勾選要使用的排名依據，並在下方調整比較順序。同分時依序比較「已選擇」的項目。此設定會用於戰績表、填寫季後賽名單與匯出。
+        {t("admin.tiebreakerDesc")}
       </p>
 
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">可選的排名依據（勾選要使用的項目）</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t("admin.tiebreakerAvailable")}</label>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             {ALL_TIEBREAKER_CRITERIA.map((crit) => (
               <label key={crit} className="flex items-center gap-2 cursor-pointer">
@@ -131,9 +133,9 @@ export default function TiebreakerConfigEditor({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">已選擇的比較順序（由上到下依序比較）</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t("admin.tiebreakerSelected")}</label>
           {order.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">請在上方至少勾選一項</p>
+            <p className="text-sm text-gray-500 italic">{t("admin.tiebreakerSelectOne")}</p>
           ) : (
             <ul className="space-y-1">
               {order.map((crit, index) => (
@@ -146,7 +148,7 @@ export default function TiebreakerConfigEditor({
                     disabled={index === 0}
                     className="px-2 py-0.5 text-xs border rounded disabled:opacity-40"
                   >
-                    上
+                    ▲
                   </button>
                   <button
                     type="button"
@@ -154,7 +156,7 @@ export default function TiebreakerConfigEditor({
                     disabled={index === order.length - 1}
                     className="px-2 py-0.5 text-xs border rounded disabled:opacity-40"
                   >
-                    下
+                    ▼
                   </button>
                 </li>
               ))}
@@ -165,13 +167,13 @@ export default function TiebreakerConfigEditor({
             onClick={restoreDefault}
             className="mt-2 text-sm text-ntu-green hover:underline"
           >
-            還原為預設順序與選項
+            {t("admin.tiebreakerRestore")}
           </button>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">最後一關（若仍平手）</label>
-          <div className="flex gap-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t("admin.tiebreakerFinalStep")}</label>
+          <div className="flex gap-4 flex-wrap">
             <label className="flex items-center gap-2">
               <input
                 type="radio"
@@ -180,7 +182,7 @@ export default function TiebreakerConfigEditor({
                 onChange={() => setFinalTiebreaker("admin_decide")}
                 className="rounded-full"
               />
-              <span>由主辦方決定（可能加賽或抽籤）</span>
+              <span>{t("admin.tiebreakerAdminDecide")}</span>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -190,7 +192,7 @@ export default function TiebreakerConfigEditor({
                 onChange={() => setFinalTiebreaker("alphabetical")}
                 className="rounded-full"
               />
-              <span>依姓名排序</span>
+              <span>{t("admin.tiebreakerAlphabetical")}</span>
             </label>
           </div>
         </div>
@@ -201,7 +203,7 @@ export default function TiebreakerConfigEditor({
           disabled={saving || order.length === 0}
           className="bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
         >
-          {saving ? "儲存中…" : "儲存排名規則"}
+          {saving ? t("admin.tiebreakerSaving") : t("admin.tiebreakerSaveRules")}
         </button>
       </div>
     </section>

@@ -85,11 +85,11 @@ interface SettingsContentProps {
   tournamentType?: string;
 }
 
-export default function SettingsContent({ 
-  eventId, 
+export default function SettingsContent({
+  eventId,
   eventName,
   initialEventData,
-  initialRules, 
+  initialRules,
   initialScheduleItems,
   initialSponsors = [],
   initialDivisions = [],
@@ -109,16 +109,16 @@ export default function SettingsContent({
   const [contactInfo, setContactInfo] = useState<string>(initialContactInfo);
   const [registrationType, setRegistrationType] = useState<'player' | 'team'>(initialRegistrationType);
   const [isVisible, setIsVisible] = useState<boolean>(initialIsVisible);
-  
+
   // Event metadata state
   const [eventData, setEventData] = useState<EventData>(initialEventData);
   const { t } = useI18n();
-  
+
   // Sponsors modal state
   const [showSponsorModal, setShowSponsorModal] = useState(false);
   const [editingSponsorId, setEditingSponsorId] = useState<string | null>(null);
   const [sponsorForm, setSponsorForm] = useState({ name: "", logoUrl: "", websiteUrl: "", tier: "Bronze" as SponsorTier });
-  
+
   // Games management state
   const [games, setGames] = useState<Game[]>([]);
   const [loadingGames, setLoadingGames] = useState(false);
@@ -164,7 +164,7 @@ export default function SettingsContent({
         .select("*")
         .order("is_system", { ascending: false })
         .order("name", { ascending: true });
-      
+
       if (error) {
         // If table doesn't exist yet, just show empty list
         if (error.code === '42P01' || error.message.includes('does not exist')) {
@@ -208,7 +208,7 @@ export default function SettingsContent({
         .from("tournament_rules")
         .delete()
         .eq("id", id);
-      
+
       if (error) {
         toast.error(`Error: ${error.message}`);
         return;
@@ -341,17 +341,17 @@ export default function SettingsContent({
   // Schedule Management
   const addDay = () => {
     const newDayNumber = maxDay + 1;
-    
+
     // Get the most recent group_name to use as default
-    const recentGroupName = scheduleItems.length > 0 
-      ? scheduleItems[scheduleItems.length - 1].group_name 
+    const recentGroupName = scheduleItems.length > 0
+      ? scheduleItems[scheduleItems.length - 1].group_name
       : "";
-    
+
     // Get the most recent location to use as default
-    const recentLocation = scheduleItems.length > 0 
-      ? scheduleItems[scheduleItems.length - 1].location 
+    const recentLocation = scheduleItems.length > 0
+      ? scheduleItems[scheduleItems.length - 1].location
       : "國立台灣大學新生網球場（5-8場）";
-    
+
     setScheduleItems([...scheduleItems, {
       id: `temp-${Date.now()}`,
       event_id: eventId,
@@ -368,7 +368,7 @@ export default function SettingsContent({
 
   const removeDay = async (dayNumber: number) => {
     if (!confirm(`確定要刪除第 ${dayNumber} 天的所有賽程嗎？`)) return;
-    
+
     // Delete from database
     const itemsToDelete = scheduleItems.filter(s => s.day_number === dayNumber && !s.id.startsWith('temp-'));
     for (const item of itemsToDelete) {
@@ -377,14 +377,14 @@ export default function SettingsContent({
         .delete()
         .eq("id", item.id);
     }
-    
+
     // Remove from state
     setScheduleItems(scheduleItems.filter(s => s.day_number !== dayNumber));
     toast.success(`第 ${dayNumber} 天已刪除`);
   };
 
   const updateDayInfo = (dayNumber: number, field: 'day_title' | 'location', value: string) => {
-    setScheduleItems(scheduleItems.map(s => 
+    setScheduleItems(scheduleItems.map(s =>
       s.day_number === dayNumber ? { ...s, [field]: value } : s
     ));
   };
@@ -393,12 +393,12 @@ export default function SettingsContent({
     const dayItems = scheduleItems.filter(s => s.day_number === dayNumber);
     const newOrder = dayItems.length > 0 ? Math.max(...dayItems.map(s => s.order_number)) + 1 : 1;
     const dayInfo = dayItems[0] || { day_title: `第 ${dayNumber} 天`, location: "國立台灣大學新生網球場（5-8場）" };
-    
+
     // Get the most recent group_name to use as default
-    const recentGroupName = dayItems.length > 0 
-      ? dayItems[dayItems.length - 1].group_name 
+    const recentGroupName = dayItems.length > 0
+      ? dayItems[dayItems.length - 1].group_name
       : (scheduleItems.length > 0 ? scheduleItems[scheduleItems.length - 1].group_name : "");
-    
+
     setScheduleItems([...scheduleItems, {
       id: `temp-${Date.now()}`,
       event_id: eventId,
@@ -414,7 +414,7 @@ export default function SettingsContent({
   };
 
   const updateScheduleItem = (id: string, field: string, value: any) => {
-    setScheduleItems(scheduleItems.map(s => 
+    setScheduleItems(scheduleItems.map(s =>
       s.id === id ? { ...s, [field]: value } : s
     ));
   };
@@ -425,7 +425,7 @@ export default function SettingsContent({
         .from("schedule_items")
         .delete()
         .eq("id", id);
-      
+
       if (error) {
         toast.error(`Error: ${error.message}`);
         return;
@@ -508,7 +508,7 @@ export default function SettingsContent({
           `- 如果改為「隊伍」，現有選手將變為隊伍（需要手動添加成員）\n` +
           `- 如果改為「選手」，現有隊伍將變為選手（團隊成員資料將保留但不再顯示）\n\n` +
           `確定要繼續嗎？`;
-        
+
         if (!confirm(confirmMessage)) {
           setRegistrationType(initialRegistrationType);
           return;
@@ -516,8 +516,8 @@ export default function SettingsContent({
       }
 
       // Format dates properly
-      const startDate = eventData.startDate.includes('T') 
-        ? eventData.startDate 
+      const startDate = eventData.startDate.includes('T')
+        ? eventData.startDate
         : `${eventData.startDate}T08:00:00`;
       const endDate = eventData.endDate.includes('T')
         ? eventData.endDate
@@ -715,29 +715,29 @@ export default function SettingsContent({
       <Toaster position="top-right" />
 
       <div className="space-y-8">
-      {/* 基本資訊 */}
-      <div id="settings-basic" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-6">{t('admin.basicInfo')}</h2>
-          
+        {/* 基本資訊 */}
+        <div id="settings-basic" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <h2 className="text-2xl font-semibold text-ntu-green mb-6">{t('admin.settings.basicInfo')}</h2>
+
           <div className="space-y-6">
             {/* Event Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('admin.eventName')} *
+                {t('admin.settings.eventName')} *
               </label>
               <input
                 type="text"
                 value={eventData.name}
                 onChange={(e) => setEventData({ ...eventData, name: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                placeholder="例如：NTU Tennis – 114 Freshman Cup"
+                placeholder="NTU Tennis – 114 Freshman Cup"
               />
             </div>
 
             {/* Sport Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('admin.sportType')} *
+                {t('admin.settings.sportType')} *
               </label>
               <select
                 value={eventData.sport}
@@ -755,22 +755,22 @@ export default function SettingsContent({
                 <option value="other">Other (其他)</option>
               </select>
               <p className="text-xs text-gray-500 mt-1">
-                可在「運動/遊戲管理」標籤中查看和創建自訂運動類型
+                {t('admin.settings.gamesIntro')}
               </p>
             </div>
 
             {/* Tournament Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('admin.tournamentMode')} *
+                {t('admin.settings.tournamentMode')} *
               </label>
               <select
                 value={eventData.tournamentType}
                 onChange={(e) => setEventData({ ...eventData, tournamentType: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               >
-                <option value="single_elimination">Single Elimination (單淘汰賽)</option>
-                <option value="season_play">Season Play (賽季模式)</option>
+                <option value="single_elimination">{t('admin.settings.singleElimination')}</option>
+                <option value="season_play">{t('admin.settings.seasonPlay')}</option>
               </select>
             </div>
 
@@ -778,7 +778,7 @@ export default function SettingsContent({
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('admin.dates')} (Start) *
+                  {t('admin.settings.datesStart')} *
                 </label>
                 <input
                   type="date"
@@ -792,7 +792,7 @@ export default function SettingsContent({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('admin.dates')} (End) *
+                  {t('admin.settings.datesEnd')} *
                 </label>
                 <input
                   type="date"
@@ -809,28 +809,28 @@ export default function SettingsContent({
             {/* Venue */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('admin.venue')}
+                {t('admin.settings.venue')}
               </label>
               <input
                 type="text"
                 value={eventData.venue}
                 onChange={(e) => setEventData({ ...eventData, venue: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                placeholder="例如：國立台灣大學新生網球場（5-8場）"
+                placeholder={t('admin.settings.venue')}
               />
             </div>
 
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('admin.description')}
+                {t('admin.settings.description')}
               </label>
               <textarea
                 value={eventData.description}
                 onChange={(e) => setEventData({ ...eventData, description: e.target.value })}
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                placeholder="賽事描述、規則或額外資訊..."
+                placeholder={t('admin.settings.description')}
               />
             </div>
 
@@ -850,11 +850,10 @@ export default function SettingsContent({
                     {isVisible ? t('admin.showOnSite') : t('admin.hideOnSite')}
                   </span>
                 </label>
-                <span className={`text-xs px-2 py-1 rounded ${
-                  isVisible 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
+                <span className={`text-xs px-2 py-1 rounded ${isVisible
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-gray-100 text-gray-600'
+                  }`}>
                   {isVisible ? t('admin.visible') : t('admin.hidden')}
                 </span>
               </div>
@@ -876,7 +875,7 @@ export default function SettingsContent({
                 <option value="team">{t('admin.teamOption')}</option>
               </select>
               <p className="text-xs text-gray-500 mt-2">
-                {registrationType === 'team' 
+                {registrationType === 'team'
                   ? t('admin.registrationTypeHintTeam')
                   : t('admin.registrationTypeHintPlayer')}
               </p>
@@ -908,184 +907,184 @@ export default function SettingsContent({
           />
         </div>
 
-      {/* 賽事項目／分組 (multi-sport event divisions) */}
-      <div id="settings-divisions" className="scroll-mt-24 space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.divisionsTitle')}</h2>
-              <p className="text-sm text-gray-600 mt-1">{t('admin.divisionsDesc')}</p>
+        {/* 賽事項目／分組 (multi-sport event divisions) */}
+        <div id="settings-divisions" className="scroll-mt-24 space-y-6">
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.divisionsTitle')}</h2>
+                <p className="text-sm text-gray-600 mt-1">{t('admin.divisionsDesc')}</p>
+              </div>
+              <button
+                onClick={() => setShowAddDivision(true)}
+                className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+              >
+                ➕ {t('admin.addDivision')}
+              </button>
             </div>
-            <button
-              onClick={() => setShowAddDivision(true)}
-              className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
-            >
-              ➕ {t('admin.addDivision')}
-            </button>
-          </div>
-          {divisions.length === 0 ? (
-            <p className="text-gray-500">{t('admin.noDivisionsYet')}</p>
-          ) : (
-            <ul className="space-y-3">
-              {divisions.map((d) => (
-                <li key={d.id} className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-gray-50 border border-gray-100">
-                  <div>
-                    <span className="font-medium text-gray-900">{d.sport}</span>
-                    {d.name && <span className="text-gray-600 ml-2">– {d.name}</span>}
-                    <span className="ml-2 text-xs text-gray-500">
-                      {d.tournament_type === "season_play" ? "賽季" : "單淘汰"} · {d.registration_type === "team" ? "隊伍" : "個人"}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openEditDivision(d)}
-                      className="text-ntu-green text-sm font-medium hover:underline"
-                    >
-                      編輯
-                    </button>
-                    {divisions.length > 1 && (
+            {divisions.length === 0 ? (
+              <p className="text-gray-500">{t('admin.noDivisionsYet')}</p>
+            ) : (
+              <ul className="space-y-3">
+                {divisions.map((d) => (
+                  <li key={d.id} className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-gray-50 border border-gray-100">
+                    <div>
+                      <span className="font-medium text-gray-900">{d.sport}</span>
+                      {d.name && <span className="text-gray-600 ml-2">– {d.name}</span>}
+                      <span className="ml-2 text-xs text-gray-500">
+                        {d.tournament_type === "season_play" ? "賽季" : "單淘汰"} · {d.registration_type === "team" ? "隊伍" : "個人"}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
                       <button
-                        onClick={() => deleteDivision(d)}
-                        className="text-red-600 text-sm font-medium hover:underline"
-                        title="移除此運動項目"
+                        onClick={() => openEditDivision(d)}
+                        className="text-ntu-green text-sm font-medium hover:underline"
                       >
-                        刪除此項目
+                        編輯
                       </button>
+                      {divisions.length > 1 && (
+                        <button
+                          onClick={() => deleteDivision(d)}
+                          className="text-red-600 text-sm font-medium hover:underline"
+                          title="移除此運動項目"
+                        >
+                          刪除此項目
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Edit division modal */}
+          {editingDivisionId && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-ntu-green mb-4">{t('admin.settings.editDivision')}</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.divisionName')}</label>
+                    <input
+                      type="text"
+                      value={divisionForm.name}
+                      onChange={(e) => setDivisionForm((f) => ({ ...f, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="e.g. Men's Singles"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.tournamentMode')}</label>
+                    <select
+                      value={divisionForm.tournamentType}
+                      onChange={(e) => setDivisionForm((f) => ({ ...f, tournamentType: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="single_elimination">{t('admin.settings.singleElimination')}</option>
+                      <option value="season_play">{t('admin.settings.seasonPlay')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.registrationTypeLabel')}</label>
+                    <select
+                      value={divisionForm.registrationType}
+                      onChange={(e) => setDivisionForm((f) => ({ ...f, registrationType: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="player">{t('admin.playerOption')}</option>
+                      <option value="team">{t('admin.teamOption')}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button onClick={() => setEditingDivisionId(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">{t('admin.cancel')}</button>
+                <button onClick={saveDivisionEdit} className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90">{t('admin.save')}</button>
+              </div>
+            </div>
+          )}
+
+          {/* Add division modal */}
+          {showAddDivision && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-ntu-green mb-4">{t('admin.settings.addDivision')}</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.sportType')} *</label>
+                    <select
+                      value={newDivisionSport}
+                      onChange={(e) => { setNewDivisionSport(e.target.value); setNewDivisionSportOther(""); }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">{t('admin.select')}</option>
+                      {COMMON_SPORTS.map((s) => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                      {games.length > 0 && (
+                        <>
+                          <option disabled>──────────</option>
+                          {games.map((g) => (
+                            <option key={g.id} value={g.code}>{g.name} ({g.code})</option>
+                          ))}
+                        </>
+                      )}
+                    </select>
+                    {newDivisionSport === "other" && (
+                      <input
+                        type="text"
+                        value={newDivisionSportOther}
+                        onChange={(e) => setNewDivisionSportOther(e.target.value)}
+                        placeholder="e.g. disc-golf"
+                        className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      />
                     )}
                   </div>
-                </li>
-              ))}
-            </ul>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.divisionName')}</label>
+                    <input
+                      type="text"
+                      value={newDivisionName}
+                      onChange={(e) => setNewDivisionName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="e.g. Men's Singles"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.tournamentMode')}</label>
+                    <select
+                      value={newDivisionTournamentType}
+                      onChange={(e) => setNewDivisionTournamentType(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="single_elimination">{t('admin.settings.singleElimination')}</option>
+                      <option value="season_play">{t('admin.settings.seasonPlay')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.registrationTypeLabel')}</label>
+                    <select
+                      value={newDivisionRegistrationType}
+                      onChange={(e) => setNewDivisionRegistrationType(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="player">{t('admin.playerOption')}</option>
+                      <option value="team">{t('admin.teamOption')}</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end gap-2">
+                  <button onClick={() => { setShowAddDivision(false); setNewDivisionSport(""); setNewDivisionSportOther(""); setNewDivisionName(""); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">{t('admin.cancel')}</button>
+                  <button onClick={addDivision} className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90">{t('admin.add')}</button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Edit division modal */}
-        {editingDivisionId && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-ntu-green mb-4">編輯項目</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">顯示名稱（選填）</label>
-                  <input
-                    type="text"
-                    value={divisionForm.name}
-                    onChange={(e) => setDivisionForm((f) => ({ ...f, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="例：男子組"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">賽制</label>
-                  <select
-                    value={divisionForm.tournamentType}
-                    onChange={(e) => setDivisionForm((f) => ({ ...f, tournamentType: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="single_elimination">單淘汰</option>
-                    <option value="season_play">賽季（分組＋季後賽）</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">報名類型</label>
-                  <select
-                    value={divisionForm.registrationType}
-                    onChange={(e) => setDivisionForm((f) => ({ ...f, registrationType: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="player">個人</option>
-                    <option value="team">隊伍</option>
-                  </select>
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-2">
-                <button onClick={() => setEditingDivisionId(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
-                <button onClick={saveDivisionEdit} className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90">儲存</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Add division modal */}
-        {showAddDivision && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-ntu-green mb-4">新增運動項目</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">運動類型 *</label>
-                  <select
-                    value={newDivisionSport}
-                    onChange={(e) => { setNewDivisionSport(e.target.value); setNewDivisionSportOther(""); }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="">請選擇</option>
-                    {COMMON_SPORTS.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                    {games.length > 0 && (
-                      <>
-                        <option disabled>── 運動／遊戲管理 ──</option>
-                        {games.map((g) => (
-                          <option key={g.id} value={g.code}>{g.name} ({g.code})</option>
-                        ))}
-                      </>
-                    )}
-                  </select>
-                  {newDivisionSport === "other" && (
-                    <input
-                      type="text"
-                      value={newDivisionSportOther}
-                      onChange={(e) => setNewDivisionSportOther(e.target.value)}
-                      placeholder="輸入運動代碼（英文小寫）"
-                      className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">顯示名稱（選填）</label>
-                  <input
-                    type="text"
-                    value={newDivisionName}
-                    onChange={(e) => setNewDivisionName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="例：女子組"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">賽制</label>
-                  <select
-                    value={newDivisionTournamentType}
-                    onChange={(e) => setNewDivisionTournamentType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="single_elimination">單淘汰</option>
-                    <option value="season_play">賽季（分組＋季後賽）</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">報名類型</label>
-                  <select
-                    value={newDivisionRegistrationType}
-                    onChange={(e) => setNewDivisionRegistrationType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="player">個人</option>
-                    <option value="team">隊伍</option>
-                  </select>
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-2">
-                <button onClick={() => { setShowAddDivision(false); setNewDivisionSport(""); setNewDivisionSportOther(""); setNewDivisionName(""); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
-                <button onClick={addDivision} className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90">新增</button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 賽事規則 */}
-      <div id="settings-rules" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        {/* 賽事規則 */}
+        <div id="settings-rules" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.importantRules')}</h2>
             <button
@@ -1107,7 +1106,7 @@ export default function SettingsContent({
                   onChange={(e) => updateRule(rule.id, e.target.value)}
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green focus:border-transparent"
                   rows={3}
-                  placeholder="輸入規則內容... (支援 Markdown 連結：[文字](網址))"
+                  placeholder={t('admin.settings.rulePlaceholder')}
                 />
                 <button
                   onClick={() => deleteRule(rule.id)}
@@ -1129,218 +1128,218 @@ export default function SettingsContent({
           </div>
         </div>
 
-      {/* Event Sponsors */}
-      <div id="settings-sponsors" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-ntu-green">Event Sponsors</h2>
-          <button
-            onClick={openAddSponsor}
-            className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            ➕ Add New Sponsor
-          </button>
-        </div>
+        {/* Event Sponsors */}
+        <div id="settings-sponsors" className="scroll-mt-24 bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold text-ntu-green">{t('admin.settings.sponsors')}</h2>
+            <button
+              onClick={openAddSponsor}
+              className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+            >
+              ➕ {t('admin.settings.addSponsor')}
+            </button>
+          </div>
 
-        <div className="space-y-4 mb-6">
-          {sponsors.length === 0 ? (
-            <p className="text-gray-500">No sponsors yet. Click &quot;Add New Sponsor&quot; to add one.</p>
-          ) : (
-            sponsors.map((sponsor) => (
-              <div
-                key={sponsor.id}
-                className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50"
-              >
-                {sponsor.logo_url ? (
-                  <img
-                    src={sponsor.logo_url}
-                    alt={sponsor.name}
-                    className="w-12 h-12 object-contain rounded"
-                  />
-                ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-sm">
-                    No logo
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900">{sponsor.name}</p>
-                  <p className="text-sm text-gray-500">
-                    Tier: {sponsor.tier}
-                    {sponsor.website_url && (
-                      <> · <a href={sponsor.website_url} target="_blank" rel="noopener noreferrer" className="text-ntu-green hover:underline">Website</a></>
-                    )}
-                  </p>
-                </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => openEditSponsor(sponsor)}
-                    className="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteSponsor(sponsor.id)}
-                    className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            onClick={saveSponsors}
-            className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-          >
-            💾 Save Sponsors
-          </button>
-        </div>
-      </div>
-
-      {/* Sponsor modal */}
-      {showSponsorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full my-8 max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0">
-              <h3 className="text-xl font-semibold text-ntu-green">
-                {editingSponsorId ? "Edit Sponsor" : "Add New Sponsor"}
-              </h3>
-              <button onClick={closeSponsorModal} className="text-gray-500 hover:text-gray-700 text-2xl">
-                ×
-              </button>
-            </div>
-            <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-                <input
-                  type="text"
-                  value={sponsorForm.name}
-                  onChange={(e) => setSponsorForm({ ...sponsorForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
-                  placeholder="Sponsor name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Logo Link</label>
-                <input
-                  type="url"
-                  value={sponsorForm.logoUrl}
-                  onChange={(e) => setSponsorForm({ ...sponsorForm, logoUrl: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Website Link</label>
-                <input
-                  type="url"
-                  value={sponsorForm.websiteUrl}
-                  onChange={(e) => setSponsorForm({ ...sponsorForm, websiteUrl: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tier</label>
-                <select
-                  value={sponsorForm.tier}
-                  onChange={(e) => setSponsorForm({ ...sponsorForm, tier: e.target.value as SponsorTier })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+          <div className="space-y-4 mb-6">
+            {sponsors.length === 0 ? (
+              <p className="text-gray-500">{t('admin.settings.noSponsorsYet')}</p>
+            ) : (
+              sponsors.map((sponsor) => (
+                <div
+                  key={sponsor.id}
+                  className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50"
                 >
-                  <option value="Gold">Gold</option>
-                  <option value="Silver">Silver</option>
-                  <option value="Bronze">Bronze</option>
-                </select>
-              </div>
-            </div>
-            <div className="p-6 border-t border-gray-200 flex gap-3 flex-shrink-0">
-              <button
-                onClick={closeSponsorModal}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitSponsorForm}
-                className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90"
-              >
-                {editingSponsorId ? "Update" : "Add"}
-              </button>
-            </div>
+                  {sponsor.logo_url ? (
+                    <img
+                      src={sponsor.logo_url}
+                      alt={sponsor.name}
+                      className="w-12 h-12 object-contain rounded"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-sm">
+                      No logo
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900">{sponsor.name}</p>
+                    <p className="text-sm text-gray-500">
+                      Tier: {sponsor.tier}
+                      {sponsor.website_url && (
+                        <> · <a href={sponsor.website_url} target="_blank" rel="noopener noreferrer" className="text-ntu-green hover:underline">Website</a></>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => openEditSponsor(sponsor)}
+                      className="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      {t('admin.settings.editSponsor')}
+                    </button>
+                    <button
+                      onClick={() => deleteSponsor(sponsor.id)}
+                      className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      {t('admin.delete')}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={saveSponsors}
+              className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+            >
+              💾 {t('admin.settings.saveSponsors')}
+            </button>
           </div>
         </div>
-      )}
 
-      {/* 比賽行程 */}
-      <div id="settings-schedule" className="scroll-mt-24 space-y-6">
+        {/* Sponsor modal */}
+        {showSponsorModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full my-8 max-h-[90vh] flex flex-col">
+              <div className="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0">
+                <h3 className="text-xl font-semibold text-ntu-green">
+                  {editingSponsorId ? t('admin.settings.editSponsor') : t('admin.settings.addSponsor')}
+                </h3>
+                <button onClick={closeSponsorModal} className="text-gray-500 hover:text-gray-700 text-2xl">
+                  ×
+                </button>
+              </div>
+              <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.settings.sponsorName')} *</label>
+                  <input
+                    type="text"
+                    value={sponsorForm.name}
+                    onChange={(e) => setSponsorForm({ ...sponsorForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                    placeholder={t('admin.settings.sponsorNamePlaceholder')}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.settings.sponsorLogoLink')}</label>
+                  <input
+                    type="url"
+                    value={sponsorForm.logoUrl}
+                    onChange={(e) => setSponsorForm({ ...sponsorForm, logoUrl: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Website Link</label>
+                  <input
+                    type="url"
+                    value={sponsorForm.websiteUrl}
+                    onChange={(e) => setSponsorForm({ ...sponsorForm, websiteUrl: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tier</label>
+                  <select
+                    value={sponsorForm.tier}
+                    onChange={(e) => setSponsorForm({ ...sponsorForm, tier: e.target.value as SponsorTier })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                  >
+                    <option value="Gold">Gold</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Bronze">Bronze</option>
+                  </select>
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3 flex-shrink-0">
+                <button
+                  onClick={closeSponsorModal}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitSponsorForm}
+                  className="flex-1 bg-ntu-green text-white py-2 rounded-lg font-semibold hover:opacity-90"
+                >
+                  {editingSponsorId ? "Update" : "Add"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 比賽行程 */}
+        <div id="settings-schedule" className="scroll-mt-24 space-y-6">
           {/* Top Action Buttons */}
           <div className="flex justify-between items-center">
             <button
               onClick={saveSchedule}
               className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
             >
-              💾 保存行程與說明
+              💾 {t('admin.settings.saveSchedule')}
             </button>
             <button
               onClick={addDay}
               className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2"
             >
-              ➕ 新增比賽日
+              ➕ {t('admin.settings.addDay')}
             </button>
           </div>
 
           {/* Days */}
           {uniqueDays.map((dayNumber) => {
             const dayItems = scheduleItems.filter(s => s.day_number === dayNumber);
-            const dayInfo = dayItems[0] || { day_title: `第 ${dayNumber} 天`, location: "" };
-            
+            const dayInfo = dayItems[0] || { day_title: `Day ${dayNumber}`, location: "" };
+
             return (
               <div key={dayNumber} className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold text-ntu-green">第 {dayNumber} 天</h2>
+                    <h2 className="text-2xl font-semibold text-ntu-green">Day {dayNumber}</h2>
                     <div className="flex gap-2">
                       <button
                         onClick={() => addScheduleItem(dayNumber)}
                         className="bg-ntu-green text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
                       >
-                        ➕ 新增賽程
+                        ➕ {t('admin.settings.addSchedule')}
                       </button>
                       <button
                         onClick={() => removeDay(dayNumber)}
                         className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
                       >
-                        🗑️ 刪除此天
+                        🗑️ {t('admin.delete')}
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Day Info */}
                   <div className="grid md:grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        日期標題
+                        {t('admin.settings.dayTitle')}
                       </label>
                       <input
                         type="text"
                         value={dayInfo.day_title}
                         onChange={(e) => updateDayInfo(dayNumber, 'day_title', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                        placeholder="例如：2025/11/8 (六)"
+                        placeholder="e.g. 2025/11/8 (Sat)"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        比賽地點
+                        {t('admin.settings.dayLocation')}
                       </label>
                       <input
                         type="text"
                         value={dayInfo.location}
                         onChange={(e) => updateDayInfo(dayNumber, 'location', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded"
-                        placeholder="例如：國立台灣大學新生網球場（5-8場）"
+                        placeholder={t('admin.settings.venue')}
                       />
                     </div>
                   </div>
@@ -1357,9 +1356,9 @@ export default function SettingsContent({
                             value={item.group_name}
                             onChange={(e) => updateScheduleItem(item.id, "group_name", e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded"
-                            placeholder="例如：1-64籤"
+                            placeholder="e.g. A"
                           />
-                          <p className="text-xs text-gray-500 mt-1">組別/籤號</p>
+                          <p className="text-xs text-gray-500 mt-1">{t('admin.settings.groupName')}</p>
                         </div>
                         <div>
                           <input
@@ -1367,9 +1366,9 @@ export default function SettingsContent({
                             value={item.round_name}
                             onChange={(e) => updateScheduleItem(item.id, "round_name", e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded"
-                            placeholder="例如：八強 QF"
+                            placeholder="e.g. QF"
                           />
-                          <p className="text-xs text-gray-500 mt-1">輪次（可寫文字）</p>
+                          <p className="text-xs text-gray-500 mt-1">{t('admin.settings.roundName')}</p>
                         </div>
                         <div>
                           <input
@@ -1377,9 +1376,9 @@ export default function SettingsContent({
                             value={item.match_count}
                             onChange={(e) => updateScheduleItem(item.id, "match_count", parseInt(e.target.value) || 0)}
                             className="w-full px-3 py-2 border border-gray-300 rounded"
-                            placeholder="場數"
+                            placeholder="1"
                           />
-                          <p className="text-xs text-gray-500 mt-1">比賽場數</p>
+                          <p className="text-xs text-gray-500 mt-1">{t('admin.settings.matchCount')}</p>
                         </div>
                         <div>
                           <input
@@ -1387,30 +1386,30 @@ export default function SettingsContent({
                             value={item.scheduled_time}
                             onChange={(e) => updateScheduleItem(item.id, "scheduled_time", e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded"
-                            placeholder="例如：NB 14:00"
+                            placeholder="e.g. NB 14:00"
                           />
-                          <p className="text-xs text-gray-500 mt-1">賽程時間</p>
+                          <p className="text-xs text-gray-500 mt-1">{t('admin.settings.scheduledTime')}</p>
                         </div>
                         <button
                           onClick={() => deleteScheduleItem(item.id)}
                           className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 h-fit"
                         >
-                          🗑️ 刪除
+                          🗑️ {t('admin.delete')}
                         </button>
                       </div>
                     </div>
                   ))}
-                  
+
                   {dayItems.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
-                      尚無賽程，請點擊「新增賽程」按鈕
+                      {t('admin.settings.noScheduleYet')}
                     </div>
                   )}
                 </div>
               </div>
             );
           })}
-          
+
           {uniqueDays.length === 0 && (
             <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
               <p className="text-gray-500 text-lg mb-4">尚未建立任何比賽日</p>
@@ -1420,51 +1419,51 @@ export default function SettingsContent({
 
           {/* Schedule Notes */}
           <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-            <h2 className="text-2xl font-semibold text-ntu-green mb-6">賽程說明 Notes</h2>
-            
+            <h2 className="text-2xl font-semibold text-ntu-green mb-6">{t('admin.settings.scheduleNotes')}</h2>
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  說明內容
+                  {t('admin.settings.details')}
                 </label>
                 <textarea
                   value={scheduleNotes}
                   onChange={(e) => setScheduleNotes(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green focus:border-transparent"
                   rows={3}
-                  placeholder="例如：NB = 不早於 (Not Before)"
+                  placeholder={t('admin.settings.detailsPlaceholder')}
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  💡 支援 Markdown 語法：連結 [文字](網址)、粗體 **文字**
+                  {t('admin.settings.markdownHint')}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  最後更新時間
+                  {t('admin.settings.lastUpdated')}
                 </label>
                 <input
                   type="text"
                   value={scheduleUpdatedAt}
                   onChange={(e) => setScheduleUpdatedAt(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green focus:border-transparent"
-                  placeholder="例如：2025/11/04"
+                  placeholder="e.g. 2025/11/04"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  聯繫資訊
+                  {t('admin.settings.contactInfo')}
                 </label>
                 <textarea
                   value={contactInfo}
                   onChange={(e) => setContactInfo(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green focus:border-transparent"
                   rows={2}
-                  placeholder="例如：如有任何疑問，請[聯繫大會](mailto:contact@example.com)或關注 [FB 粉專](https://facebook.com/ntutennis)。"
+                  placeholder={t('admin.settings.contactPlaceholder')}
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  💡 支援 Markdown 語法：連結 [文字](網址)、粗體 **文字**
+                  {t('admin.settings.markdownHint')}
                 </p>
               </div>
             </div>
@@ -1475,13 +1474,13 @@ export default function SettingsContent({
               onClick={saveSchedule}
               className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
             >
-              💾 保存行程與說明
+              💾 {t('admin.settings.saveSchedule')}
             </button>
           </div>
         </div>
 
-      {/* 運動/遊戲管理 */}
-      <div id="settings-games" className="scroll-mt-24 space-y-6">
+        {/* 運動/遊戲管理 */}
+        <div id="settings-games" className="scroll-mt-24 space-y-6">
           <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -1503,9 +1502,8 @@ export default function SettingsContent({
                 {games.map((game) => (
                   <div
                     key={game.id}
-                    className={`border rounded-lg p-4 ${
-                      game.is_system ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200'
-                    }`}
+                    className={`border rounded-lg p-4 ${game.is_system ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200'
+                      }`}
                   >
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-2xl">{game.icon || '🎮'}</span>
@@ -1636,72 +1634,72 @@ export default function SettingsContent({
                     創建
                   </button>
                 </div>
+              </div>
             </div>
-          </div>
           )}
         </div>
 
-      {/* Danger Zone */}
-      <div className="mt-10">
-        <div className="bg-white rounded-xl border-2 border-red-300 p-6">
-          <h3 className="text-xl font-semibold text-red-600 mb-2">{t('admin.dangerZone')}</h3>
-          <p className="text-sm text-red-600 mb-4">
-            {t('admin.dangerZoneDesc')}
-          </p>
-          {!showDanger ? (
-            <button
-              onClick={() => setShowDanger(true)}
-              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-            >
-              🗑️ {t('admin.deleteEvent')}
-            </button>
-          ) : (
-            <div className="space-y-4">
-              <div className="text-sm text-gray-700">
-                <p className="mb-2 font-medium">請完成以下 3 項確認：</p>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={confirmAck} onChange={(e) => setConfirmAck(e.target.checked)} />
-                  <span>我已了解此操作不可逆，且會永久刪除所有與本賽事相關的資料。</span>
-                </label>
+        {/* Danger Zone */}
+        <div className="mt-10">
+          <div className="bg-white rounded-xl border-2 border-red-300 p-6">
+            <h3 className="text-xl font-semibold text-red-600 mb-2">{t('admin.dangerZone')}</h3>
+            <p className="text-sm text-red-600 mb-4">
+              {t('admin.dangerZoneDesc')}
+            </p>
+            {!showDanger ? (
+              <button
+                onClick={() => setShowDanger(true)}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+              >
+                🗑️ {t('admin.deleteEvent')}
+              </button>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-sm text-gray-700">
+                  <p className="mb-2 font-medium">請完成以下 3 項確認：</p>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={confirmAck} onChange={(e) => setConfirmAck(e.target.checked)} />
+                    <span>我已了解此操作不可逆，且會永久刪除所有與本賽事相關的資料。</span>
+                  </label>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">輸入賽事名稱以確認（{eventName}）</label>
+                  <input
+                    className="w-full max-w-[28rem] border rounded px-3 py-2"
+                    value={confirmName}
+                    onChange={(e) => setConfirmName(e.target.value)}
+                    placeholder="請輸入完整賽事名稱"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">請輸入大寫 <strong>DELETE</strong> 以確認</label>
+                  <input
+                    className="w-full max-w-[28rem] border rounded px-3 py-2 font-mono"
+                    value={confirmId}
+                    onChange={(e) => setConfirmId(e.target.value)}
+                    placeholder="輸入 DELETE"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleDeleteEvent}
+                    disabled={!confirmAck || deleting || confirmName !== eventName || confirmId !== "DELETE"}
+                    className="bg-red-600 text-white px-4 py-2 rounded-md disabled:opacity-50"
+                  >
+                    {deleting ? "刪除中…" : "永久刪除此賽事"}
+                  </button>
+                  <button
+                    onClick={() => { setShowDanger(false); setConfirmAck(false); setConfirmName(""); setConfirmId(""); }}
+                    className="px-4 py-2 border rounded-md"
+                  >
+                    取消
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">輸入賽事名稱以確認（{eventName}）</label>
-                <input
-                  className="w-full max-w-[28rem] border rounded px-3 py-2"
-                  value={confirmName}
-                  onChange={(e) => setConfirmName(e.target.value)}
-                  placeholder="請輸入完整賽事名稱"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">請輸入大寫 <strong>DELETE</strong> 以確認</label>
-                <input
-                  className="w-full max-w-[28rem] border rounded px-3 py-2 font-mono"
-                  value={confirmId}
-                  onChange={(e) => setConfirmId(e.target.value)}
-                  placeholder="輸入 DELETE"
-                />
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleDeleteEvent}
-                  disabled={!confirmAck || deleting || confirmName !== eventName || confirmId !== "DELETE"}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md disabled:opacity-50"
-                >
-                  {deleting ? "刪除中…" : "永久刪除此賽事"}
-                </button>
-                <button
-                  onClick={() => { setShowDanger(false); setConfirmAck(false); setConfirmName(""); setConfirmId(""); }}
-                  className="px-4 py-2 border rounded-md"
-                >
-                  取消
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-      </div>
+      </div >
     </>
   );
 }

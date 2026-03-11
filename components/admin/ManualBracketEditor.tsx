@@ -62,14 +62,14 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
   useEffect(() => {
     const loadEventAndMatches = async () => {
       setLoadingExisting(true);
-      
+
       // Load event info
       const { data: eventData } = await supabase
         .from("events")
         .select("*")
         .eq("id", eventId)
         .single();
-      
+
       if (eventData) {
         setEvent(eventData);
         setIsLocked(eventData.bracket_locked || false);
@@ -99,8 +99,8 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
           if (match.player1_id) {
             const player1 = players.find(p => p.id === match.player1_id);
             if (player1 && pos1Index < newPositions.length) {
-              const position: BracketPosition = { 
-                position: pos1Index, 
+              const position: BracketPosition = {
+                position: pos1Index,
                 player: player1
               };
               newPositions[pos1Index] = position;
@@ -109,8 +109,8 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
           if (match.player2_id) {
             const player2 = players.find(p => p.id === match.player2_id);
             if (player2 && pos2Index < newPositions.length) {
-              const position: BracketPosition = { 
-                position: pos2Index, 
+              const position: BracketPosition = {
+                position: pos2Index,
                 player: player2
               };
               newPositions[pos2Index] = position;
@@ -121,7 +121,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
         setBracketPositions(newPositions);
         toast.success(t('admin.manualBracket.loadedBracket', { n: round1Matches.length }));
       }
-      
+
       setLoadingExisting(false);
     };
 
@@ -438,7 +438,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
 
         // Delete existing matches
         await supabase.from("matches").delete().eq("event_id", eventId);
-        
+
         // Record deletion in history
         await supabase
           .from("bracket_edit_history")
@@ -600,7 +600,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
       }
 
       toast.success(t('admin.manualBracket.saveSuccessWithCount', { n: matches.length }) + (hasThirdPlaceMatch ? ` (${t('admin.manualBracket.thirdPlace')})` : ''));
-      
+
       // Refresh page after a short delay
       setTimeout(() => {
         window.location.reload();
@@ -653,11 +653,10 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
       {/* Bracket Status Banner */}
       {event && (event.bracket_generation_method || event.bracket_generated_at) && (
-        <div className={`mb-6 p-4 rounded-lg border-2 ${
-          isLocked 
-            ? 'bg-red-50 border-red-200' 
+        <div className={`mb-6 p-4 rounded-lg border-2 ${isLocked
+            ? 'bg-red-50 border-red-200'
             : 'bg-blue-50 border-blue-200'
-        }`}>
+          }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {isLocked ? (
@@ -945,17 +944,16 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
                   onDragLeave={handleDragLeave}
                   onDrop={() => handleDrop(index)}
                   onClick={() => handlePositionClick(index)}
-                  className={`border rounded-lg p-3 transition-all ${
-                    isSelected
+                  className={`border rounded-lg p-3 transition-all ${isSelected
                       ? "border-ntu-green border-2 bg-ntu-green/10"
                       : dragOverPosition === index
-                      ? "border-ntu-green border-2 bg-ntu-green/20"
-                      : hasBothPlayers
-                      ? "border-green-300 bg-green-50"
-                      : hasOnePlayer
-                      ? "border-yellow-300 bg-yellow-50"
-                      : "border-gray-300 hover:border-ntu-green hover:bg-gray-50"
-                  } ${isEven ? "mb-2" : ""}`}
+                        ? "border-ntu-green border-2 bg-ntu-green/20"
+                        : hasBothPlayers
+                          ? "border-green-300 bg-green-50"
+                          : hasOnePlayer
+                            ? "border-yellow-300 bg-yellow-50"
+                            : "border-gray-300 hover:border-ntu-green hover:bg-gray-50"
+                    } ${isEven ? "mb-2" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
