@@ -1158,6 +1158,7 @@ export default function SettingsContent({
                       height={48}
                       className="w-12 h-12 object-contain rounded"
                       unoptimized
+                      loader={({ src }) => src}
                     />
                   ) : (
                     <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-sm">

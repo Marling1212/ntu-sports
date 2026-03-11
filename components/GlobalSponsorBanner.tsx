@@ -86,6 +86,7 @@ function SponsorLogo({ sponsor, size }: { sponsor: GlobalSponsorItem, size: 'lar
           height={sizePx}
           className="w-auto object-contain transition-transform duration-500 group-hover:scale-105 filter drop-shadow-sm max-h-full"
           unoptimized
+          loader={({ src }) => src}
         />
       ) : (
         <span className={`font-bold text-gray-400 group-hover:text-ntu-green transition-colors ${textSizes[size]}`}>

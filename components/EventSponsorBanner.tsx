@@ -54,6 +54,7 @@ function SponsorLogo({ sponsorName, logoUrl, websiteUrl }: SponsorLogoProps) {
           height={64}
           className="max-h-12 md:max-h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
           unoptimized
+          loader={({ src }) => src}
         />
       ) : (
         <span className="text-sm font-semibold text-gray-600 text-center">{sponsorName}</span>

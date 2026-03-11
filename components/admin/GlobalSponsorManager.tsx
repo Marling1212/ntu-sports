@@ -157,6 +157,7 @@ export default function GlobalSponsorManager({ initialSponsors = [] }: GlobalSpo
                       height={64}
                       className="w-16 h-16 object-contain rounded bg-white p-1 border shadow-sm"
                       unoptimized
+                      loader={({ src }) => src}
                     />
                   ) : (
                     <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-sm font-medium border shadow-sm">
