@@ -74,9 +74,9 @@ export default function TournamentBracket({
 
   // Player Block Sub-component
   const PlayerBlock = ({ 
-    player, slot, isWinner, isLoser, isThirdPlace = false, textPlaceholder 
+    player, slot, isWinner, isLoser, isThirdPlace = false, textPlaceholder, contextLabel 
   }: { 
-    player: Player | null; slot?: SlotPlaceholder | null; isWinner?: boolean; isLoser?: boolean; isThirdPlace?: boolean; textPlaceholder: string; 
+    player: Player | null; slot?: SlotPlaceholder | null; isWinner?: boolean; isLoser?: boolean; isThirdPlace?: boolean; textPlaceholder: string; contextLabel?: string 
   }) => {
     const isBye = !player && !slot && textPlaceholder === t("bracket.bye");
     const displayText = player?.name || (slot ? `Seed ${slot.seed} Group ${slot.group}` : textPlaceholder);
@@ -105,6 +105,11 @@ export default function TournamentBracket({
             {player?.school && (
               <div className="text-[10px] text-gray-500 truncate mt-0.5 leading-tight">
                 {player.school}
+              </div>
+            )}
+            {contextLabel && (
+              <div className="text-[9px] text-gray-400 truncate leading-tight">
+                {contextLabel}
               </div>
             )}
           </div>
@@ -161,6 +166,21 @@ export default function TournamentBracket({
     
     const isActualFinalRound = round === actualTotalRounds;
 
+    // Build context strings for Mobile view
+    const getContextStr = (prevContextMatch: Match | null | undefined) => {
+      if (!forceMobile || !prevContextMatch || isThirdPlace) return undefined;
+      
+      // If the player has already advanced from that match:
+      if (prevContextMatch.winner) {
+        // Technically we can figure out who they beat, but simply identifying the match origin is safest
+        return `Winner M${prevContextMatch.matchNumber}`;
+      }
+      return `Waiting M${prevContextMatch.matchNumber}`;
+    };
+
+    const p1ContextLabel = getContextStr(prevMatch1);
+    const p2ContextLabel = getContextStr(prevMatch2);
+
     return (
       <div className="relative" style={{ marginTop: `${mt}px`, marginBottom: `${mb}px` }}>
         {/* Draw the backwards-pointing SVG lines */}
@@ -175,9 +195,9 @@ export default function TournamentBracket({
             className="block relative group hover:scale-[1.02] active:scale-95 transition-transform duration-300 z-10 scroll-mt-24 w-max"
           >
             <div className="relative flex flex-col gap-1 w-[150px] md:w-[200px]">
-              <PlayerBlock player={match.player1 || null} slot={(match as Match).slot1} isWinner={player1IsWinner} isLoser={player1IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} />
+              <PlayerBlock player={match.player1 || null} slot={(match as Match).slot1} isWinner={player1IsWinner} isLoser={player1IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} />
               <div className="h-1"></div>
-              <PlayerBlock player={match.player2 || null} slot={(match as Match).slot2} isWinner={player2IsWinner} isLoser={player2IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} />
+              <PlayerBlock player={match.player2 || null} slot={(match as Match).slot2} isWinner={player2IsWinner} isLoser={player2IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} />
               
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
                  {match.status === "completed" && match.score ? (
@@ -194,9 +214,9 @@ export default function TournamentBracket({
           </Link>
         ) : (
           <div className="flex flex-col gap-1 opacity-40 relative z-10 w-[150px] md:w-[200px]">
-             <PlayerBlock player={null} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} />
+             <PlayerBlock player={null} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} />
              <div className="h-1"></div>
-             <PlayerBlock player={null} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} />
+             <PlayerBlock player={null} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} />
           </div>
         )}
       </div>
