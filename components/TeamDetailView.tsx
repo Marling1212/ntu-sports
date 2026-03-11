@@ -43,6 +43,35 @@ export default function TeamDetailView({
   const isTeamEvent = event?.registration_type === 'team';
   const sportParam = event?.sport?.toLowerCase() || "";
 
+  // Determine sport-specific terminology
+  const isBasketball = sportParam === 'basketball';
+  const isRacketOrVolleyball = ['tennis', 'tabletennis', 'badminton', 'volleyball'].includes(sportParam);
+  const hideDraws = ['tennis', 'tabletennis', 'badminton', 'volleyball', 'basketball'].includes(sportParam);
+
+  const getScoreLabels = () => {
+    if (isBasketball) {
+      return {
+        for: "teamDetail.pointsFor",
+        against: "teamDetail.pointsAgainst",
+        diff: "teamDetail.pointDiff"
+      };
+    }
+    if (isRacketOrVolleyball) {
+      return {
+        for: "teamDetail.setsWon",
+        against: "teamDetail.setsLost",
+        diff: "teamDetail.setDiff"
+      };
+    }
+    return {
+      for: "teamDetail.goalsFor",
+      against: "teamDetail.goalsAgainst",
+      diff: "teamDetail.goalDiff"
+    };
+  };
+
+  const scoreLabels = getScoreLabels();
+
   // Organize stats by team member - SUM values across all matches
   const memberStatsMap: Record<string, Record<string, number>> = {};
   matchStats.forEach(stat => {
@@ -153,7 +182,7 @@ export default function TeamDetailView({
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
         <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("teamDetail.statisticsTitle")}</h2>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-2 md:grid-cols-${hideDraws ? '3' : '4'} gap-4`}>
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <div className="text-2xl font-bold text-green-600">{statistics.wins}</div>
             <div className="text-sm text-gray-600">{t("teamDetail.wins")}</div>
@@ -162,10 +191,12 @@ export default function TeamDetailView({
             <div className="text-2xl font-bold text-red-600">{statistics.losses}</div>
             <div className="text-sm text-gray-600">{t("teamDetail.losses")}</div>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-600">{statistics.draws}</div>
-            <div className="text-sm text-gray-600">{t("teamDetail.draws")}</div>
-          </div>
+          {!hideDraws && (
+            <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-2xl font-bold text-gray-600">{statistics.draws}</div>
+              <div className="text-sm text-gray-600">{t("teamDetail.draws")}</div>
+            </div>
+          )}
           <div className="text-center p-4 bg-ntu-green bg-opacity-10 rounded-lg">
             <div className="text-2xl font-bold text-ntu-green">{statistics.points}</div>
             <div className="text-sm text-gray-600">{t("teamDetail.points")}</div>
@@ -175,17 +206,17 @@ export default function TeamDetailView({
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
             <div className="text-2xl font-bold text-blue-600">{statistics.goalsFor}</div>
-            <div className="text-sm text-gray-600">{t("teamDetail.goalsFor")}</div>
+            <div className="text-sm text-gray-600">{t(scoreLabels.for as any)}</div>
           </div>
           <div className="text-center p-4 bg-orange-50 rounded-lg">
             <div className="text-2xl font-bold text-orange-600">{statistics.goalsAgainst}</div>
-            <div className="text-sm text-gray-600">{t("teamDetail.goalsAgainst")}</div>
+            <div className="text-sm text-gray-600">{t(scoreLabels.against as any)}</div>
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-lg">
             <div className={`text-2xl font-bold ${statistics.goalDiff > 0 ? 'text-green-600' : statistics.goalDiff < 0 ? 'text-red-600' : 'text-gray-600'}`}>
               {statistics.goalDiff > 0 ? '+' : ''}{statistics.goalDiff}
             </div>
-            <div className="text-sm text-gray-600">{t("teamDetail.goalDiff")}</div>
+            <div className="text-sm text-gray-600">{t(scoreLabels.diff as any)}</div>
           </div>
         </div>
       </div>

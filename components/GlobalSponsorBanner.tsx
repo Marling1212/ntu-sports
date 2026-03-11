@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 export interface GlobalSponsorItem {
   id: string;
   name: string;
@@ -62,9 +64,15 @@ export default function GlobalSponsorBanner({ sponsors }: GlobalSponsorBannerPro
 
 function SponsorLogo({ sponsor, size }: { sponsor: GlobalSponsorItem, size: 'large' | 'medium' | 'small' }) {
   const dimensions = {
-    large: "max-h-24 md:max-h-32 min-w-[200px]",
-    medium: "max-h-16 md:max-h-20 min-w-[150px]",
-    small: "max-h-12 md:max-h-14 min-w-[100px]",
+    large: "max-h-24 md:max-h-32 min-h-24 md:min-h-32 min-w-[200px]",
+    medium: "max-h-16 md:max-h-20 min-h-16 md:min-h-20 min-w-[150px]",
+    small: "max-h-12 md:max-h-14 min-h-12 md:min-h-14 min-w-[100px]",
+  };
+
+  const imgSizes = {
+    large: "max-h-20 md:max-h-28 w-auto max-w-[180px] md:max-w-[240px]",
+    medium: "max-h-14 md:max-h-18 w-auto max-w-[140px] md:max-w-[180px]",
+    small: "max-h-10 md:max-h-12 w-auto max-w-[100px] md:max-w-[120px]",
   };
 
   const textSizes = {
@@ -73,14 +81,17 @@ function SponsorLogo({ sponsor, size }: { sponsor: GlobalSponsorItem, size: 'lar
     small: "text-base",
   };
 
+  const [imgError, setImgError] = useState(false);
+  const showImg = sponsor.logo_url && !imgError;
   const content = (
     <div className={`group flex flex-col items-center justify-center p-4 rounded-xl border border-transparent bg-white/30 transition-all duration-500 hover:bg-white/80 hover:shadow-lg hover:-translate-y-1 ${dimensions[size]}`}>
-      {sponsor.logo_url ? (
+      {showImg ? (
         <img
           src={sponsor.logo_url}
           alt={sponsor.name}
-          className="w-auto object-contain transition-transform duration-500 group-hover:scale-105 filter drop-shadow-sm"
-          style={{ maxHeight: "inherit" }}
+          className={`object-contain transition-transform duration-500 group-hover:scale-105 filter drop-shadow-sm ${imgSizes[size]}`}
+          loading="lazy"
+          onError={() => setImgError(true)}
         />
       ) : (
         <span className={`font-bold text-gray-400 group-hover:text-ntu-green transition-colors ${textSizes[size]}`}>
