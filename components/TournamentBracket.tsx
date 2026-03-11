@@ -279,15 +279,18 @@ export default function TournamentBracket({
       {/* Desktop & Full Mobile Flex View */}
       <p className={`${mobileViewMode === "full" ? "block" : "hidden"} md:hidden text-xs text-gray-400 text-center mb-2`}>← {t("bracket.swipeHint")} →</p>
       
-      <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full overflow-x-auto pb-6 relative`}>
-        <div className="min-w-max px-4 pt-2">
+      <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full overflow-x-auto overflow-y-hidden pb-6 relative`}>
+        <div 
+          className="px-4 pt-2 mx-auto" 
+          style={{ minWidth: `calc(${rounds.length} * 150px + ${Math.max(0, rounds.length - 1)} * 48px)`, width: "max-content" }}
+        >
           
           {/* Flex Column Headers */}
-          <div className="flex sticky top-0 bg-white z-30 pb-2 mb-4 border-b border-gray-200" style={{ gap: '48px' }}>
+          <div className="flex sticky top-0 bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full" style={{ gap: '48px' }}>
             {rounds.map(round => (
               <div key={`header-${round}`} className="w-[150px] md:w-[200px] shrink-0 text-center">
-                 <h3 className="text-sm lg:text-base font-semibold text-ntu-green">{generateRoundName(round)}</h3>
-                 <p className="text-[10px] lg:text-xs text-gray-500 mt-1">{gridMatches[round]?.filter(m => m !== null).length || 0} matches</p>
+                 <h3 className="text-sm md:text-base font-semibold text-ntu-green">{generateRoundName(round)}</h3>
+                 <p className="text-[10px] md:text-xs text-gray-500 mt-1">{gridMatches[round]?.filter(m => m !== null).length || 0} matches</p>
               </div>
             ))}
           </div>
@@ -295,7 +298,7 @@ export default function TournamentBracket({
           {/* The Recursive Bracket Tree */}
           {/* We start the recursion at the final round (the right-most column). The branches will build leftwards. */}
           <div className="flex">
-            <div className="flex flex-col justify-center gap-12">
+            <div className="flex flex-col justify-center gap-12 w-[150px] md:w-[200px]">
                {gridMatches[rounds[rounds.length - 1]]?.map((match, i) => (
                   <RecursiveMatchTree key={`root-${i}`} match={match} round={rounds[rounds.length - 1]} index={i} />
                ))}
@@ -304,9 +307,9 @@ export default function TournamentBracket({
           
           {/* 3rd Place Match Positioned Under the Final Column */}
           {rounds.includes(actualTotalRounds) && !hideThirdPlace && has3rdPlaceMatch && (
-            <div className="flex mt-12 pt-8 border-t border-gray-200 relative">
-               <div style={{ marginLeft: `calc(${rounds.length - 1} * (150px + 48px))` }} className="md:hidden"></div>
-               <div style={{ marginLeft: `calc(${rounds.length - 1} * (200px + 48px))` }} className="hidden md:block"></div>
+            <div className="flex mt-12 pt-8 border-t border-gray-200 relative w-full">
+               <div style={{ width: `calc((150px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="md:hidden shrink-0"></div>
+               <div style={{ width: `calc((200px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="hidden md:block shrink-0"></div>
                
                <div className="w-[150px] md:w-[200px] shrink-0 flex flex-col items-center">
                   <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4 whitespace-nowrap">3rd Place Match</h4>
