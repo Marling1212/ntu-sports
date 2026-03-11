@@ -250,7 +250,7 @@ export default function TeamDetailView({
                   <Link
                     key={match.id}
                     href={`/sports/${sportParam}/matches/${match.id}`}
-                    className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all active:scale-[0.99]"
+                    className="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.99]"
                   >
                     {match.group_number != null && (
                       <div className="mb-2">

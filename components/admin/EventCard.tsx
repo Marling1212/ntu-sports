@@ -53,7 +53,7 @@ export default function EventCard({ event, divisions, onVisibilityChange }: Even
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border border-gray-100 relative">
+    <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] border border-gray-100 relative">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-2xl font-semibold text-ntu-green">
           {event.name}

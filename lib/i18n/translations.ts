@@ -118,6 +118,7 @@ export const translations = {
       copyright: '台灣大學運動賽事管理平台. All rights reserved.',
       madeWith: 'Made with ❤️ for NTU Sports Community',
       feedback: '意見回饋',
+      organizerLink: '主辦／管理後台',
     },
     feedback: {
       title: '意見回饋',
@@ -735,6 +736,7 @@ export const translations = {
       copyright: 'National Taiwan University Sports Platform. All rights reserved.',
       madeWith: 'Made with ❤️ for NTU Sports Community',
       feedback: 'Feedback',
+      organizerLink: 'Organizer / Admin',
     },
     feedback: {
       title: 'Feedback',

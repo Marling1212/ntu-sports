@@ -1104,7 +1104,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   return (
                     <div
                       key={match.id}
-                      className={`block rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all ${match.status === "live" ? "bg-red-100 animate-pulse" : "bg-white"}`}
+                      className={`block rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all duration-200 hover:scale-[1.02] ${match.status === "live" ? "bg-red-100 animate-pulse" : "bg-white"}`}
                     >
                       {hasGroups && (
                         <div className="mb-2">
@@ -1844,7 +1844,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   return (
                     <div
                       key={match.id}
-                      className={`block rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all ${match.status === "live" ? "bg-red-100 animate-pulse" : "bg-white"}`}
+                      className={`block rounded-xl border border-gray-200 p-4 shadow-sm hover:border-ntu-green hover:shadow-md transition-all duration-200 hover:scale-[1.02] ${match.status === "live" ? "bg-red-100 animate-pulse" : "bg-white"}`}
                     >
                       <div className="mb-2">
                         <span className="inline-block px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">

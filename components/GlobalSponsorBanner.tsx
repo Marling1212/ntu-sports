@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 export interface GlobalSponsorItem {
   id: string;
   name: string;
@@ -73,14 +75,17 @@ function SponsorLogo({ sponsor, size }: { sponsor: GlobalSponsorItem, size: 'lar
     small: "text-base",
   };
 
+  const sizePx = size === "large" ? 128 : size === "medium" ? 80 : 56;
   const content = (
     <div className={`group flex flex-col items-center justify-center p-4 rounded-xl border border-transparent bg-white/30 transition-all duration-500 hover:bg-white/80 hover:shadow-lg hover:-translate-y-1 ${dimensions[size]}`}>
       {sponsor.logo_url ? (
-        <img
+        <Image
           src={sponsor.logo_url}
           alt={sponsor.name}
-          className="w-auto object-contain transition-transform duration-500 group-hover:scale-105 filter drop-shadow-sm"
-          style={{ maxHeight: 'inherit' }}
+          width={sizePx}
+          height={sizePx}
+          className="w-auto object-contain transition-transform duration-500 group-hover:scale-105 filter drop-shadow-sm max-h-full"
+          unoptimized
         />
       ) : (
         <span className={`font-bold text-gray-400 group-hover:text-ntu-green transition-colors ${textSizes[size]}`}>

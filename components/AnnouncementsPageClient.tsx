@@ -26,7 +26,7 @@ export default function AnnouncementsPageClient({ announcements }: Announcements
           </div>
         ) : (
           announcements.map((announcement) => (
-            <div key={announcement.id} className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div key={announcement.id} className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-100 hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
               <div className="flex items-center gap-2 flex-wrap mb-3">
                 <h2 className="text-xl sm:text-2xl font-semibold text-ntu-green">
                   {announcement.title}

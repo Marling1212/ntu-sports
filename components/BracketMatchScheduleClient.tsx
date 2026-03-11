@@ -88,7 +88,7 @@ export default function BracketMatchScheduleClient({
               <Link
                 key={m.id}
                 href={`/sports/${sportSlug}/matches/${m.id}`}
-                className={`block p-4 transition-colors hover:bg-gray-50 ${m.status === "live" ? "bg-red-100 animate-pulse" : ""}`}
+                className={`block p-4 transition-all duration-200 hover:bg-gray-50 hover:scale-[1.02] ${m.status === "live" ? "bg-red-100 animate-pulse" : ""}`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <span className="text-xs font-medium text-ntu-green">{getRoundLabel(m)}</span>

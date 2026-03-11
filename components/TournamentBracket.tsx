@@ -82,7 +82,7 @@ export default function TournamentBracket({
     
     return (
       <div
-        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 w-[150px] md:w-[200px] h-[60px] transition-all duration-300 relative ${
+        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 w-[150px] md:w-[200px] h-[60px] transition-all duration-300 relative ${!isBye && !isLoser ? "hover:scale-[1.02]" : ""} ${
           isBye ? "border-gray-200 bg-gray-50"
           : isWinner
             ? isThirdPlace ? "border-amber-500 bg-amber-50 z-10" : "border-ntu-green bg-ntu-green border-opacity-30 bg-opacity-10 z-10"

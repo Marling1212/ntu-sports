@@ -29,6 +29,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/admin/dashboard" className="text-green-100 hover:text-white transition-colors inline-flex items-center gap-1">
+                  <span>→</span> {t('footer.organizerLink')}
+                </Link>
+              </li>
+              <li>
                 <span className="text-green-100">{t('footer.sportsSupported')}</span>
               </li>
             </ul>
