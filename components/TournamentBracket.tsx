@@ -52,13 +52,21 @@ export default function TournamentBracket({
   const gridMatches = useMemo(() => {
     const grid: Record<number, (Match | null)[]> = {};
     rounds.forEach(round => {
-      const matchCountInRound = Math.pow(2, actualTotalRounds - round);
+      // Rather than global bracket size, we look at the provided matches. 
+      // BracketSection dynamically re-numbers the matchNumbers 1..N for the current view.
+      const roundMatches = matches.filter(m => m.round === round);
+      const maxMatchNum = roundMatches.length > 0 ? Math.max(...roundMatches.map(m => m.matchNumber)) : 0;
+      
+      // If we have matches, grid size matches the largest matchNumber present.
+      // If empty, generate a fallback binary tree size based on depth from the current section's highest round.
+      const matchCountInRound = maxMatchNum > 0 ? maxMatchNum : Math.pow(2, maxRound - round);
+      
       grid[round] = Array.from({ length: matchCountInRound }).map((_, i) => {
         return matches.find(m => m.round === round && m.matchNumber === i + 1) || null;
       });
     });
     return grid;
-  }, [matches, actualTotalRounds, rounds]);
+  }, [matches, maxRound, rounds]);
 
   const [activeTabRound, setActiveTabRound] = useState<number>(rounds[0]);
   const [mobileViewMode, setMobileViewMode] = useState<"full" | "tabs">("full");
