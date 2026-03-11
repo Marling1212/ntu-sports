@@ -118,11 +118,33 @@ export default function BracketMatchScheduleClient({
                   <span><span className="text-gray-500">{t("sports.court")}:</span> {court}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2 text-sm font-semibold text-gray-800">
-                  <span className="min-w-0 truncate">{p1}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (m.player1?.id) setFilterByPlayerId((prev) => (prev === m.player1?.id ? null : m.player1.id));
+                    }}
+                    className={`min-w-0 flex-1 text-left truncate py-1 -mx-1 px-1 rounded touch-manipulation ${filterByPlayerId === m.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${m.player1?.id ? "hover:bg-gray-100 active:scale-[0.99]" : ""}`}
+                    title={m.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                  >
+                    {p1}
+                  </button>
                   <span className="shrink-0 text-ntu-green font-bold">
                     {score ?? "VS"}
                   </span>
-                  <span className="min-w-0 truncate text-right">{p2}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (m.player2?.id) setFilterByPlayerId((prev) => (prev === m.player2?.id ? null : m.player2.id));
+                    }}
+                    className={`min-w-0 flex-1 text-right truncate py-1 -mx-1 px-1 rounded touch-manipulation ${filterByPlayerId === m.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${m.player2?.id ? "hover:bg-gray-100 active:scale-[0.99]" : ""}`}
+                    title={m.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
+                  >
+                    {p2}
+                  </button>
                 </div>
               </Link>
             );
