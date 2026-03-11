@@ -295,7 +295,9 @@ export default function TournamentBracket({
                       const prevMatch1 = prevRoundMatches.find(m => m.matchNumber === prevMatch1Num);
                       const prevMatch2 = prevRoundMatches.find(m => m.matchNumber === prevMatch2Num);
                       
-                      const visualCenterY = 62; // Center of 60px block + 4px gap + 60px block
+                      const p1CenterY = 30; // Center of top player block (60/2)
+                      const p2CenterY = 94; // Center of bottom player block (60 + 4 + 30)
+                      const prevMatchVisualCenterY = 62; // Exiting center of the entire feeding match
 
                       return (
                         <div key={match.id} className="absolute" style={{ top: `${matchPosition}px` }}>
@@ -313,24 +315,24 @@ export default function TournamentBracket({
                             >
                               {prevMatch1 && (() => {
                                 const pos1 = calculateMatchPosition(round - 1, prevMatch1.matchNumber);
-                                const startY = visualCenterY;
-                                const endY = pos1 - matchPosition + visualCenterY;
+                                const startY = p1CenterY;
+                                const endY = pos1 - matchPosition + prevMatchVisualCenterY;
                                 const isHighlighted = !!prevMatch1.winner && !!match.player1 && prevMatch1.winner.id === match.player1.id;
                                 
-                                const radius = Math.min(6, Math.abs(endY - startY) / 2);
+                                const radius = Math.min(12, Math.abs(endY - startY) / 2);
                                 if (Math.abs(endY - startY) < 1) {
-                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[3px]" : "stroke-gray-300 stroke-2"} fill="none" />;
+                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
                                 }
                                 const sign = Math.sign(endY - startY);
                                 return (
                                   <path 
                                     d={`M 48 ${startY} 
                                         L ${24 + radius} ${startY} 
-                                        Q 24 ${startY} 24 ${startY + sign * Math.abs(radius)}
-                                        L 24 ${endY - sign * Math.abs(radius)}
+                                        Q 24 ${startY} 24 ${startY + sign * radius}
+                                        L 24 ${endY - sign * radius}
                                         Q 24 ${endY} ${24 - radius} ${endY}
                                         L 0 ${endY}`}
-                                    className={isHighlighted ? "stroke-ntu-green stroke-[3px]" : "stroke-gray-300 stroke-2"} 
+                                    className={isHighlighted ? "stroke-ntu-green stroke-[2px]" : "stroke-gray-300 stroke-[2px] opacity-70"} 
                                     fill="none" 
                                   />
                                 );
@@ -338,24 +340,24 @@ export default function TournamentBracket({
                               
                               {prevMatch2 && (() => {
                                 const pos2 = calculateMatchPosition(round - 1, prevMatch2.matchNumber);
-                                const startY = visualCenterY;
-                                const endY = pos2 - matchPosition + visualCenterY;
+                                const startY = p2CenterY;
+                                const endY = pos2 - matchPosition + prevMatchVisualCenterY;
                                 const isHighlighted = !!prevMatch2.winner && !!match.player2 && prevMatch2.winner.id === match.player2.id;
                                 
-                                const radius = Math.min(6, Math.abs(endY - startY) / 2);
+                                const radius = Math.min(12, Math.abs(endY - startY) / 2);
                                 if (Math.abs(endY - startY) < 1) {
-                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[3px]" : "stroke-gray-300 stroke-2"} fill="none" />;
+                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
                                 }
                                 const sign = Math.sign(endY - startY);
                                 return (
                                   <path 
                                     d={`M 48 ${startY} 
                                         L ${24 + radius} ${startY} 
-                                        Q 24 ${startY} 24 ${startY + sign * Math.abs(radius)}
-                                        L 24 ${endY - sign * Math.abs(radius)}
+                                        Q 24 ${startY} 24 ${startY + sign * radius}
+                                        L 24 ${endY - sign * radius}
                                         Q 24 ${endY} ${24 - radius} ${endY}
                                         L 0 ${endY}`}
-                                    className={isHighlighted ? "stroke-ntu-green stroke-[3px]" : "stroke-gray-300 stroke-2"} 
+                                    className={isHighlighted ? "stroke-ntu-green stroke-[2px]" : "stroke-gray-300 stroke-[2px] opacity-70"} 
                                     fill="none" 
                                   />
                                 );
