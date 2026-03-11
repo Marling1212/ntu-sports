@@ -297,20 +297,22 @@ export default function TournamentBracket({
                       
                       const p1CenterY = 30; // Center of top player block (60/2)
                       const p2CenterY = 94; // Center of bottom player block (60 + 4 + 30)
-                      const prevMatchVisualCenterY = 62; // Exiting center of the entire feeding match
+                      // The overall match height is (60 * 2) + 4 (gap) = 124px. The exact vertical center is 62.
+                      const prevMatchVisualCenterY = 62; 
 
                       return (
                         <div key={match.id} className="absolute" style={{ top: `${matchPosition}px` }}>
                           {/* Connectors to previous round */}
                           {roundIndex > 0 && !isThirdPlaceMatch && (
                             <svg 
-                              className="absolute pointer-events-none z-0" 
+                              className="absolute pointer-events-none" 
                               style={{ 
                                 left: '-48px',
                                 top: '0',
                                 width: '48px',
                                 height: '1px',
-                                overflow: 'visible'
+                                overflow: 'visible',
+                                zIndex: 0
                               }}
                             >
                               {prevMatch1 && (() => {
@@ -321,7 +323,7 @@ export default function TournamentBracket({
                                 
                                 const radius = Math.min(12, Math.abs(endY - startY) / 2);
                                 if (Math.abs(endY - startY) < 1) {
-                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
+                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
                                 }
                                 const sign = Math.sign(endY - startY);
                                 return (
@@ -332,7 +334,7 @@ export default function TournamentBracket({
                                         L 24 ${endY - sign * radius}
                                         Q 24 ${endY} ${24 - radius} ${endY}
                                         L 0 ${endY}`}
-                                    className={isHighlighted ? "stroke-ntu-green stroke-[2px]" : "stroke-gray-300 stroke-[2px] opacity-70"} 
+                                    className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} 
                                     fill="none" 
                                   />
                                 );
@@ -346,7 +348,7 @@ export default function TournamentBracket({
                                 
                                 const radius = Math.min(12, Math.abs(endY - startY) / 2);
                                 if (Math.abs(endY - startY) < 1) {
-                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
+                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
                                 }
                                 const sign = Math.sign(endY - startY);
                                 return (
@@ -357,7 +359,7 @@ export default function TournamentBracket({
                                         L 24 ${endY - sign * radius}
                                         Q 24 ${endY} ${24 - radius} ${endY}
                                         L 0 ${endY}`}
-                                    className={isHighlighted ? "stroke-ntu-green stroke-[2px]" : "stroke-gray-300 stroke-[2px] opacity-70"} 
+                                    className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} 
                                     fill="none" 
                                   />
                                 );
