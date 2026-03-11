@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import Link from "next/link";
 import LogoutButton from "@/components/admin/LogoutButton";
+import { useI18n } from "@/lib/i18n/context";
 
 export type SponsorTier = 'Gold' | 'Silver' | 'Bronze';
 
@@ -27,6 +28,7 @@ export default function GlobalSponsorManager({ initialSponsors = [] }: GlobalSpo
   const [sponsorForm, setSponsorForm] = useState({ name: "", logoUrl: "", websiteUrl: "", tier: "Bronze" as SponsorTier });
 
   const supabase = createClient();
+  const { t } = useI18n();
 
   const openAddSponsor = () => {
     setEditingSponsorId(null);
@@ -115,22 +117,13 @@ export default function GlobalSponsorManager({ initialSponsors = [] }: GlobalSpo
 
   return (
     <div className="min-h-screen bg-ntu-gray">
-      <nav className="sticky top-0 z-50 bg-ntu-green text-white shadow-lg">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/admin/dashboard" className="text-xl font-bold hover:opacity-80 transition-opacity">
-            後台 Dashboard
-          </Link>
-          <LogoutButton />
-        </div>
-      </nav>
-
       <main className="container mx-auto px-4 py-8">
         <Toaster position="top-right" />
         <div className="flex items-center gap-4 mb-8">
           <Link href="/admin/dashboard" className="text-ntu-green hover:underline">
-            &larr; Back to Dashboard
+            {t("admin.backToDashboard")}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-800 border-l-2 border-gray-300 pl-4">Global Website Sponsors</h1>
+          <h1 className="text-3xl font-bold text-gray-800 border-l-2 border-gray-300 pl-4">{t("admin.globalSponsorsTitle")}</h1>
         </div>
 
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
@@ -169,11 +162,10 @@ export default function GlobalSponsorManager({ initialSponsors = [] }: GlobalSpo
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-900 text-lg">{sponsor.name}</p>
                     <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-                        sponsor.tier === 'Gold' ? 'bg-yellow-100 text-yellow-800' :
-                        sponsor.tier === 'Silver' ? 'bg-gray-200 text-gray-800' :
-                        'bg-orange-100 text-orange-800'
-                      }`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${sponsor.tier === 'Gold' ? 'bg-yellow-100 text-yellow-800' :
+                          sponsor.tier === 'Silver' ? 'bg-gray-200 text-gray-800' :
+                            'bg-orange-100 text-orange-800'
+                        }`}>
                         {sponsor.tier}
                       </span>
                       {sponsor.website_url && (

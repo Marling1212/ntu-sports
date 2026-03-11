@@ -7,6 +7,7 @@ import LogoutButton from "@/components/admin/LogoutButton";
 import CreateEventModal from "@/components/admin/CreateEventModal";
 import toast, { Toaster } from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/context";
 
 import EventCard, { DivisionInfo } from "@/components/admin/EventCard";
 
@@ -21,6 +22,7 @@ export default function DashboardContent({ user, initialEvents, divisionsByEvent
   const [events, setEvents] = useState(initialEvents);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
+  const { t } = useI18n();
 
   const handleEventCreated = (newId?: string) => {
     setShowCreateModal(false);
@@ -37,22 +39,22 @@ export default function DashboardContent({ user, initialEvents, divisionsByEvent
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold text-ntu-green mb-2">Admin Dashboard</h1>
-            <p className="text-lg text-gray-600">Welcome, {user.email}</p>
+            <h1 className="text-4xl font-bold text-ntu-green mb-2">{t("admin.dashboardTitle")}</h1>
+            <p className="text-lg text-gray-600">{t("admin.welcome", { email: user?.email || "" })}</p>
           </div>
           <div className="flex gap-4">
             <button
               onClick={() => setShowCreateModal(true)}
               className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
             >
-              + Create Event
+              {t("admin.createEvent")}
             </button>
             {isPlatformAdmin && (
               <Link
                 href="/admin/sponsors"
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
               >
-                🌍 Global Sponsors
+                {t("admin.globalSponsorsTitle")}
               </Link>
             )}
             <LogoutButton />

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/context";
 
 export interface DivisionInfo {
   id: string;
@@ -23,12 +24,13 @@ export default function EventCard({ event, divisions, onVisibilityChange }: Even
   const [isVisible, setIsVisible] = useState(event.is_visible ?? false);
   const [isToggling, setIsToggling] = useState(false);
   const supabase = createClient();
+  const { t } = useI18n();
 
   const toggleVisibility = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsToggling(true);
-    
+
     try {
       const { error } = await supabase
         .from("events")
@@ -69,11 +71,10 @@ export default function EventCard({ event, divisions, onVisibilityChange }: Even
           <button
             onClick={toggleVisibility}
             disabled={isToggling}
-            className={`text-xs uppercase font-semibold px-2 py-1 rounded transition-colors ${
-              isVisible 
-                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+            className={`text-xs uppercase font-semibold px-2 py-1 rounded transition-colors ${isVisible
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             title={isVisible ? 'Click to hide from public' : 'Click to show on public'}
           >
             {isToggling ? '...' : (isVisible ? 'Visible' : 'Hidden')}
@@ -104,9 +105,9 @@ export default function EventCard({ event, divisions, onVisibilityChange }: Even
                 <Link
                   href={`/sports/${d.sport}/events/${event.id}`}
                   className="text-ntu-green text-sm font-medium hover:underline"
-                  title="看前台"
+                  title={t("admin.viewEvent")}
                 >
-                  看前台
+                  {t("admin.viewEvent")}
                 </Link>
                 <Link
                   href={`/admin/${event.id}/players?divisionId=${d.id}`}
@@ -122,9 +123,9 @@ export default function EventCard({ event, divisions, onVisibilityChange }: Even
             <Link
               href={divisions[0] ? `/sports/${divisions[0].sport}/events/${event.id}` : `/sports/${event.sport}/events/${event.id}`}
               className="text-ntu-green font-medium text-sm hover:underline"
-              title="View on public site"
+              title={t("admin.viewEvent")}
             >
-              看前台
+              {t("admin.viewEvent")}
             </Link>
             <Link
               href={divisions[0] ? `/admin/${event.id}/players?divisionId=${divisions[0].id}` : `/admin/${event.id}/players`}
