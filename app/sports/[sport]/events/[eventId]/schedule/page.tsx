@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import PublicNavbar from "@/components/PublicNavbar";
 import BracketMatchSchedule from "@/components/BracketMatchSchedule";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
@@ -85,12 +84,11 @@ export default async function SportEventSchedulePage({
     // When all regular-season games are completed, default to Playoffs on Games page too
     const regularSeasonMatches = matches.filter((m: { round: number }) => m.round === 0);
     const hasPlayoffs = matches.some((m: { round: number }) => m.round >= 1);
-    const allRegularComplete = regularSeasonMatches.length > 0 && regularSeasonMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye");
+    const allRegularComplete = regularSeasonMatches.length === 0 || regularSeasonMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye");
     const defaultGamesView = hasPlayoffs && allRegularComplete ? "playoffs" : "regular";
 
     return (
       <>
-        <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
         <div className="container mx-auto px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-ntu-green mb-4">
@@ -121,7 +119,6 @@ export default async function SportEventSchedulePage({
 
   return (
     <>
-      <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
         {sponsors && sponsors.length > 0 && (
           <EventSponsorBanner sponsors={sponsors} label="Supported by" />

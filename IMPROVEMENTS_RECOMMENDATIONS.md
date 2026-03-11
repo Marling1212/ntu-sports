@@ -6,7 +6,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 ## 🟢 Quick Wins - No Performance Impact
 
-### 1. **Simple Auto-Refresh Button** ⚡
+### 1. **Simple Auto-Refresh Button** ⚡ (Desktop & Mobile)
 **Current State:** Users must manually refresh to see updates
 **Lightweight Improvement:**
 - Add a simple "Refresh" button on match pages
@@ -15,7 +15,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** High | **Effort:** Low | **Performance:** Minimal
 
-### 2. **Better Loading States**
+### 2. **Better Loading States** (Desktop & Mobile)
 **Current State:** Blank screens while loading
 **Improvement:**
 - Add skeleton loaders for tables/brackets
@@ -24,7 +24,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** Medium | **Effort:** Low | **Performance:** No impact
 
-### 3. **Simple Filtering on Schedule Page**
+### 3. **Simple Filtering on Schedule Page** (Desktop & Mobile)
 **Current State:** All matches shown at once
 **Lightweight Improvement:**
 - Client-side filter buttons: "Today", "Tomorrow", "This Week"
@@ -33,7 +33,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** High | **Effort:** Low | **Performance:** Minimal
 
-### 4. **Copy Match Link Button**
+### 4. **Copy Match Link Button** (Desktop & Mobile)
 **Current State:** Users must copy URL manually
 **Improvement:**
 - Add "Copy Link" button on match detail pages
@@ -42,7 +42,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** Medium | **Effort:** Very Low | **Performance:** None
 
-### 5. **Print-Friendly Views**
+### 5. **Print-Friendly Views** (Desktop Only)
 **Current State:** Brackets/schedules may not print well
 **Improvement:**
 - Add `@media print` CSS rules
@@ -53,7 +53,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 ## 🟡 Medium Priority - Lightweight Enhancements
 
-### 6. **Simple Calendar Export** 📅
+### 6. **Simple Calendar Export** 📅 (Desktop & Mobile)
 **Current State:** Users can't add matches to their calendar
 **Lightweight Improvement:**
 - Generate `.ics` file on-the-fly (no storage needed)
@@ -62,7 +62,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** High | **Effort:** Medium | **Performance:** Minimal
 
-### 7. **Better Empty States**
+### 7. **Better Empty States** (Desktop & Mobile)
 **Current State:** Empty tables show "No matches"
 **Improvement:**
 - Friendly messages: "No matches today - check back tomorrow!"
@@ -71,7 +71,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** Medium | **Effort:** Low | **Performance:** None
 
-### 8. **Improved Table Sorting**
+### 8. **Improved Table Sorting** (Desktop & Mobile)
 **Current State:** Tables may not be sortable
 **Lightweight Improvement:**
 - Client-side sorting on table headers
@@ -81,7 +81,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** Medium | **Effort:** Low | **Performance:** Minimal
 
-### 9. **Breadcrumb Navigation**
+### 9. **Breadcrumb Navigation** (Desktop & Mobile)
 **Current State:** Users may get lost in navigation
 **Improvement:**
 - Simple breadcrumb trail: Home > Tennis > Schedule
@@ -90,7 +90,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** Medium | **Effort:** Low | **Performance:** None
 
-### 10. **Last Updated Timestamp**
+### 10. **Last Updated Timestamp** (Desktop & Mobile)
 **Current State:** Users don't know if data is fresh
 **Improvement:**
 - Show "Last updated: 2 minutes ago" on key pages
@@ -101,7 +101,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 ## 🔵 Nice-to-Have - Only If Needed
 
-### 11. **Simple Dark Mode Toggle**
+### 11. **Simple Dark Mode Toggle** (Desktop & Mobile)
 **Current State:** Light theme only
 **Lightweight Improvement:**
 - CSS variables for colors
@@ -111,7 +111,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** Medium | **Effort:** Medium | **Performance:** None
 
-### 12. **Better Error Messages**
+### 12. **Better Error Messages** (Desktop & Mobile)
 **Current State:** Generic error messages
 **Improvement:**
 - Friendly error messages
@@ -120,7 +120,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** Low | **Effort:** Low | **Performance:** None
 
-### 13. **Keyboard Shortcuts**
+### 13. **Keyboard Shortcuts** (Desktop Only)
 **Current State:** Mouse-only navigation
 **Lightweight Improvement:**
 - `/` to focus search
@@ -130,7 +130,7 @@ Based on comparing your NTU Sports website to smaller, local sports tournament w
 
 **Impact:** Low | **Effort:** Low | **Performance:** None
 
-### 14. **Share Match with Preview**
+### 14. **Share Match with Preview** (Desktop & Mobile)
 **Current State:** Basic share button
 **Lightweight Improvement:**
 - Better Open Graph tags (already have some)
@@ -259,4 +259,34 @@ Compared to typical **university/local sports tournament websites**:
 3. Test performance (should be same or better)
 4. Get user feedback
 5. Only add more if users request it
+
+---
+
+## 🚀 Additional Micro-Audit Recommendations (UX Enhancements)
+
+After a blind UX audit, here are three additional medium-priority recommendations to improve the polish and perception of the site:
+
+### 15. **Optimize Image Assets & Banners** (Mobile primarily)
+**Current State:** Sponsor banners and some logos may load at their native resolution unoptimized.
+**Improvement:**
+- Ensure all `<Image>` tags have proper `width`/`height` or use `fill` with `sizes` correctly.
+- Add `preload` for critical visual assets.
+
+**Impact:** Medium | **Effort:** Low | **Performance:** High
+
+### 16. **Interactive Micro-Animations** (Desktop primarily)
+**Current State:** Hover states are functional but basic.
+**Improvement:**
+- Add subtle scaling (`hover:scale-[1.02] transition-transform`) to bracket nodes or standing tables.
+- Use simple CSS transitions to make the UI feel more alive and responsive to touch.
+
+**Impact:** High (Perceived Polish) | **Effort:** Low | **Performance:** None
+
+### 17. **Global Footer** (Desktop & Mobile)
+**Current State:** Pages end abruptly after the content.
+**Improvement:**
+- Add a consistent global footer to provide closure.
+- Include quick links: Home, Organizer Info, Social Media, etc.
+
+**Impact:** High | **Effort:** Low | **Performance:** Minimal
 

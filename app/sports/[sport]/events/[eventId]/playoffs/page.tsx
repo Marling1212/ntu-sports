@@ -1,5 +1,4 @@
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
-import PublicNavbar from "@/components/PublicNavbar";
 import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -27,7 +26,6 @@ export default async function SportEventPlayoffsPage({
   if (event.tournament_type !== "season_play") {
     return (
       <>
-        <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
         <div className="container mx-auto px-4 py-12 text-center pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
           <h1 className="text-4xl font-bold text-ntu-green mb-4">{t("playoffs.title")}</h1>
           <p className="text-gray-600 mb-6">{t("playoffs.noPlayoffsSingleElim")}</p>
@@ -93,7 +91,6 @@ export default async function SportEventPlayoffsPage({
 
   return (
     <>
-      <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
       <div className="container mx-auto px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-ntu-green mb-2">

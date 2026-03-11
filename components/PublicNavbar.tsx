@@ -74,15 +74,16 @@ export default function PublicNavbar({ eventName, tournamentType }: PublicNavbar
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Link
-                href={basePath}
-                className="text-xs text-gray-600 hover:text-ntu-green transition-colors whitespace-nowrap"
-              >
-                ← {t("navigation.backToSport").replace("{sport}", sportName)}
-              </Link>
-              <LanguageSwitcher />
-            </div>
+            {!eventName && (
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href={basePath}
+                  className="text-xs text-gray-600 hover:text-ntu-green transition-colors whitespace-nowrap"
+                >
+                  ← {t("navigation.backToSport").replace("{sport}", sportName)}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
@@ -194,7 +195,6 @@ export default function PublicNavbar({ eventName, tournamentType }: PublicNavbar
           </div>
 
           <div className="flex items-center gap-3">
-            <LanguageSwitcher />
             <Link 
               href={basePath} 
               className="text-sm text-gray-600 hover:text-ntu-green transition-colors flex items-center gap-1 min-h-[44px]"

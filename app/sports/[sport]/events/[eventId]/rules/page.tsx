@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import PublicNavbar from "@/components/PublicNavbar";
 import EventScheduleContent from "@/components/EventScheduleContent";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -45,7 +44,6 @@ export default async function SportEventRulesPage({
 
   return (
     <>
-      <PublicNavbar eventName={event.name} tournamentType={event.tournament_type} />
       <div className="pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
         <EventScheduleContent
           event={event}
