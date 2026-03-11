@@ -71,6 +71,7 @@ export default function TournamentBracket({
   }, [matches, actualTotalRounds, rounds]);
 
   const [activeTabRound, setActiveTabRound] = useState<number>(rounds[0]);
+  const [mobileViewMode, setMobileViewMode] = useState<"full" | "tabs">("full");
 
   // Player Block Sub-component
   const PlayerBlock = ({ 
@@ -230,45 +231,69 @@ export default function TournamentBracket({
           <h2 className="text-xl md:text-2xl font-semibold text-ntu-green mb-1 md:mb-2">{sportName} Tournament Bracket</h2>
           <p className="text-xs md:text-sm text-gray-600">Single Elimination • {totalPlayers} Players • {bracketSize}-Draw • {numSeeds} Seeds • {maxRound} Rounds</p>
         </div>
+
+        {/* Mobile View Toggle */}
+        <div className="md:hidden flex bg-gray-100 p-1 rounded-lg w-full max-w-sm self-center mt-2">
+          <button
+            onClick={() => setMobileViewMode("full")}
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
+              mobileViewMode === "full" ? "bg-white shadow-sm text-ntu-green" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <span>🌳</span> {t("bracket.fullBracket")}
+          </button>
+          <button
+            onClick={() => setMobileViewMode("tabs")}
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
+              mobileViewMode === "tabs" ? "bg-white shadow-sm text-ntu-green" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <span>🗂️</span> {t("bracket.roundView")}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Tabs */}
-      <div className="md:hidden flex overflow-x-auto gap-2 mb-6 pb-2 border-b">
-        {rounds.map(r => (
-          <button 
-            key={`tab-${r}`}
-            onClick={() => setActiveTabRound(r)}
-            className={`px-4 py-2 whitespace-nowrap text-sm font-semibold border-b-2 transition-colors ${activeTabRound === r ? 'border-ntu-green text-ntu-green' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            {generateRoundName(r)}
-          </button>
-        ))}
-      </div>
+      {mobileViewMode === "tabs" && (
+        <div className="md:hidden flex overflow-x-auto gap-2 mb-6 pb-2 border-b">
+          {rounds.map(r => (
+            <button 
+              key={`tab-${r}`}
+              onClick={() => setActiveTabRound(r)}
+              className={`px-4 py-2 whitespace-nowrap text-sm font-semibold border-b-2 transition-colors ${activeTabRound === r ? 'border-ntu-green text-ntu-green' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            >
+              {generateRoundName(r)}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Mobile View */}
-      <div className="md:hidden flex flex-col gap-4">
-        {gridMatches[activeTabRound]?.filter(m => m !== null).length === 0 ? (
-           <p className="text-gray-400 text-center italic py-8 text-sm">No matches available in this round yet.</p>
-        ) : (
-          gridMatches[activeTabRound]?.filter(m => m !== null).map((match, i) => (
-            <div key={`mobile-${match?.id || i}`} className="w-full max-w-sm mx-auto flex justify-center">
-               <MatchNode match={match} round={activeTabRound} roundIndex={0} index={i} forceMobile={true} />
+      {mobileViewMode === "tabs" && (
+        <div className="md:hidden flex flex-col gap-4">
+          {gridMatches[activeTabRound]?.filter(m => m !== null).length === 0 ? (
+             <p className="text-gray-400 text-center italic py-8 text-sm">No matches available in this round yet.</p>
+          ) : (
+            gridMatches[activeTabRound]?.filter(m => m !== null).map((match, i) => (
+              <div key={`mobile-${match?.id || i}`} className="w-full max-w-sm mx-auto flex justify-center">
+                 <MatchNode match={match} round={activeTabRound} roundIndex={0} index={i} forceMobile={true} />
+              </div>
+            ))
+          )}
+          
+          {/* Mobile 3rd Place Match */}
+          {activeTabRound === actualTotalRounds && !hideThirdPlace && has3rdPlaceMatch && (
+            <div className="w-full max-w-sm mx-auto mt-6 pt-6 border-t border-gray-200 flex justify-center flex-col items-center">
+               <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4">3rd Place Match</h4>
+               <MatchNode match={getThirdPlaceMatch()} round={activeTabRound} roundIndex={0} index={1} forceMobile={true} isThirdPlace={true} />
             </div>
-          ))
-        )}
-        
-        {/* Mobile 3rd Place Match */}
-        {activeTabRound === actualTotalRounds && !hideThirdPlace && has3rdPlaceMatch && (
-          <div className="w-full max-w-sm mx-auto mt-6 pt-6 border-t border-gray-200 flex justify-center flex-col items-center">
-             <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4">3rd Place Match</h4>
-             <MatchNode match={getThirdPlaceMatch()} round={activeTabRound} roundIndex={0} index={1} forceMobile={true} isThirdPlace={true} />
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* Desktop Flex View */}
-      <p className="hidden text-xs text-gray-400 text-center mb-2">← {t("bracket.swipeHint")} →</p>
-      <div className="hidden md:flex gap-12 min-w-max px-4 relative overflow-x-auto pb-6">
+      {/* Desktop & Full Mobile Flex View */}
+      <p className={`${mobileViewMode === "full" ? "block" : "hidden"} md:hidden text-xs text-gray-400 text-center mb-2`}>← {t("bracket.swipeHint")} →</p>
+      <div className={`${mobileViewMode === "full" ? "flex" : "hidden md:flex"} gap-12 min-w-max px-4 relative overflow-x-auto pb-6`}>
         {rounds.map((round, roundIndex) => (
           <div key={`col-${round}`} className="flex flex-col relative w-[150px] lg:w-[200px]">
              {/* Header */}
