@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import TiebreakerConfigEditor from "./TiebreakerConfigEditor";
@@ -1151,14 +1150,10 @@ export default function SettingsContent({
                   className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50"
                 >
                   {sponsor.logo_url ? (
-                    <Image
+                    <img
                       src={sponsor.logo_url}
                       alt={sponsor.name}
-                      width={48}
-                      height={48}
                       className="w-12 h-12 object-contain rounded"
-                      unoptimized
-                      loader={({ src }) => src}
                     />
                   ) : (
                     <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-sm">

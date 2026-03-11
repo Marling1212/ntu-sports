@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 export interface SponsorItem {
   id: string;
   name: string;
@@ -47,14 +45,10 @@ function SponsorLogo({ sponsorName, logoUrl, websiteUrl }: SponsorLogoProps) {
   const content = (
     <div className="group flex flex-col items-center justify-center p-3 rounded-lg border border-gray-200 bg-white/50 min-w-[100px] md:min-w-[120px] transition-all duration-300 hover:border-ntu-green/40 hover:shadow-sm">
       {logoUrl ? (
-        <Image
+        <img
           src={logoUrl}
           alt={sponsorName}
-          width={120}
-          height={64}
           className="max-h-12 md:max-h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
-          unoptimized
-          loader={({ src }) => src}
         />
       ) : (
         <span className="text-sm font-semibold text-gray-600 text-center">{sponsorName}</span>

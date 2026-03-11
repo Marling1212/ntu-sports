@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import Link from "next/link";
@@ -150,14 +149,10 @@ export default function GlobalSponsorManager({ initialSponsors = [] }: GlobalSpo
                   className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
                   {sponsor.logo_url ? (
-                    <Image
+                    <img
                       src={sponsor.logo_url}
                       alt={sponsor.name}
-                      width={64}
-                      height={64}
                       className="w-16 h-16 object-contain rounded bg-white p-1 border shadow-sm"
-                      unoptimized
-                      loader={({ src }) => src}
                     />
                   ) : (
                     <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-sm font-medium border shadow-sm">
