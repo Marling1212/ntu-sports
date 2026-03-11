@@ -123,7 +123,8 @@ export default function BracketMatchScheduleClient({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      if (m.player1?.id) setFilterByPlayerId((prev) => (prev === m.player1?.id ? null : m.player1.id));
+                      const id = m.player1?.id;
+                      if (id) setFilterByPlayerId((prev) => (prev === id ? null : id));
                     }}
                     className={`min-w-0 flex-1 text-left truncate py-1 -mx-1 px-1 rounded touch-manipulation ${filterByPlayerId === m.player1?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${m.player1?.id ? "hover:bg-gray-100 active:scale-[0.99]" : ""}`}
                     title={m.player1?.id ? t("seasonPlay.filterByTeamHint") : undefined}
@@ -138,7 +139,8 @@ export default function BracketMatchScheduleClient({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      if (m.player2?.id) setFilterByPlayerId((prev) => (prev === m.player2?.id ? null : m.player2.id));
+                      const id = m.player2?.id;
+                      if (id) setFilterByPlayerId((prev) => (prev === id ? null : id));
                     }}
                     className={`min-w-0 flex-1 text-right truncate py-1 -mx-1 px-1 rounded touch-manipulation ${filterByPlayerId === m.player2?.id ? "ring-2 ring-amber-400 bg-amber-100" : ""} ${m.player2?.id ? "hover:bg-gray-100 active:scale-[0.99]" : ""}`}
                     title={m.player2?.id ? t("seasonPlay.filterByTeamHint") : undefined}
