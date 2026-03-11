@@ -18,21 +18,20 @@ export async function generateMetadata({
   const sportParam = (resolvedParams.sport || "").toLowerCase();
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
 
-  const event = sportParam ? await getSportEvent(sportParam) : null;
-  
-  if (!event || !teamId) {
-    return { title: 'Not Found | NTU Sports' };
-  }
-
   const supabase = await createClient();
   const { data: team } = await supabase
     .from("players")
-    .select("name, department")
+    .select("name, department, event_id")
     .eq("id", teamId)
-    .eq("event_id", event.id)
     .single();
 
   if (!team) {
+    return { title: 'Not Found | NTU Sports' };
+  }
+
+  const { getEventByIdAndSport } = await import("@/lib/utils/getSportEvent");
+  const event = await getEventByIdAndSport(team.event_id, sportParam);
+  if (!event) {
     return { title: 'Not Found | NTU Sports' };
   }
 
@@ -60,21 +59,21 @@ export default async function TeamDetailPage(context: any) {
     notFound();
   }
 
-  const event = sportParam ? await getSportEvent(sportParam) : null;
-  
-  if (!event) {
-    notFound();
-  }
-
-  // Get team/player details
+  // Get team/player details first
   const { data: team } = await supabase
     .from("players")
     .select("*")
     .eq("id", teamId)
-    .eq("event_id", event.id)
     .single();
 
   if (!team) {
+    notFound();
+  }
+
+  const { getEventByIdAndSport } = await import("@/lib/utils/getSportEvent");
+  const event = await getEventByIdAndSport(team.event_id, sportParam);
+  
+  if (!event) {
     notFound();
   }
 
@@ -164,7 +163,7 @@ export default async function TeamDetailPage(context: any) {
   return (
     <>
       <PublicNavbar eventName={event?.name} tournamentType={event?.tournament_type} />
-      <div className="container mx-auto px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
+      <div className="container mx-auto px-3 sm:px-4 pt-6 pb-24 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
         <TeamDetailView
           team={team}
           event={event}

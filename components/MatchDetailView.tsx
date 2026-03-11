@@ -198,14 +198,14 @@ export default function MatchDetailView({
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <Link 
           href={`/sports/${sportParam}/schedule`}
-          className="text-ntu-green hover:underline mb-4 inline-block"
+          className="text-ntu-green hover:underline mb-2 sm:mb-4 inline-block"
         >
           {t("matchDetail.backToSchedule")}
         </Link>
-        <div className="flex flex-wrap items-center gap-3 mb-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
           <CopyMatchLinkButton className="min-h-[44px]" />
           <AddToCalendarButton
             title={calendarTitle}
@@ -227,15 +227,15 @@ export default function MatchDetailView({
       </div>
 
       {/* Match Basic Info */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">{t("matchDetail.basicInfo")}</h2>
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-semibold text-ntu-green mb-3 sm:mb-4">{t("matchDetail.basicInfo")}</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               {isTeamEvent ? t("matchDetail.team1") : t("matchDetail.player1")}
             </label>
-            <div className="px-4 py-2 bg-gray-50 rounded-lg">
+            <div className="px-3 py-2 sm:px-4 sm:py-2 bg-gray-50 rounded-lg">
               {player1 ? (
                 <Link 
                   href={`/sports/${sportParam}/teams/${player1.id}`}
@@ -260,10 +260,10 @@ export default function MatchDetailView({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               {isTeamEvent ? t("matchDetail.team2") : t("matchDetail.player2")}
             </label>
-            <div className="px-4 py-2 bg-gray-50 rounded-lg">
+            <div className="px-3 py-2 sm:px-4 sm:py-2 bg-gray-50 rounded-lg">
               {player2 ? (
                 <Link 
                   href={`/sports/${sportParam}/teams/${player2.id}`}
@@ -288,15 +288,15 @@ export default function MatchDetailView({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.score")}</label>
-            <div className="px-4 py-2 bg-gray-50 rounded-lg text-lg font-semibold">
+            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t("matchDetail.score")}</label>
+            <div className="px-3 py-2 sm:px-4 sm:py-2 bg-gray-50 rounded-lg text-lg font-semibold">
               {match.score1 && match.score2 ? `${match.score1} - ${match.score2}` : "—"}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.winner")}</label>
-            <div className="px-4 py-2 bg-gray-50 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t("matchDetail.winner")}</label>
+            <div className="px-3 py-2 sm:px-4 sm:py-2 bg-gray-50 rounded-lg">
               {isDrawMatch(match.winner_id, match.status, match.score1, match.score2) ? (
                 <span className="font-semibold text-gray-600">{t("matchDetail.draw")}</span>
               ) : match.winner ? (
@@ -313,8 +313,8 @@ export default function MatchDetailView({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.status")}</label>
-            <div className="px-4 py-2 bg-gray-50 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t("matchDetail.status")}</label>
+            <div className="px-3 py-2 sm:px-4 sm:py-2 bg-gray-50 rounded-lg">
               {match.status === 'completed' && (
                 <span className="inline-block px-3 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
                   已完成
@@ -339,15 +339,15 @@ export default function MatchDetailView({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.court")}</label>
-            <div className="px-4 py-2 bg-gray-50 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t("matchDetail.court")}</label>
+            <div className="px-3 py-2 sm:px-4 sm:py-2 bg-gray-50 rounded-lg">
               {getCourtDisplay(match)}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t("matchDetail.matchTime")}</label>
-            <div className="px-4 py-2 bg-gray-50 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t("matchDetail.matchTime")}</label>
+            <div className="px-3 py-2 sm:px-4 sm:py-2 bg-gray-50 rounded-lg">
               {formatDateTimeDisplay(match.scheduled_time)}
               {match.slot?.code && (
                 <span className="text-sm text-gray-500 ml-2">({match.slot.code})</span>

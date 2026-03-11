@@ -56,9 +56,9 @@ export default function PublicNavbar({ eventName, tournamentType }: PublicNavbar
     <nav className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         {/* Mobile Layout: Compact top + Bottom nav */}
-        <div className="md:hidden py-3">
+        <div className="md:hidden py-4 sm:py-5">
           {/* Breadcrumb + Language + Back - compact top bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 sm:gap-3">
             <div className="flex items-center gap-1.5 text-xs overflow-x-auto min-w-0 pb-1 sm:pb-0">
               <Link href="/" className="text-gray-500 hover:text-ntu-green transition-colors whitespace-nowrap shrink-0">
                 {t("home.title")}
@@ -106,7 +106,7 @@ export default function PublicNavbar({ eventName, tournamentType }: PublicNavbar
                 isActive(scheduleUrl) ? "text-ntu-green bg-ntu-green/5" : "text-gray-600"
               }`}
             >
-              <span className="text-lg">🏀</span>
+              <span className="text-lg">📅</span>
               <span className="text-center">{t("navigation.schedule")}</span>
             </Link>
             <Link
