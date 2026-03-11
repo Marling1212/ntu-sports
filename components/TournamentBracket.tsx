@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useMemo } from "react";
 import { Player, Match, SlotPlaceholder } from "@/types/tournament";
 import { useI18n } from "@/lib/i18n/context";
 
@@ -10,8 +11,21 @@ interface TournamentBracketProps {
   sportName?: string;
   totalRounds?: number; // Total rounds in the entire tournament (not just this section)
   hideThirdPlace?: boolean; // Hide the 3rd place match display
-  compactLayout?: boolean; // Use compact sequential layout instead of centered positioning
+  compactLayout?: boolean; // Not strictly used with the new tree architect, but keeping for prop compat
 }
+
+// --- Configuration Constants ---
+const MATCH_HEIGHT = 124; // 60px block + 4px gap + 60px block
+const BASE_GAP = 40;
+const S = MATCH_HEIGHT + BASE_GAP; // 164
+
+const P1_CENTER_Y = 30;
+const P2_CENTER_Y = MATCH_HEIGHT - 30; // 94
+const VISUAL_CENTER_Y = MATCH_HEIGHT / 2; // 62
+
+const getMarginTop = (roundIndex: number) => roundIndex === 0 ? 0 : (S / 2) * (Math.pow(2, roundIndex) - 1);
+const getMarginBottom = (roundIndex: number) => S * Math.pow(2, roundIndex) - MATCH_HEIGHT;
+const getConnectorDistance = (roundIndex: number) => S * Math.pow(2, roundIndex - 1) / 2;
 
 export default function TournamentBracket({
   matches,
@@ -22,170 +36,65 @@ export default function TournamentBracket({
   compactLayout = false,
 }: TournamentBracketProps) {
   const { t } = useI18n();
-  // Calculate dynamic values based on actual data
   const maxRound = Math.max(...matches.map(m => m.round), 1);
-  
-  // Get unique rounds that actually have matches (instead of showing all rounds from 1 to maxRound)
   const uniqueRounds = [...new Set(matches.map(m => m.round))].sort((a, b) => a - b);
   const rounds = uniqueRounds.length > 0 ? uniqueRounds : Array.from({ length: maxRound }, (_, i) => i + 1);
   
-  const firstRoundMatches = matches.filter(m => m.round === 1).length;
-  const bracketSize = firstRoundMatches * 2;
+  const firstRoundMatches = matches.filter(m => m.round === Math.min(...rounds)).length;
+  // Estimate draw size using power of 2
+  const bracketSize = Math.max(2, Math.pow(2, Math.ceil(Math.log2(firstRoundMatches * 2))));
   const totalPlayers = players.length;
   const numSeeds = players.filter(p => p.seed).length;
 
-  // Use propTotalRounds if provided, otherwise calculate from matches
   const actualTotalRounds = propTotalRounds || maxRound;
-  
-  // Check if there's a 3rd place match (match_number = 2 in the ACTUAL final round of the entire tournament)
-  // Only check for 3rd place if we're showing the actual final round
   const has3rdPlaceMatch = matches.some(m => m.round === actualTotalRounds && m.matchNumber === 2);
+  const getThirdPlaceMatch = () => matches.find(m => m.round === actualTotalRounds && m.matchNumber === 2);
 
-
-  // Generate round names dynamically
   const generateRoundName = (round: number): string => {
     if (round === actualTotalRounds) return t("bracket.final");
     if (round === actualTotalRounds - 1) return t("bracket.semifinals");
     if (round === actualTotalRounds - 2) return t("bracket.quarterfinals");
-    
-    // Calculate number of players in this round
     const playersInRound = Math.pow(2, actualTotalRounds - round + 1);
     return t("bracket.roundOf").replace("{n}", String(playersInRound));
   };
 
-  const roundNames = rounds.map(r => generateRoundName(r));
+  // Normalize the bracket so we don't drop empty slots (which would break tree margin alignments)
+  const gridMatches = useMemo(() => {
+    const grid: Record<number, (Match | null)[]> = {};
+    rounds.forEach(round => {
+      const matchCountInRound = Math.pow(2, actualTotalRounds - round);
+      grid[round] = Array.from({ length: matchCountInRound }).map((_, i) => {
+        return matches.find(m => m.round === round && m.matchNumber === i + 1) || null;
+      });
+    });
+    return grid;
+  }, [matches, actualTotalRounds, rounds]);
 
-  const getMatchesForRound = (round: number) => {
-    // Return all matches for the round (including 3rd place)
-    return matches
-      .filter((m) => m.round === round)
-      .sort((a, b) => a.matchNumber - b.matchNumber);
-  };
-  
-  const getThirdPlaceMatch = () => {
-    return matches.find(m => m.round === actualTotalRounds && m.matchNumber === 2);
-  };
+  const [activeTabRound, setActiveTabRound] = useState<number>(rounds[0]);
 
-  // Constants for sizing
-  const blockHeight = 60;
-  const blockSpacing = 2; // Reduced spacing between players in same match
-  const vsHeight = 12; // Reduced VS label height
-  const matchHeight = blockHeight * 2 + blockSpacing + vsHeight;
-  const spacing = 8; // Spacing between different matches
-  const matchWidth = 180; // Width of match blocks
-  const roundGap = 12 * 16; // Gap between rounds (12rem = 192px)
-
-  // Calculate vertical position for matches
-  // Each match should be centered between the two feeding matches from previous round
-  const calculateMatchPosition = (round: number, matchNumber: number): number => {
-    // For compact layout: first round uses sequential positioning, later rounds use centered positioning
-    const firstRoundInBracket = Math.min(...rounds);
-    
-    if (compactLayout && round === firstRoundInBracket) {
-      return (matchNumber - 1) * (matchHeight + spacing);
-    }
-    
-    // Special case: Final round matches align with corresponding SF matches
-    // Only apply this if we're showing the actual final round
-    if (round === actualTotalRounds) {
-      const prevRoundMatches = getMatchesForRound(round - 1);
-      
-      if (prevRoundMatches.length >= 2) {
-        // Final (matchNumber 1) aligns with SF Match 1
-        // 3rd Place (matchNumber 2) aligns with SF Match 2
-        const correspondingSF = prevRoundMatches.find(m => m.matchNumber === matchNumber);
-        
-        if (correspondingSF) {
-          const position = calculateMatchPosition(round - 1, correspondingSF.matchNumber);
-          return position;
-        }
-      }
-    }
-    
-    // For standard layout or later rounds in compact mode, use centered positioning
-    if (round === firstRoundInBracket && !compactLayout) {
-      return (matchNumber - 1) * (matchHeight + spacing);
-    } else {
-      // Find actual previous round matches that exist
-      const prevRoundMatches = getMatchesForRound(round - 1);
-      
-      // For this match, we need to find the two previous matches that feed into it
-      const prevMatch1Num = (matchNumber - 1) * 2 + 1;
-      const prevMatch2Num = (matchNumber - 1) * 2 + 2;
-      
-      const prevMatch1 = prevRoundMatches.find(m => m.matchNumber === prevMatch1Num);
-      const prevMatch2 = prevRoundMatches.find(m => m.matchNumber === prevMatch2Num);
-      
-      if (prevMatch1 && prevMatch2) {
-        const pos1 = calculateMatchPosition(round - 1, prevMatch1.matchNumber);
-        const pos2 = calculateMatchPosition(round - 1, prevMatch2.matchNumber);
-        
-        const center1 = pos1 + matchHeight / 2;
-        const center2 = pos2 + matchHeight / 2;
-        const middlePoint = (center1 + center2) / 2;
-        return middlePoint - matchHeight / 2;
-      } else if (prevMatch1) {
-        const pos1 = calculateMatchPosition(round - 1, prevMatch1.matchNumber);
-        return pos1 + (matchHeight + spacing);
-      } else if (prevMatch2) {
-        const pos2 = calculateMatchPosition(round - 1, prevMatch2.matchNumber);
-        return pos2 + (matchHeight + spacing);
-      } else {
-        // If no previous matches found, use sequential positioning
-        return (matchNumber - 1) * (matchHeight + spacing) * Math.pow(2, round - 1);
-      }
-    }
-  };
-
-
-  // Player Block Component - individual player representation
+  // Player Block Sub-component
   const PlayerBlock = ({ 
-    player, 
-    slot,
-    isWinner, 
-    isLoser,
-    position,
-    matchId,
-    round,
-    isThirdPlace = false,
+    player, slot, isWinner, isLoser, isThirdPlace = false, textPlaceholder 
   }: { 
-    player: Player | null; 
-    slot?: SlotPlaceholder | null;
-    isWinner?: boolean;
-    isLoser?: boolean;
-    position: "top" | "bottom";
-    matchId: string;
-    round: number;
-    isThirdPlace?: boolean;
+    player: Player | null; slot?: SlotPlaceholder | null; isWinner?: boolean; isLoser?: boolean; isThirdPlace?: boolean; textPlaceholder: string; 
   }) => {
-    // Determine display text: player name, or "Seed N Group X" placeholder, or BYE/TBD
-    const displayText = player?.name 
-      || (slot ? `Seed ${slot.seed} Group ${slot.group}` : (round === 1 ? t("bracket.bye") : t("bracket.tbd")));
-    const isBye = !player && !slot && round === 1;
+    const isBye = !player && !slot && textPlaceholder === t("bracket.bye");
+    const displayText = player?.name || (slot ? `Seed ${slot.seed} Group ${slot.group}` : textPlaceholder);
     
     return (
       <div
-        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 w-[150px] md:w-[200px] transition-all duration-500 ${
-          isBye
-            ? "border-gray-200 bg-gray-50"
-            : isWinner
-            ? isThirdPlace
-              ? "border-amber-500 bg-amber-50 scale-105"
-              : "border-ntu-green bg-ntu-green bg-opacity-10 scale-105"
+        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 w-[150px] md:w-[200px] h-[60px] transition-all duration-300 relative ${
+          isBye ? "border-gray-200 bg-gray-50"
+          : isWinner
+            ? isThirdPlace ? "border-amber-500 bg-amber-50 z-10" : "border-ntu-green bg-ntu-green border-opacity-30 bg-opacity-10 z-10"
             : isLoser
-            ? "border-gray-300 bg-gray-100 opacity-50 scale-95"
-            : isThirdPlace
-            ? "border-amber-400 bg-amber-50"
-            : "border-gray-300 bg-white"
-        } ${isWinner ? "animate-pulse" : ""}`}
-        style={{
-          animation: isWinner ? "winnerAdvance 0.8s ease-out" : isLoser ? "loserFade 0.8s ease-out" : "none",
-          height: `${blockHeight}px`,
-        }}
+              ? "border-gray-300 bg-gray-100 opacity-50"
+              : isThirdPlace ? "border-amber-400 bg-amber-50" : "border-gray-300 bg-white"
+        }`}
       >
         <div className="flex items-center gap-1.5 md:gap-2 h-full">
           {player?.seed && (
-            <span className="text-xs font-bold text-white bg-ntu-green px-1 md:px-1.5 py-0.5 rounded flex-shrink-0">
+            <span className="text-[10px] md:text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded flex-shrink-0">
               {player.seed}
             </span>
           )}
@@ -194,7 +103,7 @@ export default function TournamentBracket({
               {displayText}
             </div>
             {player?.school && (
-              <div className="text-[10px] md:text-xs text-gray-500 truncate mt-0.5 leading-tight">
+              <div className="text-[10px] text-gray-500 truncate mt-0.5 leading-tight">
                 {player.school}
               </div>
             )}
@@ -204,291 +113,197 @@ export default function TournamentBracket({
     );
   };
 
-  return (
-    <>
-      <style jsx>{`
-        @keyframes winnerAdvance {
-          0% {
-            transform: scale(1);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          50% {
-            transform: scale(1.05) translateY(-2px);
-            box-shadow: 0 8px 12px rgba(0, 105, 78, 0.3);
-          }
-          100% {
-            transform: scale(1.05);
-            box-shadow: 0 4px 6px rgba(0, 105, 78, 0.2);
-          }
-        }
+  // SVG Connector Sub-component
+  const Connector = ({ roundIndex, match, prevMatch1, prevMatch2 }: any) => {
+    if (roundIndex === 0) return null; // No feeders for round 1
+    const D = getConnectorDistance(roundIndex);
+    
+    return (
+      <svg className="absolute pointer-events-none z-0" style={{ left: '-48px', top: '0', width: '48px', height: '1px', overflow: 'visible' }}>
+        {prevMatch1 && (() => {
+           const endY = -D + VISUAL_CENTER_Y;
+           const isHighlighted = !!prevMatch1.winner && !!match?.player1 && prevMatch1.winner.id === match.player1.id;
+           const radius = Math.min(12, Math.abs(endY - P1_CENTER_Y) / 2);
+           if (Math.abs(endY - P1_CENTER_Y) < 1) return <path d={`M 48 ${P1_CENTER_Y} L 0 ${P1_CENTER_Y}`} className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
+           const sign = Math.sign(endY - P1_CENTER_Y);
+           return <path d={`M 48 ${P1_CENTER_Y} L ${24 + radius} ${P1_CENTER_Y} Q 24 ${P1_CENTER_Y} 24 ${P1_CENTER_Y + sign * radius} L 24 ${endY - sign * radius} Q 24 ${endY} ${24 - radius} ${endY} L 0 ${endY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
+        })()}
+        {prevMatch2 && (() => {
+           const endY = D + VISUAL_CENTER_Y;
+           const isHighlighted = !!prevMatch2.winner && !!match?.player2 && prevMatch2.winner.id === match.player2.id;
+           const radius = Math.min(12, Math.abs(endY - P2_CENTER_Y) / 2);
+           if (Math.abs(endY - P2_CENTER_Y) < 1) return <path d={`M 48 ${P2_CENTER_Y} L 0 ${P2_CENTER_Y}`} className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
+           const sign = Math.sign(endY - P2_CENTER_Y);
+           return <path d={`M 48 ${P2_CENTER_Y} L ${24 + radius} ${P2_CENTER_Y} Q 24 ${P2_CENTER_Y} 24 ${P2_CENTER_Y + sign * radius} L 24 ${endY - sign * radius} Q 24 ${endY} ${24 - radius} ${endY} L 0 ${endY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
+        })()}
+      </svg>
+    );
+  };
+
+  // Match Node Sub-component handles exact margin stacking to form the tree
+  const MatchNode = ({ match, round, roundIndex, index, forceMobile = false, isThirdPlace = false }: any) => {
+    let mt = forceMobile ? 0 : (index === 0 ? getMarginTop(roundIndex) : 0);
+    let mb = forceMobile ? 16 : getMarginBottom(roundIndex);
+
+    if (isThirdPlace) {
+      mt = forceMobile ? 0 : 48;
+      mb = forceMobile ? 16 : 0;
+    }
+
+    const prevRoundMatches = roundIndex > 0 ? gridMatches[round - 1] : [];
+    const prevMatch1 = prevRoundMatches ? prevRoundMatches[index * 2] : null;
+    const prevMatch2 = prevRoundMatches ? prevRoundMatches[index * 2 + 1] : null;
+
+    const player1IsWinner = match && match.winner && match.winner.id === match.player1?.id;
+    const player1IsLoser = match && match.winner && match.winner.id !== match.player1?.id;
+    const player2IsWinner = match && match.winner && match.winner.id === match.player2?.id;
+    const player2IsLoser = match && match.winner && match.winner.id !== match.player2?.id;
+    
+    const isActualFinalRound = round === actualTotalRounds;
+
+    return (
+      <div className="relative" style={{ marginTop: `${mt}px`, marginBottom: `${mb}px` }}>
+        {/* Draw the backwards-pointing SVG lines */}
+        {!isThirdPlace && !forceMobile && (
+           <Connector roundIndex={roundIndex} match={match} prevMatch1={prevMatch1} prevMatch2={prevMatch2} />
+        )}
         
-        @keyframes loserFade {
-          0% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          100% {
-            opacity: 0.5;
-            transform: scale(0.95);
-          }
-        }
-      `}</style>
-      
-      <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-        <div className="mb-6">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-2">
-            {sportName} Tournament Bracket
-          </h2>
-          <p className="text-sm text-gray-600">
-            Single Elimination • {totalPlayers} Players • {bracketSize}-Draw • {numSeeds} Seeds • {maxRound} Rounds
-          </p>
-        </div>
-
-        <p className="md:hidden text-sm text-gray-500 text-center mb-2">← {t("bracket.swipeHint")} →</p>
-        <div className="overflow-x-auto pb-6">
-          <div className="flex gap-12 min-w-max px-4 relative">
-            {rounds.map((round, roundIndex) => {
-              const roundMatches = getMatchesForRound(round);
+        {match ? (
+          <Link
+            id={`match-${match.id}`}
+            href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
+            className="block relative group hover:scale-[1.02] active:scale-95 transition-transform duration-300 z-10 scroll-mt-24 w-max"
+          >
+            <div className="relative flex flex-col gap-1 w-[150px] md:w-[200px]">
+              <PlayerBlock player={match.player1 || null} slot={(match as Match).slot1} isWinner={player1IsWinner} isLoser={player1IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} />
+              <div className="h-1"></div>
+              <PlayerBlock player={match.player2 || null} slot={(match as Match).slot2} isWinner={player2IsWinner} isLoser={player2IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} />
               
-              // For the final round, check if we should include 3rd place match
-              const isActualFinalRound = round === actualTotalRounds;
-              const displayMatches = roundMatches;
-
-              return (
-                <div key={round} className="flex flex-col relative">
-                  {/* Round Header */}
-                  <div className="mb-4 text-center sticky top-0 bg-white z-10 pb-2 border-b border-gray-200 w-[150px] md:w-[200px]">
-                    <h3 className="text-sm md:text-base font-semibold text-ntu-green">
-                      {roundNames[roundIndex]}
-                    </h3>
-                    <p className="text-[10px] md:text-xs text-gray-500 mt-1">
-                      {displayMatches.length} {displayMatches.length === 1 ? "match" : "matches"}
-                    </p>
-                  </div>
-
-                  {/* Matches Container */}
-                  <div 
-                    className="relative pt-4"
-                    style={{ 
-                      minHeight: displayMatches.length > 0 
-                        ? `${Math.max(...displayMatches.map(m => 
-                            calculateMatchPosition(round, m.matchNumber) + matchHeight
-                          )) + 100}px`
-                        : '200px'
-                    }}
-                  >
-                    {displayMatches.map((match) => {
-                      const matchPosition = calculateMatchPosition(round, match.matchNumber);
-                      
-                      // Check if this is the 3rd place match
-                      const isThirdPlaceMatch = match.round === actualTotalRounds && match.matchNumber === 2;
-
-                      // Determine winner/loser status (only when there is an actual winner)
-                      const player1IsWinner = !!match.winner && match.winner.id === match.player1?.id;
-                      const player1IsLoser = !!match.winner && match.winner.id !== match.player1?.id;
-                      const player2IsWinner = !!match.winner && match.winner.id === match.player2?.id;
-                      const player2IsLoser = !!match.winner && match.winner.id !== match.player2?.id;
-
-                      const prevRoundMatches = roundIndex > 0 ? getMatchesForRound(round - 1) : [];
-                      const prevMatch1Num = (match.matchNumber - 1) * 2 + 1;
-                      const prevMatch2Num = (match.matchNumber - 1) * 2 + 2;
-                      const prevMatch1 = prevRoundMatches.find(m => m.matchNumber === prevMatch1Num);
-                      const prevMatch2 = prevRoundMatches.find(m => m.matchNumber === prevMatch2Num);
-                      
-                      const p1CenterY = 30; // Center of top player block (60/2)
-                      const p2CenterY = 94; // Center of bottom player block (60 + 4 + 30)
-                      // The overall match height is (60 * 2) + 4 (gap) = 124px. The exact vertical center is 62.
-                      const prevMatchVisualCenterY = 62; 
-
-                      return (
-                        <div key={match.id} className="absolute" style={{ top: `${matchPosition}px` }}>
-                          {/* Connectors to previous round */}
-                          {roundIndex > 0 && !isThirdPlaceMatch && (
-                            <svg 
-                              className="absolute pointer-events-none" 
-                              style={{ 
-                                left: '-48px',
-                                top: '0',
-                                width: '48px',
-                                height: '1px',
-                                overflow: 'visible',
-                                zIndex: 0
-                              }}
-                            >
-                              {prevMatch1 && (() => {
-                                const pos1 = calculateMatchPosition(round - 1, prevMatch1.matchNumber);
-                                const startY = p1CenterY;
-                                const endY = pos1 - matchPosition + prevMatchVisualCenterY;
-                                const isHighlighted = !!prevMatch1.winner && !!match.player1 && prevMatch1.winner.id === match.player1.id;
-                                
-                                const radius = Math.min(12, Math.abs(endY - startY) / 2);
-                                if (Math.abs(endY - startY) < 1) {
-                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
-                                }
-                                const sign = Math.sign(endY - startY);
-                                return (
-                                  <path 
-                                    d={`M 48 ${startY} 
-                                        L ${24 + radius} ${startY} 
-                                        Q 24 ${startY} 24 ${startY + sign * radius}
-                                        L 24 ${endY - sign * radius}
-                                        Q 24 ${endY} ${24 - radius} ${endY}
-                                        L 0 ${endY}`}
-                                    className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} 
-                                    fill="none" 
-                                  />
-                                );
-                              })()}
-                              
-                              {prevMatch2 && (() => {
-                                const pos2 = calculateMatchPosition(round - 1, prevMatch2.matchNumber);
-                                const startY = p2CenterY;
-                                const endY = pos2 - matchPosition + prevMatchVisualCenterY;
-                                const isHighlighted = !!prevMatch2.winner && !!match.player2 && prevMatch2.winner.id === match.player2.id;
-                                
-                                const radius = Math.min(12, Math.abs(endY - startY) / 2);
-                                if (Math.abs(endY - startY) < 1) {
-                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} fill="none" />;
-                                }
-                                const sign = Math.sign(endY - startY);
-                                return (
-                                  <path 
-                                    d={`M 48 ${startY} 
-                                        L ${24 + radius} ${startY} 
-                                        Q 24 ${startY} 24 ${startY + sign * radius}
-                                        L 24 ${endY - sign * radius}
-                                        Q 24 ${endY} ${24 - radius} ${endY}
-                                        L 0 ${endY}`}
-                                    className={isHighlighted ? "stroke-ntu-green stroke-[2.5px]" : "stroke-gray-300 stroke-[2px] opacity-70"} 
-                                    fill="none" 
-                                  />
-                                );
-                              })()}
-                            </svg>
-                          )}
-
-                          <Link
-                            id={`match-${match.id}`}
-                            href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
-                            className="block cursor-pointer group rounded-lg -m-1 p-1 hover:bg-gray-50/80 transition-colors scroll-mt-24 z-10 relative"
-                          >
-                            <div className="relative flex flex-col gap-1">
-                            {/* Player 1 Block */}
-                            <PlayerBlock
-                              player={match.player1 || null}
-                              slot={(match as Match).slot1}
-                              isWinner={player1IsWinner || undefined}
-                              isLoser={player1IsLoser || undefined}
-                              position="top"
-                              matchId={match.id}
-                              round={round}
-                              isThirdPlace={isThirdPlaceMatch}
-                            />
-                            
-                            {/* Spacing */}
-                            <div className="h-1"></div>
-                            
-                            {/* Player 2 Block */}
-                            <PlayerBlock
-                              player={match.player2 || null}
-                              slot={(match as Match).slot2}
-                              isWinner={player2IsWinner || undefined}
-                              isLoser={player2IsLoser || undefined}
-                              position="bottom"
-                              matchId={match.id}
-                              round={round}
-                              isThirdPlace={isThirdPlaceMatch}
-                            />
-                            
-                            {/* VS Label / Score Display - Overlapping */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-                              {match.status === "completed" && match.score ? (
-                                <div className={`bg-white border-2 rounded-lg px-3 py-2 shadow-lg ${
-                                  isThirdPlaceMatch ? 'border-amber-500' : isActualFinalRound && match.matchNumber === 1 ? 'border-yellow-500' : 'border-ntu-green'
-                                }`}>
-                                  <div className={`text-sm font-bold whitespace-nowrap ${
-                                    isThirdPlaceMatch ? 'text-amber-600' : isActualFinalRound && match.matchNumber === 1 ? 'text-yellow-600' : 'text-ntu-green'
-                                  }`}>
-                                    {match.score}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className={`rounded-full w-12 h-12 flex items-center justify-center shadow-md transition-all duration-300 ${
-                                  isThirdPlaceMatch
-                                    ? 'bg-amber-500 border-2 border-amber-600'
-                                    : isActualFinalRound && match.matchNumber === 1
-                                      ? 'bg-yellow-500 border-2 border-yellow-600'
-                                      : match.status === 'live' 
-                                        ? 'bg-red-500 border-2 border-red-600 animate-pulse' 
-                                        : match.status === 'delayed'
-                                          ? 'bg-amber-100 border-2 border-amber-400 animate-pulse'
-                                          : 'bg-white border-2 border-gray-300'
-                                }`}>
-                                  <span className={`text-lg font-bold ${
-                                    isThirdPlaceMatch || (isActualFinalRound && match.matchNumber === 1)
-                                      ? 'text-white'
-                                      : match.status === 'live'
-                                        ? 'text-white'
-                                        : match.status === 'delayed'
-                                          ? 'text-amber-700'
-                                          : 'text-gray-600'
-                                  }`}>
-                                    {isThirdPlaceMatch ? '🥉' : isActualFinalRound && match.matchNumber === 1 ? '🏆' : 'VS'}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </Link>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+                 {match.status === "completed" && match.score ? (
+                    <div className={`bg-white border-2 rounded-lg px-2 py-1 shadow-md ${isThirdPlace ? 'border-amber-500 text-amber-600' : isActualFinalRound && !isThirdPlace ? 'border-yellow-500 text-yellow-600' : 'border-ntu-green text-ntu-green'}`}>
+                       <div className="text-[10px] md:text-xs font-bold whitespace-nowrap">{match.score}</div>
+                    </div>
+                 ) : (
+                    <div className={`rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center shadow-sm transition-all duration-300 ${isThirdPlace ? 'bg-amber-500 border-2 border-amber-600 text-white' : isActualFinalRound && !isThirdPlace ? 'bg-yellow-500 border-2 border-yellow-600 text-white' : match.status === 'live' ? 'bg-red-500 border-2 border-red-600 text-white animate-pulse' : match.status === 'delayed' ? 'bg-amber-100 border-2 border-amber-400 text-amber-700 animate-pulse' : 'bg-white border-2 border-gray-300 text-gray-500'}`}>
+                       <span className="text-[10px] md:text-xs font-bold">{isThirdPlace ? '🥉' : isActualFinalRound && !isThirdPlace ? '🏆' : 'VS'}</span>
+                    </div>
+                 )}
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <div className="flex flex-col gap-1 opacity-40 relative z-10 w-[150px] md:w-[200px]">
+             <PlayerBlock player={null} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} />
+             <div className="h-1"></div>
+             <PlayerBlock player={null} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} />
           </div>
-        </div>
+        )}
+      </div>
+    );
+  };
 
-        {/* Legend */}
-        <div className="mt-8 pt-4 border-t border-gray-200">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">Legend</h4>
-          <div className="flex flex-wrap gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-ntu-green rounded bg-ntu-green bg-opacity-10"></div>
-              <span className="text-gray-600">Winner (Advancing)</span>
+  return (
+    <div className="bg-white rounded-xl shadow-md p-4 md:p-6 border border-gray-100 w-full overflow-hidden">
+      <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-2">
+        <div>
+          <h2 className="text-xl md:text-2xl font-semibold text-ntu-green mb-1 md:mb-2">{sportName} Tournament Bracket</h2>
+          <p className="text-xs md:text-sm text-gray-600">Single Elimination • {totalPlayers} Players • {bracketSize}-Draw • {numSeeds} Seeds • {maxRound} Rounds</p>
+        </div>
+      </div>
+
+      {/* Mobile Tabs */}
+      <div className="md:hidden flex overflow-x-auto gap-2 mb-6 pb-2 border-b">
+        {rounds.map(r => (
+          <button 
+            key={`tab-${r}`}
+            onClick={() => setActiveTabRound(r)}
+            className={`px-4 py-2 whitespace-nowrap text-sm font-semibold border-b-2 transition-colors ${activeTabRound === r ? 'border-ntu-green text-ntu-green' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            {generateRoundName(r)}
+          </button>
+        ))}
+      </div>
+
+      {/* Mobile View */}
+      <div className="md:hidden flex flex-col gap-4">
+        {gridMatches[activeTabRound]?.filter(m => m !== null).length === 0 ? (
+           <p className="text-gray-400 text-center italic py-8 text-sm">No matches available in this round yet.</p>
+        ) : (
+          gridMatches[activeTabRound]?.filter(m => m !== null).map((match, i) => (
+            <div key={`mobile-${match?.id || i}`} className="w-full max-w-sm mx-auto flex justify-center">
+               <MatchNode match={match} round={activeTabRound} roundIndex={0} index={i} forceMobile={true} />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-gray-300 rounded bg-gray-100 opacity-50"></div>
-              <span className="text-gray-600">Loser (Eliminated)</span>
+          ))
+        )}
+        
+        {/* Mobile 3rd Place Match */}
+        {activeTabRound === actualTotalRounds && !hideThirdPlace && has3rdPlaceMatch && (
+          <div className="w-full max-w-sm mx-auto mt-6 pt-6 border-t border-gray-200 flex justify-center flex-col items-center">
+             <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4">3rd Place Match</h4>
+             <MatchNode match={getThirdPlaceMatch()} round={activeTabRound} roundIndex={0} index={1} forceMobile={true} isThirdPlace={true} />
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Flex View */}
+      <p className="hidden text-xs text-gray-400 text-center mb-2">← {t("bracket.swipeHint")} →</p>
+      <div className="hidden md:flex gap-12 min-w-max px-4 relative overflow-x-auto pb-6">
+        {rounds.map((round, roundIndex) => (
+          <div key={`col-${round}`} className="flex flex-col relative w-[150px] lg:w-[200px]">
+             {/* Header */}
+             <div className="mb-8 text-center sticky top-0 bg-white z-20 pb-2 border-b border-gray-200">
+                 <h3 className="text-sm lg:text-base font-semibold text-ntu-green">{generateRoundName(round)}</h3>
+                 <p className="text-[10px] lg:text-xs text-gray-500 mt-1">{gridMatches[round]?.filter(m=>m).length || 0} matches</p>
+             </div>
+             {/* Matches logic strictly driven by margin math */}
+             <div className="flex-1 relative">
+                {gridMatches[round]?.map((match, i) => (
+                   <MatchNode key={`d-${round}-${i}`} match={match} round={round} roundIndex={roundIndex} index={i} forceMobile={false} />
+                ))}
+                
+                {/* 3rd place handling cleanly breaks out of the margin math flow */}
+                {round === actualTotalRounds && !hideThirdPlace && has3rdPlaceMatch && (
+                   <>
+                     <div className="w-full flex items-center justify-center gap-2 mt-8 mb-4">
+                        <hr className="flex-1 border-gray-200" /><span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold whitespace-nowrap">3rd Place</span><hr className="flex-1 border-gray-200" />
+                     </div>
+                     <MatchNode match={getThirdPlaceMatch()} round={round} roundIndex={roundIndex} index={1} forceMobile={false} isThirdPlace={true} />
+                   </>
+                )}
+             </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="mt-8 pt-4 border-t border-gray-200">
+        <h4 className="text-sm font-semibold text-gray-700 mb-3">Legend</h4>
+        <div className="flex flex-wrap gap-4 md:gap-6 text-xs md:text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-ntu-green rounded bg-ntu-green bg-opacity-10"></div>
+            <span className="text-gray-600">Winner</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-gray-300 rounded bg-gray-100 opacity-50"></div>
+            <span className="text-gray-600">Eliminated</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 md:w-8 md:h-8 bg-amber-100 border-2 border-amber-400 rounded-full"></div>
+            <span className="text-gray-600">Delayed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] md:text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded">1</span>
+            <span className="text-gray-600">Seed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="border-2 border-ntu-green rounded px-2 py-0.5 md:py-1 bg-white">
+              <span className="text-ntu-green text-[10px] font-bold">6-4, 6-2</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-amber-100 border-2 border-amber-400 rounded-full"></div>
-              <span className="text-gray-600">Delayed Match</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded">
-                1
-              </span>
-              <span className="text-gray-600">Seed Number</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="border-2 border-ntu-green rounded px-2 py-1 bg-white">
-                <span className="text-ntu-green text-[10px] font-bold">6-4, 6-2</span>
-              </div>
-              <span className="text-gray-600">Final Score</span>
-            </div>
-            {has3rdPlaceMatch && (
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">🥉</span>
-                </div>
-                <span className="text-gray-600">3rd Place Match</span>
-              </div>
-            )}
+            <span className="text-gray-600">Score</span>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
