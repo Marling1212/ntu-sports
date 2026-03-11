@@ -87,7 +87,7 @@ function SponsorLogo({ sponsor, size }: { sponsor: GlobalSponsorItem, size: 'lar
     <div className={`group flex flex-col items-center justify-center p-4 rounded-xl border border-transparent bg-white/30 transition-all duration-500 hover:bg-white/80 hover:shadow-lg hover:-translate-y-1 ${dimensions[size]}`}>
       {showImg ? (
         <img
-          src={sponsor.logo_url}
+          src={sponsor.logo_url || ""}
           alt={sponsor.name}
           className={`object-contain transition-transform duration-500 group-hover:scale-105 filter drop-shadow-sm ${imgSizes[size]}`}
           loading="lazy"
