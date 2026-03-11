@@ -289,15 +289,86 @@ export default function TournamentBracket({
                       const player2IsWinner = !!match.winner && match.winner.id === match.player2?.id;
                       const player2IsLoser = !!match.winner && match.winner.id !== match.player2?.id;
 
+                      const prevRoundMatches = roundIndex > 0 ? getMatchesForRound(round - 1) : [];
+                      const prevMatch1Num = (match.matchNumber - 1) * 2 + 1;
+                      const prevMatch2Num = (match.matchNumber - 1) * 2 + 2;
+                      const prevMatch1 = prevRoundMatches.find(m => m.matchNumber === prevMatch1Num);
+                      const prevMatch2 = prevRoundMatches.find(m => m.matchNumber === prevMatch2Num);
+                      
+                      const visualCenterY = 62; // Center of 60px block + 4px gap + 60px block
+
                       return (
-                        <Link
-                          key={match.id}
-                          id={`match-${match.id}`}
-                          href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
-                          className="absolute block cursor-pointer group rounded-lg -m-1 p-1 hover:bg-gray-50/80 transition-colors scroll-mt-24"
-                          style={{ top: `${matchPosition}px` }}
-                        >
-                          <div className="relative flex flex-col gap-1">
+                        <div key={match.id} className="absolute" style={{ top: `${matchPosition}px` }}>
+                          {/* Connectors to previous round */}
+                          {roundIndex > 0 && !isThirdPlaceMatch && (
+                            <svg 
+                              className="absolute pointer-events-none z-0" 
+                              style={{ 
+                                left: '-48px',
+                                top: '0',
+                                width: '48px',
+                                height: '1px',
+                                overflow: 'visible'
+                              }}
+                            >
+                              {prevMatch1 && (() => {
+                                const pos1 = calculateMatchPosition(round - 1, prevMatch1.matchNumber);
+                                const startY = visualCenterY;
+                                const endY = pos1 - matchPosition + visualCenterY;
+                                const isHighlighted = !!prevMatch1.winner && !!match.player1 && prevMatch1.winner.id === match.player1.id;
+                                
+                                const radius = Math.min(6, Math.abs(endY - startY) / 2);
+                                if (Math.abs(endY - startY) < 1) {
+                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[3px]" : "stroke-gray-300 stroke-2"} fill="none" />;
+                                }
+                                const sign = Math.sign(endY - startY);
+                                return (
+                                  <path 
+                                    d={`M 48 ${startY} 
+                                        L ${24 + radius} ${startY} 
+                                        Q 24 ${startY} 24 ${startY + sign * Math.abs(radius)}
+                                        L 24 ${endY - sign * Math.abs(radius)}
+                                        Q 24 ${endY} ${24 - radius} ${endY}
+                                        L 0 ${endY}`}
+                                    className={isHighlighted ? "stroke-ntu-green stroke-[3px]" : "stroke-gray-300 stroke-2"} 
+                                    fill="none" 
+                                  />
+                                );
+                              })()}
+                              
+                              {prevMatch2 && (() => {
+                                const pos2 = calculateMatchPosition(round - 1, prevMatch2.matchNumber);
+                                const startY = visualCenterY;
+                                const endY = pos2 - matchPosition + visualCenterY;
+                                const isHighlighted = !!prevMatch2.winner && !!match.player2 && prevMatch2.winner.id === match.player2.id;
+                                
+                                const radius = Math.min(6, Math.abs(endY - startY) / 2);
+                                if (Math.abs(endY - startY) < 1) {
+                                  return <path d={`M 48 ${startY} L 0 ${startY}`} className={isHighlighted ? "stroke-ntu-green stroke-[3px]" : "stroke-gray-300 stroke-2"} fill="none" />;
+                                }
+                                const sign = Math.sign(endY - startY);
+                                return (
+                                  <path 
+                                    d={`M 48 ${startY} 
+                                        L ${24 + radius} ${startY} 
+                                        Q 24 ${startY} 24 ${startY + sign * Math.abs(radius)}
+                                        L 24 ${endY - sign * Math.abs(radius)}
+                                        Q 24 ${endY} ${24 - radius} ${endY}
+                                        L 0 ${endY}`}
+                                    className={isHighlighted ? "stroke-ntu-green stroke-[3px]" : "stroke-gray-300 stroke-2"} 
+                                    fill="none" 
+                                  />
+                                );
+                              })()}
+                            </svg>
+                          )}
+
+                          <Link
+                            id={`match-${match.id}`}
+                            href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
+                            className="block cursor-pointer group rounded-lg -m-1 p-1 hover:bg-gray-50/80 transition-colors scroll-mt-24 z-10 relative"
+                          >
+                            <div className="relative flex flex-col gap-1">
                             {/* Player 1 Block */}
                             <PlayerBlock
                               player={match.player1 || null}
@@ -365,6 +436,7 @@ export default function TournamentBracket({
                             </div>
                           </div>
                         </Link>
+                        </div>
                       );
                     })}
                   </div>
