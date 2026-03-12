@@ -200,7 +200,7 @@ export default function MatchDetailView({
     <div>
       <div className="mb-4 sm:mb-6">
         <Link 
-          href={`/sports/${sportParam}/schedule`}
+          href={event?.id ? `/sports/${sportParam}/events/${event.id}` : `/sports/${sportParam}`}
           className="text-ntu-green hover:underline mb-2 sm:mb-4 inline-block"
         >
           {t("matchDetail.backToSchedule")}

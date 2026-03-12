@@ -128,7 +128,7 @@ export default function TeamDetailView({
     <div>
       <div className="mb-6">
         <Link 
-          href={`/sports/${sportParam}/schedule`}
+          href={event?.id ? `/sports/${sportParam}/events/${event.id}` : `/sports/${sportParam}`}
           className="text-ntu-green hover:underline mb-4 inline-block"
         >
           {t("matchDetail.backToSchedule")}

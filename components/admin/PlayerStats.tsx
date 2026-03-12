@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Player, Match } from "@/types/database";
+import { isDrawMatch } from "@/lib/constants/matchConstants";
 
 interface PlayerStatsProps {
   players: Player[];
@@ -72,14 +73,21 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       });
     });
 
-    // Process matches
-    matches.forEach(match => {
-      if (match.status !== "completed" || !match.winner_id) return;
+    // Use only regular season matches (round 0) for season_play so admin stats match viewer standings
+    const matchesForStats =
+      tournamentType === "season_play"
+        ? matches.filter((m) => (m.round ?? 0) === 0)
+        : matches;
+
+    // Process matches (include draws: completed with no winner_id, same as viewer)
+    matchesForStats.forEach(match => {
+      if (match.status !== "completed") return;
 
       const player1Id = match.player1_id;
       const player2Id = match.player2_id;
-      const winnerId = match.winner_id;
-      const score = parseScore(match.score1 && match.score2 ? `${match.score1}-${match.score2}` : undefined);
+      const winnerId = match.winner_id ?? null;
+      const score = parseScore(match.score1 != null && match.score2 != null ? `${match.score1}-${match.score2}` : undefined);
+      const isDraw = isDrawMatch(winnerId, match.status, score?.score1.toString(), score?.score2.toString());
 
       if (!player1Id || !player2Id) return;
 
@@ -93,38 +101,25 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       stat2.matchesPlayed++;
 
       if (score) {
-        // Update goals
         stat1.goalsFor += score.score1;
         stat1.goalsAgainst += score.score2;
         stat2.goalsFor += score.score2;
         stat2.goalsAgainst += score.score1;
+      }
 
-        // Update win/loss/draw
-        if (score.score1 > score.score2) {
-          stat1.wins++;
-          stat1.points += 3;
-          stat2.losses++;
-        } else if (score.score1 < score.score2) {
-          stat2.wins++;
-          stat2.points += 3;
-          stat1.losses++;
-        } else {
-          stat1.draws++;
-          stat2.draws++;
-          stat1.points += 1;
-          stat2.points += 1;
-        }
-      } else {
-        // No score, just winner/loser
-        if (winnerId === player1Id) {
-          stat1.wins++;
-          stat1.points += 3;
-          stat2.losses++;
-        } else {
-          stat2.wins++;
-          stat2.points += 3;
-          stat1.losses++;
-        }
+      if (isDraw) {
+        stat1.draws++;
+        stat2.draws++;
+        stat1.points += 1;
+        stat2.points += 1;
+      } else if (winnerId === player1Id) {
+        stat1.wins++;
+        stat1.points += 3;
+        stat2.losses++;
+      } else if (winnerId === player2Id) {
+        stat2.wins++;
+        stat2.points += 3;
+        stat1.losses++;
       }
     });
 
@@ -212,7 +207,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       let p1GoalsFor = 0, p2GoalsFor = 0;
       let p1GoalsAgainst = 0, p2GoalsAgainst = 0;
 
-      const headToHeadMatches = matches.filter(m => {
+      const headToHeadMatches = matchesForStats.filter(m => {
         if (m.status !== "completed") return false;
         const hasP1 = (m.player1_id === player1Id || m.player1_id === player2Id);
         const hasP2 = (m.player2_id === player1Id || m.player2_id === player2Id);
@@ -220,25 +215,26 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       });
 
       headToHeadMatches.forEach(m => {
-        const score = parseScore(m.score1 && m.score2 ? `${m.score1}-${m.score2}` : undefined);
-        if (!score) return;
+        const score = parseScore(m.score1 != null && m.score2 != null ? `${m.score1}-${m.score2}` : undefined);
+        const winnerId = m.winner_id ?? null;
+        const isDraw = isDrawMatch(winnerId, m.status, score?.score1.toString(), score?.score2.toString());
 
         const isP1First = m.player1_id === player1Id;
-        const p1Score = isP1First ? score.score1 : score.score2;
-        const p2Score = isP1First ? score.score2 : score.score1;
+        const p1Score = score ? (isP1First ? score.score1 : score.score2) : 0;
+        const p2Score = score ? (isP1First ? score.score2 : score.score1) : 0;
 
         p1GoalsFor += p1Score;
         p2GoalsFor += p2Score;
         p1GoalsAgainst += p2Score;
         p2GoalsAgainst += p1Score;
 
-        if (p1Score > p2Score) {
-          p1Points += 3;
-        } else if (p1Score < p2Score) {
-          p2Points += 3;
-        } else {
+        if (isDraw) {
           p1Points += 1;
           p2Points += 1;
+        } else if (winnerId === player1Id) {
+          p1Points += 3;
+        } else if (winnerId === player2Id) {
+          p2Points += 3;
         }
       });
 
@@ -290,7 +286,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       // 8. Final tiebreaker: alphabetical by name
       return a.player.name.localeCompare(b.player.name);
     });
-  }, [players, matches, matchPlayerStats, teamMembers, registrationType]);
+  }, [players, matches, tournamentType, matchPlayerStats, teamMembers, registrationType]);
 
   // Calculate top performers for charts (must be before early return)
   // For team events, calculate individual player goals from match_player_stats
