@@ -6,7 +6,6 @@ import LogoutButton from "./LogoutButton";
 import DivisionSwitcher from "./DivisionSwitcher";
 import EventVisibilityToggle from "./EventVisibilityToggle";
 import { useI18n } from "@/lib/i18n/context";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 interface Division {
   id: string;
@@ -85,7 +84,6 @@ export default function AdminNavbar({ eventId, eventName, sport, divisions = [],
             </div>
           )}
           <div className="flex items-center gap-4">
-            <LanguageSwitcher />
             <LogoutButton />
           </div>
         </div>

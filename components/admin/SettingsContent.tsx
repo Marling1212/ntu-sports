@@ -1035,7 +1035,7 @@ export default function SettingsContent({
                     <h4 className="text-sm font-semibold text-gray-900 mb-2">排版與計分用詞 (Scoring & UI)</h4>
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs text-gray-600 mb-1">主要計分單位 (Primary Stat)</label>
+                        <label className="block text-xs text-gray-600 mb-1">主要計分單位</label>
                         <select
                           value={divisionForm.scoreName}
                           onChange={(e) => setDivisionForm((f) => ({ ...f, scoreName: e.target.value }))}
@@ -1045,7 +1045,7 @@ export default function SettingsContent({
                           <option value="points">Points (得分)</option>
                           <option value="sets">Sets (局數)</option>
                           <option value="games">Games (單局)</option>
-                          <option value="runs">Runs (得分-棒壘)</option>
+                          <option value="runs">Runs (得分（棒壘）)</option>
                         </select>
                       </div>
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -1055,7 +1055,7 @@ export default function SettingsContent({
                           onChange={(e) => setDivisionForm((f) => ({ ...f, hideLeaguePoints: e.target.checked }))}
                           className="rounded text-ntu-green focus:ring-ntu-green"
                         />
-                        <span className="text-sm text-gray-700">隱藏戰績積分 (Hide League Points)</span>
+                        <span className="text-sm text-gray-700">隱藏戰績積分</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1064,7 +1064,7 @@ export default function SettingsContent({
                           onChange={(e) => setDivisionForm((f) => ({ ...f, hideDraws: e.target.checked }))}
                           className="rounded text-ntu-green focus:ring-ntu-green"
                         />
-                        <span className="text-sm text-gray-700">隱藏和局/平手 (Hide Draws)</span>
+                        <span className="text-sm text-gray-700">隱藏和局/平手</span>
                       </label>
                     </div>
                   </div>
@@ -1090,7 +1090,7 @@ export default function SettingsContent({
                       onChange={(e) => { setNewDivisionSport(e.target.value); setNewDivisionSportOther(""); }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     >
-                      <option value="">{t('admin.select')}</option>
+                      <option value="">請選擇</option>
                       {COMMON_SPORTS.map((s) => (
                         <option key={s.value} value={s.value}>{s.label}</option>
                       ))}
@@ -1149,7 +1149,7 @@ export default function SettingsContent({
                     <h4 className="text-sm font-semibold text-gray-900 mb-2">排版與計分用詞 (Scoring & UI)</h4>
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs text-gray-600 mb-1">主要計分單位 (Primary Stat)</label>
+                        <label className="block text-xs text-gray-600 mb-1">主要計分單位</label>
                         <select
                           value={newDivisionScoreName}
                           onChange={(e) => setNewDivisionScoreName(e.target.value)}
@@ -1159,7 +1159,7 @@ export default function SettingsContent({
                           <option value="points">Points (得分)</option>
                           <option value="sets">Sets (局數)</option>
                           <option value="games">Games (單局)</option>
-                          <option value="runs">Runs (得分-棒壘)</option>
+                          <option value="runs">Runs (得分（棒壘）)</option>
                         </select>
                       </div>
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -1169,7 +1169,7 @@ export default function SettingsContent({
                           onChange={(e) => setNewDivisionHideLeaguePoints(e.target.checked)}
                           className="rounded text-ntu-green focus:ring-ntu-green"
                         />
-                        <span className="text-sm text-gray-700">隱藏戰績積分 (Hide League Points)</span>
+                        <span className="text-sm text-gray-700">隱藏戰績積分</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1178,7 +1178,7 @@ export default function SettingsContent({
                           onChange={(e) => setNewDivisionHideDraws(e.target.checked)}
                           className="rounded text-ntu-green focus:ring-ntu-green"
                         />
-                        <span className="text-sm text-gray-700">隱藏和局/平手 (Hide Draws)</span>
+                        <span className="text-sm text-gray-700">隱藏和局/平手</span>
                       </label>
                     </div>
                   </div>
@@ -1666,7 +1666,7 @@ export default function SettingsContent({
                       value={newGame.name}
                       onChange={(e) => setNewGame({ ...newGame, name: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      placeholder="例如：籃球"
+                      placeholder="名稱 (Name)"
                     />
                   </div>
 
@@ -1679,9 +1679,8 @@ export default function SettingsContent({
                       value={newGame.code}
                       onChange={(e) => setNewGame({ ...newGame, code: e.target.value.toLowerCase() })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
-                      placeholder="例如：basketball"
+                      placeholder="e.g. basketball"
                     />
-                    <p className="text-xs text-gray-500 mt-1">小寫英文字母，用於內部識別</p>
                   </div>
 
                   <div>
@@ -1693,22 +1692,21 @@ export default function SettingsContent({
                       value={newGame.icon}
                       onChange={(e) => setNewGame({ ...newGame, icon: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      placeholder="例如：🏀 (emoji)"
+                      placeholder="e.g. 🏀"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      顏色 (Color Class)
+                      {t('admin.gameColorLabel')}
                     </label>
                     <input
                       type="text"
                       value={newGame.color}
                       onChange={(e) => setNewGame({ ...newGame, color: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      placeholder="例如：bg-orange-500"
+                      placeholder="e.g. bg-orange-500"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Tailwind CSS 顏色類別</p>
                   </div>
 
                   <div>
@@ -1720,7 +1718,7 @@ export default function SettingsContent({
                       onChange={(e) => setNewGame({ ...newGame, description: e.target.value })}
                       rows={2}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      placeholder="運動描述..."
+                      placeholder="Optional description"
                     />
                   </div>
 
