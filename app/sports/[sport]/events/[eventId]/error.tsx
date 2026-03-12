@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function EventError({
   error,
@@ -10,9 +11,17 @@ export default function EventError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const pathname = usePathname();
+
   useEffect(() => {
     console.error(error);
   }, [error]);
+
+  // /sports/tennis/events/xxx -> sport = tennis
+  const pathParts = pathname?.split("/") ?? [];
+  const sportIndex = pathParts.indexOf("sports");
+  const sportSlug = sportIndex >= 0 && pathParts[sportIndex + 1] ? pathParts[sportIndex + 1] : null;
+  const eventListHref = sportSlug ? `/sports/${sportSlug}` : "/";
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
@@ -30,6 +39,12 @@ export default function EventError({
           >
             重試
           </button>
+          <Link
+            href={eventListHref}
+            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+          >
+            返回賽事列表
+          </Link>
           <Link
             href="/"
             className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
