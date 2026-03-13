@@ -240,6 +240,10 @@ export default async function SportPage(context: any) {
                               <span className="inline-block px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded animate-pulse">{t("sports.live")}</span>
                             ) : m.status === "delayed" ? (
                               <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">{t("sports.delayed")}</span>
+                            ) : m.status === "forfeit" ? (
+                              <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-100 rounded">{t("sports.forfeit")}</span>
+                            ) : m.status === "walkover" ? (
+                              <span className="inline-block px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded">{t("sports.walkover")}</span>
                             ) : (
                               <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">{t("sports.upcoming")}</span>
                             )}

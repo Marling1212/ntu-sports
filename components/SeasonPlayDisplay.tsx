@@ -1122,6 +1122,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
                         {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
                         {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
+                        {match.status === "forfeit" && <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-100 rounded">{t("sports.forfeit")}</span>}
+                        {match.status === "walkover" && <span className="inline-block px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded">{t("sports.walkover")}</span>}
                       </div>
                       <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(matchData as any)}</div>
                       <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
@@ -1262,6 +1264,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             )}
                             {match.status === 'delayed' && (
                               <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>
+                            )}
+                            {match.status === 'forfeit' && (
+                              <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-100 rounded">{t("sports.forfeit")}</span>
+                            )}
+                            {match.status === 'walkover' && (
+                              <span className="inline-block px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded">{t("sports.walkover")}</span>
                             )}
                           </td>
                         </tr>
@@ -1860,6 +1868,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
                         {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
                         {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
+                        {match.status === "forfeit" && <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-100 rounded">{t("sports.forfeit")}</span>}
+                        {match.status === "walkover" && <span className="inline-block px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded">{t("sports.walkover")}</span>}
                       </div>
                       <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(matchData as any)}</div>
                       <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
@@ -1976,6 +1986,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             {match.status === "live" && <span className={theme.badgeLive}>{t("sports.live")}</span>}
                             {match.status === "upcoming" && <span className={theme.badgeUpcoming}>{t("sports.upcoming")}</span>}
                             {match.status === "delayed" && <span className={theme.badgeDelayed}>{t("sports.delayed")}</span>}
+                            {match.status === "forfeit" && <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-100 rounded">{t("sports.forfeit")}</span>}
+                            {match.status === "walkover" && <span className="inline-block px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded">{t("sports.walkover")}</span>}
                           </td>
                         </tr>
                       );

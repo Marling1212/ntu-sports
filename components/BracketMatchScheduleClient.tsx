@@ -112,6 +112,16 @@ export default function BracketMatchScheduleClient({
                       {t("sports.delayed")}
                     </span>
                   )}
+                  {m.status === "forfeit" && (
+                    <span className="inline-block px-1.5 py-0.5 text-xs font-semibold text-orange-800 bg-orange-100 rounded">
+                      {t("sports.forfeit")}
+                    </span>
+                  )}
+                  {m.status === "walkover" && (
+                    <span className="inline-block px-1.5 py-0.5 text-xs font-semibold text-purple-800 bg-purple-100 rounded">
+                      {t("sports.walkover")}
+                    </span>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-700 mb-3">
                   <span><span className="text-gray-500">{t("sports.time")}:</span> {timeStr(m)}</span>
@@ -265,6 +275,14 @@ export default function BracketMatchScheduleClient({
                     ) : m.status === "delayed" ? (
                       <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">
                         {t("sports.delayed")}
+                      </span>
+                    ) : m.status === "forfeit" ? (
+                      <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-100 rounded">
+                        {t("sports.forfeit")}
+                      </span>
+                    ) : m.status === "walkover" ? (
+                      <span className="inline-block px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded">
+                        {t("sports.walkover")}
                       </span>
                     ) : (
                       <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded">

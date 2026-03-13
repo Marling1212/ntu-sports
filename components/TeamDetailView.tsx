@@ -314,6 +314,12 @@ export default function TeamDetailView({
                       {match.status === "delayed" && (
                         <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">{t("sports.delayed")}</span>
                       )}
+                      {match.status === "forfeit" && (
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-100 rounded">{t("sports.forfeit")}</span>
+                      )}
+                      {match.status === "walkover" && (
+                        <span className="inline-block px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded">{t("sports.walkover")}</span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-600 mb-1">{getCourtDisplay(match)}</div>
                     <div className="flex items-center justify-between gap-2 text-base font-semibold text-gray-800">
@@ -404,6 +410,12 @@ export default function TeamDetailView({
                           )}
                           {match.status === "delayed" && (
                             <span className="inline-block px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded">{t("sports.delayed")}</span>
+                          )}
+                          {match.status === "forfeit" && (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-100 rounded">{t("sports.forfeit")}</span>
+                          )}
+                          {match.status === "walkover" && (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded">{t("sports.walkover")}</span>
                           )}
                         </td>
                       </tr>
