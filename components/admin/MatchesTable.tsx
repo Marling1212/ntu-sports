@@ -103,6 +103,10 @@ interface Match {
   slot_id?: string | null;
   slot?: SlotOption | null;
   status: string;
+  forfeit_team_id?: string | null;
+  forfeit_reason?: string | null;
+  event_note?: string | null;
+  event_note_public?: boolean;
   court_name?: string | null; // For display consistency
   player1?: Player;
   player2?: Player;
@@ -346,6 +350,8 @@ export default function MatchesTable({
           completed: "已完成",
           delayed: "延遲",
           bye: "輪空",
+          forfeit: "棄權",
+          walkover: "不戰而勝",
         };
         const originalStatus = statusLabels[currentMatch.status] || currentMatch.status;
         const newStatus = statusLabels[editForm.status] || editForm.status;
@@ -692,6 +698,8 @@ export default function MatchesTable({
                 completed: "已完成",
                 delayed: "延遲",
                 bye: "輪空",
+                forfeit: "棄權",
+                walkover: "不戰而勝",
               };
               const originalStatus = statusLabels[originalMatch.status] || originalMatch.status;
               const newStatus = statusLabels[batchForm.status] || batchForm.status;
@@ -965,6 +973,8 @@ export default function MatchesTable({
                 <option value="live">Live</option>
                 <option value="completed">Completed</option>
                 <option value="delayed">Delayed</option>
+                <option value="forfeit">Forfeit</option>
+                <option value="walkover">Walkover</option>
               </select>
             </div>
 
@@ -1126,6 +1136,8 @@ export default function MatchesTable({
                       <option value="live">Live</option>
                       <option value="completed">Completed</option>
                       <option value="delayed">Delayed</option>
+                      <option value="forfeit">Forfeit</option>
+                      <option value="walkover">Walkover</option>
                     </select>
                   </div>
                 )}
@@ -1348,6 +1360,8 @@ export default function MatchesTable({
                             <option value="upcoming">Upcoming</option>
                             <option value="live">Live</option>
                             <option value="delayed">Delayed</option>
+                            <option value="forfeit">Forfeit</option>
+                            <option value="walkover">Walkover</option>
                             <option value="completed">Completed</option>
                             <option value="bye" disabled>
                               BYE (auto)
@@ -1476,10 +1490,14 @@ export default function MatchesTable({
                                 ? 'bg-red-100 text-red-800'
                                 : match.status === 'delayed'
                                 ? 'bg-amber-100 text-amber-800'
+                                : match.status === 'forfeit'
+                                ? 'bg-orange-100 text-orange-800'
+                                : match.status === 'walkover'
+                                ? 'bg-purple-100 text-purple-800'
                                 : 'bg-gray-100 text-gray-800'
                             }`}
                           >
-                            {match.status}
+                            {match.status === 'forfeit' ? '棄權' : match.status === 'walkover' ? '不戰而勝' : match.status}
                           </span>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -1563,10 +1581,14 @@ export default function MatchesTable({
                           ? 'bg-red-100 text-red-800'
                           : match.status === 'delayed'
                           ? 'bg-amber-100 text-amber-800'
+                          : match.status === 'forfeit'
+                          ? 'bg-orange-100 text-orange-800'
+                          : match.status === 'walkover'
+                          ? 'bg-purple-100 text-purple-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {match.status}
+                      {match.status === 'forfeit' ? '棄權' : match.status === 'walkover' ? '不戰而勝' : match.status}
                     </span>
                   </div>
 
@@ -1704,6 +1726,8 @@ export default function MatchesTable({
                         <option value="upcoming">Upcoming</option>
                         <option value="live">Live</option>
                         <option value="delayed">Delayed</option>
+                        <option value="forfeit">Forfeit</option>
+                        <option value="walkover">Walkover</option>
                         <option value="completed">Completed</option>
                       </select>
                       <div className="grid grid-cols-2 gap-2">

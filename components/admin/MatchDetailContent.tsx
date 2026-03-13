@@ -21,6 +21,10 @@ interface Match {
   scheduled_time?: string;
   slot_id?: string;
   status: string;
+  forfeit_team_id?: string | null;
+  forfeit_reason?: string | null;
+  event_note?: string | null;
+  event_note_public?: boolean;
   player1?: Player;
   player2?: Player;
   winner?: Player;
@@ -119,7 +123,8 @@ export default function MatchDetailContent({
   const isMatchDraw = match.status === "completed" && !match.winner_id && 
                      match.score1 && match.score2 && match.score1 === match.score2;
   const initialWinnerId = isMatchDraw ? DRAW_WINNER_ID : (match.winner_id || "");
-  
+  const outcomeType = match.status === "forfeit" ? "forfeit" : match.status === "walkover" ? "walkover" : "normal";
+
   const [matchForm, setMatchForm] = useState({
     score1: match.score1 || "",
     score2: match.score2 || "",
@@ -128,6 +133,11 @@ export default function MatchDetailContent({
     status: match.status || "upcoming",
     scheduled_time: toLocalInputValue(match.scheduled_time),
     slot_id: match.slot_id || "",
+    outcomeType: outcomeType as "normal" | "forfeit" | "walkover",
+    forfeit_team_id: match.forfeit_team_id || "",
+    forfeit_reason: match.forfeit_reason || "",
+    event_note: match.event_note || "",
+    event_note_public: match.event_note_public ?? false,
   });
 
   const [playerStats, setPlayerStats] = useState<Record<string, Record<string, string>>>({});
@@ -199,13 +209,26 @@ export default function MatchDetailContent({
         scheduledIso = deriveIsoFromSlot(selectedSlot);
       }
 
-      // Convert DRAW_WINNER_ID to null for database storage
-      const winnerIdValue = matchForm.winner_id === DRAW_WINNER_ID ? null : (matchForm.winner_id || null);
-      
-      // If Draw is selected, ensure status is completed
-      const finalStatus = matchForm.winner_id === DRAW_WINNER_ID && matchForm.status !== "completed" 
-        ? "completed" 
-        : matchForm.status;
+      // Outcome: normal / forfeit / walkover
+      let finalStatus = matchForm.status;
+      let winnerIdValue: string | null = matchForm.winner_id === DRAW_WINNER_ID ? null : (matchForm.winner_id || null);
+      let forfeitTeamId: string | null = null;
+      let forfeitReason: string | null = null;
+
+      if (matchForm.outcomeType === "forfeit" || matchForm.outcomeType === "walkover") {
+        finalStatus = matchForm.outcomeType;
+        forfeitTeamId = matchForm.forfeit_team_id || null;
+        forfeitReason = matchForm.forfeit_reason?.trim() || null;
+        // Auto-assign winner to the non-forfeiting team
+        if (forfeitTeamId && match.player1_id && match.player2_id) {
+          winnerIdValue = forfeitTeamId === match.player1_id ? match.player2_id : match.player1_id;
+        }
+      } else {
+        // If Draw is selected, ensure status is completed
+        if (matchForm.winner_id === DRAW_WINNER_ID && finalStatus !== "completed") {
+          finalStatus = "completed";
+        }
+      }
 
       const { error } = await supabase
         .from("matches")
@@ -217,6 +240,10 @@ export default function MatchDetailContent({
           scheduled_time: scheduledIso,
           slot_id: slotIdValue,
           status: finalStatus,
+          forfeit_team_id: forfeitTeamId,
+          forfeit_reason: forfeitReason,
+          event_note: matchForm.event_note?.trim() || null,
+          event_note_public: matchForm.event_note_public,
           updated_at: new Date().toISOString(),
         })
         .eq("id", match.id);
@@ -685,6 +712,7 @@ export default function MatchDetailContent({
               value={matchForm.winner_id || ""}
               onChange={(e) => setMatchForm({ ...matchForm, winner_id: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              disabled={matchForm.outcomeType === "forfeit" || matchForm.outcomeType === "walkover"}
             >
               <option value="">無</option>
               <option value={DRAW_WINNER_ID}>平局 (Draw)</option>
@@ -693,17 +721,85 @@ export default function MatchDetailContent({
             </select>
           </div>
 
+          {/* Match Outcome: Normal | Forfeit | Walkover */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">比賽結果類型</label>
+            <div className="flex flex-wrap gap-4">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="outcomeType"
+                  checked={matchForm.outcomeType === "normal"}
+                  onChange={() => setMatchForm({ ...matchForm, outcomeType: "normal", status: matchForm.status === "forfeit" || matchForm.status === "walkover" ? "upcoming" : matchForm.status })}
+                  className="text-ntu-green focus:ring-ntu-green"
+                />
+                <span>一般結果</span>
+              </label>
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="outcomeType"
+                  checked={matchForm.outcomeType === "forfeit"}
+                  onChange={() => setMatchForm({ ...matchForm, outcomeType: "forfeit", status: "forfeit" })}
+                  className="text-ntu-green focus:ring-ntu-green"
+                />
+                <span>棄權 (Forfeit)</span>
+              </label>
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="outcomeType"
+                  checked={matchForm.outcomeType === "walkover"}
+                  onChange={() => setMatchForm({ ...matchForm, outcomeType: "walkover", status: "walkover" })}
+                  className="text-ntu-green focus:ring-ntu-green"
+                />
+                <span>不戰而勝 (Walkover)</span>
+              </label>
+            </div>
+            {(matchForm.outcomeType === "forfeit" || matchForm.outcomeType === "walkover") && (player1 || player2) && (
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    {matchForm.outcomeType === "forfeit" ? "棄權隊伍／選手" : "未出賽隊伍／選手"}
+                  </label>
+                  <select
+                    value={matchForm.forfeit_team_id || ""}
+                    onChange={(e) => setMatchForm({ ...matchForm, forfeit_team_id: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                  >
+                    <option value="">請選擇</option>
+                    {player1 && <option value={player1.id}>{player1.name}</option>}
+                    {player2 && <option value={player2.id}>{player2.name}</option>}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">原因（選填）</label>
+                  <input
+                    type="text"
+                    value={matchForm.forfeit_reason}
+                    onChange={(e) => setMatchForm({ ...matchForm, forfeit_reason: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                    placeholder="例：未到場、人數不足"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">狀態</label>
             <select
               value={matchForm.status}
               onChange={(e) => setMatchForm({ ...matchForm, status: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              disabled={matchForm.outcomeType === "forfeit" || matchForm.outcomeType === "walkover"}
             >
               <option value="upcoming">即將開始</option>
               <option value="live">進行中</option>
               <option value="completed">已完成</option>
               <option value="delayed">延遲</option>
+              <option value="forfeit">棄權</option>
+              <option value="walkover">不戰而勝</option>
             </select>
           </div>
 
@@ -791,6 +887,27 @@ export default function MatchDetailContent({
                 </select>
               )}
             </div>
+          </div>
+
+          {/* Event note (admin note for this match) */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">比賽備註（事件說明）</label>
+            <textarea
+              value={matchForm.event_note}
+              onChange={(e) => setMatchForm({ ...matchForm, event_note: e.target.value })}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              placeholder="例：因雨延賽、爭議待裁決、場地異動等"
+            />
+            <label className="mt-2 inline-flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={matchForm.event_note_public}
+                onChange={(e) => setMatchForm({ ...matchForm, event_note_public: e.target.checked })}
+                className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green"
+              />
+              <span className="text-sm text-gray-600">將此備註顯示給一般觀眾</span>
+            </label>
           </div>
         </div>
 

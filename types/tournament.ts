@@ -23,7 +23,7 @@ export interface Match {
   slot2?: SlotPlaceholder | null;
   winner?: Player | null;
   score?: string;
-  status: "upcoming" | "live" | "completed" | "bye" | "delayed";
+  status: "upcoming" | "live" | "completed" | "bye" | "delayed" | "forfeit" | "walkover";
 }
 
 export interface TournamentBracketProps {

@@ -175,6 +175,9 @@ export const translations = {
       playersCount: '{n} 位球員',
       fromOpponentOwnGoals: '來自對手烏龍球',
       seed: '種子 {n}',
+      forfeit: '棄權',
+      walkover: '不戰而勝',
+      eventNote: '比賽備註',
     },
     teamDetail: {
       titleTeam: '隊伍詳情',
@@ -806,6 +809,9 @@ export const translations = {
       playersCount: '{n} players',
       fromOpponentOwnGoals: 'Opponent Own Goals',
       seed: 'Seed {n}',
+      forfeit: 'Forfeit',
+      walkover: 'Walkover',
+      eventNote: 'Match Note',
     },
     teamDetail: {
       titleTeam: 'Team Details',

@@ -103,7 +103,11 @@ export interface Match {
   court?: string;
   scheduled_time?: string;
   slot_id?: string;
-  status: 'upcoming' | 'live' | 'completed' | 'bye' | 'delayed';
+  status: 'upcoming' | 'live' | 'completed' | 'bye' | 'delayed' | 'forfeit' | 'walkover';
+  forfeit_team_id?: string | null;
+  forfeit_reason?: string | null;
+  event_note?: string | null;
+  event_note_public?: boolean;
   created_at: string;
   updated_at: string;
 }

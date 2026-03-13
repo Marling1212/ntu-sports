@@ -335,8 +335,27 @@ export default function MatchDetailView({
                   延遲
                 </span>
               )}
+              {match.status === 'forfeit' && (
+                <span className="inline-block px-3 py-1 text-xs font-semibold text-orange-800 bg-orange-100 rounded-full">
+                  {t("matchDetail.forfeit")}
+                </span>
+              )}
+              {match.status === 'walkover' && (
+                <span className="inline-block px-3 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded-full">
+                  {t("matchDetail.walkover")}
+                </span>
+              )}
             </div>
           </div>
+
+          {match.event_note_public && match.event_note && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t("matchDetail.eventNote")}</label>
+              <div className="px-3 py-2 sm:px-4 sm:py-2 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-wrap">
+                {match.event_note}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t("matchDetail.court")}</label>
