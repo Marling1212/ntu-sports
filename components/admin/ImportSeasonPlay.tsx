@@ -496,6 +496,56 @@ export default function ImportSeasonPlay({ eventId, players, defaultDivisionId }
         existingMatchesMap.set(key, m);
       });
 
+      // Fetch event_slots so we can assign slot_id when Excel time matches a slot (admin table then shows time range)
+      const { data: eventSlots } = await supabase
+        .from("event_slots")
+        .select("id, slot_date, start_time, end_time")
+        .eq("event_id", eventId)
+        .order("slot_date", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      const slotsByDate = new Map<string, { id: string; slot_date: string; start_time: string; end_time: string }[]>();
+      eventSlots?.forEach((slot: any) => {
+        const d = slot.slot_date ? String(slot.slot_date).trim().slice(0, 10) : "";
+        if (!d) return;
+        if (!slotsByDate.has(d)) slotsByDate.set(d, []);
+        slotsByDate.get(d)!.push(slot);
+      });
+
+      const slotStartMinutes = (slot: { start_time?: string | null }): number => {
+        const t = slot.start_time || "00:00";
+        const [h, m] = t.split(":").map(Number);
+        return (h ?? 0) * 60 + (m ?? 0);
+      };
+
+      const taipeiDateAndMinutes = (iso: string): { dateStr: string; minutes: number } => {
+        const d = new Date(iso);
+        const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+        const parts = formatter.formatToParts(d);
+        const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "0";
+        const dateStr = `${get("year")}-${get("month")}-${get("day")}`;
+        const minutes = parseInt(get("hour"), 10) * 60 + parseInt(get("minute"), 10);
+        return { dateStr, minutes };
+      };
+
+      const usedSlotIds = new Set<string>();
+      const findBestSlot = (scheduledIso: string): { id: string; slot_date: string; start_time: string; end_time: string } | null => {
+        const { dateStr, minutes } = taipeiDateAndMinutes(scheduledIso);
+        const slots = slotsByDate.get(dateStr);
+        if (!slots?.length) return null;
+        let best: (typeof slots)[0] | null = null;
+        let bestDiff = Infinity;
+        for (const slot of slots) {
+          if (usedSlotIds.has(slot.id)) continue;
+          const diff = Math.abs(slotStartMinutes(slot) - minutes);
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            best = slot;
+          }
+        }
+        return best;
+      };
+
       const matchesToInsert: any[] = [];
       const matchesToUpdate: any[] = [];
 
@@ -616,6 +666,11 @@ export default function ImportSeasonPlay({ eventId, players, defaultDivisionId }
 
         if (scheduledTime) {
           matchData.scheduled_time = scheduledTime;
+          const slot = findBestSlot(scheduledTime);
+          if (slot) {
+            matchData.slot_id = slot.id;
+            usedSlotIds.add(slot.id);
+          }
         }
 
         const key = `${match.matchNumber}_${match.groupNumber || 0}`;
