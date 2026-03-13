@@ -32,8 +32,9 @@ export function computeLockedSeeds(
 ): Map<string, string> {
   const cfg = normalizeTiebreakerConfig(config);
   const maxSeed = options.maxSeed ?? 8;
-  const completed = regularSeasonMatches.filter((m) => m.status === "completed");
-  const remaining = regularSeasonMatches.filter((m) => m.status !== "completed");
+  const decidedStatuses = ["completed", "forfeit", "walkover"];
+  const completed = regularSeasonMatches.filter((m) => decidedStatuses.includes(m.status));
+  const remaining = regularSeasonMatches.filter((m) => !decidedStatuses.includes(m.status));
   const groupNumbers = [
     ...new Set(
       regularSeasonMatches

@@ -41,7 +41,7 @@ export default async function SportEventLayout({
     const regularMatches = (dbMatches || []).filter((m: { round: number }) => m.round === 0);
     regularSeasonComplete =
       regularMatches.length > 0 &&
-      regularMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye");
+      regularMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye" || m.status === "forfeit" || m.status === "walkover");
   }
 
   const divisions = event ? await getEventDivisions(event.id) : [];

@@ -568,8 +568,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     let p2GoalsAgainst = 0;
 
     // Find all matches between these two players/teams
+    const decidedStatuses = ["completed", "forfeit", "walkover"];
     const headToHeadMatches = matches.filter((m) => {
-      if (m.status !== "completed") return false;
+      if (!decidedStatuses.includes(m.status)) return false;
       const hasPlayer1 = m.player1?.id === player1Id || m.player1?.id === player2Id;
       const hasPlayer2 = m.player2?.id === player1Id || m.player2?.id === player2Id;
       return hasPlayer1 && hasPlayer2;
@@ -1001,8 +1002,10 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     return c ?? "border-l-[8px] border-yellow-600 bg-yellow-200";
   };
 
-  // Count completed matches
-  const completedRegularMatches = regularSeasonMatches.filter(m => m.status === 'completed').length;
+  // Count decided matches (completed, forfeit, walkover all count toward standings)
+  const completedRegularMatches = regularSeasonMatches.filter(m =>
+    ['completed', 'forfeit', 'walkover'].includes(m.status)
+  ).length;
   const totalRegularMatches = regularSeasonMatches.length;
 
   return (

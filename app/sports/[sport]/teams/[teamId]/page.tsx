@@ -138,17 +138,18 @@ export default async function TeamDetailPage(context: any) {
 
   // Calculate team statistics
   const wins = matches?.filter(m => m.winner_id === teamId).length || 0;
-  const losses = matches?.filter(m => 
-    m.status === 'completed' && 
-    m.winner_id && 
-    m.winner_id !== teamId && 
+  const decidedStatuses = ['completed', 'forfeit', 'walkover'];
+  const losses = matches?.filter(m =>
+    decidedStatuses.includes(m.status) &&
+    m.winner_id &&
+    m.winner_id !== teamId &&
     (m.player1_id === teamId || m.player2_id === teamId)
   ).length || 0;
-  const draws = matches?.filter(m => 
-    m.status === 'completed' && 
-    !m.winner_id && 
-    m.score1 && 
-    m.score2 && 
+  const draws = matches?.filter(m =>
+    m.status === 'completed' &&
+    !m.winner_id &&
+    m.score1 &&
+    m.score2 &&
     m.score1 === m.score2 &&
     (m.player1_id === teamId || m.player2_id === teamId)
   ).length || 0;

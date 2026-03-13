@@ -84,7 +84,7 @@ export default async function SportEventSchedulePage({
     // When all regular-season games are completed, default to Playoffs on Games page too
     const regularSeasonMatches = matches.filter((m: { round: number }) => m.round === 0);
     const hasPlayoffs = matches.some((m: { round: number }) => m.round >= 1);
-    const allRegularComplete = regularSeasonMatches.length === 0 || regularSeasonMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye");
+    const allRegularComplete = regularSeasonMatches.length === 0 || regularSeasonMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye" || m.status === "forfeit" || m.status === "walkover");
     const defaultGamesView = hasPlayoffs && allRegularComplete ? "playoffs" : "regular";
 
     return (

@@ -80,8 +80,9 @@ export default function PlayerStats({ players, matches, tournamentType, registra
         : matches;
 
     // Process matches (include draws: completed with no winner_id, same as viewer)
+    const decidedStatuses = ["completed", "forfeit", "walkover"];
     matchesForStats.forEach(match => {
-      if (match.status !== "completed") return;
+      if (!decidedStatuses.includes(match.status)) return;
 
       const player1Id = match.player1_id;
       const player2Id = match.player2_id;
@@ -207,8 +208,9 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       let p1GoalsFor = 0, p2GoalsFor = 0;
       let p1GoalsAgainst = 0, p2GoalsAgainst = 0;
 
+      const decidedStatuses = ["completed", "forfeit", "walkover"];
       const headToHeadMatches = matchesForStats.filter(m => {
-        if (m.status !== "completed") return false;
+        if (!decidedStatuses.includes(m.status)) return false;
         const hasP1 = (m.player1_id === player1Id || m.player1_id === player2Id);
         const hasP2 = (m.player2_id === player1Id || m.player2_id === player2Id);
         return hasP1 && hasP2;

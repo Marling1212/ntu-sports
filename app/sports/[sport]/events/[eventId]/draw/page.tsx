@@ -106,7 +106,7 @@ export default async function SportEventDrawPage({
 
   // When all regular-season games are completed, default to Playoffs view
   const regularSeasonMatches = matches.filter((m: { round: number }) => m.round === 0);
-  const allRegularComplete = regularSeasonMatches.length > 0 && regularSeasonMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye");
+  const allRegularComplete = regularSeasonMatches.length > 0 && regularSeasonMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye" || m.status === "forfeit" || m.status === "walkover");
   const defaultDrawView = allRegularComplete ? "playoffs" : "standings";
 
   return (

@@ -155,7 +155,7 @@ function h2h(
   let p1GA = 0;
   let p2GA = 0;
   const h2hMatches = matches.filter((m) => {
-    if (m.status !== "completed") return false;
+    if (m.status !== "completed" && m.status !== "forfeit" && m.status !== "walkover") return false;
     const a = getPlayerId(m, 1);
     const b = getPlayerId(m, 2);
     const has1 = a === player1Id || b === player1Id;
@@ -202,7 +202,7 @@ function miniLeagueStats(
 ): Map<string, { points: number; goalDiff: number; goalsFor: number }> {
   const set = new Set(tiedIds);
   const filtered = matches.filter((m) => {
-    if (m.status !== "completed") return false;
+    if (m.status !== "completed" && m.status !== "forfeit" && m.status !== "walkover") return false;
     const a = getPlayerId(m, 1);
     const b = getPlayerId(m, 2);
     return a && b && set.has(a) && set.has(b);
@@ -288,8 +288,10 @@ export function computeStandings(
     });
   }
 
+  // Include completed, forfeit, and walkover — all are decided results that count for W/L and points
+  const decidedStatuses = ["completed", "forfeit", "walkover"];
   for (const m of byGroup) {
-    if (m.status !== "completed") continue;
+    if (!decidedStatuses.includes(m.status)) continue;
     const p1Id = getPlayerId(m, 1);
     const p2Id = getPlayerId(m, 2);
     if (!p1Id || !p2Id) continue;
@@ -299,7 +301,10 @@ export function computeStandings(
 
     const sc = parseScorePair(m.score, (m as any).score1, (m as any).score2);
     const winnerId = getWinnerId(m);
-    const draw = isDrawMatch(winnerId, m.status, sc?.a.toString(), sc?.b.toString());
+    // For forfeit/walkover there is no draw; winner_id is the non-forfeiting side
+    const draw =
+      m.status === "completed" &&
+      isDrawMatch(winnerId, m.status, sc?.a.toString(), sc?.b.toString());
 
     if (sc) {
       r1.goalsFor += sc.a;
