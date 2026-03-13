@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Player } from "@/types/database";
+import { useI18n } from "@/lib/i18n/context";
 
 interface CreateMatchModalProps {
   eventId: string;
@@ -28,6 +29,7 @@ export default function CreateMatchModal({
   divisions = [],
   defaultDivisionId = null,
 }: CreateMatchModalProps) {
+  const { t } = useI18n();
   const divisionId = defaultDivisionId ?? (divisions[0]?.id ?? null);
   const [formData, setFormData] = useState({
     round: defaultRound,
@@ -231,10 +233,10 @@ export default function CreateMatchModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               required
             >
-              <option value="upcoming">Upcoming</option>
-              <option value="live">Live</option>
-              <option value="delayed">Delayed</option>
-              <option value="completed">Completed</option>
+              <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+              <option value="live">{t("admin.matchStatus.live")}</option>
+              <option value="delayed">{t("admin.matchStatus.delayed")}</option>
+              <option value="completed">{t("admin.matchStatus.completed")}</option>
             </select>
           </div>
 

@@ -525,6 +525,16 @@ export const translations = {
         noLogs: '尚無操作紀錄。當您或其他管理員編輯比賽（例如更新比分）時，紀錄會顯示於此。',
         loading: '載入中…',
       },
+      matchStatus: {
+        all: '所有狀態',
+        upcoming: '即將開始',
+        live: '進行中',
+        completed: '已完成',
+        delayed: '延遲',
+        bye: '輪空',
+        forfeit: '棄權',
+        walkover: '不戰而勝',
+      },
       registration: {
         titleTeam: '隊伍列表',
         titlePlayer: '選手列表',
@@ -1127,6 +1137,16 @@ export const translations = {
         matchUpdated: 'Match updated',
         noLogs: 'No audit entries yet. When you or other organizers edit matches (e.g. update scores), entries will appear here.',
         loading: 'Loading…',
+      },
+      matchStatus: {
+        all: 'All statuses',
+        upcoming: 'Upcoming',
+        live: 'Live',
+        completed: 'Completed',
+        delayed: 'Delayed',
+        bye: 'Bye',
+        forfeit: 'Forfeit',
+        walkover: 'Walkover',
       },
       scheduling: {
         manageCourts: 'Court Management',

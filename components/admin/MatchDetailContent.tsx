@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player, SportStatDefinition, MatchPlayerStat, Event } from "@/types/database";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/context";
 import { DRAW_WINNER_ID, isDrawOption } from "@/lib/constants/matchConstants";
 
 interface Match {
@@ -119,6 +120,7 @@ export default function MatchDetailContent({
   courts,
   slots,
 }: MatchDetailContentProps) {
+  const { t } = useI18n();
   // Initialize form - check if match is a draw (completed, no winner, equal scores)
   const isMatchDraw = match.status === "completed" && !match.winner_id && 
                      match.score1 && match.score2 && match.score1 === match.score2;
@@ -835,12 +837,12 @@ export default function MatchDetailContent({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               disabled={matchForm.outcomeType === "forfeit" || matchForm.outcomeType === "walkover"}
             >
-              <option value="upcoming">即將開始</option>
-              <option value="live">進行中</option>
-              <option value="completed">已完成</option>
-              <option value="delayed">延遲</option>
-              <option value="forfeit">棄權</option>
-              <option value="walkover">不戰而勝</option>
+              <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+              <option value="live">{t("admin.matchStatus.live")}</option>
+              <option value="completed">{t("admin.matchStatus.completed")}</option>
+              <option value="delayed">{t("admin.matchStatus.delayed")}</option>
+              <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+              <option value="walkover">{t("admin.matchStatus.walkover")}</option>
             </select>
           </div>
 

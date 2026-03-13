@@ -8,6 +8,7 @@ import { checkAndAnnounceRoundCompletion } from "@/lib/utils/checkRoundCompletio
 import { syncLockedPlayoffSeeds } from "@/lib/actions/syncLockedPlayoffSeeds";
 import * as XLSX from 'xlsx';
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/context";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
@@ -147,10 +148,17 @@ export default function MatchesTable({
   divisions = [],
   defaultDivisionId = null,
 }: MatchesTableProps) {
+  const { t } = useI18n();
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const supabase = createClient();
+
+  const getStatusLabel = (status: string) => {
+    const key = `admin.matchStatus.${status}` as const;
+    const known = ["upcoming", "live", "completed", "delayed", "bye", "forfeit", "walkover"];
+    return known.includes(status) ? t(key) : status;
+  };
   
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -968,13 +976,13 @@ export default function MatchesTable({
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
               >
-                <option value="all">所有狀態</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="live">Live</option>
-                <option value="completed">Completed</option>
-                <option value="delayed">Delayed</option>
-                <option value="forfeit">Forfeit</option>
-                <option value="walkover">Walkover</option>
+                <option value="all">{t("admin.matchStatus.all")}</option>
+                <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+                <option value="live">{t("admin.matchStatus.live")}</option>
+                <option value="completed">{t("admin.matchStatus.completed")}</option>
+                <option value="delayed">{t("admin.matchStatus.delayed")}</option>
+                <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+                <option value="walkover">{t("admin.matchStatus.walkover")}</option>
               </select>
             </div>
 
@@ -1132,12 +1140,12 @@ export default function MatchesTable({
                       className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     >
                       <option value="">選擇狀態...</option>
-                      <option value="upcoming">Upcoming</option>
-                      <option value="live">Live</option>
-                      <option value="completed">Completed</option>
-                      <option value="delayed">Delayed</option>
-                      <option value="forfeit">Forfeit</option>
-                      <option value="walkover">Walkover</option>
+                      <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+                      <option value="live">{t("admin.matchStatus.live")}</option>
+                      <option value="completed">{t("admin.matchStatus.completed")}</option>
+                      <option value="delayed">{t("admin.matchStatus.delayed")}</option>
+                      <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+                      <option value="walkover">{t("admin.matchStatus.walkover")}</option>
                     </select>
                   </div>
                 )}
@@ -1357,14 +1365,14 @@ export default function MatchesTable({
                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                             className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
                           >
-                            <option value="upcoming">Upcoming</option>
-                            <option value="live">Live</option>
-                            <option value="delayed">Delayed</option>
-                            <option value="forfeit">Forfeit</option>
-                            <option value="walkover">Walkover</option>
-                            <option value="completed">Completed</option>
+                            <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+                            <option value="live">{t("admin.matchStatus.live")}</option>
+                            <option value="delayed">{t("admin.matchStatus.delayed")}</option>
+                            <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+                            <option value="walkover">{t("admin.matchStatus.walkover")}</option>
+                            <option value="completed">{t("admin.matchStatus.completed")}</option>
                             <option value="bye" disabled>
-                              BYE (auto)
+                              {t("admin.matchStatus.bye")} (auto)
                             </option>
                           </select>
                         </td>
@@ -1497,7 +1505,7 @@ export default function MatchesTable({
                                 : 'bg-gray-100 text-gray-800'
                             }`}
                           >
-                            {match.status === 'forfeit' ? '棄權' : match.status === 'walkover' ? '不戰而勝' : match.status}
+                            {getStatusLabel(match.status)}
                           </span>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -1588,7 +1596,7 @@ export default function MatchesTable({
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {match.status === 'forfeit' ? '棄權' : match.status === 'walkover' ? '不戰而勝' : match.status}
+                      {getStatusLabel(match.status)}
                     </span>
                   </div>
 
@@ -1723,12 +1731,12 @@ export default function MatchesTable({
                         onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                       >
-                        <option value="upcoming">Upcoming</option>
-                        <option value="live">Live</option>
-                        <option value="delayed">Delayed</option>
-                        <option value="forfeit">Forfeit</option>
-                        <option value="walkover">Walkover</option>
-                        <option value="completed">Completed</option>
+                        <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+                        <option value="live">{t("admin.matchStatus.live")}</option>
+                        <option value="delayed">{t("admin.matchStatus.delayed")}</option>
+                        <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+                        <option value="walkover">{t("admin.matchStatus.walkover")}</option>
+                        <option value="completed">{t("admin.matchStatus.completed")}</option>
                       </select>
                       <div className="grid grid-cols-2 gap-2">
                         <button
