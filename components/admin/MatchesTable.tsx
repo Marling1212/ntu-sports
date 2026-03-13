@@ -35,15 +35,17 @@ const normalizeTimeWithSeconds = (time?: string | null): string => {
   return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:${second.padStart(2, "0")}`;
 };
 
-/** Normalize date to YYYY/MM/DD so it matches formatScheduledTimeAsStored in the table. */
-const normalizeSlotDateForDisplay = (slotDate: string): string => {
-  if (!slotDate) return slotDate;
-  const parts = String(slotDate).trim().split(/[-/]/);
-  if (parts.length >= 3) {
-    const [y, m, d] = parts;
-    return `${y}/${m.padStart(2, "0")}/${d.padStart(2, "0")}`;
+/** Normalize date to YYYY/MM/DD so it matches formatScheduledTimeAsStored. Never return undefined so we don't trigger fallback to single-time display. */
+const normalizeSlotDateForDisplay = (slotDate?: string | null): string => {
+  if (!slotDate || typeof slotDate !== "string") return "";
+  const trimmed = slotDate.trim();
+  const parts = trimmed.split(/[-/T]/);
+  const dateParts = parts.filter((p) => /^\d+$/.test(p) && p.length <= 4);
+  if (dateParts.length >= 3) {
+    const [y, m, d] = dateParts;
+    return `${y}/${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}`;
   }
-  return slotDate;
+  return trimmed.slice(0, 10);
 };
 
 const formatSlotScheduleRange = (slot: SlotOption): string => {
@@ -51,7 +53,7 @@ const formatSlotScheduleRange = (slot: SlotOption): string => {
   const end = normalizeTime(slot.end_time);
   const range = end ? `${start}-${end}` : start;
   const dateStr = normalizeSlotDateForDisplay(slot.slot_date);
-  return `${dateStr} ${range}`;
+  return dateStr ? `${dateStr} ${range}` : range;
 };
 
 const formatSlotLabel = (slot: SlotOption): string => {
