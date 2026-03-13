@@ -230,25 +230,63 @@ export default function MatchDetailContent({
         }
       }
 
+      const beforeData = {
+        score1: match.score1 ?? null,
+        score2: match.score2 ?? null,
+        winner_id: match.winner_id ?? null,
+        status: match.status ?? null,
+        court: match.court ?? null,
+        scheduled_time: match.scheduled_time ?? null,
+        slot_id: match.slot_id ?? null,
+        forfeit_team_id: match.forfeit_team_id ?? null,
+        forfeit_reason: match.forfeit_reason ?? null,
+        event_note: match.event_note ?? null,
+        event_note_public: match.event_note_public ?? null,
+      };
+      const afterData = {
+        score1: matchForm.score1 || null,
+        score2: matchForm.score2 || null,
+        winner_id: winnerIdValue,
+        status: finalStatus,
+        court: matchForm.court || null,
+        scheduled_time: scheduledIso,
+        slot_id: slotIdValue,
+        forfeit_team_id: forfeitTeamId,
+        forfeit_reason: forfeitReason,
+        event_note: matchForm.event_note?.trim() || null,
+        event_note_public: matchForm.event_note_public,
+      };
+
       const { error } = await supabase
         .from("matches")
         .update({
-          score1: matchForm.score1 || null,
-          score2: matchForm.score2 || null,
-          winner_id: winnerIdValue,
-          court: matchForm.court || null,
-          scheduled_time: scheduledIso,
-          slot_id: slotIdValue,
-          status: finalStatus,
-          forfeit_team_id: forfeitTeamId,
-          forfeit_reason: forfeitReason,
-          event_note: matchForm.event_note?.trim() || null,
-          event_note_public: matchForm.event_note_public,
+          score1: afterData.score1,
+          score2: afterData.score2,
+          winner_id: afterData.winner_id,
+          court: afterData.court,
+          scheduled_time: afterData.scheduled_time,
+          slot_id: afterData.slot_id,
+          status: afterData.status,
+          forfeit_team_id: afterData.forfeit_team_id,
+          forfeit_reason: afterData.forfeit_reason,
+          event_note: afterData.event_note,
+          event_note_public: afterData.event_note_public,
           updated_at: new Date().toISOString(),
         })
         .eq("id", match.id);
 
       if (error) throw error;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("admin_audit_log").insert({
+        event_id: eventId,
+        organizer_id: user?.id ?? null,
+        action: "match.updated",
+        entity_type: "match",
+        entity_id: match.id,
+        before_data: beforeData,
+        after_data: afterData,
+      });
 
       if (match.round === 0) {
         const { syncLockedPlayoffSeeds } = await import("@/lib/actions/syncLockedPlayoffSeeds");
