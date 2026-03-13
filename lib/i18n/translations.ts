@@ -658,12 +658,6 @@ export const translations = {
         saving: '儲存中...',
         drag: '拖曳',
       },
-      matchStatus: {
-        upcoming: '即將開始',
-        live: '進行中',
-        completed: '已結束',
-        delayed: '延遲',
-      },
       sideNav: {
         hoverToExpand: '滑過展開',
       },
@@ -1349,12 +1343,6 @@ export const translations = {
         thirdPlace: 'Include 3rd place match',
         saving: 'Saving...',
         drag: 'Drag',
-      },
-      matchStatus: {
-        upcoming: 'Upcoming',
-        live: 'Live',
-        completed: 'Completed',
-        delayed: 'Delayed',
       },
       sideNav: {
         hoverToExpand: 'Hover to expand',
