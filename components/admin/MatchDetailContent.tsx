@@ -704,6 +704,9 @@ export default function MatchDetailContent({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
               placeholder="比分"
             />
+            {(matchForm.outcomeType === "forfeit" || matchForm.outcomeType === "walkover") && (
+              <p className="mt-1 text-xs text-gray-500">輸入比分將計入得失差（例：3-0）</p>
+            )}
           </div>
 
           <div>

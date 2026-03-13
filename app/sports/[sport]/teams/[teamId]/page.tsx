@@ -157,13 +157,16 @@ export default async function TeamDetailPage(context: any) {
   let goalsFor = 0;
   let goalsAgainst = 0;
   matches?.forEach(m => {
-    if (m.status === 'completed' && m.score1 && m.score2) {
+    // Use admin's score as-is for goal difference: completed, or forfeit/walkover when score entered
+    const hasScore = m.score1 != null && m.score2 != null && m.score1 !== '' && m.score2 !== '';
+    if (!hasScore) return;
+    if (m.status === 'completed' || m.status === 'forfeit' || m.status === 'walkover') {
       if (m.player1_id === teamId) {
-        goalsFor += parseInt(m.score1) || 0;
-        goalsAgainst += parseInt(m.score2) || 0;
+        goalsFor += parseInt(String(m.score1), 10) || 0;
+        goalsAgainst += parseInt(String(m.score2), 10) || 0;
       } else if (m.player2_id === teamId) {
-        goalsFor += parseInt(m.score2) || 0;
-        goalsAgainst += parseInt(m.score1) || 0;
+        goalsFor += parseInt(String(m.score2), 10) || 0;
+        goalsAgainst += parseInt(String(m.score1), 10) || 0;
       }
     }
   });
