@@ -75,7 +75,7 @@ export default function CaptainPortalClient({
     const result = await submitRosterChangeRequest(
       token,
       "remove",
-      { member_id: memberId },
+      { member_id: memberId, name },
       requestedBy.trim() || undefined
     );
     setSubmitting(false);

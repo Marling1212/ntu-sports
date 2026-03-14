@@ -83,7 +83,7 @@ export default function RequestsList({ eventId, requests }: RequestsListProps) {
                       </span>
                     )}
                     {r.action === "remove" && (
-                      <span> · member_id: {String(md.member_id ?? "—")}</span>
+                      <span> · 移除：{String(md.name ?? md.member_id ?? "—")}</span>
                     )}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
