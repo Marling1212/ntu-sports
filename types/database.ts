@@ -10,6 +10,7 @@ export interface Event {
   tournament_type?: 'single_elimination' | 'season_play';
   registration_type?: 'player' | 'team';
   blackout_limit?: number | null;
+  captain_blackouts_open?: boolean;
   bracket_generation_method?: 'auto' | 'manual' | 'imported' | null;
   bracket_generated_at?: string | null;
   bracket_locked?: boolean;

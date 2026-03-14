@@ -2,7 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CaptainPortalClient from "./CaptainPortalClient";
-import type { Player, TeamMember, RosterChangeRequest } from "@/types/database";
+import type { Player, TeamMember, RosterChangeRequest, TeamBlackout } from "@/types/database";
 
 interface CaptainPageProps {
   params: Promise<{ token: string }>;
@@ -46,8 +46,8 @@ export default async function CaptainPortalPage({ params }: CaptainPageProps) {
   if (teamError && !team) notFound();
   if (!team) notFound();
 
-  const [{ data: event }, { data: members }, { data: requests }] = await Promise.all([
-    supabase.from("events").select("id, name, sport").eq("id", team.event_id).maybeSingle(),
+  const [{ data: event }, { data: members }, { data: requests }, { data: blackouts }] = await Promise.all([
+    supabase.from("events").select("id, name, sport, captain_blackouts_open, blackout_limit").eq("id", team.event_id).maybeSingle(),
     supabase
       .from("team_members")
       .select("*")
@@ -60,11 +60,20 @@ export default async function CaptainPortalPage({ params }: CaptainPageProps) {
       .eq("player_id", team.id)
       .order("created_at", { ascending: false })
       .limit(30),
+    supabase
+      .from("team_blackouts")
+      .select("*")
+      .eq("player_id", team.id)
+      .eq("event_id", team.event_id)
+      .order("start_time", { ascending: true }),
   ]);
 
   const teamData = team as Player & { name: string };
   const membersList = (members ?? []) as TeamMember[];
   const changeRequests = (requests ?? []) as RosterChangeRequest[];
+  const captainBlackoutsOpen = !!(event as { captain_blackouts_open?: boolean } | null)?.captain_blackouts_open;
+  const blackoutLimit = (event as { blackout_limit?: number | null } | null)?.blackout_limit ?? null;
+  const blackoutsList = (blackouts ?? []) as TeamBlackout[];
 
   const actionLabel = (r: RosterChangeRequest) => {
     const a = r.action;
@@ -149,6 +158,9 @@ export default async function CaptainPortalPage({ params }: CaptainPageProps) {
             teamId={team.id}
             members={membersList}
             pendingCount={changeRequests.filter((r) => r.status === "pending").length}
+            captainBlackoutsOpen={captainBlackoutsOpen}
+            blackouts={blackoutsList}
+            blackoutLimit={blackoutLimit}
           />
         </div>
       </div>

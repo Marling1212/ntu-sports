@@ -282,6 +282,37 @@ CREATE POLICY "Organizers can manage roster change requests"
 - Captain viewing the full status history of their past requests
 - Time-window lock (e.g., freeze roster changes 24h before match)
 
+#### Extension — Captain Blackout Editing (Admin-Gated)
+
+Captains can also manage their team's scheduling blackout windows directly from the captain portal, but only when the admin explicitly opens the scheduling window.
+
+**Design approach: direct write, no approval queue.**  
+Unlike roster changes (which affect official records), blackout windows are scheduling *preferences* — there's nothing to approve. Captains write directly to `team_blackouts` via a server action. The admin sees the updated constraints immediately when they open the scheduler.
+
+**The gate:** A single boolean on `events` controls access. Admin flips it on when collecting availability, off when scheduling is locked.
+
+```sql
+-- part of 044_add_captain_portal.sql (or its own 045 migration)
+
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS captain_blackouts_open BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN events.captain_blackouts_open IS
+  'When true, team captains can add/remove their blackout windows via the captain portal.';
+```
+
+> The existing `events.blackout_limit` column (migration 012) already caps how many windows a team can submit — no new constraint needed.
+
+**Files to create / modify:**
+
+| File | Action | What it does |
+|---|---|---|
+| `app/captain/[token]/actions.ts` | **Modify** | Add `upsertCaptainBlackout` and `deleteCaptainBlackout` server actions (service_role; validated against token) |
+| `app/captain/[token]/CaptainPortalClient.tsx` | **Modify** | Render a blackout section when `captainBlackoutsOpen = true`; CRUD UI for date-time windows |
+| `app/captain/[token]/page.tsx` | **Modify** | Fetch `captain_blackouts_open` + existing `team_blackouts` for the team; pass as props |
+| `components/admin/SettingsContent.tsx` | **Modify** | Add "開放隊長填寫不可出賽時段" toggle (boolean switch, same pattern as `is_visible`) |
+| `lib/i18n/translations.ts` | **Modify** | Add `captain.blackouts.*` keys |
+
 ---
 
 ### 🥉 Priority 3 — Admin Audit Log

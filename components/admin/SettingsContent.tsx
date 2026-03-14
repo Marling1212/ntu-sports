@@ -86,6 +86,7 @@ interface SettingsContentProps {
   contactInfo: string;
   initialRegistrationType?: 'player' | 'team';
   initialIsVisible?: boolean;
+  initialCaptainBlackoutsOpen?: boolean;
   initialTiebreakerConfig?: unknown;
   tournamentType?: string;
 }
@@ -103,6 +104,7 @@ export default function SettingsContent({
   contactInfo: initialContactInfo,
   initialRegistrationType = 'player',
   initialIsVisible = false,
+  initialCaptainBlackoutsOpen = false,
   initialTiebreakerConfig,
   tournamentType: tournamentTypeProp,
 }: SettingsContentProps) {
@@ -114,6 +116,7 @@ export default function SettingsContent({
   const [contactInfo, setContactInfo] = useState<string>(initialContactInfo);
   const [registrationType, setRegistrationType] = useState<'player' | 'team'>(initialRegistrationType);
   const [isVisible, setIsVisible] = useState<boolean>(initialIsVisible);
+  const [captainBlackoutsOpen, setCaptainBlackoutsOpen] = useState<boolean>(initialCaptainBlackoutsOpen);
 
   // Event metadata state
   const [eventData, setEventData] = useState<EventData>(initialEventData);
@@ -542,7 +545,8 @@ export default function SettingsContent({
           description: eventData.description || null,
           tournament_type: eventData.tournamentType,
           registration_type: registrationType,
-          is_visible: isVisible
+          is_visible: isVisible,
+          captain_blackouts_open: captainBlackoutsOpen,
         })
         .eq("id", eventId);
 
@@ -894,6 +898,31 @@ export default function SettingsContent({
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 {t('admin.visibilityHint')}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('admin.captainBlackoutsOpen')}
+              </label>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={captainBlackoutsOpen}
+                    onChange={(e) => setCaptainBlackoutsOpen(e.target.checked)}
+                    className="w-5 h-5 text-ntu-green border-gray-300 rounded focus:ring-ntu-green"
+                  />
+                  <span className="text-sm text-gray-700">
+                    {captainBlackoutsOpen ? t('admin.captainBlackoutsOpenOn') : t('admin.captainBlackoutsOpenOff')}
+                  </span>
+                </label>
+                <span className={`text-xs px-2 py-1 rounded ${captainBlackoutsOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {captainBlackoutsOpen ? t('admin.captainBlackoutsOpenLabelOn') : t('admin.captainBlackoutsOpenLabelOff')}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {t('admin.captainBlackoutsOpenHint')}
               </p>
             </div>
 

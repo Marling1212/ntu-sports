@@ -1,14 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { submitRosterChangeRequest } from "./actions";
-import type { TeamMember } from "@/types/database";
+import { submitRosterChangeRequest, upsertCaptainBlackout, deleteCaptainBlackout } from "./actions";
+import type { TeamMember, TeamBlackout } from "@/types/database";
 
 interface CaptainPortalClientProps {
   token: string;
   teamId: string;
   members: TeamMember[];
   pendingCount: number;
+  captainBlackoutsOpen: boolean;
+  blackouts: TeamBlackout[];
+  blackoutLimit: number | null;
+}
+
+function formatBlackoutTime(iso: string) {
+  try {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" });
+  } catch {
+    return iso;
+  }
 }
 
 export default function CaptainPortalClient({
@@ -16,6 +28,9 @@ export default function CaptainPortalClient({
   teamId,
   members,
   pendingCount,
+  captainBlackoutsOpen,
+  blackouts,
+  blackoutLimit,
 }: CaptainPortalClientProps) {
   const [addName, setAddName] = useState("");
   const [addJersey, setAddJersey] = useState("");
@@ -25,6 +40,10 @@ export default function CaptainPortalClient({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editJersey, setEditJersey] = useState("");
+  const [blackoutStart, setBlackoutStart] = useState("");
+  const [blackoutEnd, setBlackoutEnd] = useState("");
+  const [blackoutReason, setBlackoutReason] = useState("");
+  const [blackoutSubmitting, setBlackoutSubmitting] = useState(false);
 
   const clearMessage = () => setMessage(null);
 
@@ -85,6 +104,42 @@ export default function CaptainPortalClient({
       setMessage({ type: "error", text: result.error });
     }
   };
+
+  const handleAddBlackout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blackoutStart.trim() || !blackoutEnd.trim()) return;
+    setBlackoutSubmitting(true);
+    setMessage(null);
+    const result = await upsertCaptainBlackout(token, {
+      start_time: blackoutStart,
+      end_time: blackoutEnd,
+      reason: blackoutReason.trim() || null,
+    });
+    setBlackoutSubmitting(false);
+    if (result.ok) {
+      setMessage({ type: "success", text: "已新增不可出賽時段。" });
+      setBlackoutStart("");
+      setBlackoutEnd("");
+      setBlackoutReason("");
+    } else {
+      setMessage({ type: "error", text: result.error });
+    }
+  };
+
+  const handleDeleteBlackout = async (id: string) => {
+    if (!confirm("確定要刪除此不可出賽時段？")) return;
+    setBlackoutSubmitting(true);
+    setMessage(null);
+    const result = await deleteCaptainBlackout(token, id);
+    setBlackoutSubmitting(false);
+    if (result.ok) {
+      setMessage({ type: "success", text: "已刪除。" });
+    } else {
+      setMessage({ type: "error", text: result.error });
+    }
+  };
+
+  const atBlackoutLimit = blackoutLimit != null && blackouts.length >= blackoutLimit;
 
   return (
     <div className="space-y-6">
@@ -221,6 +276,78 @@ export default function CaptainPortalClient({
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {captainBlackoutsOpen && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">不可出賽時段</h2>
+          <p className="text-xs text-gray-500 mb-2">
+            {blackoutLimit != null
+              ? `每隊最多 ${blackoutLimit} 筆，目前 ${blackouts.length} 筆。`
+              : "填寫隊伍無法出賽的時段，供主辦排程參考。"}
+          </p>
+          {blackouts.length > 0 && (
+            <ul className="space-y-2 mb-4">
+              {blackouts.map((b) => (
+                <li key={b.id} className="flex items-center justify-between gap-2 py-2 border-b border-gray-100 last:border-0 text-sm">
+                  <span className="text-gray-700">
+                    {formatBlackoutTime(b.start_time)} ～ {formatBlackoutTime(b.end_time)}
+                    {b.reason && <span className="text-gray-500 ml-1">（{b.reason}）</span>}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBlackout(b.id)}
+                    disabled={blackoutSubmitting}
+                    className="text-red-600 hover:underline text-xs disabled:opacity-50"
+                  >
+                    刪除
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!atBlackoutLimit && (
+            <form onSubmit={handleAddBlackout} className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">開始</label>
+                <input
+                  type="datetime-local"
+                  value={blackoutStart}
+                  onChange={(e) => setBlackoutStart(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ntu-green"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">結束</label>
+                <input
+                  type="datetime-local"
+                  value={blackoutEnd}
+                  onChange={(e) => setBlackoutEnd(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ntu-green"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">說明（選填）</label>
+                <input
+                  type="text"
+                  value={blackoutReason}
+                  onChange={(e) => setBlackoutReason(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-32 focus:ring-2 focus:ring-ntu-green"
+                  placeholder="例：上課"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={blackoutSubmitting}
+                className="bg-ntu-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {blackoutSubmitting ? "處理中…" : "新增"}
+              </button>
+            </form>
+          )}
         </section>
       )}
     </div>
