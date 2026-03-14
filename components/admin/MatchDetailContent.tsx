@@ -181,7 +181,7 @@ export default function MatchDetailContent({
     const slot = postponeSlotId ? (slots.find((s) => s.id === postponeSlotId) ?? null) : null;
     const scheduledIso = hasSlots
       ? (slot ? deriveIsoFromSlot(slot) : null)
-      : toIso(postponeManualTime);
+      : toIsoString(postponeManualTime);
     if (!scheduledIso) {
       toast.error(hasSlots ? t("admin.postpone.errorPickSlot") : t("admin.postpone.errorDate"));
       return;
