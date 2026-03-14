@@ -425,6 +425,36 @@ export default function PlayersTable({
     }
   };
 
+  const handleCaptainLink = async (player: Player) => {
+    const cf = player.custom_fields ?? {};
+    let token = typeof cf.captain_token === "string" ? cf.captain_token : null;
+    if (!token) {
+      token = crypto.randomUUID();
+      const { error } = await supabase
+        .from("players")
+        .update({ custom_fields: { ...cf, captain_token: token } })
+        .eq("id", player.id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.id === player.id
+            ? { ...p, custom_fields: { ...(p.custom_fields ?? {}), captain_token: token } }
+            : p
+        )
+      );
+    }
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/captain/${token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(!cf.captain_token ? t("admin.captainLink.generated") : t("admin.captainLink.copied"));
+    } catch {
+      toast.error(t("admin.captainLink.copyFailed"));
+    }
+  };
+
   const handleDeleteAll = async () => {
     const entityName = registrationType === 'team' ? '隊伍' : '選手';
     const confirmText = `⚠️ 確定要刪除所有 ${players.length} 個${entityName}嗎？\n\n這也會重置所有比賽和籤表資料！\n\n此操作無法復原！`;
@@ -829,12 +859,25 @@ export default function PlayersTable({
                           </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleDeletePlayer(player.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            {t('admin.delete')}
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            {isTeam && (
+                              <button
+                                type="button"
+                                onClick={() => handleCaptainLink(player)}
+                                className="text-ntu-green hover:text-ntu-green-dark hover:underline"
+                              >
+                                {(player.custom_fields as Record<string, unknown>)?.captain_token
+                                  ? t("admin.captainLink.copy")
+                                  : t("admin.captainLink.generate")}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeletePlayer(player.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              {t('admin.delete')}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       {expandedBlackout === player.id && (
@@ -1078,12 +1121,25 @@ export default function PlayersTable({
                         ) : (
                           <span className="text-green-600 text-xs">{t('admin.registration.active')}</span>
                         )}
-                        <button
-                          onClick={() => handleDeletePlayer(player.id)}
-                          className="text-red-600 hover:text-red-900 text-sm font-medium"
-                        >
-                          {t('admin.delete')}
-                        </button>
+                        <div className="flex gap-2">
+                          {isTeam && (
+                            <button
+                              type="button"
+                              onClick={() => handleCaptainLink(player)}
+                              className="text-ntu-green hover:underline text-sm font-medium"
+                            >
+                              {(player.custom_fields as Record<string, unknown>)?.captain_token
+                                ? t("admin.captainLink.copy")
+                                : t("admin.captainLink.generate")}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeletePlayer(player.id)}
+                            className="text-red-600 hover:text-red-900 text-sm font-medium"
+                          >
+                            {t('admin.delete')}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

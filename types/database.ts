@@ -84,8 +84,23 @@ export interface TeamMember {
   player_id: string;
   name: string;
   jersey_number?: number;
+  is_captain?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/** Captain-submitted roster change; admin approves or rejects. */
+export interface RosterChangeRequest {
+  id: string;
+  event_id: string;
+  player_id: string;
+  action: 'add' | 'remove' | 'update';
+  member_data: Record<string, unknown>;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_by?: string | null;
+  admin_note?: string | null;
+  created_at: string;
+  resolved_at?: string | null;
 }
 
 export interface Match {

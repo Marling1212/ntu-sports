@@ -81,10 +81,20 @@ export default async function PlayersPage({
     .order("day_of_week", { ascending: true })
     .order("start_time", { ascending: true });
 
+  const { count: pendingRequestsCount } = await supabase
+    .from("roster_change_requests")
+    .select("*", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .eq("status", "pending");
+
   return (
     <>
       <div className="flex">
-        <PlayersPageNav tournamentType={effectiveTournamentType} />
+        <PlayersPageNav
+          tournamentType={effectiveTournamentType}
+          eventId={eventId}
+          pendingRequestsCount={pendingRequestsCount ?? 0}
+        />
         <main className="min-w-0 flex-1 pt-6 pb-12">
           <div className="container mx-auto px-4">
         <div className="mb-8">

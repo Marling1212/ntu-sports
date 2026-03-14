@@ -106,6 +106,18 @@ export const translations = {
       noEventFound: '找不到賽事。',
       defaultVenue: '台大新生網球場 5-8 場',
     },
+    captain: {
+      rosterTitle: '目前名單',
+      noMembers: '尚無隊員，請使用下方「申請新增隊員」。',
+      requestAdd: '申請新增隊員',
+      requestEditRemove: '申請編輯／移除隊員',
+      adminReply: '管理員回覆',
+      pendingNotice: '目前有 {count} 筆申請審核中，請靜候管理員處理。',
+      submitSuccess: '已送出申請，請等候管理員審核。',
+      updateSuccess: '已送出修改申請。',
+      removeSuccess: '已送出移除申請。',
+      backHome: '返回首頁',
+    },
     // Footer
     footer: {
       about: '關於 NTU Sports',
@@ -607,6 +619,20 @@ export const translations = {
         eliminated: 'Eliminated',
         setBlackoutShort: '設定',
       },
+      captainLink: {
+        copy: '複製隊長連結',
+        generate: '產生隊長連結',
+        copied: '隊長連結已複製到剪貼簿。',
+        generated: '隊長連結已產生並複製到剪貼簿。',
+        copyFailed: '無法複製，請手動複製連結。',
+      },
+      changeRequests: {
+        tabLabel: '名單變更申請',
+        pendingCount: '待審核 {count} 筆',
+        approve: '核准',
+        reject: '拒絕',
+        noPending: '目前沒有待審核的申請。',
+      },
       matchHistory: {
         title: '歷史對戰記錄',
         description: '查看兩位{type}之間的對戰歷史',
@@ -783,6 +809,18 @@ export const translations = {
       backToHome: 'Back to Home',
       noEventFound: 'No event found.',
       defaultVenue: 'NTU New Tennis Courts 5-8',
+    },
+    captain: {
+      rosterTitle: 'Current roster',
+      noMembers: 'No members yet. Use "Request add member" below.',
+      requestAdd: 'Request add member',
+      requestEditRemove: 'Request edit / remove member',
+      adminReply: 'Admin reply',
+      pendingNotice: '{count} request(s) pending. Please wait for admin review.',
+      submitSuccess: 'Request submitted. Please wait for admin approval.',
+      updateSuccess: 'Update request submitted.',
+      removeSuccess: 'Remove request submitted.',
+      backHome: 'Back to Home',
     },
     // Footer
     footer: {
@@ -1311,6 +1349,20 @@ export const translations = {
         active: 'Active',
         eliminated: 'Eliminated',
         setBlackoutShort: 'Set',
+      },
+      captainLink: {
+        copy: 'Copy captain link',
+        generate: 'Generate captain link',
+        copied: 'Captain link copied to clipboard.',
+        generated: 'Captain link generated and copied to clipboard.',
+        copyFailed: 'Could not copy. Please copy the link manually.',
+      },
+      changeRequests: {
+        tabLabel: 'Roster change requests',
+        pendingCount: '{count} pending',
+        approve: 'Approve',
+        reject: 'Reject',
+        noPending: 'No pending requests.',
       },
       matchHistory: {
         title: 'Match History',

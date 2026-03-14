@@ -7,6 +7,8 @@ export interface AdminPageSideNavLink {
   label: string;
   barColor: string;
   hoverBg: string;
+  /** Optional badge count (e.g. pending requests) */
+  badge?: number;
 }
 
 interface AdminPageSideNavProps {
@@ -36,15 +38,20 @@ export default function AdminPageSideNav({ title, links }: AdminPageSideNavProps
           </span>
         </div>
         <ul className="flex flex-1 flex-col gap-0.5 px-2 py-2">
-          {links.map(({ href, label, barColor, hoverBg }) => (
+          {links.map(({ href, label, barColor, hoverBg, badge }) => (
             <li key={href}>
               <a
                 href={href}
                 className={`flex items-center rounded-r-lg py-2.5 pl-2 pr-2 text-sm font-medium text-gray-700 transition-colors ${hoverBg}`}
               >
                 <span className={`h-5 w-1 shrink-0 rounded-full ${barColor}`} aria-hidden="true" />
-                <span className="ml-2.5 min-w-0 shrink-0 whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                <span className="ml-2.5 min-w-0 shrink-0 whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover:opacity-100 flex items-center gap-1.5">
                   {label}
+                  {badge != null && badge > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs font-medium bg-amber-500 text-white">
+                      {badge}
+                    </span>
+                  )}
                 </span>
               </a>
             </li>
