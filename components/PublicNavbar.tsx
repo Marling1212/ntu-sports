@@ -9,9 +9,11 @@ import LanguageSwitcher from "./LanguageSwitcher";
 interface PublicNavbarProps {
   eventName?: string;
   tournamentType?: string;
+  /** When on team or match pages (URL has no "events"), pass eventId so nav links go to the correct event. */
+  eventId?: string;
 }
 
-export default function PublicNavbar({ eventName, tournamentType }: PublicNavbarProps) {
+export default function PublicNavbar({ eventName, tournamentType, eventId: eventIdProp }: PublicNavbarProps) {
   const pathname = usePathname();
   const { locale, t } = useI18n();
   const { regularSeasonComplete, tournamentType: contextTournamentType } = useEventNav();
@@ -40,11 +42,13 @@ export default function PublicNavbar({ eventName, tournamentType }: PublicNavbar
   const sportIcon = sportIcons[sport.toLowerCase()] || "🏆";
   const basePath = `/sports/${sport}`;
 
-  // Check if we're on an event-specific page (e.g., /sports/tennis/events/[eventId]/draw)
+  // Event ID: from props (team/match pages) or from URL (e.g. /sports/tennis/events/[eventId]/draw)
   const eventIdIndex = segments.indexOf("events");
-  const eventId = eventIdIndex !== -1 && segments[eventIdIndex + 1] ? segments[eventIdIndex + 1] : null;
-  
-  // Build URLs
+  const eventIdFromPath =
+    eventIdIndex !== -1 && segments[eventIdIndex + 1] ? segments[eventIdIndex + 1] : null;
+  const eventId = eventIdProp ?? eventIdFromPath;
+
+  // Build URLs — always use event-specific paths when we know the event (avoids /sport/draw 404)
   const drawUrl = eventId ? `${basePath}/events/${eventId}/draw` : `${basePath}/draw`;
   const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule` : `${basePath}/schedule`;
   const rulesUrl = eventId ? `${basePath}/events/${eventId}/rules` : `${basePath}/rules`;

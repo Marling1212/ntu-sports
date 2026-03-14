@@ -178,7 +178,7 @@ export default async function TeamDetailPage(context: any) {
 
   return (
     <>
-      <PublicNavbar eventName={event?.name} tournamentType={event?.tournament_type} />
+      <PublicNavbar eventName={event?.name} tournamentType={event?.tournament_type} eventId={event?.id} />
       <div className="container mx-auto px-3 sm:px-4 pt-6 pb-24 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
         <TeamDetailView
           team={team}
