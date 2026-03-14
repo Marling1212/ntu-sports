@@ -123,8 +123,14 @@ export default async function MatchDetailPage({
     .order("slot_date", { ascending: true })
     .order("start_time", { ascending: true });
   const courtsList = courts || [];
-  const slots = (slotsRaw || []).map((s: { court_id?: string | null; [k: string]: unknown }) => ({
-    ...s,
+  type SlotRow = { id: string; slot_date: string; start_time: string; end_time: string; code?: string | null; court_id?: string | null };
+  const slots = ((slotsRaw || []) as SlotRow[]).map((s) => ({
+    id: s.id,
+    slot_date: s.slot_date,
+    start_time: s.start_time,
+    end_time: s.end_time,
+    code: s.code ?? undefined,
+    court_id: s.court_id ?? undefined,
     court: s.court_id ? { name: courtsList.find((c: { id: string }) => c.id === s.court_id)?.name ?? "未指定" } : { name: "未指定" },
   }));
 
