@@ -93,7 +93,6 @@ export default async function SettingsPage({
           contactInfo={event?.contact_info || ""}
           initialRegistrationType={event?.registration_type as 'player' | 'team' | undefined}
           initialIsVisible={event?.is_visible ?? false}
-          initialCaptainBlackoutsOpen={(event as { captain_blackouts_open?: boolean } | null)?.captain_blackouts_open ?? false}
           initialTiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
           tournamentType={event?.tournament_type ?? undefined}
         />

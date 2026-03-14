@@ -118,6 +118,7 @@ export default async function PlayersPage({
           initialPlayers={players || []} 
           registrationType={event?.registration_type as 'player' | 'team' | undefined}
           initialBlackoutLimit={event?.blackout_limit ?? null}
+          initialCaptainBlackoutsOpen={(event as { captain_blackouts_open?: boolean } | null)?.captain_blackouts_open ?? false}
           initialSlotTemplates={slotTemplates || []}
           initialBlackoutTemplates={blackoutTemplates || []}
           divisions={divisions}

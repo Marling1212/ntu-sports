@@ -15,6 +15,7 @@ interface PlayersTableProps {
   initialPlayers: Player[];
   registrationType?: 'player' | 'team';
   initialBlackoutLimit?: number | null;
+  initialCaptainBlackoutsOpen?: boolean;
   initialSlotTemplates?: EventSlotTemplate[];
   initialBlackoutTemplates?: TeamBlackoutTemplate[];
   divisions?: EventDivision[];
@@ -26,6 +27,7 @@ export default function PlayersTable({
   initialPlayers,
   registrationType = 'player',
   initialBlackoutLimit = null,
+  initialCaptainBlackoutsOpen = false,
   initialSlotTemplates = [],
   initialBlackoutTemplates = [],
   divisions = [],
@@ -46,6 +48,7 @@ export default function PlayersTable({
   const [blackoutLimit, setBlackoutLimit] = useState<string>(
     initialBlackoutLimit != null ? String(initialBlackoutLimit) : ""
   );
+  const [captainBlackoutsOpen, setCaptainBlackoutsOpen] = useState<boolean>(initialCaptainBlackoutsOpen);
   const [blackoutTemplates, setBlackoutTemplates] = useState<TeamBlackoutTemplate[]>(initialBlackoutTemplates);
   const [expandedBlackout, setExpandedBlackout] = useState<string | null>(null);
   const [savingBlackoutLimit, setSavingBlackoutLimit] = useState(false);
@@ -97,7 +100,8 @@ export default function PlayersTable({
   useEffect(() => {
     setBlackoutLimit(initialBlackoutLimit != null ? String(initialBlackoutLimit) : "");
     setBlackoutTemplates(initialBlackoutTemplates);
-  }, [initialBlackoutLimit, initialBlackoutTemplates]);
+    setCaptainBlackoutsOpen(initialCaptainBlackoutsOpen);
+  }, [initialBlackoutLimit, initialBlackoutTemplates, initialCaptainBlackoutsOpen]);
 
   useEffect(() => {
     const id = (defaultDivisionId || divisions[0]?.id) ?? "";
@@ -114,10 +118,10 @@ export default function PlayersTable({
       }
       const { error } = await supabase
         .from("events")
-        .update({ blackout_limit: parsed })
+        .update({ blackout_limit: parsed, captain_blackouts_open: captainBlackoutsOpen })
         .eq("id", eventId);
       if (error) throw error;
-      toast.success("已更新不可出賽時段上限");
+      toast.success("已更新不可出賽設定");
     } catch (e: any) {
       toast.error(e?.message || "儲存失敗");
     } finally {
@@ -518,9 +522,9 @@ export default function PlayersTable({
       )}
 
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        {/* 不可出賽時段上限 - 以周為單位，每隊可申報的上限 */}
+        {/* 不可出賽時段上限 + 開放隊長填寫 */}
         <div className="px-6 py-4 bg-amber-50 border-b border-amber-100">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 mb-3">
             <span className="text-sm font-medium text-gray-800">{t('admin.registration.blackoutLimit')}</span>
             <input
               type="number"
@@ -539,6 +543,22 @@ export default function PlayersTable({
             </button>
             <span className="text-xs text-gray-500">{t('admin.registration.unlimited')}</span>
           </div>
+          {registrationType === 'team' && (
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={captainBlackoutsOpen}
+                  onChange={(e) => setCaptainBlackoutsOpen(e.target.checked)}
+                  className="w-4 h-4 text-ntu-green border-gray-300 rounded focus:ring-ntu-green"
+                />
+                <span className="text-sm text-gray-800">{t('admin.captainBlackoutsOpen')}</span>
+              </label>
+              <span className={`text-xs px-2 py-0.5 rounded ${captainBlackoutsOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                {captainBlackoutsOpen ? t('admin.captainBlackoutsOpenLabelOn') : t('admin.captainBlackoutsOpenLabelOff')}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 text-sm text-slate-600">
