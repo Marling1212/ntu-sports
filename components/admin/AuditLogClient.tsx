@@ -64,8 +64,11 @@ function summarizeChange(entry: AuditLogEntry): string {
   } else if (entry.action === "match.postponed") {
     if (after.status !== undefined && String(before.status) !== String(after.status))
       parts.push(`狀態 ${String(before.status)} → ${String(after.status)}`);
-    if (after.scheduled_time !== undefined && String(before.scheduled_time ?? "") !== String(after.scheduled_time ?? ""))
-      parts.push(`時間 → ${after.scheduled_time ? new Date(after.scheduled_time).toLocaleString() : "—"}`);
+    if (after.scheduled_time !== undefined && String(before.scheduled_time ?? "") !== String(after.scheduled_time ?? "")) {
+      const t = after.scheduled_time;
+      const dateStr = typeof t === "string" || typeof t === "number" ? new Date(t).toLocaleString() : "—";
+      parts.push(`時間 → ${dateStr}`);
+    }
     if (after.court !== undefined && String(before.court ?? "") !== String(after.court ?? ""))
       parts.push(`場地 ${String(before.court) || "—"} → ${String(after.court) || "—"}`);
     if (parts.length === 0) parts.push("延後並改期");
