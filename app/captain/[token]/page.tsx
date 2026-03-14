@@ -12,19 +12,25 @@ export default async function CaptainPortalPage({ params }: CaptainPageProps) {
   const { token } = await params;
   if (!token?.trim()) notFound();
 
-  const supabase = createServiceClient();
+  let supabase;
+  try {
+    supabase = createServiceClient();
+  } catch (e) {
+    console.error("[Captain portal] Service client init failed (check SUPABASE_SERVICE_ROLE_KEY):", e);
+    notFound();
+  }
 
   const { data: team, error: teamError } = await supabase
     .from("players")
     .select("id, event_id, name")
     .eq("type", "team")
-    .eq("custom_fields->>captain_token", token)
+    .contains("custom_fields", { captain_token: token })
     .maybeSingle();
 
   if (teamError || !team) notFound();
 
   const [{ data: event }, { data: members }, { data: requests }] = await Promise.all([
-    supabase.from("events").select("id, name, sport").eq("id", team.event_id).single(),
+    supabase.from("events").select("id, name, sport").eq("id", team.event_id).maybeSingle(),
     supabase
       .from("team_members")
       .select("*")

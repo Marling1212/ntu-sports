@@ -21,13 +21,18 @@ export async function submitRosterChangeRequest(
     return { ok: false, error: "Invalid link." };
   }
 
-  const supabase = createServiceClient();
+  let supabase;
+  try {
+    supabase = createServiceClient();
+  } catch {
+    return { ok: false, error: "Invalid or expired captain link." };
+  }
 
   const { data: team, error: teamError } = await supabase
     .from("players")
     .select("id, event_id")
     .eq("type", "team")
-    .eq("custom_fields->>captain_token", token)
+    .contains("custom_fields", { captain_token: token })
     .maybeSingle();
 
   if (teamError || !team) {
