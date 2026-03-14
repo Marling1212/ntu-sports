@@ -178,7 +178,7 @@ export default function MatchDetailContent({
 
   const handlePostponeReschedule = async () => {
     if (!canPostpone) return;
-    const slot = postponeSlotId ? slots.find((s) => s.id === postponeSlotId) ?? null;
+    const slot = postponeSlotId ? (slots.find((s) => s.id === postponeSlotId) ?? null) : null;
     const scheduledIso = hasSlots
       ? (slot ? deriveIsoFromSlot(slot) : null)
       : toIso(postponeManualTime);
