@@ -17,7 +17,8 @@ export async function submitRosterChangeRequest(
   memberData: Record<string, unknown>,
   requestedBy?: string | null
 ): Promise<SubmitRosterRequestResult> {
-  if (!token.trim()) {
+  const t = token.trim();
+  if (!t) {
     return { ok: false, error: "Invalid link." };
   }
 
@@ -28,14 +29,25 @@ export async function submitRosterChangeRequest(
     return { ok: false, error: "Invalid or expired captain link." };
   }
 
-  const { data: team, error: teamError } = await supabase
+  let team: { id: string; event_id: string } | null = null;
+  const byContains = await supabase
     .from("players")
     .select("id, event_id")
     .eq("type", "team")
-    .contains("custom_fields", { captain_token: token })
+    .contains("custom_fields", { captain_token: t })
     .maybeSingle();
+  if (byContains.data) team = byContains.data;
+  if (!team) {
+    const byKey = await supabase
+      .from("players")
+      .select("id, event_id")
+      .eq("type", "team")
+      .eq("custom_fields->>captain_token", t)
+      .maybeSingle();
+    if (byKey.data) team = byKey.data;
+  }
 
-  if (teamError || !team) {
+  if (!team) {
     return { ok: false, error: "Invalid or expired captain link." };
   }
 
@@ -52,6 +64,6 @@ export async function submitRosterChangeRequest(
     return { ok: false, error: insertError.message };
   }
 
-  revalidatePath(`/captain/${token}`);
+  revalidatePath(`/captain/${t}`);
   return { ok: true };
 }

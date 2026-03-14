@@ -9,8 +9,9 @@ interface CaptainPageProps {
 }
 
 export default async function CaptainPortalPage({ params }: CaptainPageProps) {
-  const { token } = await params;
-  if (!token?.trim()) notFound();
+  const rawToken = (await params).token ?? "";
+  const token = rawToken.trim();
+  if (!token) notFound();
 
   let supabase;
   try {
@@ -20,14 +21,30 @@ export default async function CaptainPortalPage({ params }: CaptainPageProps) {
     notFound();
   }
 
-  const { data: team, error: teamError } = await supabase
+  let team: { id: string; event_id: string; name: string } | null = null;
+  let teamError: Error | null = null;
+
+  const byContains = await supabase
     .from("players")
     .select("id, event_id, name")
     .eq("type", "team")
     .contains("custom_fields", { captain_token: token })
     .maybeSingle();
+  if (byContains.error) teamError = byContains.error;
+  else if (byContains.data) team = byContains.data;
 
-  if (teamError || !team) notFound();
+  if (!team) {
+    const byKey = await supabase
+      .from("players")
+      .select("id, event_id, name")
+      .eq("type", "team")
+      .eq("custom_fields->>captain_token", token)
+      .maybeSingle();
+    if (!byKey.error && byKey.data) team = byKey.data;
+  }
+
+  if (teamError && !team) notFound();
+  if (!team) notFound();
 
   const [{ data: event }, { data: members }, { data: requests }] = await Promise.all([
     supabase.from("events").select("id, name, sport").eq("id", team.event_id).maybeSingle(),
