@@ -7,6 +7,7 @@ import { Player, SportStatDefinition, MatchPlayerStat, Event } from "@/types/dat
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
 import { DRAW_WINNER_ID, isDrawOption } from "@/lib/constants/matchConstants";
+import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
 
 interface Match {
   id: string;
@@ -38,6 +39,7 @@ interface SlotOption {
   end_time: string;
   code?: string;
   court_id?: string;
+  court?: { name?: string };
 }
 
 interface MatchDetailContentProps {
@@ -50,6 +52,19 @@ interface MatchDetailContentProps {
   existingStats: MatchPlayerStat[];
   courts: Array<{ id: string; name: string }>;
   slots: SlotOption[];
+  scheduleMatchesForGrid?: Array<{
+    id: string;
+    player1_id?: string | null;
+    player2_id?: string | null;
+    slot_id?: string | null;
+    scheduled_time?: string | null;
+    status?: string;
+    round: number;
+    match_number: number;
+    player1?: { name?: string } | null;
+    player2?: { name?: string } | null;
+  }>;
+  blackoutTemplates?: Array<{ player_id: string; day_of_week: number; start_time: string; end_time: string }>;
 }
 
 const formatDateTimeDisplay = (iso?: string | null): string => {
@@ -119,6 +134,8 @@ export default function MatchDetailContent({
   existingStats,
   courts,
   slots,
+  scheduleMatchesForGrid = [],
+  blackoutTemplates = [],
 }: MatchDetailContentProps) {
   const { t } = useI18n();
   // Initialize form - check if match is a draw (completed, no winner, equal scores)
@@ -149,9 +166,97 @@ export default function MatchDetailContent({
   const [selectedTeamMember, setSelectedTeamMember] = useState<Record<string, string>>({}); // { playerId: teamMemberId }
   const [ownGoals, setOwnGoals] = useState<Record<string, Record<string, boolean>>>({}); // { playerId: { teamMemberId: isOwnGoal } }
   const [saving, setSaving] = useState(false);
+  const [postponeSlotId, setPostponeSlotId] = useState("");
+  const [postponeManualTime, setPostponeManualTime] = useState("");
+  const [postponeCourt, setPostponeCourt] = useState("");
+  const [postponeNotify, setPostponeNotify] = useState(true);
   const supabase = createClient();
-  
+
+  const canPostpone = matchForm.status === "upcoming" || matchForm.status === "live";
+  const hasSlots = slots.length > 0;
   const isSoccer = event?.sport?.toLowerCase() === 'soccer';
+
+  const handlePostponeReschedule = async () => {
+    if (!canPostpone) return;
+    const slot = postponeSlotId ? slots.find((s) => s.id === postponeSlotId) ?? null;
+    const scheduledIso = hasSlots
+      ? (slot ? deriveIsoFromSlot(slot) : null)
+      : toIso(postponeManualTime);
+    if (!scheduledIso) {
+      toast.error(hasSlots ? t("admin.postpone.errorPickSlot") : t("admin.postpone.errorDate"));
+      return;
+    }
+    setSaving(true);
+    try {
+      const beforeData = {
+        status: match.status,
+        slot_id: match.slot_id ?? null,
+        scheduled_time: match.scheduled_time ?? null,
+        court: match.court ?? null,
+      };
+      const afterData = {
+        status: "upcoming",
+        slot_id: postponeSlotId || null,
+        scheduled_time: scheduledIso,
+        court: postponeCourt || null,
+      };
+
+      const { error } = await supabase
+        .from("matches")
+        .update({
+          status: "upcoming",
+          slot_id: postponeSlotId || null,
+          scheduled_time: scheduledIso,
+          court: postponeCourt || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", match.id);
+
+      if (error) throw error;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("admin_audit_log").insert({
+        event_id: eventId,
+        organizer_id: user?.id ?? null,
+        action: "match.postponed",
+        entity_type: "match",
+        entity_id: match.id,
+        before_data: beforeData,
+        after_data: afterData,
+      });
+
+      if (postponeNotify && eventId) {
+        const p1 = player1?.name ?? "TBD";
+        const p2 = player2?.name ?? "TBD";
+        const newTimeStr = scheduledIso
+          ? new Date(scheduledIso).toLocaleString("zh-TW", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Taipei" })
+          : "";
+        const courtStr = postponeCourt || matchForm.court || "待公佈";
+        const content = `📅 比賽改期通知\n\nRound ${match.round} Match ${match.match_number}: ${p1} vs ${p2}\n\n新時間：${newTimeStr}\n新場地：${courtStr}\n\n請留意最新賽程。`;
+        await supabase.from("announcements").insert({
+          event_id: eventId,
+          title: "比賽改期",
+          content,
+        });
+      }
+
+      setMatchForm((prev) => ({
+        ...prev,
+        status: "upcoming",
+        slot_id: postponeSlotId || "",
+        scheduled_time: (slot ? toLocalInputValue(deriveIsoFromSlot(slot)) : postponeManualTime) || prev.scheduled_time,
+        court: postponeCourt || prev.court,
+      }));
+
+      toast.success(
+        postponeNotify ? t("admin.postpone.successUpcomingWithNotify") : t("admin.postpone.successUpcoming")
+      );
+    } catch (err: unknown) {
+      toast.error(`錯誤: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Initialize player stats from existing stats
   useEffect(() => {
@@ -672,6 +777,89 @@ export default function MatchDetailContent({
           Round {match.round}, Match {match.match_number}
         </p>
       </div>
+
+      {/* Postpone & reschedule (atomic action) — only when match is upcoming or live */}
+      {canPostpone && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6">
+          <h2 className="text-xl font-semibold text-amber-800 mb-3 flex items-center gap-2">
+            <span>{t("admin.postpone.title")}</span>
+          </h2>
+          <p className="text-sm text-amber-800/80 mb-4">{t("admin.postpone.description")}</p>
+
+          {hasSlots ? (
+            <div className="mb-4">
+              <ScheduleGridEditor
+                eventId={eventId}
+                slots={slots as Array<{ id: string; slot_date: string; start_time: string; end_time: string; code?: string | null; court_id?: string | null; court?: { name?: string } | null }>}
+                matches={scheduleMatchesForGrid}
+                blackoutTemplates={blackoutTemplates}
+                focusMatchId={match.id}
+                onFocusMatchSlotChange={(slotId) => setPostponeSlotId(slotId ?? "")}
+              />
+            </div>
+          ) : (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.postpone.newDateTime")}</label>
+              <input
+                type="datetime-local"
+                value={postponeManualTime}
+                onChange={(e) => setPostponeManualTime(e.target.value)}
+                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("admin.postpone.court")}</label>
+              <select
+                value={postponeCourt && courts.some((c) => c.name === postponeCourt) ? courts.find((c) => c.name === postponeCourt)!.id : postponeCourt ? "OTHER" : ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) setPostponeCourt("");
+                  else if (v === "OTHER") setPostponeCourt(postponeCourt || "");
+                  else setPostponeCourt(courts.find((c) => c.id === v)?.name ?? "");
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              >
+                <option value="">{t("admin.postpone.selectCourt")}</option>
+                {courts.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+                <option value="OTHER">{t("admin.postpone.otherCourt")}</option>
+              </select>
+              {(postponeCourt && !courts.some((c) => c.name === postponeCourt)) && (
+                <input
+                  type="text"
+                  value={postponeCourt}
+                  onChange={(e) => setPostponeCourt(e.target.value)}
+                  className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                  placeholder={t("admin.postpone.courtPlaceholder")}
+                />
+              )}
+            </div>
+          </div>
+
+          <label className="inline-flex items-center gap-2 cursor-pointer mb-4 block">
+            <input
+              type="checkbox"
+              checked={postponeNotify}
+              onChange={(e) => setPostponeNotify(e.target.checked)}
+              className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green"
+            />
+            <span className="text-sm text-gray-700">{t("admin.postpone.notifyByDefault")}</span>
+          </label>
+
+          <button
+            type="button"
+            onClick={handlePostponeReschedule}
+            disabled={saving}
+            className="bg-amber-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-amber-700 transition-colors disabled:opacity-50"
+          >
+            {saving ? t("admin.postpone.applying") : t("admin.postpone.apply")}
+          </button>
+        </div>
+      )}
 
       {/* Match Basic Info */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">

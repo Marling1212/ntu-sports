@@ -155,47 +155,132 @@ COMMENT ON COLUMN matches.event_note      IS 'Free-text admin note for any match
 
 ---
 
-### 🥈 Priority 2 — Captain Self-Service Portal
+### 🥈 Priority 2 — Captain Self-Service Portal (Option A: Token-Based)
 
 **Impact:** Eliminates the #1 admin time-sink (roster updates) and scales the platform to leagues with 50+ teams.  
-**Complexity:** High (new auth layer + approval workflow)
+**Complexity:** Medium-High (new public route + approval workflow; **no new auth system required**)
 
-#### Why it matters
-Currently, any player name correction or late roster addition requires an admin. At scale (10+ teams per event), this creates a bottleneck before every match day.
+#### Approach: Token-Based, No Captain Account Needed
+
+Each team gets a **secret shareable link** (like a Google Form). The captain clicks it, sees their roster, and submits change requests. No signup, no password. Admin retains full control via an approval queue — a leaked token can only *request* a change, never directly modify data.
+
+> **Why not require a captain login?**  
+> Requiring registration creates friction that casual university players won't tolerate. The approval queue is the security layer, not the login. This can be upgraded to full auth in V2.
+
+#### How the Token Works
+
+The token is stored in the existing `players.custom_fields` JSONB column (migration `028`) — no new column needed on `players`:
+
+```json
+// players.custom_fields for a team record
+{
+  "captain_token": "a8f3d2c1...",
+  "captain_name": "陳志明"
+}
+```
+
+The captain's URL:
+```
+https://ntu-sports.com/captain/a8f3d2c1...
+```
+
+The Next.js server component resolves the team by querying:
+```sql
+SELECT * FROM players WHERE custom_fields->>'captain_token' = $1
+```
+Token lookup happens **server-side only** — the raw DB query is never exposed to the browser.
+
+#### End-to-End User Flow
+
+```
+Admin clicks "Generate Captain Link" on PlayersTable (per team row)
+         ↓
+Token generated (crypto.randomUUID), stored in players.custom_fields → link copied
+         ↓
+Admin shares link with captain (Line, WhatsApp, email)
+         ↓
+Captain opens /captain/[token] — sees:
+  • Team name + event name
+  • Current roster (name, jersey number, captain flag)
+  • "Request Add Member" button
+  • "Request Edit / Remove" button per existing member
+         ↓
+Captain submits form → roster_change_requests row inserted (status = 'pending')
+         ↓
+Admin sees badge on Players page nav: "Pending Requests (2)"
+         ↓
+Admin opens /admin/[eventId]/players/requests:
+  • Each request shows: action, member data, who requested, when
+  • One-click Approve (writes to team_members) or Reject (with optional note)
+         ↓
+Approved → team_members updated immediately
+Rejected → captain sees rejection note on their next portal visit
+```
 
 #### Database Changes Required
 
 ```sql
 -- 044_add_captain_portal.sql
 
--- Add captain flag to team_members
+-- Mark which team_members are captains (informational, shown on public team page)
 ALTER TABLE team_members
   ADD COLUMN IF NOT EXISTS is_captain BOOLEAN NOT NULL DEFAULT FALSE;
 
--- Roster change requests (pending admin approval)
+-- Roster change request queue
 CREATE TABLE IF NOT EXISTS roster_change_requests (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id     UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  player_id    UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,  -- the team
-  requested_by TEXT NOT NULL,  -- captain's email (no auth account required)
-  action       TEXT NOT NULL CHECK (action IN ('add','remove','update')),
-  member_data  JSONB NOT NULL, -- {name, jersey_number, ...}
-  status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
-  admin_note   TEXT,
+  player_id    UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE, -- the TEAM record
+  action       TEXT NOT NULL CHECK (action IN ('add', 'remove', 'update')),
+  -- For 'add'/'update': {name, jersey_number}
+  -- For 'update'/'remove': also includes {member_id}
+  member_data  JSONB NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'pending'
+                 CHECK (status IN ('pending', 'approved', 'rejected')),
+  requested_by TEXT,           -- captain's self-reported name (unverified, informational)
+  admin_note   TEXT,           -- shown to captain on rejection
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   resolved_at  TIMESTAMPTZ
 );
 
 CREATE INDEX ON roster_change_requests(event_id, status);
 CREATE INDEX ON roster_change_requests(player_id);
+
+-- RLS: only organizers can read/update requests (INSERT is done via server action)
+ALTER TABLE roster_change_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Organizers can manage roster change requests"
+  ON roster_change_requests FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM organizers o
+      WHERE o.event_id = roster_change_requests.event_id
+        AND o.user_id = auth.uid()
+    )
+  );
 ```
 
-#### Next.js / UI Changes
+> **RLS note on INSERT:** The captain page is public (no Supabase session). Inserts must go through a **Next.js Server Action** using the `service_role` client, which bypasses RLS safely. Never use `service_role` on the client side.
 
-- **`app/captain/[token]/page.tsx`** — New public (no auth) captain portal. Uses a secret token (stored as a custom field on the team `player` record) for access. Shows current roster + "Request Change" form.
-- **`app/admin/[eventId]/players/requests/page.tsx`** — New admin sub-page listing pending `roster_change_requests`; Approve / Reject with optional note.
-- **`components/admin/PlayersTable.tsx`** — Add "Copy Captain Link" button per team row (generates/shows the token).
-- **`lib/i18n/translations.ts`** — Add `captain.*` and `admin.players.changeRequests` key namespace.
+#### Files to Create / Modify
+
+| File | Action | What it does |
+|---|---|---|
+| `app/captain/[token]/page.tsx` | **New** | Public server component — resolves token → renders roster + request form |
+| `app/captain/[token]/layout.tsx` | **New** | Minimal layout, no admin navbar, no auth guard |
+| `app/captain/[token]/actions.ts` | **New** | Server Action: validate token, insert `roster_change_requests` using `service_role` |
+| `app/admin/[eventId]/players/requests/page.tsx` | **New** | Admin review queue: list pending requests, Approve/Reject buttons |
+| `components/admin/PlayersTable.tsx` | **Modify** | Add "Copy Captain Link" button + "Generate Token" logic per team row |
+| `components/admin/PlayersPageNav.tsx` | **Modify** | Add "Requests" tab with pending count badge |
+| `supabase/migrations/044_captain_portal.sql` | **New** | DB changes above |
+| `lib/i18n/translations.ts` | **Modify** | Add `captain.*` and `admin.players.changeRequests.*` namespaces |
+
+#### What's Deferred to V2
+
+- Email notification to admin when a new request is submitted (needs Resend/SendGrid)
+- Token expiry (`captain_token_expires_at` in `custom_fields`)
+- Captain viewing the full status history of their past requests
+- Time-window lock (e.g., freeze roster changes 24h before match)
 
 ---
 

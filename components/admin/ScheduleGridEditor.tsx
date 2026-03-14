@@ -41,6 +41,9 @@ interface ScheduleGridEditorProps {
   matches: MatchForGrid[];
   blackoutTemplates: BlackoutTemplateForGrid[];
   onScheduleChange?: () => void;
+  /** When set, grid is used for "postpone & reschedule": no Save button; parent is notified when this match is dropped on a slot. */
+  focusMatchId?: string;
+  onFocusMatchSlotChange?: (slotId: string | null) => void;
 }
 
 type TimeBlockKey = string;
@@ -109,6 +112,8 @@ export default function ScheduleGridEditor({
   matches,
   blackoutTemplates,
   onScheduleChange,
+  focusMatchId,
+  onFocusMatchSlotChange,
 }: ScheduleGridEditorProps) {
   const supabase = createClient();
 
@@ -271,6 +276,7 @@ export default function ScheduleGridEditor({
       next[slot.id] = matchId;
       return next;
     });
+    if (matchId === focusMatchId) onFocusMatchSlotChange?.(slot.id);
   };
 
   const handleRemoveFromSlot = (slotId: string) => {
@@ -294,6 +300,7 @@ export default function ScheduleGridEditor({
       });
       return next;
     });
+    if (matchId === focusMatchId) onFocusMatchSlotChange?.(null);
   };
 
   const handleSave = async () => {
@@ -349,16 +356,20 @@ export default function ScheduleGridEditor({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="text-sm text-gray-600">
-          將左側未排程的比賽拖曳到下方格子的時段中。若放入的時段為某隊的不可出賽，格子會顯示警示（橘框）。
+          {focusMatchId
+            ? "將此比賽拖曳到下方格子的新時段，系統會檢查不可出賽時段與雙重預訂。選好後請點下方「延後並改期」按鈕。"
+            : "將左側未排程的比賽拖曳到下方格子的時段中。若放入的時段為某隊的不可出賽，格子會顯示警示（橘框）。"}
         </p>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
-        >
-          {saving ? "儲存中…" : "儲存排程"}
-        </button>
+        {!focusMatchId && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+          >
+            {saving ? "儲存中…" : "儲存排程"}
+          </button>
+        )}
       </div>
 
       <div className="flex gap-6 flex-wrap">

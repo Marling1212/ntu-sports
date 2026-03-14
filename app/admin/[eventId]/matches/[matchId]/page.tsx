@@ -115,13 +115,54 @@ export default async function MatchDetailPage({
     .eq("event_id", eventId)
     .order("name", { ascending: true });
 
-  // Get slots
-  const { data: slots } = await supabase
+  // Get slots (with court name for grid)
+  const { data: slotsRaw } = await supabase
     .from("event_slots")
     .select("id, slot_date, start_time, end_time, code, court_id")
     .eq("event_id", eventId)
     .order("slot_date", { ascending: true })
     .order("start_time", { ascending: true });
+  const courtsList = courts || [];
+  const slots = (slotsRaw || []).map((s: { court_id?: string | null; [k: string]: unknown }) => ({
+    ...s,
+    court: s.court_id ? { name: courtsList.find((c: { id: string }) => c.id === s.court_id)?.name ?? "未指定" } : { name: "未指定" },
+  }));
+
+  // For postpone grid: all matches in same division + blackout templates
+  const matchDivisionId = match.division_id ?? null;
+  let scheduleMatchesQuery = supabase
+    .from("matches")
+    .select(`
+      id, player1_id, player2_id, slot_id, scheduled_time, status, round, match_number,
+      player1:players!matches_player1_id_fkey(id, name, seed),
+      player2:players!matches_player2_id_fkey(id, name, seed),
+      slot:event_slots(id, slot_date, start_time, end_time, code, court_id)
+    `)
+    .eq("event_id", eventId)
+    .neq("status", "bye")
+    .order("scheduled_time", { ascending: true, nullsFirst: false })
+    .order("round", { ascending: true })
+    .order("match_number", { ascending: true });
+  if (matchDivisionId) scheduleMatchesQuery = scheduleMatchesQuery.eq("division_id", matchDivisionId);
+  const { data: scheduleMatches } = await scheduleMatchesQuery;
+
+  const { data: blackoutTemplates } = await supabase
+    .from("team_blackout_templates")
+    .select("player_id, day_of_week, start_time, end_time")
+    .eq("event_id", eventId);
+
+  const matchesForGrid = (scheduleMatches || []).map((m: any) => ({
+    id: m.id,
+    player1_id: m.player1_id,
+    player2_id: m.player2_id,
+    slot_id: m.slot_id,
+    scheduled_time: m.scheduled_time,
+    status: m.status,
+    round: m.round,
+    match_number: m.match_number,
+    player1: m.player1,
+    player2: m.player2,
+  }));
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -135,6 +176,8 @@ export default async function MatchDetailPage({
           existingStats={existingStats || []}
           courts={courts || []}
           slots={slots || []}
+          scheduleMatchesForGrid={matchesForGrid}
+          blackoutTemplates={blackoutTemplates || []}
         />
     </div>
   );

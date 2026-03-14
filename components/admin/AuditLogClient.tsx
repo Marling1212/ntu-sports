@@ -61,6 +61,14 @@ function summarizeChange(entry: AuditLogEntry): string {
       const keys = Object.keys(after);
       if (keys.length) parts.push("已更新");
     }
+  } else if (entry.action === "match.postponed") {
+    if (after.status !== undefined && String(before.status) !== String(after.status))
+      parts.push(`狀態 ${String(before.status)} → ${String(after.status)}`);
+    if (after.scheduled_time !== undefined && String(before.scheduled_time ?? "") !== String(after.scheduled_time ?? ""))
+      parts.push(`時間 → ${after.scheduled_time ? new Date(after.scheduled_time).toLocaleString() : "—"}`);
+    if (after.court !== undefined && String(before.court ?? "") !== String(after.court ?? ""))
+      parts.push(`場地 ${String(before.court) || "—"} → ${String(after.court) || "—"}`);
+    if (parts.length === 0) parts.push("延後並改期");
   } else {
     parts.push(entry.action);
   }
@@ -155,7 +163,7 @@ export default function AuditLogClient({
                       {formatDateTime(entry.created_at)}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-800">
-                      {entry.action === "match.updated" ? t("admin.audit.matchUpdated") : entry.action}
+                      {entry.action === "match.updated" ? t("admin.audit.matchUpdated") : entry.action === "match.postponed" ? t("admin.audit.matchPostponed") : entry.action}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {entry.entity_type === "match" && entry.entity_id ? (
