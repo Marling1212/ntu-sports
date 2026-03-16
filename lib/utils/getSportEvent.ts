@@ -75,6 +75,26 @@ export async function getEventByIdAndSport(eventId: string, sport: string) {
   return null;
 }
 
+/** Same as getEventByIdAndSport but ignores is_visible. Use only for organizer preview. */
+export async function getEventByIdAndSportForPreview(eventId: string, sport: string) {
+  const supabase = await createClient();
+  const sportLower = sport.toLowerCase();
+  const { data: event, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (error || !event) return null;
+  if (event.sport === sportLower) return event;
+  const { data: divs } = await supabase
+    .from("event_divisions")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("sport", sportLower);
+  if (divs && divs.length > 0) return event;
+  return null;
+}
+
 /** Division IDs for this event that match the sport (for filtering matches/players on event page). */
 export async function getDivisionIdsForEventAndSport(
   eventId: string,

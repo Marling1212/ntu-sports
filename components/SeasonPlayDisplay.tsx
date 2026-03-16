@@ -51,6 +51,7 @@ interface SeasonPlayDisplayProps {
 }
 
 const TAIPEI_TZ = "Asia/Taipei";
+const SOCCER_LIKE_SPORTS = ["soccer", "football"];
 
 type DateFilter = "all" | "today" | "tomorrow" | "week";
 
@@ -83,6 +84,7 @@ function getDateRangeInTaipei(filter: DateFilter): { start: Date; end: Date } | 
 export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant, tiebreakerConfig, playoffsDisplayMode = "bracket" }: SeasonPlayDisplayProps) {
   const { t, locale } = useI18n();
   const theme = designVariant ? seasonPlayThemes[designVariant] : seasonPlayDefault;
+  const showTopScorers = SOCCER_LIKE_SPORTS.includes((sportName || "").toLowerCase());
   const tabs = {
     regular: visibleTabs?.regular !== false,
     standings: visibleTabs?.standings !== false,
@@ -1651,13 +1653,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             <span>{t("seasonPlay.qualifyHint")}</span>
           </div>
 
-          {/* Statistics Charts */}
-          {(topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0) && (
+          {/* Statistics Charts — goals & cards only for soccer/football */}
+          {(showTopScorers && (topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0)) && (
             <div className="mt-8">
-              {/* Top Performers: Goals, Yellow Cards, Red Cards */}
+              {/* Top Performers: Goals, Yellow Cards, Red Cards (soccer only) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Top Scorers Chart */}
-                {allScorers.length > 0 ? (
+                {showTopScorers && allScorers.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold text-ntu-green">⚽ {t("seasonPlay.topScorers")}</h3>
@@ -1707,8 +1708,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   </div>
                 )}
 
-                {/* Top Yellow Cards Chart */}
-                {allYellowCards.length > 0 ? (
+                {/* Top Yellow Cards Chart (soccer only) */}
+                {showTopScorers && (allYellowCards.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold text-yellow-600">🟨 {t("seasonPlay.yellowCards")}</h3>
@@ -1756,10 +1757,10 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                     <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 {t("seasonPlay.yellowCards")}</h3>
                     <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
                   </div>
-                )}
+                ))}
 
-                {/* Top Red Cards Chart */}
-                {allRedCards.length > 0 ? (
+                {/* Top Red Cards Chart (soccer only) */}
+                {showTopScorers && (allRedCards.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold text-red-600">🟥 {t("seasonPlay.redCards")}</h3>
@@ -1807,7 +1808,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                     <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 {t("seasonPlay.redCards")}</h3>
                     <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
                   </div>
-                )}
+                ))}
               </div>
             </div>
           )}

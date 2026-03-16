@@ -296,6 +296,16 @@ export default function MatchesTable({
     const currentMatch = matches.find(m => m.id === matchId);
     if (!currentMatch) return;
 
+    // Normalize scores: blank = 0, reject negative (Bug 1)
+    const raw1 = editForm.score1 === "" || editForm.score1 === undefined ? 0 : parseInt(String(editForm.score1), 10) || 0;
+    const raw2 = editForm.score2 === "" || editForm.score2 === undefined ? 0 : parseInt(String(editForm.score2), 10) || 0;
+    if (raw1 < 0 || raw2 < 0) {
+      toast.error(t("admin.matchScoreNegative") || "Score cannot be negative.");
+      return;
+    }
+    const score1Val = String(raw1);
+    const score2Val = String(raw2);
+
     const slotIdValue: string | null = editForm.slot_id ? editForm.slot_id : null;
     const selectedSlot = slotIdValue ? slotMap.get(slotIdValue) || null : null;
     let scheduledIso = toIsoString(editForm.scheduled_time);
@@ -316,8 +326,8 @@ export default function MatchesTable({
     const { data, error } = await supabase
       .from("matches")
       .update({
-        score1: editForm.score1 || null,
-        score2: editForm.score2 || null,
+        score1: score1Val,
+        score2: score2Val,
         winner_id: winnerIdValue,
         court: editForm.court || null,
         scheduled_time: scheduledIso,
@@ -401,15 +411,13 @@ export default function MatchesTable({
         }]);
       }
       
-      // Check for score change
-      const oldScore = currentMatch.score1 && currentMatch.score2 
+      // Check for score change (use normalized score values)
+      const oldScore = currentMatch.score1 != null && currentMatch.score2 != null
         ? `${currentMatch.score1}-${currentMatch.score2}` 
         : "未記錄";
-      const newScore = editForm.score1 && editForm.score2 
-        ? `${editForm.score1}-${editForm.score2}` 
-        : (editForm.score1 || editForm.score2 ? `${editForm.score1 || 0}-${editForm.score2 || 0}` : "未記錄");
+      const newScore = `${score1Val}-${score2Val}`;
       
-      if (oldScore !== newScore && (editForm.score1 || editForm.score2)) {
+      if (oldScore !== newScore) {
         const draftId = `score-${matchId}-${Date.now()}`;
         const defaultContent = `⚽ ${matchInfo}\n比數更新：${oldScore} → ${newScore}`;
         
@@ -1212,7 +1220,8 @@ export default function MatchesTable({
                         <td className="px-3 py-4 whitespace-nowrap">
                           <div className="flex gap-1">
                             <input
-                              type="text"
+                              type="number"
+                              min={0}
                               value={editForm.score1}
                               onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
                               className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
@@ -1220,7 +1229,8 @@ export default function MatchesTable({
                             />
                             <span className="py-1">-</span>
                             <input
-                              type="text"
+                              type="number"
+                              min={0}
                               value={editForm.score2}
                               onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
                               className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
@@ -1230,6 +1240,7 @@ export default function MatchesTable({
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player2?.name || "TBD"}</td>
                         <td className="px-3 py-4">
+                          <span className="block text-xs text-gray-500 mb-1">{t("admin.winnerRequired") || "Winner (required)"}</span>
                           <select
                             value={editForm.winner_id || ""}
                             onChange={(e) => {
@@ -1674,21 +1685,25 @@ export default function MatchesTable({
                     <div className="mt-3 space-y-3 p-3 bg-gray-50 rounded-lg">
                       <div className="grid grid-cols-2 gap-2">
                         <input
-                          type="text"
+                          type="number"
+                          min={0}
                           value={editForm.score1}
                           onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                          placeholder="Score 1"
+                          placeholder="0"
                         />
                         <input
-                          type="text"
+                          type="number"
+                          min={0}
                           value={editForm.score2}
                           onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                          placeholder="Score 2"
+                          placeholder="0"
                         />
                       </div>
-                      <select
+                      <div>
+                        <span className="block text-xs text-gray-500 mb-1">{t("admin.winnerRequired") || "Winner (required)"}</span>
+                        <select
                         value={editForm.winner_id || ""}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1703,8 +1718,9 @@ export default function MatchesTable({
                         <option value="">No winner</option>
                         <option value={DRAW_WINNER_ID}>Draw</option>
                         {match.player1_id && <option value={match.player1_id}>{match.player1?.name}</option>}
-                        {match.player2_id && <option value={match.player2_id}>{match.player2?.name}</option>}
+                        {match.player2_id &&                         <option value={match.player2_id}>{match.player2?.name}</option>}
                       </select>
+                      </div>
                       <select
                         value={editForm.status}
                         onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}

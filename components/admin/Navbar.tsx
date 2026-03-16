@@ -29,7 +29,8 @@ interface AdminNavbarProps {
 export default function AdminNavbar({ eventId, eventName, sport, divisions = [], currentDivisionId = null, isVisible }: AdminNavbarProps) {
   const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : null;
   const viewerSport = selectedDivision?.sport ?? sport;
-  const viewerUrl = eventId && viewerSport ? `/sports/${viewerSport}/events/${eventId}` : null;
+  const baseViewerUrl = eventId && viewerSport ? `/sports/${viewerSport}/events/${eventId}` : null;
+  const viewerUrl = baseViewerUrl ? (isVisible === false ? `${baseViewerUrl}?preview=1` : baseViewerUrl) : null;
   const q = currentDivisionId ? `?divisionId=${currentDivisionId}` : "";
   const { t } = useI18n();
 
@@ -59,9 +60,14 @@ export default function AdminNavbar({ eventId, eventName, sport, divisions = [],
           {eventId && (
             <div className="flex gap-4 md:gap-5 text-sm font-medium items-center overflow-x-auto pb-1 min-h-[40px] whitespace-nowrap scrollbar-hide w-full lg:w-auto mt-2 lg:mt-0">
               {viewerUrl && (
-                <Link href={viewerUrl} className="hover:opacity-80 transition-opacity" title="看前台 View on site">
-                  {t("admin.viewEvent")}
+                <Link href={viewerUrl} className="hover:opacity-80 transition-opacity" title={isVisible === false ? (t("admin.previewPublicHint") || "Preview what the public will see when you make the event visible") : "看前台 View on site"}>
+                  {isVisible === false ? (t("admin.previewPublicPage") || "Preview public page") : t("admin.viewEvent")}
                 </Link>
+              )}
+              {isVisible === false && (
+                <span className="text-white/80 text-xs hidden sm:inline" title={t("admin.eventHiddenNote") || "Event is hidden — only you can preview it."}>
+                  ({t("admin.hidden") || "Hidden"})
+                </span>
               )}
               <Link href={`/admin/${eventId}/players${q}`} className="hover:opacity-80 transition-opacity">
                 {t("admin.players")}

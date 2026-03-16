@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getEventByIdAndSportForPreview, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
@@ -56,10 +56,13 @@ const sportIcons: { [key: string]: string } = {
 
 export default async function SportEventPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ sport: string; eventId: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const resolvedParams = await params;
+  const { preview } = await searchParams;
   const sport = resolvedParams.sport;
   const eventId = resolvedParams.eventId;
   const locale = await getLocale();
@@ -68,9 +71,16 @@ export default async function SportEventPage({
   const sportParam = sport.toLowerCase();
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const sportIcon = sportIcons[sportName] || "🏆";
-  
-  // Get the specific event (visible, and must have this sport via event.sport or a division)
-  const event = await getEventByIdAndSport(eventId, sportParam);
+
+  // Get the specific event (visible, and must have this sport). If preview=1 and user is organizer, allow hidden events.
+  let event = await getEventByIdAndSport(eventId, sportParam);
+  if (!event && preview === "1") {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: organizer } = await supabase.from("organizers").select("id").eq("event_id", eventId).eq("user_id", user.id).single();
+      if (organizer) event = await getEventByIdAndSportForPreview(eventId, sportParam);
+    }
+  }
   if (!event) notFound();
 
   // Division filter: show only matches/players for this sport within the event
@@ -100,6 +110,12 @@ export default async function SportEventPage({
 
   return (
     <div className="container mx-auto px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
+      {preview === "1" && (
+        <div className="mb-6 p-4 bg-amber-100 border border-amber-400 rounded-lg text-amber-900">
+          <p className="font-semibold">{locale === "zh" ? "管理員預覽" : "Admin preview"}</p>
+          <p className="text-sm mt-1">{locale === "zh" ? "此賽事目前對外隱藏，僅你可見此頁面。公開後，觀眾將看到與此相同內容。" : "This event is currently hidden from the public. Only you can see this page. When you make it visible, the public will see this same content."}</p>
+        </div>
+      )}
       {/* Header Section */}
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-ntu-green mb-4">

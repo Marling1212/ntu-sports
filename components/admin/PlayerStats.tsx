@@ -4,11 +4,15 @@ import { useMemo } from "react";
 import { Player, Match } from "@/types/database";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
 
+const SOCCER_LIKE_SPORTS = ["soccer", "football"];
+
 interface PlayerStatsProps {
   players: Player[];
   matches: Match[];
   tournamentType?: "single_elimination" | "season_play" | null;
   registrationType?: 'player' | 'team';
+  /** When set, top scorers chart is only shown for soccer/football. */
+  sport?: string;
   matchPlayerStats?: Array<{
     match_id: string;
     player_id: string;
@@ -50,7 +54,8 @@ const parseScore = (score?: string): { score1: number; score2: number } | null =
   return { score1, score2 };
 };
 
-export default function PlayerStats({ players, matches, tournamentType, registrationType = 'player', matchPlayerStats = [], teamMembers = [] }: PlayerStatsProps) {
+export default function PlayerStats({ players, matches, tournamentType, registrationType = 'player', sport, matchPlayerStats = [], teamMembers = [] }: PlayerStatsProps) {
+  const showTopScorers = SOCCER_LIKE_SPORTS.includes((sport || "").toLowerCase());
   const playerStats = useMemo(() => {
     const statsMap = new Map<string, PlayerStat>();
 
@@ -665,13 +670,12 @@ export default function PlayerStats({ players, matches, tournamentType, registra
       </div>
       </div>
 
-      {/* Simple Charts */}
-      {(topScorers.length > 0 || topWinRate.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0) && (
+      {/* Simple Charts — goals & cards only for soccer/football; win rate for all */}
+      {((showTopScorers && (topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0)) || topWinRate.length > 0) && (
         <div className="space-y-6">
-          {/* Top Performers: Goals, Yellow Cards, Red Cards */}
+          {/* Top Performers: Goals, Yellow Cards, Red Cards (soccer only); Win rate (all) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Top Scorers Chart */}
-            {topScorers.length > 0 ? (
+            {showTopScorers && (topScorers.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                   <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數排名</h3>
                   <div className="space-y-3">
@@ -709,10 +713,10 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                   <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ 進球數排名</h3>
                   <p className="text-sm text-gray-500">尚無數據</p>
                 </div>
-              )}
+              ))}
 
-              {/* Top Yellow Cards Chart */}
-              {topYellowCards.length > 0 ? (
+              {/* Top Yellow Cards Chart (soccer only) */}
+              {showTopScorers && (topYellowCards.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                   <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌排名</h3>
                   <div className="space-y-3">
@@ -750,10 +754,10 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                   <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 黃牌排名</h3>
                   <p className="text-sm text-gray-500">尚無數據</p>
                 </div>
-              )}
+              ))}
 
-            {/* Top Red Cards Chart */}
-            {topRedCards.length > 0 ? (
+            {/* Top Red Cards Chart (soccer only) */}
+            {showTopScorers && (topRedCards.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                   <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌排名</h3>
                   <div className="space-y-3">
@@ -791,7 +795,7 @@ export default function PlayerStats({ players, matches, tournamentType, registra
                   <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 紅牌排名</h3>
                   <p className="text-sm text-gray-500">尚無數據</p>
                 </div>
-              )}
+              ))}
           </div>
 
           {/* Top Win Rate Chart */}

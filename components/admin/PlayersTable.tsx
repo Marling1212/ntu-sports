@@ -645,7 +645,16 @@ export default function PlayersTable({
         </div>
 
         {isAdding && (
-          <form onSubmit={handleAddPlayer} className="p-6 bg-gray-50 border-b border-gray-200">
+          <form
+            onSubmit={handleAddPlayer}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                (e.currentTarget as HTMLFormElement).requestSubmit();
+              }
+            }}
+            className="p-6 bg-gray-50 border-b border-gray-200"
+          >
             <div className="mb-4">
               <h3 className="text-lg font-medium text-gray-800 mb-3">
                 {registrationType === 'team' ? t('admin.registration.addTeam') : t('admin.registration.addPlayer')}

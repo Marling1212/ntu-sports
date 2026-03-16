@@ -182,6 +182,7 @@ export default async function MatchesPage({
                 matches={matches || []}
                 tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
                 registrationType={event?.registration_type as 'player' | 'team' | undefined}
+                sport={event?.sport}
                 matchPlayerStats={matchPlayerStats || []}
                 teamMembers={teamMembers}
               />
