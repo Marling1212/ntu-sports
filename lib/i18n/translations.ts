@@ -365,7 +365,6 @@ export const translations = {
       previewPublicPage: '預覽公開頁',
       previewPublicHint: '預覽對外顯示的頁面（賽事目前隱藏）',
       eventHiddenNote: '賽事已隱藏，僅你可預覽。',
-      hidden: '已隱藏',
 
       weekday0: '週日',
       weekday1: '週一',
@@ -1143,7 +1142,6 @@ export const translations = {
       previewPublicPage: 'Preview public page',
       previewPublicHint: 'Preview what the public will see when you make the event visible',
       eventHiddenNote: 'Event is hidden — only you can preview it.',
-      hidden: 'Hidden',
       weekday0: 'Sun',
       weekday1: 'Mon',
       weekday2: 'Tue',
