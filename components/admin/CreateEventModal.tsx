@@ -321,14 +321,32 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                開始時間 (Start Date &amp; Time) *
+                開始日期 (Start Date) *
               </label>
               <input
-                type="datetime-local"
-                value={formData.startDate}
+                type="date"
+                value={formData.startDate.split("T")[0] ?? ""}
                 onChange={(e) => {
                   setErrors((prev) => ({ ...prev, startDate: "" }));
-                  setFormData({ ...formData, startDate: e.target.value });
+                  const time = formData.startDate.split("T")[1] ?? "09:00";
+                  setFormData({ ...formData, startDate: `${e.target.value}T${time}` });
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
+                  errors.startDate ? "border-red-400" : "border-gray-300"
+                }`}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                開始時間 (Start Time) *
+              </label>
+              <input
+                type="time"
+                value={formData.startDate.split("T")[1]?.substring(0, 5) ?? "09:00"}
+                onChange={(e) => {
+                  setErrors((prev) => ({ ...prev, startDate: "" }));
+                  const date = formData.startDate.split("T")[0] ?? "";
+                  setFormData({ ...formData, startDate: `${date}T${e.target.value}` });
                 }}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
                   errors.startDate ? "border-red-400" : "border-gray-300"
@@ -338,18 +356,38 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
                 <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>
               )}
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                結束時間 (End Date &amp; Time) *
+                結束日期 (End Date) *
               </label>
               <input
-                type="datetime-local"
-                value={formData.endDate}
-                min={formData.startDate || undefined}
+                type="date"
+                value={formData.endDate.split("T")[0] ?? ""}
+                min={formData.startDate.split("T")[0] ?? undefined}
                 onChange={(e) => {
                   setErrors((prev) => ({ ...prev, endDate: "" }));
-                  setFormData({ ...formData, endDate: e.target.value });
+                  const time = formData.endDate.split("T")[1] ?? "18:00";
+                  setFormData({ ...formData, endDate: `${e.target.value}T${time}` });
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
+                  errors.endDate ? "border-red-400" : "border-gray-300"
+                }`}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                結束時間 (End Time) *
+              </label>
+              <input
+                type="time"
+                value={formData.endDate.split("T")[1]?.substring(0, 5) ?? "18:00"}
+                onChange={(e) => {
+                  setErrors((prev) => ({ ...prev, endDate: "" }));
+                  const date = formData.endDate.split("T")[0] ?? "";
+                  setFormData({ ...formData, endDate: `${date}T${e.target.value}` });
                 }}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
                   errors.endDate ? "border-red-400" : "border-gray-300"
