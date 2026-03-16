@@ -1,4 +1,4 @@
-import { getEventByIdAndSport, getSportAnnouncementsForList } from "@/lib/utils/getSportEvent";
+import { getEventForPublicPage, getSportAnnouncementsForList } from "@/lib/utils/getSportEvent";
 import AnnouncementsPageClient from "@/components/AnnouncementsPageClient";
 import { notFound } from "next/navigation";
 
@@ -7,13 +7,16 @@ export const revalidate = 0;
 
 export default async function SportEventAnnouncementsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ sport: string; eventId: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const { sport, eventId } = await params;
+  const { preview } = await searchParams;
   const sportParam = sport.toLowerCase();
 
-  const event = await getEventByIdAndSport(eventId, sportParam);
+  const event = await getEventForPublicPage(eventId, sportParam, { preview });
   if (!event) notFound();
 
   const announcements = await getSportAnnouncementsForList(event.id);

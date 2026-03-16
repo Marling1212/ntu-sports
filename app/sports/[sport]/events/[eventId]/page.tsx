@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getEventByIdAndSport, getEventByIdAndSportForPreview, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
+import { getEventForPublicPage, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
@@ -72,15 +72,7 @@ export default async function SportEventPage({
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const sportIcon = sportIcons[sportName] || "🏆";
 
-  // Get the specific event (visible, and must have this sport). If preview=1 and user is organizer, allow hidden events.
-  let event = await getEventByIdAndSport(eventId, sportParam);
-  if (!event && preview === "1") {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: organizer } = await supabase.from("organizers").select("id").eq("event_id", eventId).eq("user_id", user.id).single();
-      if (organizer) event = await getEventByIdAndSportForPreview(eventId, sportParam);
-    }
-  }
+  const event = await getEventForPublicPage(eventId, sportParam, { preview });
   if (!event) notFound();
 
   // Division filter: show only matches/players for this sport within the event

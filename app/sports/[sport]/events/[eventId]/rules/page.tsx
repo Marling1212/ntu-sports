@@ -2,21 +2,24 @@ import { createClient } from "@/lib/supabase/server";
 import EventScheduleContent from "@/components/EventScheduleContent";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { getEventByIdAndSport } from "@/lib/utils/getSportEvent";
+import { getEventForPublicPage } from "@/lib/utils/getSportEvent";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function SportEventRulesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ sport: string; eventId: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const { sport, eventId } = await params;
+  const { preview } = await searchParams;
   const sportParam = sport.toLowerCase();
   const supabase = await createClient();
 
-  const event = await getEventByIdAndSport(eventId, sportParam);
+  const event = await getEventForPublicPage(eventId, sportParam, { preview });
   if (!event) notFound();
 
   const { data: rules } = await supabase

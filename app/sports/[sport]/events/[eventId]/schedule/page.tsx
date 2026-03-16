@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import BracketMatchSchedule from "@/components/BracketMatchSchedule";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
-import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
+import { getEventForPublicPage, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
 import EventSponsorBanner from "@/components/EventSponsorBanner";
@@ -11,15 +11,18 @@ export const revalidate = 0;
 
 export default async function SportEventSchedulePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ sport: string; eventId: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const { sport, eventId } = await params;
+  const { preview } = await searchParams;
   const sportParam = sport.toLowerCase();
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const supabase = await createClient();
 
-  const event = await getEventByIdAndSport(eventId, sportParam);
+  const event = await getEventForPublicPage(eventId, sportParam, { preview });
   if (!event) notFound();
 
   const divisionIds = await getDivisionIdsForEventAndSport(event.id, sportParam);

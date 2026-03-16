@@ -2,7 +2,7 @@ import BracketSection from "@/components/BracketSection";
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import ExportBracket from "@/components/ExportBracket";
 import ExportPDF from "@/components/ExportPDF";
-import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getFirstDivisionForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
+import { getEventForPublicPage, getDivisionIdsForEventAndSport, getFirstDivisionForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "react-hot-toast";
 import { notFound } from "next/navigation";
@@ -15,17 +15,20 @@ export const revalidate = 0;
 
 export default async function SportEventDrawPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ sport: string; eventId: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const { sport, eventId } = await params;
+  const { preview } = await searchParams;
   const sportParam = sport.toLowerCase();
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const supabase = await createClient();
   const locale = await getLocale();
   const t = getT(locale);
 
-  const event = await getEventByIdAndSport(eventId, sportParam);
+  const event = await getEventForPublicPage(eventId, sportParam, { preview });
   if (!event) notFound();
 
   const divisionIds = await getDivisionIdsForEventAndSport(event.id, sportParam);

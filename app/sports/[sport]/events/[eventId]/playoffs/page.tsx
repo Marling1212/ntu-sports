@@ -1,5 +1,5 @@
 import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
-import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
+import { getEventForPublicPage, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -11,16 +11,19 @@ export const revalidate = 0;
 
 export default async function SportEventPlayoffsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ sport: string; eventId: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const { sport, eventId } = await params;
+  const { preview } = await searchParams;
   const sportParam = sport.toLowerCase();
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const supabase = await createClient();
   const t = getT("zh");
 
-  const event = await getEventByIdAndSport(eventId, sportParam);
+  const event = await getEventForPublicPage(eventId, sportParam, { preview });
   if (!event) notFound();
 
   if (event.tournament_type !== "season_play") {

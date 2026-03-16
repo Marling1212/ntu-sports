@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 import { useEventNav } from "@/lib/context/EventNavContext";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -15,6 +15,9 @@ interface PublicNavbarProps {
 
 export default function PublicNavbar({ eventName, tournamentType, eventId: eventIdProp }: PublicNavbarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const preview = searchParams.get("preview");
+  const querySuffix = preview === "1" ? "?preview=1" : "";
   const { locale, t } = useI18n();
   const { regularSeasonComplete, tournamentType: contextTournamentType } = useEventNav();
   const effectiveTournamentType = contextTournamentType ?? tournamentType;
@@ -48,11 +51,11 @@ export default function PublicNavbar({ eventName, tournamentType, eventId: event
     eventIdIndex !== -1 && segments[eventIdIndex + 1] ? segments[eventIdIndex + 1] : null;
   const eventId = eventIdProp ?? eventIdFromPath;
 
-  // Build URLs — always use event-specific paths when we know the event (avoids /sport/draw 404)
-  const drawUrl = eventId ? `${basePath}/events/${eventId}/draw` : `${basePath}/draw`;
-  const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule` : `${basePath}/schedule`;
-  const rulesUrl = eventId ? `${basePath}/events/${eventId}/rules` : `${basePath}/rules`;
-  const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements` : `${basePath}/announcements`;
+  // Build URLs — always use event-specific paths when we know the event (avoids /sport/draw 404). Preserve ?preview=1 for admin preview.
+  const drawUrl = eventId ? `${basePath}/events/${eventId}/draw${querySuffix}` : `${basePath}/draw`;
+  const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule${querySuffix}` : `${basePath}/schedule`;
+  const rulesUrl = eventId ? `${basePath}/events/${eventId}/rules${querySuffix}` : `${basePath}/rules`;
+  const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements${querySuffix}` : `${basePath}/announcements`;
 
   const isActive = (path: string) => pathname === path;
 
@@ -94,6 +97,11 @@ export default function PublicNavbar({ eventName, tournamentType, eventId: event
         {/* Mobile Bottom Nav - only on event pages (eventId) where layout has pb-safe */}
         {eventId && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-[100] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          {preview === "1" && (
+            <div className="px-2 py-1 bg-amber-100 text-amber-900 text-center text-xs font-medium">
+              {locale === "zh" ? "管理員預覽" : "Admin preview"}
+            </div>
+          )}
           <div className="grid grid-cols-4 gap-px bg-gray-200">
             <Link
               href={drawUrl}
@@ -155,7 +163,13 @@ export default function PublicNavbar({ eventName, tournamentType, eventId: event
           </div>
 
           {/* Navigation Links */}
-          <div className="flex gap-1">
+          <div className="flex gap-2 items-center">
+            {preview === "1" && (
+              <span className="text-xs font-semibold px-2 py-1 rounded bg-amber-200 text-amber-900" title={locale === "zh" ? "管理員預覽" : "Admin preview"}>
+                {locale === "zh" ? "預覽" : "Preview"}
+              </span>
+            )}
+            <div className="flex gap-1">
             <Link
               href={drawUrl}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] flex items-center ${
@@ -196,6 +210,7 @@ export default function PublicNavbar({ eventName, tournamentType, eventId: event
             >
               {t("navigation.announcements")}
             </Link>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">

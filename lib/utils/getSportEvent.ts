@@ -95,6 +95,29 @@ export async function getEventByIdAndSportForPreview(eventId: string, sport: str
   return null;
 }
 
+/** Get event for public pages; when preview=1 and user is organizer, allows hidden events. */
+export async function getEventForPublicPage(
+  eventId: string,
+  sport: string,
+  options: { preview?: string }
+): Promise<Awaited<ReturnType<typeof getEventByIdAndSport>> | null> {
+  let event = await getEventByIdAndSport(eventId, sport);
+  if (!event && options.preview === "1") {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: organizer } = await supabase
+        .from("organizers")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .single();
+      if (organizer) event = await getEventByIdAndSportForPreview(eventId, sport);
+    }
+  }
+  return event;
+}
+
 /** Division IDs for this event that match the sport (for filtering matches/players on event page). */
 export async function getDivisionIdsForEventAndSport(
   eventId: string,
