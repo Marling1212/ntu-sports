@@ -305,11 +305,12 @@ export default function MatchesTable({
 
     // Convert DRAW_WINNER_ID to null for database storage
     const winnerIdValue = editForm.winner_id === DRAW_WINNER_ID ? null : (editForm.winner_id || null);
-    
-    // If Draw is selected, ensure status is completed
-    const finalStatus = editForm.winner_id === DRAW_WINNER_ID && editForm.status !== "completed" 
-      ? "completed" 
-      : editForm.status;
+
+    // Infer status so user doesn't have to set it manually: score + winner = completed (unless forfeit/walkover)
+    const needsCompleted =
+      editForm.winner_id === DRAW_WINNER_ID ||
+      (winnerIdValue && ["upcoming", "live", "delayed"].includes(editForm.status));
+    const finalStatus = needsCompleted ? "completed" : editForm.status;
 
     // Update current match
     const { data, error } = await supabase
@@ -445,40 +446,20 @@ export default function MatchesTable({
 
     // If a winner was set (and it's not a draw), advance them to the next round
     if (editForm.winner_id && !isDrawOption(editForm.winner_id) && currentMatch.round) {
-      console.log("=== Winner Advancement Debug ===");
-      console.log("Current match:", currentMatch);
-      console.log("Winner ID:", editForm.winner_id);
-      console.log("Current round:", currentMatch.round);
-      console.log("Current match number:", currentMatch.match_number);
-      
       const nextRound = currentMatch.round + 1;
       const nextMatchNumber = Math.ceil(currentMatch.match_number / 2);
-      
-      console.log("Next round:", nextRound);
-      console.log("Next match number:", nextMatchNumber);
-      
-      // Determine if winner goes to player1 or player2 slot
-      // Odd match numbers (1, 3, 5...) feed into player1
-      // Even match numbers (2, 4, 6...) feed into player2
+      // Odd match numbers (1, 3, 5...) feed into player1; even (2, 4, 6...) into player2
       const isPlayer1Slot = currentMatch.match_number % 2 === 1;
-      console.log("Winner goes to:", isPlayer1Slot ? "Player 1 slot" : "Player 2 slot");
-      
-      // Find the next round match
+
       const nextMatch = matches.find(
         m => m.round === nextRound && m.match_number === nextMatchNumber
       );
-      
-      console.log("Next match found:", nextMatch);
-      
+
       if (nextMatch) {
-        // Update next round match with the winner
-        const updateData = isPlayer1Slot 
+        const updateData = isPlayer1Slot
           ? { player1_id: editForm.winner_id, updated_at: new Date().toISOString() }
           : { player2_id: editForm.winner_id, updated_at: new Date().toISOString() };
-        
-        console.log("Update data:", updateData);
-        console.log("Updating match ID:", nextMatch.id);
-        
+
         const { data: nextMatchData, error: nextMatchError } = await supabase
           .from("matches")
           .update(updateData)
@@ -490,23 +471,15 @@ export default function MatchesTable({
             winner:players!matches_winner_id_fkey(id, name, seed)
           `)
           .single();
-        
-        console.log("Next match update result:", nextMatchData);
-        console.log("Next match update error:", nextMatchError);
-        
+
         if (nextMatchError) {
-          console.error("❌ Error updating next round:", nextMatchError);
           toast.error(`Failed to advance winner: ${nextMatchError.message}`);
         } else {
-          console.log("✅ Successfully updated next round!");
-          
           // Check if this is a semifinal match - if so, advance loser to 3rd place match
           const maxRound = Math.max(...matches.map(m => m.round));
           const isSemifinal = currentMatch.round === maxRound - 1;
-          
+
           if (isSemifinal && editForm.winner_id) {
-            console.log("🥉 This is a semifinal! Checking for 3rd place match...");
-            
             // Find loser
             const loserId = currentMatch.player1_id === editForm.winner_id 
               ? currentMatch.player2_id 
@@ -519,8 +492,6 @@ export default function MatchesTable({
               );
               
               if (thirdPlaceMatch) {
-                console.log("Found 3rd place match:", thirdPlaceMatch);
-                
                 // Determine which slot to fill (fill player1 first, then player2)
                 const slotToFill = !thirdPlaceMatch.player1_id ? 'player1_id' : 'player2_id';
                 
@@ -540,7 +511,6 @@ export default function MatchesTable({
                   .single();
                 
                 if (!thirdPlaceError) {
-                  console.log("✅ Loser advanced to 3rd place match!");
                   setMatches(matches.map(m => {
                     if (m.id === matchId) return data;
                     if (m.id === nextMatch.id) return nextMatchData;
@@ -560,9 +530,7 @@ export default function MatchesTable({
           }
           
           setEditingMatch(null);
-          
-          // Check if this round is now completed and create announcement
-          console.log(`Match completed, checking if Round ${currentMatch.round} is done...`);
+
           checkAndAnnounceRoundCompletion(eventId, currentMatch.round).then((announced) => {
             if (announced) {
               toast.success("🎉 Round completed! Announcement posted. Refreshing...");
@@ -577,19 +545,15 @@ export default function MatchesTable({
           });
           return;
         }
-      } else {
-        console.warn("⚠️ Next round match not found!");
-        console.log("Available matches:", matches.map(m => ({ id: m.id, round: m.round, match_number: m.match_number })));
       }
     }
 
     // If no next round update needed, just update current match
     setMatches(matches.map(m => m.id === matchId ? data : m));
     setEditingMatch(null);
-    
-    // Check if this round is now completed and create announcement
-    if (editForm.status === "completed" && editForm.winner_id) {
-      console.log(`Match completed, checking if Round ${currentMatch.round} is done...`);
+
+    // Check if this round is now completed and create announcement (use finalStatus so inferred "completed" counts)
+    if (finalStatus === "completed" && winnerIdValue) {
       checkAndAnnounceRoundCompletion(eventId, currentMatch.round).then((announced) => {
         if (announced) {
           toast.success("🎉 Round completed! Announcement posted.");
@@ -1268,7 +1232,15 @@ export default function MatchesTable({
                         <td className="px-3 py-4">
                           <select
                             value={editForm.winner_id || ""}
-                            onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value })}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEditForm((prev: typeof editForm) => ({
+                                ...prev,
+                                winner_id: val,
+                                // Auto-set status to completed when picking a winner so user doesn't have to
+                                ...(val && val !== DRAW_WINNER_ID ? { status: "completed" as const } : {}),
+                              }));
+                            }}
                             className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
                           >
                             <option value="">No winner</option>
@@ -1718,7 +1690,14 @@ export default function MatchesTable({
                       </div>
                       <select
                         value={editForm.winner_id || ""}
-                        onChange={(e) => setEditForm({ ...editForm, winner_id: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditForm((prev: typeof editForm) => ({
+                            ...prev,
+                            winner_id: val,
+                            ...(val && val !== DRAW_WINNER_ID ? { status: "completed" as const } : {}),
+                          }));
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                       >
                         <option value="">No winner</option>
