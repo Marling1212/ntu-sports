@@ -144,7 +144,7 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Sport *
