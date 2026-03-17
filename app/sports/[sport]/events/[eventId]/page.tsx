@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getEventForPublicPage, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
+import { getEventByIdAndSport, getEventForPublicPage, getDivisionIdsForEventAndSport, getSportMatches, getSportAnnouncements } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
