@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player } from "@/types/database";
@@ -150,6 +151,10 @@ export default function MatchesTable({
 }: MatchesTableProps) {
   const { t } = useI18n();
   const [matches, setMatches] = useState<Match[]>(initialMatches);
+  const router = useRouter();
+  useEffect(() => {
+    setMatches(initialMatches);
+  }, [initialMatches]);
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const supabase = createClient();
@@ -545,11 +550,7 @@ export default function MatchesTable({
             } else {
               toast.success("Match updated! Winner advanced to next round. Refreshing...");
             }
-            
-            // Force refresh after a short delay
-            setTimeout(() => {
-              window.location.href = window.location.href;
-            }, 1500);
+            setTimeout(() => router.refresh(), 500);
           });
           return;
         }
@@ -1772,7 +1773,7 @@ export default function MatchesTable({
           eventId={eventId}
           players={players}
           onMatchCreated={() => {
-            window.location.reload();
+            router.refresh();
           }}
           onClose={() => setShowCreateMatch(false)}
           divisions={divisions}

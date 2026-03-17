@@ -147,6 +147,27 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
         <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              Event Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => {
+                setErrors((prev) => ({ ...prev, name: "" }));
+                setFormData({ ...formData, name: e.target.value });
+              }}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
+                errors.name ? "border-red-400" : "border-gray-300"
+              }`}
+              placeholder="e.g., NTU Tennis – 114 Freshman Cup"
+            />
+            {errors.name && (
+              <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Sport *
             </label>
             <select
@@ -296,27 +317,6 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
               </button>
             </div>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Event Name *
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => {
-                setErrors((prev) => ({ ...prev, name: "" }));
-                setFormData({ ...formData, name: e.target.value });
-              }}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
-                errors.name ? "border-red-400" : "border-gray-300"
-              }`}
-              placeholder="e.g., NTU Tennis – 114 Freshman Cup"
-            />
-            {errors.name && (
-              <p className="text-red-500 text-xs mt-1">{errors.name}</p>
-            )}
-          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
