@@ -1225,6 +1225,10 @@ export default function MatchesTable({
                               min={0}
                               value={editForm.score1}
                               onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                              }}
                               className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
                               placeholder="0"
                             />
@@ -1234,6 +1238,10 @@ export default function MatchesTable({
                               min={0}
                               value={editForm.score2}
                               onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                              }}
                               className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
                               placeholder="0"
                             />
@@ -1244,6 +1252,10 @@ export default function MatchesTable({
                           <span className="block text-xs text-gray-500 mb-1">{t("admin.winnerRequired") || "Winner (required)"}</span>
                           <select
                             value={editForm.winner_id || ""}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                              if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                            }}
                             onChange={(e) => {
                               const val = e.target.value;
                               setEditForm((prev: typeof editForm) => ({
@@ -1266,6 +1278,10 @@ export default function MatchesTable({
                             <input
                               type="datetime-local"
                               value={editForm.scheduled_time || ""}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                              }}
                               onChange={(e) =>
                                 setEditForm({
                                   ...editForm,
@@ -1278,6 +1294,10 @@ export default function MatchesTable({
                             {slots.length > 0 && (
                               <select
                                 value={editForm.slot_id || ""}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                  if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                                }}
                                 onChange={(e) => {
                                   const newSlotId = e.target.value;
                                   if (!newSlotId) {
@@ -1314,6 +1334,10 @@ export default function MatchesTable({
                                   ? courts.find((c: any) => c.name === editForm.court)!.id
                                   : editForm.court === "" ? "" : "OTHER"
                               }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                              }}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 if (val === "") {
@@ -1337,6 +1361,10 @@ export default function MatchesTable({
                             <input
                               type="text"
                               value={editForm.court}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                              }}
                               onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
                               className="w-full max-w-[150px] px-2 py-1 border border-gray-300 rounded text-sm"
                               placeholder="Court"
@@ -1346,6 +1374,10 @@ export default function MatchesTable({
                         <td className="px-3 py-4">
                           <select
                             value={editForm.status}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                              if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                            }}
                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                             className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
                           >
@@ -1690,6 +1722,10 @@ export default function MatchesTable({
                           min={0}
                           value={editForm.score1}
                           onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                            if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                           placeholder="0"
                         />
@@ -1698,6 +1734,10 @@ export default function MatchesTable({
                           min={0}
                           value={editForm.score2}
                           onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                            if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                           placeholder="0"
                         />
@@ -1706,6 +1746,10 @@ export default function MatchesTable({
                         <span className="block text-xs text-gray-500 mb-1">{t("admin.winnerRequired") || "Winner (required)"}</span>
                         <select
                         value={editForm.winner_id || ""}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                          if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                        }}
                         onChange={(e) => {
                           const val = e.target.value;
                           setEditForm((prev: typeof editForm) => ({
@@ -1724,6 +1768,10 @@ export default function MatchesTable({
                       </div>
                       <select
                         value={editForm.status}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                          if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                        }}
                         onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                       >
