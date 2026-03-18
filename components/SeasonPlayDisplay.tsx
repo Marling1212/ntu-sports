@@ -1042,15 +1042,55 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     return null;
   };
 
-  /** Standings: color only when that team’s playoff seed is locked (same tier colors as bracket paths). */
-  const getQualifierRowClass = (playerId: string, groupNum: number) => {
-    const seed = getLockedPlayoffSeed(playerId, groupNum);
-    if (seed === null) return "";
-    const key = `${seed}-${groupNum}`;
-    const tier = playoffWinsNeededTier.tierByKey.get(key);
-    if (tier === undefined) return "border-l-[8px] border-yellow-600 bg-yellow-200";
-    const c = playoffWinsNeededTier.tierColors[tier];
-    return c ?? "border-l-[8px] border-yellow-600 bg-yellow-200";
+  /** Left border tier (path) — index aligns with playoffWinsNeededTier.tierColors */
+  const standingTierBorder = [
+    "border-l-[8px] border-amber-600",
+    "border-l-[8px] border-teal-600",
+    "border-l-[8px] border-lime-600",
+    "border-l-[8px] border-emerald-600",
+    "border-l-[8px] border-sky-600",
+  ];
+  const standingTierBg = [
+    "bg-amber-200",
+    "bg-teal-200",
+    "bg-lime-200",
+    "bg-emerald-200",
+    "bg-sky-200",
+  ];
+
+  /**
+   * Standings: top X rows always get the dark left stripe for that rank’s bracket path.
+   * Background fill only when that team’s playoff seed is mathematically locked.
+   */
+  const getQualifierRowClass = (playerId: string, groupNum: number, rankIdx: number) => {
+    const parts: string[] = [];
+    if (hasPlayoffs) {
+      if (rankIdx < qualifiersPerGroup) {
+        const rankSeed = rankIdx + 1;
+        const key = `${rankSeed}-${groupNum}`;
+        const tier = playoffWinsNeededTier.tierByKey.get(key);
+        parts.push(
+          tier !== undefined && standingTierBorder[tier]
+            ? standingTierBorder[tier]
+            : "border-l-[8px] border-yellow-600"
+        );
+      } else {
+        parts.push("border-l-[8px] border-gray-500");
+      }
+    }
+    const lockedSeed = getLockedPlayoffSeed(playerId, groupNum);
+    if (lockedSeed != null) {
+      const k = `${lockedSeed}-${groupNum}`;
+      const t = playoffWinsNeededTier.tierByKey.get(k);
+      parts.push(
+        t !== undefined && standingTierBg[t] ? standingTierBg[t] : "bg-yellow-200"
+      );
+    }
+    const stripe = parts.join(" ");
+    const alt = rankIdx % 2 === 0 ? "bg-gray-50" : "bg-white";
+    if (!stripe) return alt;
+    if (lockedSeed != null) return stripe;
+    return `${stripe} ${alt}`;
   };
 
   // Count decided matches (completed, forfeit, walkover all count toward standings)
@@ -1404,7 +1444,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         </div>
                         {groupStandings.map((standing, idx) => {
                           const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
-                          const rowClass = getQualifierRowClass(standing.player.id, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
+                          const rowClass = getQualifierRowClass(standing.player.id, groupNum, idx);
                           const lockedSeed = getLockedPlayoffSeed(standing.player.id, groupNum);
                           return (
                             <Link
@@ -1457,7 +1497,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               return (
                               <tr 
                                 key={standing.player.id} 
-                                className={getQualifierRowClass(standing.player.id, groupNum) || (idx % 2 === 0 ? 'bg-gray-50' : 'bg-white')}
+                                className={getQualifierRowClass(standing.player.id, groupNum, idx)}
                               >
                                 <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                                 <td className="px-4 py-3">
@@ -1509,7 +1549,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       {standings.map((standing, idx) => {
                         const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                         const groupNum = typeof selectedGroup === "number" ? selectedGroup : 1;
-                        const rowClass = getQualifierRowClass(standing.player.id, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
+                        const rowClass = getQualifierRowClass(standing.player.id, groupNum, idx);
                         const lockedSeed = getLockedPlayoffSeed(standing.player.id, groupNum);
                         return (
                           <Link
@@ -1564,7 +1604,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           return (
                           <tr 
                             key={standing.player.id} 
-                            className={getQualifierRowClass(standing.player.id, groupNum) || (idx % 2 === 0 ? 'bg-gray-50' : 'bg-white')}
+                            className={getQualifierRowClass(standing.player.id, groupNum, idx)}
                           >
                             <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                             <td className="px-4 py-3">
@@ -1613,7 +1653,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   {standings.map((standing, idx) => {
                     const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                     const groupNum = standing.group ?? 1;
-                    const rowClass = getQualifierRowClass(standing.player.id, groupNum) || (idx % 2 === 0 ? "bg-gray-50" : "bg-white");
+                    const rowClass = getQualifierRowClass(standing.player.id, groupNum, idx);
                     const lockedSeed = getLockedPlayoffSeed(standing.player.id, groupNum);
                     return (
                       <Link
@@ -1668,7 +1708,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               return (
                       <tr 
                         key={standing.player.id} 
-                                className={getQualifierRowClass(standing.player.id, groupNum) || (idx % 2 === 0 ? 'bg-gray-50' : 'bg-white')}
+                                className={getQualifierRowClass(standing.player.id, groupNum, idx)}
                       >
                         <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
                         <td className="px-4 py-3">
