@@ -1425,23 +1425,21 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   const groupStandings = standings[groupNum] || [];
                   return (
                     <div key={groupNum} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                      <div className="bg-blue-600 text-white px-6 py-3">
-                        <h3 className="text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(groupNum))}</h3>
-                      </div>
-                      {/* Mobile: card per row with tier color */}
-                      <div className="md:hidden divide-y divide-gray-100">
-                        <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 text-xs text-gray-500 font-medium">
-                          <span className="w-8 text-center shrink-0">{t("seasonPlay.rank")}</span>
-                          <div className="min-w-0 flex-1">{t("seasonPlay.player")}</div>
-                          <div className="flex gap-x-2 shrink-0">
-                            <span className="w-6 text-center">{t("seasonPlay.wins").charAt(0)}</span>
-                            <span className="w-6 text-center">{t("seasonPlay.draws").charAt(0)}</span>
-                            <span className="w-6 text-center">{t("seasonPlay.losses").charAt(0)}</span>
-                            <span className="w-7 text-center">{t("seasonPlay.points")}</span>
-                            <span className="w-8 text-center">{t("seasonPlay.gd")}</span>
-                            <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
-                          </div>
+                      {/* Mobile: one gray header row — group name + stat abbreviations */}
+                      <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-gray-100 border-b border-gray-200 text-gray-800">
+                        <div className="min-w-0 flex-1 font-semibold text-base">
+                          {t("seasonPlay.groupN").replace("{n}", String(groupNum))}
                         </div>
+                        <div className="flex gap-x-2 shrink-0 text-xs font-medium text-gray-600">
+                          <span className="w-6 text-center">{t("seasonPlay.wins").charAt(0)}</span>
+                          <span className="w-6 text-center">{t("seasonPlay.draws").charAt(0)}</span>
+                          <span className="w-6 text-center">{t("seasonPlay.losses").charAt(0)}</span>
+                          <span className="w-7 text-center">{t("seasonPlay.points").charAt(0)}</span>
+                          <span className="w-8 text-center">{t("seasonPlay.gd")}</span>
+                          <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
+                        </div>
+                      </div>
+                      <div className="md:hidden divide-y divide-gray-100">
                         {groupStandings.map((standing, idx) => {
                           const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                           const rowClass = getQualifierRowClass(standing.player.id, groupNum, idx);
@@ -1474,16 +1472,17 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       </div>
                       <div className="hidden md:block overflow-x-auto">
                         <table className="w-full">
-                          <thead className="bg-gray-100">
-                            <tr>
-                              <th className="px-4 py-3 text-center">{t("seasonPlay.rank")}</th>
-                              <th className="px-4 py-3 text-left">{t("seasonPlay.player")}</th>
-                              <th className="px-4 py-3 text-center">{t("seasonPlay.wins")}</th>
-                              <th className="px-4 py-3 text-center">{t("seasonPlay.draws")}</th>
-                              <th className="px-4 py-3 text-center">{t("seasonPlay.losses")}</th>
-                              <th className="px-4 py-3 text-center">{t("seasonPlay.points")}</th>
-                              <th className="px-4 py-3 text-center">{t("seasonPlay.gd")}</th>
-                              <th className="px-4 py-3 text-center">{t("seasonPlay.yr")}</th>
+                          <thead>
+                            <tr className="bg-gray-100 text-gray-800 border-b border-gray-200">
+                              <th colSpan={2} className="px-4 py-3 text-left text-base font-semibold">
+                                {t("seasonPlay.groupN").replace("{n}", String(groupNum))}
+                              </th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.wins")}</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.draws")}</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.losses")}</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.points")}</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.gd")}</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.yr")}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1529,23 +1528,22 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               ) : (
                 // Display selected group standings
                 <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                  <div className="bg-blue-600 text-white px-6 py-3">
-                    <h3 className="text-lg font-semibold">{t("seasonPlay.groupNStandings").replace("{n}", String(selectedGroup))}</h3>
-                  </div>
                   {Array.isArray(standings) && (
-                    <div className="md:hidden divide-y divide-gray-100">
-                      <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 text-xs text-gray-500 font-medium">
-                        <span className="w-8 text-center shrink-0">{t("seasonPlay.rank")}</span>
-                        <div className="min-w-0 flex-1">{t("seasonPlay.player")}</div>
-                        <div className="flex gap-x-2 shrink-0">
+                    <>
+                      <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-gray-100 border-b border-gray-200 text-gray-800">
+                        <div className="min-w-0 flex-1 font-semibold text-base">
+                          {t("seasonPlay.groupN").replace("{n}", String(selectedGroup))}
+                        </div>
+                        <div className="flex gap-x-2 shrink-0 text-xs font-medium text-gray-600">
                           <span className="w-6 text-center">{t("seasonPlay.wins").charAt(0)}</span>
                           <span className="w-6 text-center">{t("seasonPlay.draws").charAt(0)}</span>
                           <span className="w-6 text-center">{t("seasonPlay.losses").charAt(0)}</span>
-                          <span className="w-7 text-center">{t("seasonPlay.points")}</span>
+                          <span className="w-7 text-center">{t("seasonPlay.points").charAt(0)}</span>
                           <span className="w-8 text-center">{t("seasonPlay.gd")}</span>
                           <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
                         </div>
                       </div>
+                    <div className="md:hidden divide-y divide-gray-100">
                       {standings.map((standing, idx) => {
                         const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                         const groupNum = typeof selectedGroup === "number" ? selectedGroup : 1;
@@ -1577,19 +1575,21 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         );
                       })}
                     </div>
+                    </>
                   )}
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="px-4 py-3 text-center">{t("seasonPlay.rank")}</th>
-                          <th className="px-4 py-3 text-left">{t("seasonPlay.player")}</th>
-                          <th className="px-4 py-3 text-center">{t("seasonPlay.wins")}</th>
-                          <th className="px-4 py-3 text-center">{t("seasonPlay.draws")}</th>
-                          <th className="px-4 py-3 text-center">{t("seasonPlay.losses")}</th>
-                          <th className="px-4 py-3 text-center">{t("seasonPlay.points")}</th>
-                          <th className="px-4 py-3 text-center">{t("seasonPlay.gd")}</th>
-                          <th className="px-4 py-3 text-center">{t("seasonPlay.yr")}</th>
+                      <thead>
+                        <tr className="bg-gray-100 text-gray-800 border-b border-gray-200">
+                          <th colSpan={2} className="px-4 py-3 text-left text-base font-semibold">
+                            {t("seasonPlay.groupN").replace("{n}", String(selectedGroup))}
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.wins")}</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.draws")}</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.losses")}</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.points")}</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.gd")}</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-600">{t("seasonPlay.yr")}</th>
                         </tr>
                       </thead>
                       <tbody>
