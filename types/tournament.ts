@@ -15,6 +15,8 @@ export interface Match {
   id: string;
   round: number;
   matchNumber: number;
+  /** Season play: round-robin group (1-based). */
+  group_number?: number | null;
   player1?: Player | null;
   player2?: Player | null;
   /** When set, bracket shows "Seed N Group X" (or resolved name from standings) instead of player1. */
