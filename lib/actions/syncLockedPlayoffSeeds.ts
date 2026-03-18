@@ -5,8 +5,9 @@ import { getSportMatches } from "@/lib/utils/getSportEvent";
 import { computeLockedSeeds, computeStandings } from "@/lib/standings";
 
 /**
- * Run lock detection and persist any newly locked (seed, group) into playoff match slots.
- * Call this after updating a regular-season match result (e.g. from MatchesTable).
+ * Run lock detection and persist (seed, group) → playoff match slots.
+ * Call only from admin flows (e.g. after saving a regular-season result).
+ * Public pages do not run this — viewers see data already written here.
  */
 export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   const supabase = await createClient();
@@ -48,7 +49,7 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
     }
   }
 
-  const regularForLock = dbMatches
+  let regularForLock = dbMatches
     .filter((m: any) => m.round === 0)
     .map((m: any) => ({
       player1_id: m.player1_id,
@@ -60,6 +61,31 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
       round: m.round,
       group_number: m.group_number,
     }));
+
+  /** Playoff slots reference group 1..N; if bracket only uses group 1, missing group_number on round-0 is treated as one pool. */
+  const groupsUsedInPlayoffs = new Set<number>();
+  for (const m of dbMatches.filter((x: any) => x.round >= 1)) {
+    const g1 = (m as any).slot1_group;
+    const g2 = (m as any).slot2_group;
+    if (g1 != null && Number(g1) > 0) groupsUsedInPlayoffs.add(Number(g1));
+    if (g2 != null && Number(g2) > 0) groupsUsedInPlayoffs.add(Number(g2));
+  }
+  const maxPlayoffGroup =
+    groupsUsedInPlayoffs.size > 0 ? Math.max(...groupsUsedInPlayoffs) : 1;
+
+  const hasNullGroup = regularForLock.some((m) => m.group_number == null || m.group_number === "");
+  if (hasNullGroup && maxPlayoffGroup <= 1) {
+    regularForLock = regularForLock.map((m) => ({
+      ...m,
+      group_number: m.group_number != null && m.group_number !== "" ? Number(m.group_number) : 1,
+    }));
+    await supabase
+      .from("matches")
+      .update({ group_number: 1 })
+      .eq("event_id", eventId)
+      .eq("round", 0)
+      .is("group_number", null);
+  }
 
   const playersForStandings = (dbPlayers || []).map((p: any) => ({
     id: p.id,
@@ -83,7 +109,6 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   const qualifiersPerGroup = (event as any).playoff_qualifiers_per_group || 8;
   const playoffMatches = dbMatches.filter((m: any) => m.round >= 1) as any[];
 
-  // How many seeds we need: at least qualifiersPerGroup, or more if draw has higher seeds (e.g. Seed 6 in a "top 4" bracket)
   let maxSeedNeeded = qualifiersPerGroup;
   for (const m of playoffMatches) {
     if (m.slot1_seed != null && m.slot1_seed > maxSeedNeeded) maxSeedNeeded = m.slot1_seed;
@@ -97,7 +122,6 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
       teamMembers,
       registrationType: ((event as any).registration_type as "player" | "team") || "player",
     });
-    // computeStandings returns Record<number, StandingRow[]> when there are groups; otherwise StandingRow[]
     if (standingsResult && !Array.isArray(standingsResult) && typeof standingsResult === "object") {
       const standingsByGroup = standingsResult as Record<number, { player: { id: string } }[]>;
       for (const [g, rows] of Object.entries(standingsByGroup)) {
@@ -107,15 +131,18 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
           if (row?.player?.id && idx < maxSeedNeeded) seedGroupToPlayer.set(`${idx + 1},${groupNum}`, row.player.id);
         });
       }
+    } else if (Array.isArray(standingsResult)) {
+      standingsResult.forEach((row: { player?: { id: string } }, idx: number) => {
+        if (row?.player?.id && idx < maxSeedNeeded) seedGroupToPlayer.set(`${idx + 1},1`, row.player.id);
+      });
     }
   } catch (_) {
-    // If standings fail (e.g. bad data after admin edit), continue with locked-only resolution
+    // standings failed — locked map still used
   }
 
   const resolveSlot = (seed: number, group: number) =>
     locked.get(`${seed},${group}`) ?? seedGroupToPlayer.get(`${seed},${group}`) ?? null;
 
-  // Re-resolve every slot from standings/locked (so edited draws get correct player and BYE can advance)
   for (const m of playoffMatches) {
     const updates: { player1_id?: string; player2_id?: string; winner_id?: string; status?: string } = {};
     if (m.slot1_seed != null && m.slot1_group != null) {
@@ -144,14 +171,13 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
     }
   }
 
-  // Push BYE winners into the next round (so the bracket shows them advanced)
   const byRound = playoffMatches.sort((a: any, b: any) => a.round - b.round || a.match_number - b.match_number);
   for (const m of byRound) {
     const winnerId = m.winner_id ?? null;
     if (!winnerId) continue;
     const hasSlot1 = m.slot1_seed != null && m.slot1_group != null;
     const hasSlot2 = m.slot2_seed != null && m.slot2_group != null;
-    if (hasSlot1 && hasSlot2) continue; // both sides filled = normal match, advancement handled elsewhere
+    if (hasSlot1 && hasSlot2) continue;
     const nextRound = m.round + 1;
     const nextMatchNum = Math.ceil(m.match_number / 2);
     const isPlayer1Slot = m.match_number % 2 === 1;

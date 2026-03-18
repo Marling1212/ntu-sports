@@ -411,6 +411,9 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
   };
 
   const generatePlayoffs = async () => {
+    const { syncLockedPlayoffSeeds } = await import("@/lib/actions/syncLockedPlayoffSeeds");
+    await syncLockedPlayoffSeeds(eventId);
+
     // Get regular season matches with group_number
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
@@ -433,7 +436,9 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
     const groupNumbers = [...new Set(matches.map((m: any) => m.group_number).filter((g: any) => g !== null))].sort((a, b) => a - b);
     
     if (groupNumbers.length === 0) {
-      toast.error("No groups found in regular season matches! Please regenerate season matches first.");
+      toast.error(
+        "例行賽比賽缺少 group_number。若季後賽只有一組，請先儲存任一場例行賽比分以同步；若有多組，請在資料庫為各場比賽標示組別後再試。"
+      );
       return;
     }
 

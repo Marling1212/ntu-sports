@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "react-hot-toast";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { syncLockedPlayoffSeeds } from "@/lib/actions/syncLockedPlayoffSeeds";
 import EventSponsorBanner from "@/components/EventSponsorBanner";
 
 export const dynamic = "force-dynamic";
@@ -37,9 +36,6 @@ export default async function SportEventDrawPage({
   const tournamentType = (division?.tournament_type ?? event.tournament_type) as "single_elimination" | "season_play" | undefined;
   const registrationType = (division?.registration_type ?? event.registration_type) as "player" | "team" | undefined;
 
-  if (tournamentType === "season_play") {
-    await syncLockedPlayoffSeeds(event.id);
-  }
   const { data: sponsors } = await supabase
     .from("sponsors")
     .select("id, name, logo_url, website_url")
