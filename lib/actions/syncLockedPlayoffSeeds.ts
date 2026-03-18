@@ -4,10 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getSportMatches } from "@/lib/utils/getSportEvent";
 import { computeLockedSeeds, computeStandings } from "@/lib/standings";
 
+const DECIDED = new Set(["completed", "forfeit", "walkover"]);
+
 /**
  * Run lock detection and persist (seed, group) → playoff match slots.
- * Call only from admin flows (e.g. after saving a regular-season result).
- * Public pages do not run this — viewers see data already written here.
+ * Mid-season: only mathematically locked seeds get real names; others stay empty (UI shows Seed N Group G).
+ * After every regular-season game is decided: fill all seed slots from final standings.
+ * True structural byes (one side has no seed slot) still auto-advance.
  */
 export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   const supabase = await createClient();
@@ -62,7 +65,6 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
       group_number: m.group_number,
     }));
 
-  /** Playoff slots reference group 1..N; if bracket only uses group 1, missing group_number on round-0 is treated as one pool. */
   const groupsUsedInPlayoffs = new Set<number>();
   for (const m of dbMatches.filter((x: any) => x.round >= 1)) {
     const g1 = (m as any).slot1_group;
@@ -86,6 +88,9 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
       .eq("round", 0)
       .is("group_number", null);
   }
+
+  const allRegularComplete =
+    regularForLock.length > 0 && regularForLock.every((m) => DECIDED.has(m.status));
 
   const playersForStandings = (dbPlayers || []).map((p: any) => ({
     id: p.id,
@@ -137,33 +142,80 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
       });
     }
   } catch (_) {
-    // standings failed — locked map still used
+    /* standings failed */
   }
 
-  const resolveSlot = (seed: number, group: number) =>
-    locked.get(`${seed},${group}`) ?? seedGroupToPlayer.get(`${seed},${group}`) ?? null;
+  const resolveSlot = (seed: number, group: number): string | null => {
+    const k = `${seed},${group}`;
+    const fromLock = locked.get(k);
+    if (fromLock) return fromLock;
+    if (allRegularComplete) return seedGroupToPlayer.get(k) ?? null;
+    return null;
+  };
+
+  const bothSeededSides = (m: any) =>
+    m.slot1_seed != null &&
+    m.slot1_group != null &&
+    m.slot2_seed != null &&
+    m.slot2_group != null;
+
+  /** status=bye with two real seed slots is wrong (TBD opponent is not a structural bye). */
+  for (const m of playoffMatches) {
+    if (m.status !== "bye" || !bothSeededSides(m)) continue;
+    const oldW = m.winner_id;
+    await supabase
+      .from("matches")
+      .update({ status: "upcoming", winner_id: null })
+      .eq("id", m.id);
+    m.status = "upcoming";
+    m.winner_id = null;
+    if (!oldW) continue;
+    const nextRound = m.round + 1;
+    const nextMatchNum = Math.ceil(m.match_number / 2);
+    const next = playoffMatches.find((n: any) => n.round === nextRound && n.match_number === nextMatchNum);
+    if (!next) continue;
+    const fromP1 = m.match_number % 2 === 1;
+    if (fromP1 && next.player1_id === oldW) {
+      await supabase.from("matches").update({ player1_id: null }).eq("id", next.id);
+      next.player1_id = null;
+    }
+    if (!fromP1 && next.player2_id === oldW) {
+      await supabase.from("matches").update({ player2_id: null }).eq("id", next.id);
+      next.player2_id = null;
+    }
+  }
 
   for (const m of playoffMatches) {
-    const updates: { player1_id?: string; player2_id?: string; winner_id?: string; status?: string } = {};
+    const updates: { player1_id?: string | null; player2_id?: string | null; winner_id?: string | null; status?: string } =
+      {};
     if (m.slot1_seed != null && m.slot1_group != null) {
-      const id = resolveSlot(m.slot1_seed, m.slot1_group);
-      if (id) updates.player1_id = id;
+      updates.player1_id = resolveSlot(m.slot1_seed, m.slot1_group);
     }
     if (m.slot2_seed != null && m.slot2_group != null) {
-      const id = resolveSlot(m.slot2_seed, m.slot2_group);
-      if (id) updates.player2_id = id;
+      updates.player2_id = resolveSlot(m.slot2_seed, m.slot2_group);
     }
     const hasSlot1 = m.slot1_seed != null && m.slot1_group != null;
     const hasSlot2 = m.slot2_seed != null && m.slot2_group != null;
-    const isByeMatch = !hasSlot1 || !hasSlot2;
-    if (isByeMatch && (updates.player1_id || updates.player2_id || m.player1_id || m.player2_id)) {
-      const winnerId = updates.player1_id ?? updates.player2_id ?? m.player1_id ?? m.player2_id;
+    /** Two real seed slots = a normal pairing; TBD on one side is not a bye — stay upcoming. */
+    if (bothSeededSides(m)) {
+      const np1 = updates.player1_id !== undefined ? updates.player1_id : m.player1_id;
+      const np2 = updates.player2_id !== undefined ? updates.player2_id : m.player2_id;
+      if (!np1 || !np2) {
+        updates.status = "upcoming";
+        updates.winner_id = null;
+      }
+    }
+    const isStructuralBye = !hasSlot1 || !hasSlot2;
+    const p1 = updates.player1_id ?? m.player1_id;
+    const p2 = updates.player2_id ?? m.player2_id;
+    if (isStructuralBye && !bothSeededSides(m) && (p1 || p2)) {
+      const winnerId = (p1 as string) || (p2 as string);
       if (winnerId) {
         updates.winner_id = winnerId;
         updates.status = "bye";
       }
-    } else if (m.status === "bye" && (updates.player1_id || updates.player2_id)) {
-      updates.winner_id = updates.player1_id ?? updates.player2_id!;
+    } else if (m.status === "bye" && (updates.player1_id || updates.player2_id) && !bothSeededSides(m)) {
+      updates.winner_id = (updates.player1_id ?? updates.player2_id) as string;
     }
     if (Object.keys(updates).length > 0) {
       await supabase.from("matches").update(updates).eq("id", m.id);
