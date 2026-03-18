@@ -1057,10 +1057,38 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     "bg-emerald-200",
     "bg-sky-200",
   ];
+  /** Solid bar for mobile (border-l was clipped / inconsistent on narrow viewports). */
+  const standingTierStripeBg = [
+    "bg-amber-600",
+    "bg-teal-600",
+    "bg-lime-600",
+    "bg-emerald-600",
+    "bg-sky-600",
+  ];
+
+  const getMobileStandingsStripeBg = (rankIdx: number, groupNum: number) => {
+    if (!hasPlayoffs) return "";
+    if (rankIdx < qualifiersPerGroup) {
+      const tier = playoffWinsNeededTier.tierByKey.get(`${rankIdx + 1}-${groupNum}`);
+      if (tier !== undefined && standingTierStripeBg[tier]) return standingTierStripeBg[tier];
+      return "bg-yellow-600";
+    }
+    return "bg-gray-500";
+  };
+
+  const getMobileStandingsRowBg = (playerId: string, groupNum: number, rankIdx: number) => {
+    const lockedSeed = getLockedPlayoffSeed(playerId, groupNum);
+    if (lockedSeed != null) {
+      const t = playoffWinsNeededTier.tierByKey.get(`${lockedSeed}-${groupNum}`);
+      return t !== undefined && standingTierBg[t] ? standingTierBg[t] : "bg-yellow-200";
+    }
+    return rankIdx % 2 === 0 ? "bg-gray-50" : "bg-white";
+  };
 
   /**
    * Standings: top X rows always get the dark left stripe for that rank’s bracket path.
    * Background fill only when that team’s playoff seed is mathematically locked.
+   * (Desktop/table; mobile uses stripe div + getMobileStandingsRowBg.)
    */
   const getQualifierRowClass = (playerId: string, groupNum: number, rankIdx: number) => {
     const parts: string[] = [];
@@ -1439,32 +1467,41 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
                         </div>
                       </div>
-                      <div className="md:hidden divide-y divide-gray-100">
+                      <div className="md:hidden flex flex-col w-full divide-y divide-gray-100">
                         {groupStandings.map((standing, idx) => {
                           const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
-                          const rowClass = getQualifierRowClass(standing.player.id, groupNum, idx);
+                          const rowBg = getMobileStandingsRowBg(standing.player.id, groupNum, idx);
+                          const stripeBg = getMobileStandingsStripeBg(idx, groupNum);
                           const lockedSeed = getLockedPlayoffSeed(standing.player.id, groupNum);
                           return (
                             <Link
                               key={standing.player.id}
                               href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
-                              className={`flex items-center gap-3 px-4 py-3 ${rowClass}`}
+                              className={`flex w-full min-w-0 items-stretch ${rowBg}`}
                             >
-                              <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
-                              <div className="min-w-0 flex-1">
-                                <span className="font-semibold text-gray-800 block truncate">
-                                  {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
-                                  {standing.player.name}
-                                </span>
-                                {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
-                              </div>
-                              <div className="flex gap-x-2 text-sm shrink-0">
-                                <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
-                                <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
-                                <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
-                                <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
-                                <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
-                                <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
+                              {hasPlayoffs && (
+                                <div
+                                  className={`w-2 shrink-0 self-stretch min-h-[3rem] ${stripeBg}`}
+                                  aria-hidden
+                                />
+                              )}
+                              <div className="flex flex-1 min-w-0 items-center gap-3 px-4 py-3">
+                                <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-semibold text-gray-800 block truncate">
+                                    {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
+                                    {standing.player.name}
+                                  </span>
+                                  {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
+                                </div>
+                                <div className="flex gap-x-2 text-sm shrink-0">
+                                  <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
+                                  <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
+                                  <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
+                                  <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
+                                  <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
+                                  <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
+                                </div>
                               </div>
                             </Link>
                           );
@@ -1543,33 +1580,42 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           <span className="w-8 text-center">{t("seasonPlay.yr")}</span>
                         </div>
                       </div>
-                    <div className="md:hidden divide-y divide-gray-100">
+                    <div className="md:hidden flex flex-col w-full divide-y divide-gray-100">
                       {standings.map((standing, idx) => {
                         const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                         const groupNum = typeof selectedGroup === "number" ? selectedGroup : 1;
-                        const rowClass = getQualifierRowClass(standing.player.id, groupNum, idx);
+                        const rowBg = getMobileStandingsRowBg(standing.player.id, groupNum, idx);
+                        const stripeBg = getMobileStandingsStripeBg(idx, groupNum);
                         const lockedSeed = getLockedPlayoffSeed(standing.player.id, groupNum);
                         return (
                           <Link
                             key={standing.player.id}
                             href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
-                            className={`flex items-center gap-3 px-4 py-3 ${rowClass}`}
+                            className={`flex w-full min-w-0 items-stretch ${rowBg}`}
                           >
-                            <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
-                            <div className="min-w-0 flex-1">
-                              <span className="font-semibold text-gray-800 block truncate">
-                                {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
-                                {standing.player.name}
-                              </span>
-                              {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
-                            </div>
-                            <div className="flex gap-x-2 text-sm shrink-0">
-                              <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
-                              <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
-                              <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
-                              <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
-                              <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
-                              <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
+                            {hasPlayoffs && (
+                              <div
+                                className={`w-2 shrink-0 self-stretch min-h-[3rem] ${stripeBg}`}
+                                aria-hidden
+                              />
+                            )}
+                            <div className="flex flex-1 min-w-0 items-center gap-3 px-4 py-3">
+                              <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                              <div className="min-w-0 flex-1">
+                                <span className="font-semibold text-gray-800 block truncate">
+                                  {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
+                                  {standing.player.name}
+                                </span>
+                                {standing.player.seed && <span className="text-xs text-gray-500">(Seed {standing.player.seed})</span>}
+                              </div>
+                              <div className="flex gap-x-2 text-sm shrink-0">
+                                <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
+                                <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
+                                <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
+                                <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
+                                <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
+                                <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
+                              </div>
                             </div>
                           </Link>
                         );
@@ -1637,7 +1683,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             // Display overall standings (no groups or single group selected)
             <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
               {Array.isArray(standings) && (
-                <div className="md:hidden divide-y divide-gray-100">
+                <div className="md:hidden flex flex-col w-full divide-y divide-gray-100">
                   <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 text-xs text-gray-500 font-medium">
                     <span className="w-8 text-center shrink-0">{t("seasonPlay.rank")}</span>
                     <div className="min-w-0 flex-1">{t("seasonPlay.player")}</div>
@@ -1653,29 +1699,38 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   {standings.map((standing, idx) => {
                     const cardDisplay = standing.redCards > 0 ? `${standing.yellowCards}/${standing.redCards}` : standing.yellowCards > 0 ? `${standing.yellowCards}` : "-";
                     const groupNum = standing.group ?? 1;
-                    const rowClass = getQualifierRowClass(standing.player.id, groupNum, idx);
+                    const rowBg = getMobileStandingsRowBg(standing.player.id, groupNum, idx);
+                    const stripeBg = getMobileStandingsStripeBg(idx, groupNum);
                     const lockedSeed = getLockedPlayoffSeed(standing.player.id, groupNum);
                     return (
                       <Link
                         key={standing.player.id}
                         href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
-                        className={`flex items-center gap-3 px-4 py-3 ${rowClass}`}
+                        className={`flex w-full min-w-0 items-stretch ${rowBg}`}
                       >
-                        <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
-                        <div className="min-w-0 flex-1">
-                          <span className="font-semibold text-gray-800 block truncate">
-                            {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
-                            {standing.player.name}
-                          </span>
-                          {standing.player.seed && <span className="text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(standing.player.seed))})</span>}
-                        </div>
-                        <div className="flex gap-x-2 text-sm shrink-0">
-                          <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
-                          <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
-                          <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
-                          <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
-                          <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
-                          <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
+                        {hasPlayoffs && (
+                          <div
+                            className={`w-2 shrink-0 self-stretch min-h-[3rem] ${stripeBg}`}
+                            aria-hidden
+                          />
+                        )}
+                        <div className="flex flex-1 min-w-0 items-center gap-3 px-4 py-3">
+                          <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                          <div className="min-w-0 flex-1">
+                            <span className="font-semibold text-gray-800 block truncate">
+                              {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
+                              {standing.player.name}
+                            </span>
+                            {standing.player.seed && <span className="text-xs text-gray-500">({t("seasonPlay.seed").replace("{n}", String(standing.player.seed))})</span>}
+                          </div>
+                          <div className="flex gap-x-2 text-sm shrink-0">
+                            <span className="w-6 text-center text-green-600 font-semibold">{standing.wins}W</span>
+                            <span className="w-6 text-center text-gray-600">{standing.draws || 0}D</span>
+                            <span className="w-6 text-center text-red-600 font-semibold">{standing.losses}L</span>
+                            <span className="w-7 text-center font-bold text-ntu-green">{standing.points}</span>
+                            <span className="w-8 text-center text-gray-700">{standing.goalDiff}</span>
+                            <span className="w-8 text-center text-gray-600">{cardDisplay}</span>
+                          </div>
                         </div>
                       </Link>
                     );
