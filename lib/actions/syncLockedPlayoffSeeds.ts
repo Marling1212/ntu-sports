@@ -159,6 +159,45 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
     m.slot2_seed != null &&
     m.slot2_group != null;
 
+  function slotSidesDefined(m: any): "both" | "one" | "neither" {
+    const a = m.slot1_seed != null && m.slot1_group != null;
+    const b = m.slot2_seed != null && m.slot2_group != null;
+    if (a && b) return "both";
+    if (a || b) return "one";
+    return "neither";
+  }
+
+  async function clearAdvanceFromMatch(matches: any[], m: any, oldW: string) {
+    const nextRound = m.round + 1;
+    const nextMatchNum = Math.ceil(m.match_number / 2);
+    const fromP1 = m.match_number % 2 === 1;
+    const next = matches.find((n: any) => n.round === nextRound && n.match_number === nextMatchNum);
+    if (!next) return;
+    if (fromP1 && next.player1_id === oldW) {
+      await supabase.from("matches").update({ player1_id: null }).eq("id", next.id);
+      next.player1_id = null;
+    }
+    if (!fromP1 && next.player2_id === oldW) {
+      await supabase.from("matches").update({ player2_id: null }).eq("id", next.id);
+      next.player2_id = null;
+    }
+  }
+
+  /** R2+: "bye" with a missing opponent is never valid — those are TBD feeder slots, not holes. */
+  for (const m of playoffMatches) {
+    if (Number(m.round) < 2 || m.status !== "bye") continue;
+    if (!m.player1_id || !m.player2_id) {
+      const oldW = m.winner_id;
+      await supabase
+        .from("matches")
+        .update({ status: "upcoming", winner_id: null })
+        .eq("id", m.id);
+      m.status = "upcoming";
+      m.winner_id = null;
+      if (oldW) await clearAdvanceFromMatch(playoffMatches, m, oldW);
+    }
+  }
+
   /** status=bye with two real seed slots is wrong (TBD opponent is not a structural bye). */
   for (const m of playoffMatches) {
     if (m.status !== "bye" || !bothSeededSides(m)) continue;
@@ -194,27 +233,32 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
     if (m.slot2_seed != null && m.slot2_group != null) {
       updates.player2_id = resolveSlot(m.slot2_seed, m.slot2_group);
     }
-    const hasSlot1 = m.slot1_seed != null && m.slot1_group != null;
-    const hasSlot2 = m.slot2_seed != null && m.slot2_group != null;
-    /** Two real seed slots = a normal pairing; TBD on one side is not a bye — stay upcoming. */
-    if (bothSeededSides(m)) {
+    const sides = slotSidesDefined(m);
+    const r = Number(m.round);
+    const p1 = updates.player1_id ?? m.player1_id;
+    const p2 = updates.player2_id ?? m.player2_id;
+    /** R1 + two seed columns: real matchup — TBD on either side => upcoming, never bye. */
+    if (r === 1 && sides === "both") {
       const np1 = updates.player1_id !== undefined ? updates.player1_id : m.player1_id;
       const np2 = updates.player2_id !== undefined ? updates.player2_id : m.player2_id;
       if (!np1 || !np2) {
         updates.status = "upcoming";
         updates.winner_id = null;
       }
-    }
-    const isStructuralBye = !hasSlot1 || !hasSlot2;
-    const p1 = updates.player1_id ?? m.player1_id;
-    const p2 = updates.player2_id ?? m.player2_id;
-    if (isStructuralBye && !bothSeededSides(m) && (p1 || p2)) {
+    } else if (r === 1 && sides === "one" && (p1 || p2)) {
+      /** Only R1 with exactly one seed column = literal BYE hole in the draw. */
       const winnerId = (p1 as string) || (p2 as string);
       if (winnerId) {
         updates.winner_id = winnerId;
         updates.status = "bye";
       }
-    } else if (m.status === "bye" && (updates.player1_id || updates.player2_id) && !bothSeededSides(m)) {
+    } else if (r >= 2) {
+      /** R2+: never auto-bye here (missing slot_* means feeder TBD, not a hole). */
+      if (!p1 || !p2) {
+        updates.status = "upcoming";
+        updates.winner_id = null;
+      }
+    } else if (m.status === "bye" && r === 1 && sides === "one" && (updates.player1_id || updates.player2_id)) {
       updates.winner_id = (updates.player1_id ?? updates.player2_id) as string;
     }
     if (Object.keys(updates).length > 0) {
@@ -227,9 +271,7 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   for (const m of byRound) {
     const winnerId = m.winner_id ?? null;
     if (!winnerId) continue;
-    const hasSlot1 = m.slot1_seed != null && m.slot1_group != null;
-    const hasSlot2 = m.slot2_seed != null && m.slot2_group != null;
-    if (hasSlot1 && hasSlot2) continue;
+    if (Number(m.round) !== 1 || slotSidesDefined(m) !== "one") continue;
     const nextRound = m.round + 1;
     const nextMatchNum = Math.ceil(m.match_number / 2);
     const isPlayer1Slot = m.match_number % 2 === 1;

@@ -307,9 +307,20 @@ export default function TournamentBracket({
           {/* We start the recursion at the final round (the right-most column). The branches will build leftwards. */}
           <div className="flex">
             <div className="flex flex-col justify-center gap-12 w-[150px] md:w-[200px]">
-               {gridMatches[rounds[rounds.length - 1]]?.map((match, i) => (
-                  <RecursiveMatchTree key={`root-${i}`} match={match} round={rounds[rounds.length - 1]} index={i} />
-               ))}
+               {/*
+                * Only the championship (final round, match #1) is the tree root. Match #2 in the same
+                * round is the 3rd-place game — rendering it here builds empty feeder branches below the real bracket.
+                */}
+               {gridMatches[rounds[rounds.length - 1]]
+                 ?.filter((match) => match && match.matchNumber === 1)
+                 .map((match, i) => (
+                   <RecursiveMatchTree
+                     key={`root-${match?.id ?? i}`}
+                     match={match}
+                     round={rounds[rounds.length - 1]}
+                     index={i}
+                   />
+                 ))}
             </div>
           </div>
           
