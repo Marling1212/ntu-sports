@@ -71,7 +71,7 @@ export default function TournamentBracket({
   const [activeTabRound, setActiveTabRound] = useState<number>(rounds[0]);
   const [mobileViewMode, setMobileViewMode] = useState<"full" | "tabs">("full");
   const [bracketZoom, setBracketZoom] = useState(1);
-  const MIN_ZOOM = 0.6;
+  const MIN_ZOOM = 0.4;
   const MAX_ZOOM = 1.8;
   const STEP_ZOOM = 0.1;
   const zoomOut = () => setBracketZoom((z) => Math.max(MIN_ZOOM, Number((z - STEP_ZOOM).toFixed(2))));
@@ -105,7 +105,7 @@ export default function TournamentBracket({
             </span>
           )}
           <div className="flex-1 min-w-0">
-            <div className={`text-xs md:text-sm font-medium truncate leading-tight ${isBye ? 'text-gray-400 italic' : ''}`}>
+            <div className={`text-sm md:text-base font-medium truncate leading-tight ${isBye ? 'text-gray-400 italic' : ''}`}>
               {displayText}
             </div>
             {player?.school && (
