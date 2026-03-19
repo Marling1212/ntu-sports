@@ -70,6 +70,13 @@ export default function TournamentBracket({
 
   const [activeTabRound, setActiveTabRound] = useState<number>(rounds[0]);
   const [mobileViewMode, setMobileViewMode] = useState<"full" | "tabs">("full");
+  const [bracketZoom, setBracketZoom] = useState(1);
+  const MIN_ZOOM = 0.6;
+  const MAX_ZOOM = 1.8;
+  const STEP_ZOOM = 0.1;
+  const zoomOut = () => setBracketZoom((z) => Math.max(MIN_ZOOM, Number((z - STEP_ZOOM).toFixed(2))));
+  const zoomIn = () => setBracketZoom((z) => Math.min(MAX_ZOOM, Number((z + STEP_ZOOM).toFixed(2))));
+  const resetZoom = () => setBracketZoom(1);
 
   // Player Block Sub-component
   const PlayerBlock = ({ 
@@ -285,16 +292,51 @@ export default function TournamentBracket({
       )}
 
       {/* Desktop & Full Mobile Flex View */}
-      <p className={`${mobileViewMode === "full" ? "block" : "hidden"} md:hidden text-xs text-gray-400 text-center mb-2`}>← {t("bracket.swipeHint")} →</p>
+      <div className={`${mobileViewMode === "full" ? "flex" : "hidden md:flex"} items-center justify-between gap-2 mb-2`}>
+        <p className="md:hidden text-xs text-gray-400">← {t("bracket.swipeHint")} →</p>
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={zoomOut}
+            disabled={bracketZoom <= MIN_ZOOM}
+            className="px-2 py-1 rounded border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Zoom out bracket"
+          >
+            -
+          </button>
+          <button
+            type="button"
+            onClick={resetZoom}
+            className="px-2 py-1 rounded border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50"
+            aria-label="Reset bracket zoom"
+          >
+            {Math.round(bracketZoom * 100)}%
+          </button>
+          <button
+            type="button"
+            onClick={zoomIn}
+            disabled={bracketZoom >= MAX_ZOOM}
+            className="px-2 py-1 rounded border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Zoom in bracket"
+          >
+            +
+          </button>
+        </div>
+      </div>
       
       <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full overflow-x-auto overflow-y-hidden pb-6 relative`}>
-        <div 
-          className="px-4 pt-2 mx-auto" 
-          style={{ minWidth: `calc(${rounds.length} * 150px + ${Math.max(0, rounds.length - 1)} * 48px)`, width: "max-content" }}
+        <div
+          className="pt-2"
+          style={{
+            minWidth: `calc(${rounds.length} * 150px + ${Math.max(0, rounds.length - 1)} * 48px)`,
+            width: "max-content",
+            transform: `scale(${bracketZoom})`,
+            transformOrigin: "top left",
+          }}
         >
           
           {/* Flex Column Headers */}
-          <div className="flex sticky top-0 bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full" style={{ gap: '48px' }}>
+          <div className="flex bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full" style={{ gap: '48px' }}>
             {rounds.map(round => (
               <div key={`header-${round}`} className="w-[150px] md:w-[200px] shrink-0 text-center">
                  <h3 className="text-sm md:text-base font-semibold text-ntu-green">{generateRoundName(round)}</h3>
