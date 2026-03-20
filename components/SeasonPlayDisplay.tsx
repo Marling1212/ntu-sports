@@ -972,21 +972,53 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   const isAdminDecide = config.final_tiebreaker === "admin_decide";
 
-  const isStandingTie = (a: any, b: any) => {
-    return (
-      a?.points === b?.points &&
-      a?.goalDiff === b?.goalDiff &&
-      (a?.goalsFor ?? 0) === (b?.goalsFor ?? 0) &&
-      (a?.fairPlayPoints ?? 0) === (b?.fairPlayPoints ?? 0)
-    );
+  const activeCriteria = new Set(config.order.filter((c) => c !== "final"));
+
+  const isStandingTie = (a: any, b: any, groupNumForH2H?: number) => {
+    // Tie detection must follow the same criteria order used by computeStandings.
+    // We only treat rows as tied when *all* selected criteria (except final) are equal.
+    for (const crit of activeCriteria) {
+      if (crit === "points") {
+        if (a?.points !== b?.points) return false;
+      } else if (crit === "wins") {
+        if (a?.wins !== b?.wins) return false;
+      } else if (crit === "losses") {
+        if (a?.losses !== b?.losses) return false;
+      } else if (crit === "draws") {
+        if ((a?.draws ?? 0) !== (b?.draws ?? 0)) return false;
+      } else if (crit === "goal_difference") {
+        if (a?.goalDiff !== b?.goalDiff) return false;
+      } else if (crit === "goals_for") {
+        if ((a?.goalsFor ?? 0) !== (b?.goalsFor ?? 0)) return false;
+      } else if (crit === "goals_against") {
+        if ((a?.goalsAgainst ?? 0) !== (b?.goalsAgainst ?? 0)) return false;
+      } else if (crit === "fair_play") {
+        if ((a?.fairPlayPoints ?? 0) !== (b?.fairPlayPoints ?? 0)) return false;
+      } else if (crit === "head_to_head") {
+        // Pairwise head-to-head equality check for unresolved tie.
+        const decidedStatuses = ["completed", "forfeit", "walkover"];
+        const h2hMatches = (regularSeasonMatches || []).filter((m: any) => {
+          if (!decidedStatuses.includes(m.status)) return false;
+          if (groupNumForH2H != null) return m.round === 0 && m.group_number === groupNumForH2H;
+          return m.round === 0 && (m.group_number == null || m.group_number === "");
+        });
+
+        const h2h = calculateHeadToHead(a.player.id, b.player.id, h2hMatches as any);
+        if (h2h.player1Points !== h2h.player2Points) return false;
+        if (h2h.player1GoalDiff !== h2h.player2GoalDiff) return false;
+        if (h2h.player1GoalsFor !== h2h.player2GoalsFor) return false;
+      }
+    }
+
+    return true;
   };
 
-  const getDisplayRank = (rows: any[], idx: number) => {
+  const getDisplayRank = (rows: any[], idx: number, groupNumForH2H?: number) => {
     if (!Array.isArray(rows) || !isAdminDecide) return idx + 1;
     if (idx === 0) return 1;
     let rank = 1;
     for (let i = 1; i <= idx; i++) {
-      if (isStandingTie(rows[i], rows[i - 1])) continue;
+      if (isStandingTie(rows[i], rows[i - 1], groupNumForH2H)) continue;
       rank = i + 1;
     }
     return rank;
@@ -1019,7 +1051,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       let i = 0;
       while (i < rows.length) {
         let j = i;
-        while (j + 1 < rows.length && isStandingTie(rows[j], rows[j + 1])) j++;
+        while (j + 1 < rows.length && isStandingTie(rows[j], rows[j + 1], groupNum)) j++;
         const tieSize = j - i + 1;
 
         if (tieSize > 1) {
@@ -1039,7 +1071,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     }
 
     return out;
-  }, [hasPlayoffs, isAdminDecide, qualifiersPerGroup, allGroupStandings]);
+  }, [hasPlayoffs, isAdminDecide, qualifiersPerGroup, allGroupStandings, config, regularSeasonMatches]);
 
   const hasUnresolvedSeedTies = useMemo(() => {
     if (!hasPlayoffs || !isAdminDecide || tieSeedLabels.size === 0) return false;
@@ -1609,7 +1641,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 />
                               )}
                               <div className="flex flex-1 min-w-0 items-center gap-3 px-4 py-3">
-                                <span className="w-8 text-center font-bold text-gray-700 shrink-0">{getDisplayRank(groupStandings, idx)}</span>
+                                <span className="w-8 text-center font-bold text-gray-700 shrink-0">{getDisplayRank(groupStandings, idx, groupNum)}</span>
                                 <div className="min-w-0 flex-1">
                                   <span className="font-semibold text-gray-800 block truncate">
                                     {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
@@ -1658,7 +1690,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 key={standing.player.id} 
                                 className={getQualifierRowClass(standing.player.id, groupNum, idx)}
                               >
-                                <td className="px-4 py-3 text-center font-bold text-gray-700">{getDisplayRank(groupStandings, idx)}</td>
+                                <td className="px-4 py-3 text-center font-bold text-gray-700">{getDisplayRank(groupStandings, idx, groupNum)}</td>
                                 <td className="px-4 py-3">
                                   <Link 
                                     href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
