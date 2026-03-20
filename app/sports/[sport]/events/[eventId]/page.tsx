@@ -110,7 +110,7 @@ export default async function SportEventPage({
       )}
       {/* Header Section */}
       <div className="text-center mb-12">
-        <h1 className="text-5xl font-bold text-ntu-green mb-4">
+        <h1 className="text-2xl sm:text-5xl font-bold text-ntu-green mb-2 sm:mb-4">
           {sportIcon} {event.name || t("sports.ntuSportTournament").replace("{sport}", sportName)}
         </h1>
       </div>
