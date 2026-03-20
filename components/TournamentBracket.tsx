@@ -70,13 +70,14 @@ export default function TournamentBracket({
 
   const [activeTabRound, setActiveTabRound] = useState<number>(rounds[0]);
   const [mobileViewMode, setMobileViewMode] = useState<"full" | "tabs">("full");
-  const [bracketZoom, setBracketZoom] = useState(1);
-  const MIN_ZOOM = 0.4;
-  const MAX_ZOOM = 1.8;
-  const STEP_ZOOM = 0.1;
+  const DEFAULT_ZOOM = 0.7; // 70%
+  const [bracketZoom, setBracketZoom] = useState(DEFAULT_ZOOM);
+  const MIN_ZOOM = 0.4; // keep current min (40%)
+  const MAX_ZOOM = Number((DEFAULT_ZOOM * 1.2).toFixed(2)); // 120% of default
+  const STEP_ZOOM = 0.05;
   const zoomOut = () => setBracketZoom((z) => Math.max(MIN_ZOOM, Number((z - STEP_ZOOM).toFixed(2))));
   const zoomIn = () => setBracketZoom((z) => Math.min(MAX_ZOOM, Number((z + STEP_ZOOM).toFixed(2))));
-  const resetZoom = () => setBracketZoom(1);
+  const resetZoom = () => setBracketZoom(DEFAULT_ZOOM);
 
   // Player Block Sub-component
   const PlayerBlock = ({ 
@@ -325,15 +326,18 @@ export default function TournamentBracket({
       </div>
       
       <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full overflow-x-auto overflow-y-hidden pb-6 relative`}>
-        <div
-          className="pt-2"
-          style={{
-            minWidth: `calc(${rounds.length} * 150px + ${Math.max(0, rounds.length - 1)} * 48px)`,
-            width: "max-content",
-            transform: `scale(${bracketZoom})`,
-            transformOrigin: "top left",
-          }}
-        >
+        {(() => {
+          const baseWidthPx = rounds.length * 150 + Math.max(0, rounds.length - 1) * 48;
+          const scaledWidthPx = baseWidthPx * bracketZoom;
+          return (
+            <div className="pt-2" style={{ width: scaledWidthPx, minWidth: scaledWidthPx, overflow: "hidden" }}>
+              <div
+                style={{
+                  width: baseWidthPx,
+                  transform: `scale(${bracketZoom})`,
+                  transformOrigin: "top left",
+                }}
+              >
           
           {/* Flex Column Headers */}
           <div className="flex bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full" style={{ gap: '48px' }}>
@@ -379,7 +383,10 @@ export default function TournamentBracket({
             </div>
           )}
           
-        </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Legend */}
