@@ -31,6 +31,7 @@ export function computeLockedSeeds(
   options: LockDetectionOptions = {}
 ): Map<string, string> {
   const cfg = normalizeTiebreakerConfig(config);
+  const isAdminDecide = cfg.final_tiebreaker === "admin_decide";
   const maxSeed = options.maxSeed ?? 8;
   const decidedStatuses = ["completed", "forfeit", "walkover"];
   const completed = regularSeasonMatches.filter((m) => decidedStatuses.includes(m.status));
@@ -44,6 +45,16 @@ export function computeLockedSeeds(
   ].sort((a, b) => a - b);
 
   const locked = new Map<string, string>();
+
+  const isStandingTie = (a: import("./compute").StandingRow, b: import("./compute").StandingRow) => {
+    // For admin_decide: if all non-final criteria are identical, the seed order is not decided.
+    return (
+      a.points === b.points &&
+      a.goalDiff === b.goalDiff &&
+      (a.goalsFor || 0) === (b.goalsFor || 0) &&
+      (a.fairPlayPoints || 0) === (b.fairPlayPoints || 0)
+    );
+  };
 
   for (const groupNum of groupNumbers) {
     const completedInGroup = completed.filter((m) => (m as any).group_number === groupNum);
@@ -87,8 +98,21 @@ export function computeLockedSeeds(
       }) as import("./compute").StandingRow[];
 
       for (let seed = 1; seed <= maxSeed && seed <= rows.length; seed++) {
-        const teamId = rows[seed - 1].player.id;
-        seedToTeamIds.get(seed)!.add(teamId);
+        const idx = seed - 1;
+        if (!isAdminDecide) {
+          const teamId = rows[idx].player.id;
+          seedToTeamIds.get(seed)!.add(teamId);
+          continue;
+        }
+
+        // Under admin_decide, tied teams should not collapse into a single seed.
+        // Add all candidates in the tie group that contains the seed's index.
+        let start = idx;
+        while (start > 0 && isStandingTie(rows[start - 1], rows[start])) start--;
+        let end = idx;
+        while (end + 1 < rows.length && isStandingTie(rows[end], rows[end + 1])) end++;
+
+        rows.slice(start, end + 1).forEach((r) => seedToTeamIds.get(seed)!.add(r.player.id));
       }
     }
 

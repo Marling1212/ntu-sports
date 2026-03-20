@@ -969,6 +969,96 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   };
 
   const config = useMemo(() => normalizeTiebreakerConfig(tiebreakerConfig), [tiebreakerConfig]);
+
+  const isAdminDecide = config.final_tiebreaker === "admin_decide";
+
+  const isStandingTie = (a: any, b: any) => {
+    return (
+      a?.points === b?.points &&
+      a?.goalDiff === b?.goalDiff &&
+      (a?.goalsFor ?? 0) === (b?.goalsFor ?? 0) &&
+      (a?.fairPlayPoints ?? 0) === (b?.fairPlayPoints ?? 0)
+    );
+  };
+
+  const getDisplayRank = (rows: any[], idx: number) => {
+    if (!Array.isArray(rows) || !isAdminDecide) return idx + 1;
+    if (idx === 0) return 1;
+    let rank = 1;
+    for (let i = 1; i <= idx; i++) {
+      if (isStandingTie(rows[i], rows[i - 1])) continue;
+      rank = i + 1;
+    }
+    return rank;
+  };
+
+  const allGroupStandings = useMemo(() => {
+    if (!hasPlayoffs || !isAdminDecide) return null;
+    if (!regularSeasonMatches?.length) return null;
+    return computeStandings(regularSeasonMatches as any, players, config, {
+      matchPlayerStats,
+      teamMembers,
+      registrationType,
+    }) as any;
+  }, [hasPlayoffs, isAdminDecide, regularSeasonMatches, players, config, matchPlayerStats, teamMembers, registrationType]);
+
+  // For admin_decide: if a seed position falls into an unresolved tie group,
+  // show "XXX/YYY" placeholders in the public bracket until admin decides.
+  const tieSeedLabels = useMemo(() => {
+    const out = new Map<string, string>();
+    if (!hasPlayoffs || !isAdminDecide || qualifiersPerGroup < 1 || !allGroupStandings) return out;
+
+    const groups: Record<number, any[]> = Array.isArray(allGroupStandings)
+      ? { 1: allGroupStandings as any[] }
+      : (allGroupStandings as Record<number, any[]>);
+
+    for (const [gStr, rows] of Object.entries(groups)) {
+      const groupNum = parseInt(gStr, 10);
+      if (Number.isNaN(groupNum) || !Array.isArray(rows)) continue;
+
+      let i = 0;
+      while (i < rows.length) {
+        let j = i;
+        while (j + 1 < rows.length && isStandingTie(rows[j], rows[j + 1])) j++;
+        const tieSize = j - i + 1;
+
+        if (tieSize > 1) {
+          const label = rows
+            .slice(i, j + 1)
+            .map((r) => r?.player?.name)
+            .filter(Boolean)
+            .join("/");
+          for (let idx = i; idx <= j && idx < qualifiersPerGroup; idx++) {
+            const seed = idx + 1;
+            out.set(`${seed},${groupNum}`, label);
+          }
+        }
+
+        i = j + 1;
+      }
+    }
+
+    return out;
+  }, [hasPlayoffs, isAdminDecide, qualifiersPerGroup, allGroupStandings]);
+
+  const hasUnresolvedSeedTies = useMemo(() => {
+    if (!hasPlayoffs || !isAdminDecide || tieSeedLabels.size === 0) return false;
+
+    // If the ambiguous seed slots still have empty player slots, show the warning.
+    const firstRound = resolvedPlayoffMatches.filter((m: any) => Number(m.round) === 1);
+    for (const m of firstRound) {
+      if (m.slot1 && typeof m.slot1 === "object") {
+        const key = `${m.slot1.seed},${m.slot1.group}`;
+        if (tieSeedLabels.has(key) && !m.player1) return true;
+      }
+      if (m.slot2 && typeof m.slot2 === "object") {
+        const key = `${m.slot2.seed},${m.slot2.group}`;
+        if (tieSeedLabels.has(key) && !m.player2) return true;
+      }
+    }
+    return false;
+  }, [hasPlayoffs, isAdminDecide, tieSeedLabels, resolvedPlayoffMatches]);
+
   const standings = useMemo(() => {
     const opts = {
       matchPlayerStats,
@@ -1033,6 +1123,32 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     teamMembers,
     registrationType,
   ]);
+
+  const playoffMatchesForBracket = useMemo(() => {
+    if (!hasPlayoffs) return resolvedPlayoffMatches;
+    if (!isAdminDecide) return resolvedPlayoffMatches;
+    if (tieSeedLabels.size === 0) return resolvedPlayoffMatches;
+
+    return resolvedPlayoffMatches.map((m: any) => {
+      const next = { ...m };
+
+      if (!next.player1 && next.slot1 && typeof next.slot1 === "object") {
+        const s = next.slot1;
+        const key = `${s.seed},${s.group}`;
+        const label = tieSeedLabels.get(key);
+        if (label) next.player1 = { id: `tie-${key}-p1`, name: label };
+      }
+
+      if (!next.player2 && next.slot2 && typeof next.slot2 === "object") {
+        const s = next.slot2;
+        const key = `${s.seed},${s.group}`;
+        const label = tieSeedLabels.get(key);
+        if (label) next.player2 = { id: `tie-${key}-p2`, name: label };
+      }
+
+      return next;
+    });
+  }, [hasPlayoffs, isAdminDecide, tieSeedLabels, resolvedPlayoffMatches]);
 
   /** Which playoff seed (1..X) this team is mathematically locked into for this group, if any. */
   const getLockedPlayoffSeed = (playerId: string, groupNum: number): number | null => {
@@ -1213,6 +1329,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               </div>
             </div>
           </div>
+
+          {hasUnresolvedSeedTies && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900">
+              <p className="font-semibold">{t("seasonPlay.rankIssueTitle")}</p>
+              <p className="text-sm mt-1">{t("seasonPlay.rankIssueDesc")}</p>
+            </div>
+          )}
 
           <div className={theme.tableWrapper}>
             {/* Mobile card view */}
@@ -1486,7 +1609,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 />
                               )}
                               <div className="flex flex-1 min-w-0 items-center gap-3 px-4 py-3">
-                                <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                                <span className="w-8 text-center font-bold text-gray-700 shrink-0">{getDisplayRank(groupStandings, idx)}</span>
                                 <div className="min-w-0 flex-1">
                                   <span className="font-semibold text-gray-800 block truncate">
                                     {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
@@ -1535,7 +1658,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 key={standing.player.id} 
                                 className={getQualifierRowClass(standing.player.id, groupNum, idx)}
                               >
-                                <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
+                                <td className="px-4 py-3 text-center font-bold text-gray-700">{getDisplayRank(groupStandings, idx)}</td>
                                 <td className="px-4 py-3">
                                   <Link 
                                     href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
@@ -1600,7 +1723,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                               />
                             )}
                             <div className="flex flex-1 min-w-0 items-center gap-3 px-4 py-3">
-                              <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                              <span className="w-8 text-center font-bold text-gray-700 shrink-0">{getDisplayRank(standings, idx)}</span>
                               <div className="min-w-0 flex-1">
                                 <span className="font-semibold text-gray-800 block truncate">
                                   {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
@@ -1652,7 +1775,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                             key={standing.player.id} 
                             className={getQualifierRowClass(standing.player.id, groupNum, idx)}
                           >
-                            <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
+                            <td className="px-4 py-3 text-center font-bold text-gray-700">{getDisplayRank(standings, idx)}</td>
                             <td className="px-4 py-3">
                               <Link 
                                 href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
@@ -1715,7 +1838,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           />
                         )}
                         <div className="flex flex-1 min-w-0 items-center gap-3 px-4 py-3">
-                          <span className="w-8 text-center font-bold text-gray-700 shrink-0">{idx + 1}</span>
+                          <span className="w-8 text-center font-bold text-gray-700 shrink-0">{getDisplayRank(standings, idx)}</span>
                           <div className="min-w-0 flex-1">
                             <span className="font-semibold text-gray-800 block truncate">
                               {lockedSeed != null && <span className="text-yellow-500 mr-1">🏆</span>}
@@ -1765,7 +1888,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                         key={standing.player.id} 
                                 className={getQualifierRowClass(standing.player.id, groupNum, idx)}
                       >
-                        <td className="px-4 py-3 text-center font-bold text-gray-700">{idx + 1}</td>
+                        <td className="px-4 py-3 text-center font-bold text-gray-700">{getDisplayRank(standings, idx)}</td>
                         <td className="px-4 py-3">
                           <Link 
                             href={`/sports/${sportName.toLowerCase()}/teams/${standing.player.id}`}
@@ -2176,7 +2299,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           />
 
           <TournamentBracket
-            matches={resolvedPlayoffMatches}
+            matches={playoffMatchesForBracket}
             players={players}
             sportName={sportName}
           />

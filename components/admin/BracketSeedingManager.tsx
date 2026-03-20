@@ -91,6 +91,15 @@ export default function BracketSeedingManager({
 
       const { computeStandings, normalizeTiebreakerConfig } = await import("@/lib/standings");
       const config = normalizeTiebreakerConfig((eventData as any)?.tiebreaker_config);
+      const isAdminDecide = config.final_tiebreaker === "admin_decide";
+      const isStandingTie = (a: any, b: any) => {
+        return (
+          a?.points === b?.points &&
+          a?.goalDiff === b?.goalDiff &&
+          (a?.goalsFor ?? 0) === (b?.goalsFor ?? 0) &&
+          (a?.fairPlayPoints ?? 0) === (b?.fairPlayPoints ?? 0)
+        );
+      };
       const matchesForStandings = regularMatches.map((m: any) => ({
         player1_id: m.player1_id,
         player2_id: m.player2_id,
@@ -107,13 +116,21 @@ export default function BracketSeedingManager({
       const standings: any[] = [];
       Object.keys(byGroup).forEach((groupNum) => {
         const sorted = byGroup[parseInt(groupNum)] || [];
-        sorted.forEach((row, rank) => {
+        let currentRank = 1;
+        sorted.forEach((row, idx) => {
+          if (idx === 0) currentRank = 1;
+          else if (isAdminDecide && isStandingTie(sorted[idx], sorted[idx - 1])) {
+            // same rank
+            currentRank = currentRank;
+          } else {
+            currentRank = idx + 1;
+          }
           standings.push({
             player: row.player,
             wins: row.wins,
             losses: row.losses,
             group: parseInt(groupNum),
-            rank: rank + 1,
+            rank: currentRank,
           });
         });
       });

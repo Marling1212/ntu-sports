@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getSportMatches } from "@/lib/utils/getSportEvent";
-import { computeLockedSeeds, computeStandings } from "@/lib/standings";
+import { computeLockedSeeds, computeStandings, normalizeTiebreakerConfig } from "@/lib/standings";
 
 const DECIDED = new Set(["completed", "forfeit", "walkover"]);
 
@@ -114,6 +114,9 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   const qualifiersPerGroup = (event as any).playoff_qualifiers_per_group || 8;
   const playoffMatches = dbMatches.filter((m: any) => m.round >= 1) as any[];
 
+  const tiebreakerCfg = normalizeTiebreakerConfig((event as any).tiebreaker_config);
+  const isAdminDecide = tiebreakerCfg.final_tiebreaker === "admin_decide";
+
   let maxSeedNeeded = qualifiersPerGroup;
   for (const m of playoffMatches) {
     if (m.slot1_seed != null && m.slot1_seed > maxSeedNeeded) maxSeedNeeded = m.slot1_seed;
@@ -121,6 +124,14 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   }
 
   let seedGroupToPlayer = new Map<string, string>();
+  const isStandingTie = (a: any, b: any) => {
+    return (
+      a?.points === b?.points &&
+      a?.goalDiff === b?.goalDiff &&
+      (a?.goalsFor ?? 0) === (b?.goalsFor ?? 0) &&
+      (a?.fairPlayPoints ?? 0) === (b?.fairPlayPoints ?? 0)
+    );
+  };
   try {
     const standingsResult = computeStandings(regularForLock, playersForStandings, (event as any).tiebreaker_config, {
       matchPlayerStats,
@@ -132,14 +143,53 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
       for (const [g, rows] of Object.entries(standingsByGroup)) {
         const groupNum = parseInt(g, 10);
         if (Number.isNaN(groupNum) || !Array.isArray(rows)) continue;
-        rows.forEach((row: { player?: { id: string } }, idx: number) => {
-          if (row?.player?.id && idx < maxSeedNeeded) seedGroupToPlayer.set(`${idx + 1},${groupNum}`, row.player.id);
-        });
+
+        if (!isAdminDecide) {
+          rows.forEach((row: { player?: { id: string } }, idx: number) => {
+            if (row?.player?.id && idx < maxSeedNeeded) seedGroupToPlayer.set(`${idx + 1},${groupNum}`, row.player.id);
+          });
+          continue;
+        }
+
+        // admin_decide: when a seed position falls inside an unresolved tie group,
+        // keep that seed slot empty (player_id stays null) so we can show "XXX/YYY" in public UI.
+        let i = 0;
+        while (i < rows.length) {
+          let j = i;
+          while (j + 1 < rows.length && isStandingTie(rows[j], rows[j + 1])) j++;
+          const tieSize = j - i + 1;
+
+          if (tieSize === 1) {
+            const idx = i;
+            if ((rows[idx] as any)?.player?.id && idx < maxSeedNeeded) {
+              seedGroupToPlayer.set(`${idx + 1},${groupNum}`, (rows[idx] as any).player.id);
+            }
+          }
+
+          i = j + 1;
+        }
       }
     } else if (Array.isArray(standingsResult)) {
-      standingsResult.forEach((row: { player?: { id: string } }, idx: number) => {
-        if (row?.player?.id && idx < maxSeedNeeded) seedGroupToPlayer.set(`${idx + 1},1`, row.player.id);
-      });
+      const rows = standingsResult as any[];
+      if (!isAdminDecide) {
+        rows.forEach((row: { player?: { id: string } }, idx: number) => {
+          if (row?.player?.id && idx < maxSeedNeeded) seedGroupToPlayer.set(`${idx + 1},1`, row.player.id);
+        });
+      } else {
+        let i = 0;
+        while (i < rows.length) {
+          let j = i;
+          while (j + 1 < rows.length && isStandingTie(rows[j], rows[j + 1])) j++;
+          const tieSize = j - i + 1;
+          if (tieSize === 1) {
+            const idx = i;
+            if (rows[idx]?.player?.id && idx < maxSeedNeeded) {
+              seedGroupToPlayer.set(`${idx + 1},1`, rows[idx].player.id);
+            }
+          }
+          i = j + 1;
+        }
+      }
     }
   } catch (_) {
     /* standings failed */
@@ -228,10 +278,13 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
     const updates: { player1_id?: string | null; player2_id?: string | null; winner_id?: string | null; status?: string } =
       {};
     if (m.slot1_seed != null && m.slot1_group != null) {
-      updates.player1_id = resolveSlot(m.slot1_seed, m.slot1_group);
+      const resolved = resolveSlot(m.slot1_seed, m.slot1_group);
+      // If admin already manually filled this slot, don't wipe it back to null.
+      if (resolved !== null || !m.player1_id) updates.player1_id = resolved;
     }
     if (m.slot2_seed != null && m.slot2_group != null) {
-      updates.player2_id = resolveSlot(m.slot2_seed, m.slot2_group);
+      const resolved = resolveSlot(m.slot2_seed, m.slot2_group);
+      if (resolved !== null || !m.player2_id) updates.player2_id = resolved;
     }
     const sides = slotSidesDefined(m);
     const r = Number(m.round);

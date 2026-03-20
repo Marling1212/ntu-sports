@@ -401,8 +401,12 @@ export function computeStandings(
           }
         }
       }
+      // Final tiebreaker:
+      // - alphabetical: deterministic order
+      // - admin_decide: keep teams tied (return 0 so their relative order stays stable),
+      //   so UI/admin can show the same rank and bracket as "XXX/YYY" until admin decides.
       if (useFinalAlphabetical) return a.player.name.localeCompare(b.player.name);
-      return a.player.name.localeCompare(b.player.name);
+      return 0;
     });
   }
 
