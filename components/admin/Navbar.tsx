@@ -81,9 +81,6 @@ export default function AdminNavbar({ eventId, eventName, sport, divisions = [],
               <Link href={`/admin/${eventId}/announcements${q}`} className="hover:opacity-80 transition-opacity">
                 {t("admin.announcements")}
               </Link>
-              <Link href={`/admin/${eventId}/brackets${q}`} className="hover:opacity-80 transition-opacity">
-                {t("admin.brackets")}
-              </Link>
               <Link href={`/admin/${eventId}/settings${q}`} className="hover:opacity-80 transition-opacity">
                 {t("admin.navSettings")}
               </Link>
