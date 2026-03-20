@@ -26,6 +26,7 @@ export default function GlobalSponsorManager({ initialSponsors = [] }: GlobalSpo
   const [showSponsorModal, setShowSponsorModal] = useState(false);
   const [editingSponsorId, setEditingSponsorId] = useState<string | null>(null);
   const [sponsorForm, setSponsorForm] = useState({ name: "", logoUrl: "", websiteUrl: "", tier: "Bronze" as SponsorTier });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const supabase = createClient();
   const { t } = useI18n();
@@ -51,6 +52,36 @@ export default function GlobalSponsorManager({ initialSponsors = [] }: GlobalSpo
     setShowSponsorModal(false);
     setEditingSponsorId(null);
     setSponsorForm({ name: "", logoUrl: "", websiteUrl: "", tier: "Bronze" });
+    setUploadingLogo(false);
+  };
+
+  const handleLogoFileUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const safeExt = ext.replace(/[^a-z0-9]/g, "") || "png";
+      const filePath = `global/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("sponsor-logos")
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("sponsor-logos").getPublicUrl(filePath);
+      if (!data?.publicUrl) throw new Error("Failed to get public URL");
+
+      setSponsorForm((prev) => ({ ...prev, logoUrl: data.publicUrl }));
+      toast.success("Logo uploaded");
+    } catch (error: any) {
+      toast.error(`Logo upload failed: ${error.message}`);
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const submitSponsorForm = () => {
@@ -235,6 +266,24 @@ export default function GlobalSponsorManager({ initialSponsors = [] }: GlobalSpo
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green focus:border-ntu-green outline-none transition-all shadow-sm"
                   placeholder="https://..."
                 />
+                <div className="mt-2">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-ntu-green hover:underline">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          void handleLogoFileUpload(file);
+                        }
+                        e.currentTarget.value = "";
+                      }}
+                      disabled={uploadingLogo}
+                    />
+                    <span>{uploadingLogo ? "Uploading..." : "Upload from device"}</span>
+                  </label>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Website URL</label>

@@ -123,6 +123,7 @@ export default function SettingsContent({
   const [showSponsorModal, setShowSponsorModal] = useState(false);
   const [editingSponsorId, setEditingSponsorId] = useState<string | null>(null);
   const [sponsorForm, setSponsorForm] = useState({ name: "", logoUrl: "", websiteUrl: "", tier: "Bronze" as SponsorTier });
+  const [uploadingSponsorLogo, setUploadingSponsorLogo] = useState(false);
 
   // Games management state
   const [games, setGames] = useState<Game[]>([]);
@@ -280,6 +281,36 @@ export default function SettingsContent({
     setShowSponsorModal(false);
     setEditingSponsorId(null);
     setSponsorForm({ name: "", logoUrl: "", websiteUrl: "", tier: "Bronze" });
+    setUploadingSponsorLogo(false);
+  };
+
+  const handleSponsorLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("請上傳圖片檔案");
+      return;
+    }
+
+    setUploadingSponsorLogo(true);
+    try {
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const safeExt = ext.replace(/[^a-z0-9]/g, "") || "png";
+      const filePath = `events/${eventId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("sponsor-logos")
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("sponsor-logos").getPublicUrl(filePath);
+      if (!data?.publicUrl) throw new Error("無法取得公開連結");
+
+      setSponsorForm((prev) => ({ ...prev, logoUrl: data.publicUrl }));
+      toast.success("Logo 上傳成功");
+    } catch (error: any) {
+      toast.error(`Logo 上傳失敗: ${error.message}`);
+    } finally {
+      setUploadingSponsorLogo(false);
+    }
   };
 
   const submitSponsorForm = () => {
@@ -1339,6 +1370,24 @@ export default function SettingsContent({
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
                     placeholder="https://..."
                   />
+                  <div className="mt-2">
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-ntu-green hover:underline">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            void handleSponsorLogoUpload(file);
+                          }
+                          e.currentTarget.value = "";
+                        }}
+                        disabled={uploadingSponsorLogo}
+                      />
+                      <span>{uploadingSponsorLogo ? "上傳中..." : "從裝置上傳圖片"}</span>
+                    </label>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Website Link</label>
