@@ -105,7 +105,7 @@ export default function TournamentBracket({
             </span>
           )}
           <div className="flex-1 min-w-0">
-            <div className={`text-sm md:text-base font-medium truncate leading-tight ${isBye ? 'text-gray-400 italic' : ''}`}>
+            <div className={`text-base md:text-lg font-medium truncate leading-tight ${isBye ? 'text-gray-400 italic' : ''}`}>
               {displayText}
             </div>
             {player?.school && (
