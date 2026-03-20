@@ -73,7 +73,7 @@ export default function TournamentBracket({
   const DEFAULT_ZOOM = 0.7; // 70%
   const [bracketZoom, setBracketZoom] = useState(DEFAULT_ZOOM);
   const MIN_ZOOM = 0.4; // keep current min (40%)
-  const MAX_ZOOM = Number((DEFAULT_ZOOM * 1.2).toFixed(2)); // 120% of default
+  const MAX_ZOOM = 1.2; // absolute 120%
   const STEP_ZOOM = 0.05;
   const zoomOut = () => setBracketZoom((z) => Math.max(MIN_ZOOM, Number((z - STEP_ZOOM).toFixed(2))));
   const zoomIn = () => setBracketZoom((z) => Math.min(MAX_ZOOM, Number((z + STEP_ZOOM).toFixed(2))));
