@@ -414,13 +414,24 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
     const { syncLockedPlayoffSeeds } = await import("@/lib/actions/syncLockedPlayoffSeeds");
     await syncLockedPlayoffSeeds(eventId);
 
-    // Get regular season matches with group_number
+    const { data: eventRow, error: eventErr } = await supabase
+      .from("events")
+      .select("tiebreaker_config, registration_type")
+      .eq("id", eventId)
+      .single();
+
+    if (eventErr) {
+      toast.error(`無法讀取賽事設定：${eventErr.message}`);
+      return;
+    }
+
+    // Same decided statuses as lib/standings/compute (not only "completed")
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
       .select("*, player1:player1_id(id, name), player2:player2_id(id, name), winner:winner_id(id, name)")
       .eq("event_id", eventId)
-      .eq("round", 0) // Regular season only
-      .eq("status", "completed");
+      .eq("round", 0)
+      .in("status", ["completed", "forfeit", "walkover"]);
 
     if (matchesError) {
       toast.error(`Error fetching matches: ${matchesError.message}`);
@@ -428,13 +439,14 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
     }
 
     if (!matches || matches.length === 0) {
-      toast.error("No completed regular season matches found!");
+      toast.error("No decided regular season matches found (completed / forfeit / walkover)!");
       return;
     }
 
-    // Get distinct group numbers
-    const groupNumbers = [...new Set(matches.map((m: any) => m.group_number).filter((g: any) => g !== null))].sort((a, b) => a - b);
-    
+    const groupNumbers = [...new Set(matches.map((m: any) => m.group_number).filter((g: any) => g !== null && g !== ""))].sort(
+      (a, b) => a - b
+    );
+
     if (groupNumbers.length === 0) {
       toast.error(
         "例行賽比賽缺少 group_number。若季後賽只有一組，請先儲存任一場例行賽比分以同步；若有多組，請在資料庫為各場比賽標示組別後再試。"
@@ -442,56 +454,62 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
       return;
     }
 
-    // Calculate standings per group
-    const groupStandings: { [groupNumber: number]: { [playerId: string]: { player: Player; wins: number; losses: number } } } = {};
-    
-    // Initialize group standings maps
-    groupNumbers.forEach(groupNum => {
-      groupStandings[groupNum] = {};
-    });
+    let matchPlayerStats: Array<Record<string, unknown>> = [];
+    let teamMembers: Array<{ id: string; player_id: string }> = [];
+    const { data: stats } = await supabase.from("match_player_stats").select("*").in(
+      "match_id",
+      matches.map((m: { id: string }) => m.id)
+    );
+    matchPlayerStats = stats || [];
 
-    // Calculate wins/losses per group
-    matches.forEach((match: any) => {
-      const groupNum = match.group_number;
-      if (!groupNum || !groupStandings[groupNum]) return;
-
-      // Initialize players in this group if not already present
-      if (match.player1_id && !groupStandings[groupNum][match.player1_id]) {
-        const player1 = players.find(p => p.id === match.player1_id);
-        if (player1) {
-          groupStandings[groupNum][match.player1_id] = { player: player1, wins: 0, losses: 0 };
-        }
+    const regType = ((eventRow as any)?.registration_type as "player" | "team") || "player";
+    if (regType === "team" && players.length > 0) {
+      const teamIds = players.filter((p) => (p as any).type === "team").map((p) => p.id);
+      if (teamIds.length > 0) {
+        const { data: members } = await supabase.from("team_members").select("id, player_id").in("player_id", teamIds);
+        teamMembers = (members || []) as Array<{ id: string; player_id: string }>;
       }
-      if (match.player2_id && !groupStandings[groupNum][match.player2_id]) {
-        const player2 = players.find(p => p.id === match.player2_id);
-        if (player2) {
-          groupStandings[groupNum][match.player2_id] = { player: player2, wins: 0, losses: 0 };
-        }
-      }
+    }
 
-      if (match.winner_id && groupStandings[groupNum][match.winner_id]) {
-        groupStandings[groupNum][match.winner_id].wins++;
-        
-        const loserId = match.winner_id === match.player1_id ? match.player2_id : match.player1_id;
-        if (loserId && groupStandings[groupNum][loserId]) {
-          groupStandings[groupNum][loserId].losses++;
-        }
-      }
-    });
+    const regularForStandings = matches.map((m: any) => ({
+      player1_id: m.player1_id,
+      player2_id: m.player2_id,
+      winner_id: m.winner_id,
+      score1: m.score1,
+      score2: m.score2,
+      status: m.status,
+      round: m.round,
+      group_number: m.group_number,
+    }));
 
-    // Build (seed, group) -> Player map. Seed is 1-based (1 = 1st in group).
+    const { computeStandings, normalizeTiebreakerConfig } = await import("@/lib/standings");
+    const config = normalizeTiebreakerConfig((eventRow as any)?.tiebreaker_config);
+    const playersForStandings = players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      seed: p.seed,
+      school: p.department,
+    }));
+
+    const standingsByGroup = computeStandings(regularForStandings as any, playersForStandings as any, config, {
+      matchPlayerStats: matchPlayerStats as any,
+      teamMembers,
+      registrationType: regType,
+    }) as Record<number, import("@/lib/standings").StandingRow[]>;
+
+    // Build (seed, group) -> Player map. Seed order = computeStandings order (same as public standings).
     const seedGroupToPlayer: Record<string, Player> = {};
     for (const groupNum of groupNumbers) {
-      const groupStandingsArray = Object.values(groupStandings[groupNum]);
-      const sorted = groupStandingsArray.sort((a, b) => b.wins - a.wins);
-      const topX = sorted.slice(0, playoffTeams);
-      if (topX.length < playoffTeams) {
-        toast.error(`Group ${groupNum} doesn't have enough players! Need ${playoffTeams}, have ${topX.length}`);
+      const rows = standingsByGroup[groupNum] || [];
+      if (rows.length < playoffTeams) {
+        toast.error(`第 ${groupNum} 組戰績隊伍不足：需要至少 ${playoffTeams} 隊，目前 ${rows.length} 隊`);
         return;
       }
-      topX.forEach((standing, idx) => {
+      const topX = rows.slice(0, playoffTeams);
+      topX.forEach((row, idx) => {
         const seed = idx + 1;
-        seedGroupToPlayer[`${seed},${groupNum}`] = standing.player;
+        const pl = players.find((p) => p.id === row.player.id);
+        if (pl) seedGroupToPlayer[`${seed},${groupNum}`] = pl;
       });
     }
 
@@ -513,13 +531,14 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
 
     // Confirm with group breakdown (from groupStandings)
     const confirmLines = [`將依「現有季後賽籤表」填入隊伍（不更動籤表結構）。\n\n每組前 ${playoffTeams} 名：\n`];
-    groupNumbers.forEach(groupNum => {
-      const groupTop = Object.values(groupStandings[groupNum] || {})
-        .sort((a, b) => b.wins - a.wins)
-        .slice(0, playoffTeams);
+    groupNumbers.forEach((groupNum) => {
+      const rows = standingsByGroup[groupNum] || [];
+      const groupTop = rows.slice(0, playoffTeams);
       confirmLines.push(`\n第 ${groupNum} 組：`);
       groupTop.forEach((row, idx) => {
-        confirmLines.push(`  ${idx + 1}. ${row.player.name} (${row.wins}勝 ${row.losses}敗)`);
+        confirmLines.push(
+          `  ${idx + 1}. ${row.player.name}（${row.points} 分，GD ${row.goalDiff}，${row.wins}勝 ${row.losses}敗 ${row.draws || 0}和）`
+        );
       });
     });
     confirmLines.push(`\n\n確定要依此名單填入現有籤表的每個種子位？`);
@@ -604,7 +623,7 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
             <li><strong>Regular Season</strong>: Teams are randomly split into groups, then round-robin within each group</li>
             <li><strong>Playoffs</strong>: Top teams enter single-elimination bracket</li>
-            <li><strong>Standings</strong>: Calculated by wins in regular season</li>
+            <li><strong>Standings / Fill playoffs</strong>: Uses the same ranking rules as the public page (event tiebreaker settings + points / GD / H2H / fair play as configured)</li>
             <li><strong>Scheduling</strong>: All matches start with TBD dates - you can manually schedule or import from CSV</li>
           </ul>
         </div>
