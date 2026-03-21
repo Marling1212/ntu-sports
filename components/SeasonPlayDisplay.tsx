@@ -284,18 +284,25 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     return Math.max(...resolvedPlayoffMatches.map((m) => Number(m.round) || 0));
   }, [resolvedPlayoffMatches]);
 
-  // Playoff matches for schedule list: exclude bye, sort by round then match number then time
+  // Playoff matches for schedule list (Games page): exclude bye; sort by scheduled time when set,
+  // not by bracket order (round/match). No-time matches go last, then round + match.
   const playoffMatchesForSchedule = useMemo(() => {
     if (playoffsDisplayMode !== "schedule" || !hasPlayoffs) return [];
     const noBye = resolvedPlayoffMatches.filter((m) => m.status !== "bye");
     const roundNum = (x: { round: unknown }) => Number(x.round) || 0;
     const matchNum = (x: { matchNumber?: number }) => Number((x as { matchNumber?: number }).matchNumber) ?? 0;
+    const timeKey = (m: { scheduled_time?: string | null }) => {
+      const t = (m as any).scheduled_time;
+      if (!t) return Number.POSITIVE_INFINITY;
+      const ms = new Date(t).getTime();
+      return Number.isNaN(ms) ? Number.POSITIVE_INFINITY : ms;
+    };
     return [...noBye].sort((a, b) => {
+      const ta = timeKey(a as any);
+      const tb = timeKey(b as any);
+      if (ta !== tb) return ta - tb;
       if (roundNum(a) !== roundNum(b)) return roundNum(a) - roundNum(b);
-      if (matchNum(a) !== matchNum(b)) return matchNum(a) - matchNum(b);
-      const ta = (a as any).scheduled_time ? new Date((a as any).scheduled_time).getTime() : 0;
-      const tb = (b as any).scheduled_time ? new Date((b as any).scheduled_time).getTime() : 0;
-      return ta - tb;
+      return matchNum(a) - matchNum(b);
     });
   }, [resolvedPlayoffMatches, playoffsDisplayMode, hasPlayoffs]);
 
