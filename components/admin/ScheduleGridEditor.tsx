@@ -335,7 +335,7 @@ export default function ScheduleGridEditor({
         if (matchId) {
           const scheduledTime = slotToScheduledTime(slot);
           const courtName = slot.court?.name?.trim() || null;
-          const { data: updatedRows, error } = await supabase
+          const { error } = await supabase
             .from("matches")
             .update({
               slot_id: slot.id,
@@ -344,43 +344,42 @@ export default function ScheduleGridEditor({
               updated_at: new Date().toISOString(),
             })
             .eq("id", matchId)
-            .eq("event_id", eventId)
-            .select("id");
+            .eq("event_id", eventId);
           if (error) throw error;
-          if (!updatedRows?.length) {
-            throw new Error("無法寫入比賽排程（比賽不屬於此賽事或無更新權限）");
-          }
         }
       }
 
-      // 2) 批次清除：凡「目前 DB 仍有 slot_id」且「不在本次格子指派裡」者一律清時間／場地
-      // （勿只遍歷 props.matches：division_id NULL 被排程頁漏掉時永遠清不掉）
-      const assignedIds = Array.from(assignedMatchIds);
-      let clearQ = supabase
+      // 2) 先 SELECT 再 .in() 更新（避免 PostgREST 鏈式 .not('id','in',…)+.or() 實際 0 列更新卻不報錯）
+      const { data: stillSlotted, error: slotSelErr } = await supabase
         .from("matches")
-        .update({
-          slot_id: null,
-          scheduled_time: null,
-          court: null,
-          updated_at: new Date().toISOString(),
-        })
+        .select("id, division_id")
         .eq("event_id", eventId)
         .not("slot_id", "is", null);
 
-      if (assignedIds.length > 0) {
-        clearQ = clearQ.not("id", "in", `(${assignedIds.join(",")})`);
-      }
+      if (slotSelErr) throw slotSelErr;
 
-      if (divisionId) {
+      const idsToClear = (stillSlotted ?? []).filter((row) => {
+        if (assignedMatchIds.has(row.id)) return false;
+        if (!divisionId) return true;
         if (divisionsCount <= 1) {
-          clearQ = clearQ.or(`division_id.eq.${divisionId},division_id.is.null`);
-        } else {
-          clearQ = clearQ.eq("division_id", divisionId);
+          return row.division_id === divisionId || row.division_id == null;
         }
-      }
+        return row.division_id === divisionId;
+      }).map((r) => r.id);
 
-      const { error: clearErr } = await clearQ;
-      if (clearErr) throw clearErr;
+      if (idsToClear.length > 0) {
+        const { error: clearErr } = await supabase
+          .from("matches")
+          .update({
+            slot_id: null,
+            scheduled_time: null,
+            court: null,
+            updated_at: new Date().toISOString(),
+          })
+          .in("id", idsToClear)
+          .eq("event_id", eventId);
+        if (clearErr) throw clearErr;
+      }
 
       toast.success("已儲存排程");
       onScheduleChange?.();

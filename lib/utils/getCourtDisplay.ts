@@ -1,3 +1,10 @@
+/** PostgREST 有時把 FK 嵌套成單物件或 [物件]，統一成單一 event_slots 列 */
+export function normalizeMatchEventSlot(m: any): any {
+  const s = m?.slot;
+  if (Array.isArray(s)) return s[0] ?? null;
+  return s ?? null;
+}
+
 /** 從 slot 嵌套讀取場地名稱（Supabase 可能回傳物件或單元素陣列） */
 export function courtNameFromSlotEmbed(slot: any): string | undefined {
   const ec = slot?.event_courts;
@@ -12,7 +19,7 @@ export function courtNameFromSlotEmbed(slot: any): string | undefined {
  * 有時段時以時段上的場地為準（與 admin 時段一致），避免 matches.court 過期。
  */
 export function resolveCourtFromMatchRow(m: any): string | undefined {
-  const fromSlot = courtNameFromSlotEmbed(m?.slot);
+  const fromSlot = courtNameFromSlotEmbed(normalizeMatchEventSlot(m));
   if (fromSlot) return fromSlot;
   if (m?.court && typeof m.court === "string" && m.court.trim() !== "") {
     return m.court.trim();
@@ -33,7 +40,7 @@ export function getCourtDisplay(match: any): string {
   if (match.court && typeof match.court === "string" && match.court.trim() !== "") {
     return match.court.trim();
   }
-  const fromSlot = courtNameFromSlotEmbed(match?.slot);
+  const fromSlot = courtNameFromSlotEmbed(normalizeMatchEventSlot(match));
   if (fromSlot) return fromSlot;
   return "—";
 }
