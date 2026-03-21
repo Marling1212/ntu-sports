@@ -1,12 +1,21 @@
-/** 從 DB 列（含 slot join）解析場地名稱，供公開頁 mapping 使用。 */
+/** 從 slot 嵌套讀取場地名稱（Supabase 可能回傳物件或單元素陣列） */
+export function courtNameFromSlotEmbed(slot: any): string | undefined {
+  const ec = slot?.event_courts;
+  if (!ec) return undefined;
+  const name = Array.isArray(ec) ? ec[0]?.name : ec?.name;
+  if (name && String(name).trim() !== "") return String(name).trim();
+  return undefined;
+}
+
+/**
+ * 從 DB 列（含 slot join）解析場地名稱，供公開頁 mapping 使用。
+ * 有時段時以時段上的場地為準（與 admin 時段一致），避免 matches.court 過期。
+ */
 export function resolveCourtFromMatchRow(m: any): string | undefined {
+  const fromSlot = courtNameFromSlotEmbed(m?.slot);
+  if (fromSlot) return fromSlot;
   if (m?.court && typeof m.court === "string" && m.court.trim() !== "") {
     return m.court.trim();
-  }
-  const ec = m?.slot?.event_courts;
-  if (ec) {
-    const name = Array.isArray(ec) ? ec[0]?.name : ec?.name;
-    if (name && String(name).trim() !== "") return String(name).trim();
   }
   return undefined;
 }
@@ -21,13 +30,10 @@ export function resolveCourtFromMatchRow(m: any): string | undefined {
  */
 export function getCourtDisplay(match: any): string {
   if (!match) return "—";
+  const fromSlot = courtNameFromSlotEmbed(match?.slot);
+  if (fromSlot) return fromSlot;
   if (match.court && typeof match.court === "string" && match.court.trim() !== "") {
     return match.court.trim();
-  }
-  const ec = match?.slot?.event_courts;
-  if (ec) {
-    const name = Array.isArray(ec) ? ec[0]?.name : ec?.name;
-    if (name && String(name).trim() !== "") return String(name).trim();
   }
   return "—";
 }

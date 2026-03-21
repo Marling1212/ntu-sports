@@ -18,6 +18,17 @@ interface TournamentBracketProps {
 // --- Configuration Constants ---
 // Math-based absolute margins are removed in V3. We use pure nested flexbox alignment.
 
+/** Tailwind `md` is 768px — treat ≤767px as mobile default zoom. */
+const DEFAULT_ZOOM_MOBILE = 0.7;
+const DEFAULT_ZOOM_DESKTOP = 1;
+
+function getDefaultBracketZoomForViewport(): number {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return DEFAULT_ZOOM_DESKTOP;
+  }
+  return window.matchMedia("(max-width: 767px)").matches ? DEFAULT_ZOOM_MOBILE : DEFAULT_ZOOM_DESKTOP;
+}
+
 export default function TournamentBracket({
   matches,
   players,
@@ -71,14 +82,18 @@ export default function TournamentBracket({
 
   const [activeTabRound, setActiveTabRound] = useState<number>(rounds[0]);
   const [mobileViewMode, setMobileViewMode] = useState<"full" | "tabs">("full");
-  const DEFAULT_ZOOM = 0.7; // 70%
-  const [bracketZoom, setBracketZoom] = useState(DEFAULT_ZOOM);
+  /** Desktop default 100%; mobile 70% — applied after mount (see useLayoutEffect below). */
+  const [bracketZoom, setBracketZoom] = useState(DEFAULT_ZOOM_DESKTOP);
   const MIN_ZOOM = 0.4; // keep current min (40%)
   const MAX_ZOOM = 1.2; // absolute 120%
   const STEP_ZOOM = 0.05;
   const zoomOut = () => setBracketZoom((z) => Math.max(MIN_ZOOM, Number((z - STEP_ZOOM).toFixed(2))));
   const zoomIn = () => setBracketZoom((z) => Math.min(MAX_ZOOM, Number((z + STEP_ZOOM).toFixed(2))));
-  const resetZoom = () => setBracketZoom(DEFAULT_ZOOM);
+  const resetZoom = () => setBracketZoom(getDefaultBracketZoomForViewport());
+
+  useLayoutEffect(() => {
+    setBracketZoom(getDefaultBracketZoomForViewport());
+  }, []);
 
   /**
    * Zoom uses CSS transform, which doesn't change layout width. We wrap scaled content in a box

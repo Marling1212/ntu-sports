@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { blackoutForSlot, slotToScheduledTime } from "@/lib/scheduling/autoSchedule";
@@ -116,6 +117,7 @@ export default function ScheduleGridEditor({
   onFocusMatchSlotChange,
 }: ScheduleGridEditorProps) {
   const supabase = createClient();
+  const router = useRouter();
 
   const [assignments, setAssignments] = useState<Record<string, string>>(() => {
     const m: Record<string, string> = {};
@@ -124,6 +126,19 @@ export default function ScheduleGridEditor({
     });
     return m;
   });
+
+  /** 儲存後或重新進入頁時，用伺服器上的 slot_id 同步格子（避免與 DB 脫節） */
+  const matchesSlotSyncKey = useMemo(
+    () => matches.map((m) => `${m.id}:${m.slot_id ?? ""}`).join("|"),
+    [matches]
+  );
+  useEffect(() => {
+    const m: Record<string, string> = {};
+    matches.forEach((match) => {
+      if (match.slot_id) m[match.slot_id] = match.id;
+    });
+    setAssignments(m);
+  }, [matchesSlotSyncKey]);
   const [draggingMatchId, setDraggingMatchId] = useState<string | null>(null);
   const [dropTargetCell, setDropTargetCell] = useState<string | null>(null);
   const [dropTargetUnassign, setDropTargetUnassign] = useState(false);
@@ -307,36 +322,53 @@ export default function ScheduleGridEditor({
     setSaving(true);
     try {
       const assignedMatchIds = new Set<string>(Object.values(assignments));
+
+      // 1) 寫入目前在格子裡的比賽：時段、時間、場地（與時段一致）
       for (const slot of slots) {
         const matchId = assignments[slot.id];
         if (matchId) {
           const scheduledTime = slotToScheduledTime(slot);
-          await supabase
+          const courtName = slot.court?.name?.trim() || null;
+          const { error } = await supabase
             .from("matches")
             .update({
               slot_id: slot.id,
               scheduled_time: scheduledTime,
+              court: courtName,
               updated_at: new Date().toISOString(),
             })
             .eq("id", matchId);
+          if (error) throw error;
         }
       }
+
+      // 2) 不在格子裡的比賽：用「資料庫當下是否有 slot_id」判斷是否清除時間（勿只用 props，否則先拖入再拖出後 props 未更新會清不掉）
       for (const match of matches) {
         if (!(match.player1_id || match.player2_id)) continue;
         if (assignedMatchIds.has(match.id)) continue;
-        // 若本來在格子裡（有 slot_id）被移除 → 捨棄 slot 與時間，方便重新排程；僅手動填時間從未進格子的只清 slot
-        const hadSlot = !!match.slot_id;
-        await supabase
+
+        const { data: row, error: selErr } = await supabase
+          .from("matches")
+          .select("slot_id")
+          .eq("id", match.id)
+          .single();
+        if (selErr) throw selErr;
+
+        const hadSlotInDb = !!row?.slot_id;
+        const { error: upErr } = await supabase
           .from("matches")
           .update({
             slot_id: null,
-            ...(hadSlot ? { scheduled_time: null } : {}),
+            ...(hadSlotInDb ? { scheduled_time: null, court: null } : {}),
             updated_at: new Date().toISOString(),
           })
           .eq("id", match.id);
+        if (upErr) throw upErr;
       }
+
       toast.success("已儲存排程");
       onScheduleChange?.();
+      router.refresh();
     } catch (e: any) {
       toast.error(e?.message || "儲存失敗");
     } finally {

@@ -66,7 +66,15 @@ export default async function MatchDetailPage(context: any) {
       player1:players!matches_player1_id_fkey(id, name, seed, department, type),
       player2:players!matches_player2_id_fkey(id, name, seed, department, type),
       winner:players!matches_winner_id_fkey(id, name, seed),
-      slot:event_slots(id, slot_date, start_time, end_time, code, court_id)
+      slot:event_slots(
+        id,
+        slot_date,
+        start_time,
+        end_time,
+        code,
+        court_id,
+        event_courts!event_slots_court_id_fkey(name)
+      )
     `)
     .eq("id", matchId)
     .single();
