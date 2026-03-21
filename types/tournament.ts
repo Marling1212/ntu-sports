@@ -25,6 +25,8 @@ export interface Match {
   slot2?: SlotPlaceholder | null;
   winner?: Player | null;
   score?: string;
+  /** 場地名稱（公開 draw 頁會從 match.court 或時段 event_courts 解析） */
+  court?: string | null;
   status: "upcoming" | "live" | "completed" | "bye" | "delayed" | "forfeit" | "walkover";
 }
 

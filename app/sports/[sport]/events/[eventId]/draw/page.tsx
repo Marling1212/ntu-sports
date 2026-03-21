@@ -3,6 +3,7 @@ import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import ExportBracket from "@/components/ExportBracket";
 import ExportPDF from "@/components/ExportPDF";
 import { getEventForPublicPage, getDivisionIdsForEventAndSport, getFirstDivisionForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
+import { resolveCourtFromMatchRow } from "@/lib/utils/getCourtDisplay";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "react-hot-toast";
 import { notFound } from "next/navigation";
@@ -88,7 +89,7 @@ export default async function SportEventDrawPage({
     status: m.status,
     scheduled_time: m.scheduled_time,
     slot_code: m.slot?.code,
-    court: m.court,
+    court: resolveCourtFromMatchRow(m),
   }));
 
   const players = (dbPlayers || []).map((p: any) => ({

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { Player, Match, SlotPlaceholder } from "@/types/tournament";
 import { useI18n } from "@/lib/i18n/context";
+import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 
 interface TournamentBracketProps {
   matches: Match[];
@@ -78,6 +79,34 @@ export default function TournamentBracket({
   const zoomOut = () => setBracketZoom((z) => Math.max(MIN_ZOOM, Number((z - STEP_ZOOM).toFixed(2))));
   const zoomIn = () => setBracketZoom((z) => Math.min(MAX_ZOOM, Number((z + STEP_ZOOM).toFixed(2))));
   const resetZoom = () => setBracketZoom(DEFAULT_ZOOM);
+
+  /**
+   * Zoom uses CSS transform, which doesn't change layout width. We wrap scaled content in a box
+   * whose width matches the *visual* width (naturalWidth * zoom) so horizontal scroll has no extra
+   * whitespace. A fixed formula underestimated wide trees (70+ players), and `overflow:hidden` on
+   * that wrapper clipped the bracket — we measure the real scroll width instead.
+   */
+  const bracketContentRef = useRef<HTMLDivElement>(null);
+  const [scaledContainerWidth, setScaledContainerWidth] = useState<number | null>(null);
+
+  const recomputeScaledWidth = useCallback(() => {
+    const el = bracketContentRef.current;
+    if (!el) return;
+    const natural = el.scrollWidth;
+    if (natural > 0) setScaledContainerWidth(natural * bracketZoom);
+  }, [bracketZoom]);
+
+  useLayoutEffect(() => {
+    recomputeScaledWidth();
+  }, [recomputeScaledWidth, matches, mobileViewMode, rounds, bracketZoom, hideThirdPlace, has3rdPlaceMatch, actualTotalRounds]);
+
+  useLayoutEffect(() => {
+    const el = bracketContentRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => recomputeScaledWidth());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [recomputeScaledWidth]);
 
   // Player Block Sub-component
   const PlayerBlock = ({ 
@@ -157,6 +186,8 @@ export default function TournamentBracket({
       );
     }
 
+    const courtLabel = getCourtDisplay(match);
+
     return (
       <Link
         id={`match-${match.id}`}
@@ -180,6 +211,11 @@ export default function TournamentBracket({
              )}
           </div>
         </div>
+        {courtLabel !== "—" && (
+          <div className="mt-1 text-[9px] md:text-[10px] text-gray-500 text-center truncate max-w-[150px] md:max-w-[200px] px-0.5 leading-tight">
+            {courtLabel}
+          </div>
+        )}
       </Link>
     );
   };
@@ -226,7 +262,7 @@ export default function TournamentBracket({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 md:p-6 border border-gray-100 w-full overflow-hidden">
+    <div className="bg-white rounded-xl shadow-md p-4 md:p-6 border border-gray-100 w-full min-w-0 overflow-hidden">
       <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-2">
         <div>
           <h2 className="text-xl md:text-2xl font-semibold text-ntu-green mb-1 md:mb-2">{sportName} Tournament Bracket</h2>
@@ -325,20 +361,23 @@ export default function TournamentBracket({
         </div>
       </div>
       
-      <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full overflow-x-auto overflow-y-hidden pb-6 relative`}>
+      <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full min-w-0 overflow-x-auto overflow-y-hidden pb-6 relative`}>
         {(() => {
-          const baseWidthPx = rounds.length * 150 + Math.max(0, rounds.length - 1) * 48;
-          const scaledWidthPx = baseWidthPx * bracketZoom;
+          // Generous single fallback (SSR-safe, no matchMedia) until ResizeObserver measures real width.
+          const fallbackNatural =
+            rounds.length * 280 + Math.max(0, rounds.length - 1) * 64 + Math.max(400, rounds.length * 80);
+          const fallbackScaled = fallbackNatural * bracketZoom;
+          const wrapW = scaledContainerWidth ?? fallbackScaled;
           return (
-            <div className="pt-2" style={{ width: scaledWidthPx, minWidth: scaledWidthPx, overflow: "hidden" }}>
+            <div className="pt-2" style={{ width: wrapW, minWidth: wrapW }}>
               <div
+                ref={bracketContentRef}
+                className="inline-block min-w-max"
                 style={{
-                  width: baseWidthPx,
                   transform: `scale(${bracketZoom})`,
                   transformOrigin: "top left",
                 }}
               >
-          
           {/* Flex Column Headers */}
           <div className="flex bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full" style={{ gap: '48px' }}>
             {rounds.map(round => (
