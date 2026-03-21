@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { submitRosterChangeRequest, upsertCaptainBlackout, deleteCaptainBlackout } from "./actions";
-import type { TeamMember, TeamBlackout } from "@/types/database";
+import { useState, useMemo } from "react";
+import { submitRosterChangeRequest, addCaptainBlackoutTemplate, deleteCaptainBlackoutTemplate } from "./actions";
+import type { TeamMember, TeamBlackoutTemplate, EventSlotTemplate } from "@/types/database";
+import { useI18n } from "@/lib/i18n/context";
 
 interface CaptainPortalClientProps {
   token: string;
@@ -10,17 +11,9 @@ interface CaptainPortalClientProps {
   members: TeamMember[];
   pendingCount: number;
   captainBlackoutsOpen: boolean;
-  blackouts: TeamBlackout[];
+  blackoutTemplates: TeamBlackoutTemplate[];
+  slotTemplates: EventSlotTemplate[];
   blackoutLimit: number | null;
-}
-
-function formatBlackoutTime(iso: string) {
-  try {
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? iso : d.toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" });
-  } catch {
-    return iso;
-  }
 }
 
 export default function CaptainPortalClient({
@@ -29,9 +22,11 @@ export default function CaptainPortalClient({
   members,
   pendingCount,
   captainBlackoutsOpen,
-  blackouts,
+  blackoutTemplates,
+  slotTemplates,
   blackoutLimit,
 }: CaptainPortalClientProps) {
+  const { t, locale } = useI18n();
   const [addName, setAddName] = useState("");
   const [addJersey, setAddJersey] = useState("");
   const [requestedBy, setRequestedBy] = useState("");
@@ -40,10 +35,28 @@ export default function CaptainPortalClient({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editJersey, setEditJersey] = useState("");
-  const [blackoutStart, setBlackoutStart] = useState("");
-  const [blackoutEnd, setBlackoutEnd] = useState("");
-  const [blackoutReason, setBlackoutReason] = useState("");
+  const [selectedSlotId, setSelectedSlotId] = useState("");
   const [blackoutSubmitting, setBlackoutSubmitting] = useState(false);
+
+  const WEEKDAY_LABELS = [
+    t("admin.weekday0"),
+    t("admin.weekday1"),
+    t("admin.weekday2"),
+    t("admin.weekday3"),
+    t("admin.weekday4"),
+    t("admin.weekday5"),
+    t("admin.weekday6"),
+  ];
+
+  const uniqueSlotTemplatesForBlackout = useMemo(() => {
+    const seen = new Set<string>();
+    return slotTemplates.filter((st) => {
+      const key = `${st.day_of_week},${st.start_time},${st.end_time}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [slotTemplates]);
 
   const clearMessage = () => setMessage(null);
 
@@ -60,7 +73,7 @@ export default function CaptainPortalClient({
     );
     setSubmitting(false);
     if (result.ok) {
-      setMessage({ type: "success", text: "已送出申請，請等候管理員審核。" });
+      setMessage({ type: "success", text: t("captain.submitSuccess") });
       setAddName("");
       setAddJersey("");
     } else {
@@ -80,7 +93,7 @@ export default function CaptainPortalClient({
     );
     setSubmitting(false);
     if (result.ok) {
-      setMessage({ type: "success", text: "已送出修改申請。" });
+      setMessage({ type: "success", text: t("captain.updateSuccess") });
       setEditingId(null);
     } else {
       setMessage({ type: "error", text: result.error });
@@ -88,7 +101,7 @@ export default function CaptainPortalClient({
   };
 
   const handleRemove = async (memberId: string, name: string) => {
-    if (!confirm(`確定要申請移除「${name}」嗎？`)) return;
+    if (!confirm(t("captain.blackouts.confirmDeleteMember", { name }))) return;
     setSubmitting(true);
     setMessage(null);
     const result = await submitRosterChangeRequest(
@@ -99,53 +112,47 @@ export default function CaptainPortalClient({
     );
     setSubmitting(false);
     if (result.ok) {
-      setMessage({ type: "success", text: "已送出移除申請。" });
+      setMessage({ type: "success", text: t("captain.removeSuccess") });
     } else {
       setMessage({ type: "error", text: result.error });
     }
   };
 
-  const handleAddBlackout = async (e: React.FormEvent) => {
+  const handleAddBlackoutTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!blackoutStart.trim() || !blackoutEnd.trim()) return;
+    if (!selectedSlotId) return;
     setBlackoutSubmitting(true);
     setMessage(null);
-    const result = await upsertCaptainBlackout(token, {
-      start_time: blackoutStart,
-      end_time: blackoutEnd,
-      reason: blackoutReason.trim() || null,
-    });
+    const result = await addCaptainBlackoutTemplate(token, selectedSlotId);
     setBlackoutSubmitting(false);
     if (result.ok) {
-      setMessage({ type: "success", text: "已新增不可出賽時段。" });
-      setBlackoutStart("");
-      setBlackoutEnd("");
-      setBlackoutReason("");
+      setMessage({ type: "success", text: t("captain.blackouts.addSuccess") });
+      setSelectedSlotId("");
     } else {
       setMessage({ type: "error", text: result.error });
     }
   };
 
-  const handleDeleteBlackout = async (id: string) => {
-    if (!confirm("確定要刪除此不可出賽時段？")) return;
+  const handleDeleteBlackoutTemplate = async (id: string) => {
+    if (!confirm(t("captain.blackouts.confirmDelete"))) return;
     setBlackoutSubmitting(true);
     setMessage(null);
-    const result = await deleteCaptainBlackout(token, id);
+    const result = await deleteCaptainBlackoutTemplate(token, id);
     setBlackoutSubmitting(false);
     if (result.ok) {
-      setMessage({ type: "success", text: "已刪除。" });
+      setMessage({ type: "success", text: t("captain.blackouts.deleteSuccess") });
     } else {
       setMessage({ type: "error", text: result.error });
     }
   };
 
-  const atBlackoutLimit = blackoutLimit != null && blackouts.length >= blackoutLimit;
+  const atBlackoutLimit = blackoutLimit != null && blackoutTemplates.length >= blackoutLimit;
 
   return (
     <div className="space-y-6">
       {pendingCount > 0 && (
         <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-          目前有 {pendingCount} 筆申請審核中，請靜候管理員處理。
+          {t("captain.pendingNotice", { count: String(pendingCount) })}
         </p>
       )}
 
@@ -156,43 +163,42 @@ export default function CaptainPortalClient({
           }`}
         >
           {message.text}
-          <button type="button" onClick={clearMessage} className="ml-2 underline">關閉</button>
+          <button type="button" onClick={clearMessage} className="ml-2 underline">
+            {t("common.close")}
+          </button>
         </div>
       )}
 
       <section>
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">申請新增隊員</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">{t("captain.requestAdd")}</h2>
         <form onSubmit={handleAdd} className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">姓名 *</label>
+            <label className="block text-xs text-gray-500 mb-0.5">{t("captain.formName")}</label>
             <input
               type="text"
               value={addName}
               onChange={(e) => setAddName(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-40 focus:ring-2 focus:ring-ntu-green focus:border-ntu-green"
-              placeholder="姓名"
               required
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">背號（選填）</label>
+            <label className="block text-xs text-gray-500 mb-0.5">{t("captain.formJersey")}</label>
             <input
               type="number"
               min={0}
               value={addJersey}
               onChange={(e) => setAddJersey(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-20 focus:ring-2 focus:ring-ntu-green"
-              placeholder="—"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-0.5">申請人（選填）</label>
+            <label className="block text-xs text-gray-500 mb-0.5">{t("captain.formRequestedBy")}</label>
             <input
               type="text"
               value={requestedBy}
               onChange={(e) => setRequestedBy(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-32 focus:ring-2 focus:ring-ntu-green"
-              placeholder="您的名字"
             />
           </div>
           <button
@@ -200,14 +206,14 @@ export default function CaptainPortalClient({
             disabled={submitting}
             className="bg-ntu-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
           >
-            {submitting ? "送出中…" : "申請新增"}
+            {submitting ? t("captain.submitting") : t("captain.submitAdd")}
           </button>
         </form>
       </section>
 
       {members.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">申請編輯／移除隊員</h2>
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">{t("captain.requestEditRemove")}</h2>
           <ul className="space-y-2">
             {members.map((m) => (
               <li key={m.id} className="flex items-center justify-between gap-2 py-2 border-b border-gray-100 last:border-0">
@@ -218,7 +224,6 @@ export default function CaptainPortalClient({
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       className="px-2 py-1.5 border border-gray-300 rounded text-sm w-32"
-                      placeholder="姓名"
                     />
                     <input
                       type="number"
@@ -226,7 +231,6 @@ export default function CaptainPortalClient({
                       value={editJersey}
                       onChange={(e) => setEditJersey(e.target.value)}
                       className="px-2 py-1.5 border border-gray-300 rounded text-sm w-16"
-                      placeholder="背號"
                     />
                     <button
                       type="button"
@@ -234,14 +238,10 @@ export default function CaptainPortalClient({
                       disabled={submitting}
                       className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90 disabled:opacity-50"
                     >
-                      送出
+                      {t("captain.submitEdit")}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(null)}
-                      className="text-sm text-gray-600 hover:underline"
-                    >
-                      取消
+                    <button type="button" onClick={() => setEditingId(null)} className="text-sm text-gray-600 hover:underline">
+                      {t("captain.cancel")}
                     </button>
                   </div>
                 ) : (
@@ -260,7 +260,7 @@ export default function CaptainPortalClient({
                         }}
                         className="text-sm text-ntu-green hover:underline"
                       >
-                        編輯
+                        {t("captain.edit")}
                       </button>
                       <button
                         type="button"
@@ -268,7 +268,7 @@ export default function CaptainPortalClient({
                         disabled={submitting}
                         className="text-sm text-red-600 hover:underline disabled:opacity-50"
                       >
-                        移除
+                        {t("captain.remove")}
                       </button>
                     </div>
                   </>
@@ -281,72 +281,63 @@ export default function CaptainPortalClient({
 
       {captainBlackoutsOpen && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">不可出賽時段</h2>
-          <p className="text-xs text-gray-500 mb-2">
+          <h2 className="text-sm font-semibold text-gray-700 mb-1">{t("captain.blackouts.title")}</h2>
+          <p className="text-xs text-gray-500 mb-2 whitespace-pre-line">{t("captain.blackouts.description")}</p>
+          <p className="text-xs text-gray-600 mb-3">
             {blackoutLimit != null
-              ? `每隊最多 ${blackoutLimit} 筆，目前 ${blackouts.length} 筆。`
-              : "填寫隊伍無法出賽的時段，供主辦排程參考。"}
+              ? t("captain.blackouts.limitCount", { limit: String(blackoutLimit), count: String(blackoutTemplates.length) })
+              : t("captain.blackouts.noLimitHint")}
           </p>
-          {blackouts.length > 0 && (
+          {blackoutTemplates.length > 0 && (
             <ul className="space-y-2 mb-4">
-              {blackouts.map((b) => (
+              {blackoutTemplates.map((b) => (
                 <li key={b.id} className="flex items-center justify-between gap-2 py-2 border-b border-gray-100 last:border-0 text-sm">
                   <span className="text-gray-700">
-                    {formatBlackoutTime(b.start_time)} ～ {formatBlackoutTime(b.end_time)}
+                    {WEEKDAY_LABELS[b.day_of_week]} {String(b.start_time).slice(0, 5)}–{String(b.end_time).slice(0, 5)}
                     {b.reason && <span className="text-gray-500 ml-1">（{b.reason}）</span>}
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleDeleteBlackout(b.id)}
+                    onClick={() => handleDeleteBlackoutTemplate(b.id)}
                     disabled={blackoutSubmitting}
                     className="text-red-600 hover:underline text-xs disabled:opacity-50"
                   >
-                    刪除
+                    {t("captain.blackouts.delete")}
                   </button>
                 </li>
               ))}
             </ul>
           )}
-          {!atBlackoutLimit && (
-            <form onSubmit={handleAddBlackout} className="flex flex-wrap items-end gap-3">
+          {!atBlackoutLimit && uniqueSlotTemplatesForBlackout.length > 0 && (
+            <form onSubmit={handleAddBlackoutTemplate} className="flex flex-wrap items-end gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-0.5">開始</label>
-                <input
-                  type="datetime-local"
-                  value={blackoutStart}
-                  onChange={(e) => setBlackoutStart(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ntu-green"
+                <label className="block text-xs text-gray-500 mb-0.5">{t("captain.blackouts.selectSlot")}</label>
+                <select
+                  value={selectedSlotId}
+                  onChange={(e) => setSelectedSlotId(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm min-w-[12rem] focus:ring-2 focus:ring-ntu-green"
                   required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-0.5">結束</label>
-                <input
-                  type="datetime-local"
-                  value={blackoutEnd}
-                  onChange={(e) => setBlackoutEnd(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ntu-green"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-0.5">說明（選填）</label>
-                <input
-                  type="text"
-                  value={blackoutReason}
-                  onChange={(e) => setBlackoutReason(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-32 focus:ring-2 focus:ring-ntu-green"
-                  placeholder="例：上課"
-                />
+                >
+                  <option value="">{t("captain.blackouts.selectPlaceholder")}</option>
+                  {uniqueSlotTemplatesForBlackout.map((st) => (
+                    <option key={st.id} value={st.id}>
+                      {WEEKDAY_LABELS[st.day_of_week]} {String(st.start_time).slice(0, 5)}–{String(st.end_time).slice(0, 5)}
+                      {st.code ? ` (${st.code})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
               <button
                 type="submit"
                 disabled={blackoutSubmitting}
                 className="bg-ntu-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {blackoutSubmitting ? "處理中…" : "新增"}
+                {blackoutSubmitting ? t("captain.blackouts.processing") : t("captain.blackouts.add")}
               </button>
             </form>
+          )}
+          {uniqueSlotTemplatesForBlackout.length === 0 && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">{t("captain.blackouts.noTemplates")}</p>
           )}
         </section>
       )}

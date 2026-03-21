@@ -90,12 +90,13 @@ async function getTeamByToken(
   return byKey.data ?? null;
 }
 
-export async function upsertCaptainBlackout(
-  token: string,
-  payload: { id?: string; start_time: string; end_time: string; reason?: string | null }
-): Promise<BlackoutResult> {
+/**
+ * Add a weekly blackout row from an event slot template — same data as admin Registrations → team row.
+ */
+export async function addCaptainBlackoutTemplate(token: string, slotTemplateId: string): Promise<BlackoutResult> {
   const t = token.trim();
   if (!t) return { ok: false, error: "Invalid link." };
+  if (!slotTemplateId?.trim()) return { ok: false, error: "請選擇時段。" };
 
   let supabase;
   try {
@@ -116,62 +117,42 @@ export async function upsertCaptainBlackout(
     return { ok: false, error: "目前未開放填寫不可出賽時段。" };
   }
 
-  const start = payload.start_time?.trim();
-  const end = payload.end_time?.trim();
-  if (!start || !end) return { ok: false, error: "請填寫開始與結束時間。" };
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-    return { ok: false, error: "時間格式不正確。" };
+  const { data: slotTemplate, error: slotErr } = await supabase
+    .from("event_slot_templates")
+    .select("id, event_id, day_of_week, start_time, end_time")
+    .eq("id", slotTemplateId)
+    .eq("event_id", team.event_id)
+    .maybeSingle();
+  if (slotErr || !slotTemplate) {
+    return { ok: false, error: "找不到該時段模板。" };
   }
-  if (endDate <= startDate) return { ok: false, error: "結束時間必須晚於開始時間。" };
 
-  if (payload.id) {
-    const { data: existing } = await supabase
-      .from("team_blackouts")
-      .select("id")
-      .eq("id", payload.id)
+  const limit = event.blackout_limit != null ? Number(event.blackout_limit) : null;
+  if (limit != null && limit >= 0) {
+    const { count } = await supabase
+      .from("team_blackout_templates")
+      .select("*", { count: "exact", head: true })
       .eq("player_id", team.id)
-      .eq("event_id", team.event_id)
-      .single();
-    if (!existing) return { ok: false, error: "找不到該時段。" };
-    const { error } = await supabase
-      .from("team_blackouts")
-      .update({
-        start_time: start,
-        end_time: end,
-        reason: payload.reason?.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", payload.id);
-    if (error) return { ok: false, error: error.message };
-  } else {
-    const limit = event.blackout_limit != null ? Number(event.blackout_limit) : null;
-    if (limit != null && limit >= 0) {
-      const { count } = await supabase
-        .from("team_blackouts")
-        .select("*", { count: "exact", head: true })
-        .eq("player_id", team.id)
-        .eq("event_id", team.event_id);
-      if (count != null && count >= limit) {
-        return { ok: false, error: `不可出賽時段已達上限（${limit} 筆）。` };
-      }
+      .eq("event_id", team.event_id);
+    if (count != null && count >= limit) {
+      return { ok: false, error: `不可出賽時段已達上限（${limit} 筆）。` };
     }
-    const { error } = await supabase.from("team_blackouts").insert({
-      event_id: team.event_id,
-      player_id: team.id,
-      start_time: start,
-      end_time: end,
-      reason: payload.reason?.trim() || null,
-    });
-    if (error) return { ok: false, error: error.message };
   }
+
+  const { error: insErr } = await supabase.from("team_blackout_templates").insert({
+    event_id: team.event_id,
+    player_id: team.id,
+    day_of_week: slotTemplate.day_of_week,
+    start_time: slotTemplate.start_time,
+    end_time: slotTemplate.end_time,
+  });
+  if (insErr) return { ok: false, error: insErr.message };
 
   revalidatePath(`/captain/${t}`);
   return { ok: true };
 }
 
-export async function deleteCaptainBlackout(token: string, blackoutId: string): Promise<BlackoutResult> {
+export async function deleteCaptainBlackoutTemplate(token: string, templateId: string): Promise<BlackoutResult> {
   const t = token.trim();
   if (!t) return { ok: false, error: "Invalid link." };
 
@@ -195,9 +176,9 @@ export async function deleteCaptainBlackout(token: string, blackoutId: string): 
   }
 
   const { error } = await supabase
-    .from("team_blackouts")
+    .from("team_blackout_templates")
     .delete()
-    .eq("id", blackoutId)
+    .eq("id", templateId)
     .eq("player_id", team.id)
     .eq("event_id", team.event_id);
   if (error) return { ok: false, error: error.message };

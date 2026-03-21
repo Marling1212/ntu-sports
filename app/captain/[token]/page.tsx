@@ -2,7 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CaptainPortalClient from "./CaptainPortalClient";
-import type { Player, TeamMember, RosterChangeRequest, TeamBlackout } from "@/types/database";
+import type { Player, TeamMember, RosterChangeRequest, TeamBlackoutTemplate, EventSlotTemplate } from "@/types/database";
 
 interface CaptainPageProps {
   params: Promise<{ token: string }>;
@@ -46,7 +46,7 @@ export default async function CaptainPortalPage({ params }: CaptainPageProps) {
   if (teamError && !team) notFound();
   if (!team) notFound();
 
-  const [{ data: event }, { data: members }, { data: requests }, { data: blackouts }] = await Promise.all([
+  const [{ data: event }, { data: members }, { data: requests }, { data: blackoutTemplates }, { data: slotTemplates }] = await Promise.all([
     supabase.from("events").select("id, name, sport, captain_blackouts_open, blackout_limit").eq("id", team.event_id).maybeSingle(),
     supabase
       .from("team_members")
@@ -61,10 +61,17 @@ export default async function CaptainPortalPage({ params }: CaptainPageProps) {
       .order("created_at", { ascending: false })
       .limit(30),
     supabase
-      .from("team_blackouts")
+      .from("team_blackout_templates")
       .select("*")
       .eq("player_id", team.id)
       .eq("event_id", team.event_id)
+      .order("day_of_week", { ascending: true })
+      .order("start_time", { ascending: true }),
+    supabase
+      .from("event_slot_templates")
+      .select("*")
+      .eq("event_id", team.event_id)
+      .order("day_of_week", { ascending: true })
       .order("start_time", { ascending: true }),
   ]);
 
@@ -73,7 +80,8 @@ export default async function CaptainPortalPage({ params }: CaptainPageProps) {
   const changeRequests = (requests ?? []) as RosterChangeRequest[];
   const captainBlackoutsOpen = !!(event as { captain_blackouts_open?: boolean } | null)?.captain_blackouts_open;
   const blackoutLimit = (event as { blackout_limit?: number | null } | null)?.blackout_limit ?? null;
-  const blackoutsList = (blackouts ?? []) as TeamBlackout[];
+  const blackoutTemplatesList = (blackoutTemplates ?? []) as TeamBlackoutTemplate[];
+  const slotTemplatesList = (slotTemplates ?? []) as EventSlotTemplate[];
 
   const actionLabel = (r: RosterChangeRequest) => {
     const a = r.action;
@@ -159,7 +167,8 @@ export default async function CaptainPortalPage({ params }: CaptainPageProps) {
             members={membersList}
             pendingCount={changeRequests.filter((r) => r.status === "pending").length}
             captainBlackoutsOpen={captainBlackoutsOpen}
-            blackouts={blackoutsList}
+            blackoutTemplates={blackoutTemplatesList}
+            slotTemplates={slotTemplatesList}
             blackoutLimit={blackoutLimit}
           />
         </div>

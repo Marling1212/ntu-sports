@@ -149,7 +149,7 @@ export default function PlayersTable({
         .update({ blackout_limit: parsed, captain_blackouts_open: checked })
         .eq("id", eventId);
       if (error) throw error;
-      toast.success(checked ? "已開放隊長填寫不可出賽時段" : "已關閉隊長填寫不可出賽時段");
+      toast.success(checked ? t("admin.captainBlackoutsToastOn") : t("admin.captainBlackoutsToastOff"));
     } catch (e: any) {
       setCaptainBlackoutsOpen(!checked);
       toast.error(e?.message || "儲存失敗");
@@ -589,8 +589,8 @@ export default function PlayersTable({
                   {captainBlackoutsOpen ? t('admin.captainBlackoutsOpenLabelOn') : t('admin.captainBlackoutsOpenLabelOff')}
                 </span>
               </div>
-              <p className="text-xs text-gray-500">
-                勾選後會立即儲存；隊長頁面可填寫「開始／結束」的具體日期時間（非每週重複）。上限請用上方數字與「儲存」。
+              <p className="text-xs text-gray-500 whitespace-pre-line">
+                {t("admin.registration.captainBlackoutPortalNote")}
               </p>
             </div>
           )}
