@@ -1,14 +1,32 @@
 /**
  * Lock detection: determine if a (seed, group) position is mathematically locked
  * to a single team given all possible outcomes of remaining matches.
+ *
+ * Uses exhaustive enumeration when branching^remaining <= enumerationBudget.
+ * Score-magnitude tiebreakers (GD, GF, GA, H2H) trigger multi-scoreline "stress" simulation.
  */
 
 import type { TiebreakerConfig } from "@/types/database";
-import { computeStandings, type ComputeStandingsOptions } from "./compute";
+import {
+  computeStandings,
+  compareStandingRows,
+  type CompareStandingRowsContext,
+  type ComputeStandingsOptions,
+  type StandingRow,
+  type MatchForStandings,
+  type PlayerForStandings,
+} from "./compute";
 import { normalizeTiebreakerConfig } from "./config";
-import type { MatchForStandings, PlayerForStandings } from "./compute";
+import {
+  tiebreakerUsesScoreSensitiveCriteria,
+  getSportMaxGoalsPerSide,
+  buildStressOutcomesForMatch,
+  buildSimpleOutcomesForMatch,
+  maxRemainingMatchesForEnumeration,
+  type SimulatedScoreOutcome,
+} from "./scoreSimulation";
 
-const MAX_REMAINING_FOR_ENUM = 12;
+const DEFAULT_ENUMERATION_BUDGET = 2_000_000;
 
 export interface LockDetectionOptions {
   matchPlayerStats?: ComputeStandingsOptions["matchPlayerStats"];
@@ -16,11 +34,53 @@ export interface LockDetectionOptions {
   registrationType?: "player" | "team";
   /** Max seed index to compute (e.g. 4 = seeds 1..4). Default 8. */
   maxSeed?: number;
+  /** Sport name (e.g. event.sport) — picks default max score per side for stress sims. */
+  sport?: string;
+  /** Override max goals/points per side in simulated remaining matches. */
+  maxGoalsPerSide?: number;
+  /**
+   * Max total enumerated outcome combinations (branching^remaining).
+   * Higher allows more remaining games; slower. Default 2_000_000.
+   */
+  enumerationBudget?: number;
+  /**
+   * Caps how many remaining matches are enumerable: at most n(n-1)/2 (single) or n(n-1) (double)
+   * round-robin matches can exist in a group of n teams.
+   */
+  roundRobinMode?: "single" | "double";
+  /** If set, used for schedule cap; else derived from matches in the group. */
+  teamCountInGroup?: number;
 }
 
 function getPlayerId(m: MatchForStandings, side: 1 | 2): string | null {
   if (side === 1) return m.player1?.id ?? (m as any).player1_id ?? null;
   return m.player2?.id ?? (m as any).player2_id ?? null;
+}
+
+function countTeamsInGroup(matches: MatchForStandings[], groupNum: number): number {
+  const ids = new Set<string>();
+  for (const m of matches) {
+    if ((m as any).group_number !== groupNum) continue;
+    const p1 = getPlayerId(m, 1);
+    const p2 = getPlayerId(m, 2);
+    if (p1) ids.add(p1);
+    if (p2) ids.add(p2);
+  }
+  return ids.size;
+}
+
+function seedCandidateIdsForRankIndex(
+  rows: StandingRow[],
+  rankIndex: number,
+  ctx: CompareStandingRowsContext
+): Set<string> {
+  let start = rankIndex;
+  while (start > 0 && compareStandingRows(rows[start - 1], rows[start], ctx) === 0) start--;
+  let end = rankIndex;
+  while (end + 1 < rows.length && compareStandingRows(rows[end], rows[end + 1], ctx) === 0) end++;
+  const set = new Set<string>();
+  for (let i = start; i <= end; i++) set.add(rows[i].player.id);
+  return set;
 }
 
 /** Returns map key "seed,group" -> player_id when that position is locked. */
@@ -46,46 +106,66 @@ export function computeLockedSeeds(
 
   const locked = new Map<string, string>();
 
-  const isStandingTie = (a: import("./compute").StandingRow, b: import("./compute").StandingRow) => {
-    // For admin_decide: if all non-final criteria are identical, the seed order is not decided.
-    return (
-      a.points === b.points &&
-      a.goalDiff === b.goalDiff &&
-      (a.goalsFor || 0) === (b.goalsFor || 0) &&
-      (a.fairPlayPoints || 0) === (b.fairPlayPoints || 0)
-    );
-  };
+  const orderNoFinal = cfg.order.filter((c) => c !== "final");
+  const stressScores = tiebreakerUsesScoreSensitiveCriteria(orderNoFinal);
+  const maxGoalsM = getSportMaxGoalsPerSide(options.sport ?? null, options.maxGoalsPerSide);
+  const budget = options.enumerationBudget ?? DEFAULT_ENUMERATION_BUDGET;
+  const rrMode = options.roundRobinMode ?? "single";
 
   for (const groupNum of groupNumbers) {
     const completedInGroup = completed.filter((m) => (m as any).group_number === groupNum);
     const remainingInGroup = remaining.filter((m) => (m as any).group_number === groupNum);
+    const remainingPlayable = remainingInGroup.filter((m) => getPlayerId(m, 1) && getPlayerId(m, 2));
 
-    if (remainingInGroup.length > MAX_REMAINING_FOR_ENUM) continue;
+    const teamCount = options.teamCountInGroup ?? countTeamsInGroup(regularSeasonMatches, groupNum);
 
-    const numOutcomes = Math.pow(3, remainingInGroup.length);
+    const outcomesPerMatch: SimulatedScoreOutcome[][] = remainingPlayable.map((m) => {
+      const p1 = getPlayerId(m, 1)!;
+      const p2 = getPlayerId(m, 2)!;
+      return stressScores ? buildStressOutcomesForMatch(p1, p2, maxGoalsM) : buildSimpleOutcomesForMatch(p1, p2);
+    });
+
+    const branching =
+      outcomesPerMatch.length === 0
+        ? 1
+        : outcomesPerMatch.every((o) => o.length === outcomesPerMatch[0]!.length)
+          ? outcomesPerMatch[0]!.length
+          : 0;
+
+    if (branching === 0) continue;
+
+    const maxR = maxRemainingMatchesForEnumeration({
+      teamCount,
+      branchingFactor: branching,
+      enumerationBudget: budget,
+      roundRobinMode: rrMode,
+    });
+
+    if (remainingPlayable.length > maxR) continue;
+
+    const r = remainingPlayable.length;
+    let numOutcomes = 1;
+    for (let i = 0; i < r; i++) {
+      numOutcomes *= branching;
+      if (numOutcomes > budget) {
+        numOutcomes = budget + 1;
+        break;
+      }
+    }
+    if (numOutcomes > budget) continue;
+
     const seedToTeamIds = new Map<number, Set<string>>();
     for (let s = 1; s <= maxSeed; s++) seedToTeamIds.set(s, new Set());
 
     for (let out = 0; out < numOutcomes; out++) {
-      const simulated = remainingInGroup.map((m, idx) => {
-        const choice = Math.floor(out / Math.pow(3, idx)) % 3;
-        const p1 = getPlayerId(m, 1);
-        const p2 = getPlayerId(m, 2);
+      const simulated: MatchForStandings[] = remainingPlayable.map((m, idx) => {
+        const choice = Math.floor(out / Math.pow(branching, idx)) % branching;
+        const o = outcomesPerMatch[idx]![choice]!;
         const clone = { ...m, status: "completed" as string };
-        if (choice === 0) {
-          (clone as any).winner_id = p1;
-          (clone as any).score1 = "1";
-          (clone as any).score2 = "0";
-        } else if (choice === 1) {
-          (clone as any).winner_id = null;
-          (clone as any).score1 = "1";
-          (clone as any).score2 = "1";
-        } else {
-          (clone as any).winner_id = p2;
-          (clone as any).score1 = "0";
-          (clone as any).score2 = "1";
-        }
-        (clone as any).score = `${(clone as any).score1}-${(clone as any).score2}`;
+        (clone as any).winner_id = o.winnerId;
+        (clone as any).score1 = String(o.score1);
+        (clone as any).score2 = String(o.score2);
+        (clone as any).score = `${o.score1}-${o.score2}`;
         return clone;
       });
 
@@ -95,7 +175,18 @@ export function computeLockedSeeds(
         matchPlayerStats: options.matchPlayerStats,
         teamMembers: options.teamMembers,
         registrationType: options.registrationType ?? "player",
-      }) as import("./compute").StandingRow[];
+      }) as StandingRow[];
+
+      const table = new Map(rows.map((row) => [row.player.id, row]));
+      const ctx: CompareStandingRowsContext = {
+        order: orderNoFinal,
+        useFinalAlphabetical: cfg.final_tiebreaker === "alphabetical",
+        byGroup: syntheticMatches,
+        table,
+        allRows: rows,
+        pointsWin: cfg.points_win ?? 3,
+        pointsDraw: cfg.points_draw ?? 1,
+      };
 
       for (let seed = 1; seed <= maxSeed && seed <= rows.length; seed++) {
         const idx = seed - 1;
@@ -105,14 +196,8 @@ export function computeLockedSeeds(
           continue;
         }
 
-        // Under admin_decide, tied teams should not collapse into a single seed.
-        // Add all candidates in the tie group that contains the seed's index.
-        let start = idx;
-        while (start > 0 && isStandingTie(rows[start - 1], rows[start])) start--;
-        let end = idx;
-        while (end + 1 < rows.length && isStandingTie(rows[end], rows[end + 1])) end++;
-
-        rows.slice(start, end + 1).forEach((r) => seedToTeamIds.get(seed)!.add(r.player.id));
+        const candidates = seedCandidateIdsForRankIndex(rows, idx, ctx);
+        candidates.forEach((id) => seedToTeamIds.get(seed)!.add(id));
       }
     }
 

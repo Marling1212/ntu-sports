@@ -17,7 +17,7 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
 
   const { data: event } = await supabase
     .from("events")
-    .select("tournament_type, tiebreaker_config, playoff_qualifiers_per_group, registration_type")
+    .select("tournament_type, tiebreaker_config, playoff_qualifiers_per_group, registration_type, sport")
     .eq("id", eventId)
     .single();
 
@@ -108,6 +108,7 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
       matchPlayerStats,
       teamMembers,
       registrationType: ((event as any).registration_type as "player" | "team") || "player",
+      sport: (event as any).sport as string | undefined,
     }
   );
 

@@ -235,6 +235,89 @@ function miniLeagueStats(
   return res;
 }
 
+/** Context for comparing two standing rows exactly like `computeStandings` sort order. */
+export interface CompareStandingRowsContext {
+  order: TiebreakerCriteria[];
+  useFinalAlphabetical: boolean;
+  byGroup: MatchForStandings[];
+  table: Map<string, StandingRow>;
+  /** Full rows array (same reference `computeStandings` uses while sorting). */
+  allRows: StandingRow[];
+  pointsWin: number;
+  pointsDraw: number;
+}
+
+/**
+ * Compare two rows using the same tiebreaker order as `computeStandings`.
+ * Returns 0 when rows are tied under `final_tiebreaker === "admin_decide"` (unless alphabetical final).
+ */
+export function compareStandingRows(
+  a: StandingRow,
+  b: StandingRow,
+  ctx: CompareStandingRowsContext
+): number {
+  const { order, useFinalAlphabetical, byGroup, table, allRows, pointsWin, pointsDraw } = ctx;
+  for (const crit of order) {
+    if (crit === "points") {
+      if (b.points !== a.points) return b.points - a.points;
+    } else if (crit === "wins") {
+      if (b.wins !== a.wins) return b.wins - a.wins;
+    } else if (crit === "losses") {
+      if (a.losses !== b.losses) return a.losses - b.losses;
+    } else if (crit === "draws") {
+      if (b.draws !== a.draws) return b.draws - a.draws;
+    } else if (crit === "goal_difference") {
+      if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
+    } else if (crit === "goals_for") {
+      if ((b.goalsFor || 0) !== (a.goalsFor || 0)) return (b.goalsFor || 0) - (a.goalsFor || 0);
+    } else if (crit === "goals_against") {
+      if ((a.goalsAgainst || 0) !== (b.goalsAgainst || 0)) return (a.goalsAgainst || 0) - (b.goalsAgainst || 0);
+    } else if (crit === "fair_play") {
+      if ((b.fairPlayPoints || 0) !== (a.fairPlayPoints || 0))
+        return (b.fairPlayPoints || 0) - (a.fairPlayPoints || 0);
+    } else if (crit === "head_to_head") {
+      const tied = allRows.filter(
+        (r) =>
+          r.points === a.points &&
+          r.goalDiff === a.goalDiff &&
+          (r.goalsFor || 0) === (a.goalsFor || 0)
+      );
+      if (
+        tied.length >= 2 &&
+        tied.some((r) => r.player.id === a.player.id) &&
+        tied.some((r) => r.player.id === b.player.id)
+      ) {
+        const ml = miniLeagueStats(
+          tied.map((r) => r.player.id),
+          byGroup,
+          table,
+          pointsWin,
+          pointsDraw
+        );
+        const ma = ml.get(a.player.id)!;
+        const mb = ml.get(b.player.id)!;
+        if (mb.points !== ma.points) return mb.points - ma.points;
+        if (mb.goalDiff !== ma.goalDiff) return mb.goalDiff - ma.goalDiff;
+        if (mb.goalsFor !== ma.goalsFor) return mb.goalsFor - ma.goalsFor;
+      } else {
+        const twoH2h = h2h(a.player.id, b.player.id, byGroup, pointsWin, pointsDraw);
+        const aIsP1 = a.player.id < b.player.id;
+        const aPts = aIsP1 ? twoH2h.p1Points : twoH2h.p2Points;
+        const bPts = aIsP1 ? twoH2h.p2Points : twoH2h.p1Points;
+        if (bPts !== aPts) return bPts - aPts;
+        const aGD = aIsP1 ? twoH2h.p1GoalsFor - twoH2h.p1GoalsAgainst : twoH2h.p2GoalsFor - twoH2h.p2GoalsAgainst;
+        const bGD = aIsP1 ? twoH2h.p2GoalsFor - twoH2h.p2GoalsAgainst : twoH2h.p1GoalsFor - twoH2h.p1GoalsAgainst;
+        if (bGD !== aGD) return bGD - aGD;
+        const aGF = aIsP1 ? twoH2h.p1GoalsFor : twoH2h.p2GoalsFor;
+        const bGF = aIsP1 ? twoH2h.p2GoalsFor : twoH2h.p1GoalsFor;
+        if (bGF !== aGF) return bGF - aGF;
+      }
+    }
+  }
+  if (useFinalAlphabetical) return a.player.name.localeCompare(b.player.name);
+  return 0;
+}
+
 export function computeStandings(
   matches: MatchForStandings[],
   players: PlayerForStandings[],
@@ -347,67 +430,16 @@ export function computeStandings(
   const useFinalAlphabetical = cfg.final_tiebreaker === "alphabetical";
 
   function sortRows(rows: StandingRow[]): void {
-    rows.sort((a, b) => {
-      for (const crit of order) {
-        if (crit === "points") {
-          if (b.points !== a.points) return b.points - a.points;
-        } else if (crit === "wins") {
-          if (b.wins !== a.wins) return b.wins - a.wins;
-        } else if (crit === "losses") {
-          if (a.losses !== b.losses) return a.losses - b.losses; // 少輸較好
-        } else if (crit === "draws") {
-          if (b.draws !== a.draws) return b.draws - a.draws;
-        } else if (crit === "goal_difference") {
-          if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
-        } else if (crit === "goals_for") {
-          if ((b.goalsFor || 0) !== (a.goalsFor || 0)) return (b.goalsFor || 0) - (a.goalsFor || 0);
-        } else if (crit === "goals_against") {
-          if ((a.goalsAgainst || 0) !== (b.goalsAgainst || 0)) return (a.goalsAgainst || 0) - (b.goalsAgainst || 0); // 少失較好
-        } else if (crit === "fair_play") {
-          if ((b.fairPlayPoints || 0) !== (a.fairPlayPoints || 0))
-            return (b.fairPlayPoints || 0) - (a.fairPlayPoints || 0);
-        } else if (crit === "head_to_head") {
-          const tied = rows.filter(
-            (r) =>
-              r.points === a.points &&
-              r.goalDiff === a.goalDiff &&
-              (r.goalsFor || 0) === (a.goalsFor || 0)
-          );
-          if (tied.length >= 2 && tied.some((r) => r.player.id === a.player.id) && tied.some((r) => r.player.id === b.player.id)) {
-            const ml = miniLeagueStats(
-              tied.map((r) => r.player.id),
-              byGroup,
-              table,
-              pointsWin,
-              pointsDraw
-            );
-            const ma = ml.get(a.player.id)!;
-            const mb = ml.get(b.player.id)!;
-            if (mb.points !== ma.points) return mb.points - ma.points;
-            if (mb.goalDiff !== ma.goalDiff) return mb.goalDiff - ma.goalDiff;
-            if (mb.goalsFor !== ma.goalsFor) return mb.goalsFor - ma.goalsFor;
-          } else {
-            const twoH2h = h2h(a.player.id, b.player.id, byGroup, pointsWin, pointsDraw);
-            const aIsP1 = a.player.id < b.player.id;
-            const aPts = aIsP1 ? twoH2h.p1Points : twoH2h.p2Points;
-            const bPts = aIsP1 ? twoH2h.p2Points : twoH2h.p1Points;
-            if (bPts !== aPts) return bPts - aPts;
-            const aGD = aIsP1 ? twoH2h.p1GoalsFor - twoH2h.p1GoalsAgainst : twoH2h.p2GoalsFor - twoH2h.p2GoalsAgainst;
-            const bGD = aIsP1 ? twoH2h.p2GoalsFor - twoH2h.p2GoalsAgainst : twoH2h.p1GoalsFor - twoH2h.p1GoalsAgainst;
-            if (bGD !== aGD) return bGD - aGD;
-            const aGF = aIsP1 ? twoH2h.p1GoalsFor : twoH2h.p2GoalsFor;
-            const bGF = aIsP1 ? twoH2h.p2GoalsFor : twoH2h.p1GoalsFor;
-            if (bGF !== aGF) return bGF - aGF;
-          }
-        }
-      }
-      // Final tiebreaker:
-      // - alphabetical: deterministic order
-      // - admin_decide: keep teams tied (return 0 so their relative order stays stable),
-      //   so UI/admin can show the same rank and bracket as "XXX/YYY" until admin decides.
-      if (useFinalAlphabetical) return a.player.name.localeCompare(b.player.name);
-      return 0;
-    });
+    const ctx: CompareStandingRowsContext = {
+      order,
+      useFinalAlphabetical,
+      byGroup,
+      table,
+      allRows: rows,
+      pointsWin,
+      pointsDraw,
+    };
+    rows.sort((a, b) => compareStandingRows(a, b, ctx));
   }
 
   const rows = Array.from(table.values());
