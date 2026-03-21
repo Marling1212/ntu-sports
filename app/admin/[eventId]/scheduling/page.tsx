@@ -72,8 +72,15 @@ export default async function SchedulingPage({
     .order("scheduled_time", { ascending: true, nullsFirst: false })
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });
+  // 單一組別賽事：一併載入 division_id 為 NULL 的舊資料，否則拖曳排程永遠清不到、公開頁仍顯示舊時間
   if (effectiveDivisionId) {
-    matchesQuery = matchesQuery.eq("division_id", effectiveDivisionId);
+    if (divisions.length === 1) {
+      matchesQuery = matchesQuery.or(
+        `division_id.eq.${effectiveDivisionId},division_id.is.null`
+      );
+    } else {
+      matchesQuery = matchesQuery.eq("division_id", effectiveDivisionId);
+    }
   }
   const { data: matches } = await matchesQuery;
 
@@ -135,6 +142,8 @@ export default async function SchedulingPage({
           </p>
           <ScheduleGridEditor
             eventId={eventId}
+            divisionId={effectiveDivisionId}
+            divisionsCount={divisions.length}
             slots={slotsForGrid}
             matches={matchesForGrid}
             blackoutTemplates={blackoutTemplates || []}

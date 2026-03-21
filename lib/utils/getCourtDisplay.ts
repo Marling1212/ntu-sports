@@ -21,20 +21,20 @@ export function resolveCourtFromMatchRow(m: any): string | undefined {
 }
 
 /**
- * 統一的 court 顯示邏輯
+ * 統一的 court 顯示邏輯（客戶端／籤表）
  *
  * 優先級：
- * 1. match.court（手動選擇或已映射的場地字串）
- * 2. match.slot.event_courts（時段上連結的場地）
- * 3. "—"（無場地）
+ * 1. match.court（伺服器已解析的字串；公開頁通常不帶 slot 嵌套，籤表又有 slot1/slot2 種子勿與賽事時段混淆）
+ * 2. match.slot（event_slots）上的 event_courts
+ * 3. "—"
  */
 export function getCourtDisplay(match: any): string {
   if (!match) return "—";
-  const fromSlot = courtNameFromSlotEmbed(match?.slot);
-  if (fromSlot) return fromSlot;
   if (match.court && typeof match.court === "string" && match.court.trim() !== "") {
     return match.court.trim();
   }
+  const fromSlot = courtNameFromSlotEmbed(match?.slot);
+  if (fromSlot) return fromSlot;
   return "—";
 }
 
