@@ -1,7 +1,7 @@
 "use client";
 
 import { Match, Player, SlotPlaceholder } from "@/types/tournament";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import TournamentBracket from "./TournamentBracket";
 import BracketPlayerSearch from "./BracketPlayerSearch";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
@@ -58,6 +58,8 @@ interface SeasonPlayDisplayProps {
 const TAIPEI_TZ = "Asia/Taipei";
 const SOCCER_LIKE_SPORTS = ["soccer", "football"];
 
+type StatsScope = "season" | "playoffs" | "overall";
+
 type DateFilter = "all" | "today" | "tomorrow" | "week";
 
 function getDateRangeInTaipei(filter: DateFilter): { start: Date; end: Date } | null {
@@ -98,6 +100,10 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   const initialView: "regular" | "playoffs" | "standings" =
     defaultView && tabs[defaultView] ? defaultView : (tabs.regular ? "regular" : tabs.standings ? "standings" : "playoffs");
   const [view, setView] = useState<"regular" | "playoffs" | "standings">(initialView);
+  /** Soccer stats charts: filter match_player_stats by regular season vs playoff matches */
+  const [statsScope, setStatsScope] = useState<StatsScope>(() =>
+    defaultView === "playoffs" ? "playoffs" : "season"
+  );
   const [selectedGroup, setSelectedGroup] = useState<number | "all">("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [expandedScorers, setExpandedScorers] = useState(false);
@@ -172,6 +178,27 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   }, [filteredRegularSeasonMatches, filterByPlayerId]);
 
   const playoffMatches = matches.filter(m => m.round >= 1);
+
+  const seasonMatchIds = useMemo(
+    () => new Set(matches.filter((m) => m.round === 0).map((m) => m.id)),
+    [matches]
+  );
+  const playoffMatchIds = useMemo(
+    () => new Set(matches.filter((m) => m.round >= 1).map((m) => m.id)),
+    [matches]
+  );
+
+  /** Standings tab → default season stats; Playoffs tab → default playoff stats */
+  useEffect(() => {
+    if (view === "playoffs") setStatsScope("playoffs");
+    else if (view === "standings" || view === "regular") setStatsScope("season");
+  }, [view]);
+
+  const scopedMatchPlayerStats = useMemo(() => {
+    if (statsScope === "overall") return matchPlayerStats;
+    const idSet = statsScope === "season" ? seasonMatchIds : playoffMatchIds;
+    return matchPlayerStats.filter((s) => idSet.has(s.match_id));
+  }, [matchPlayerStats, statsScope, seasonMatchIds, playoffMatchIds]);
 
   /** From bracket: (seed, group) -> "playoff wins needed to win the event". Same treatment => same tier => same color. */
   const playoffWinsNeededTier = useMemo(() => {
@@ -316,12 +343,12 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   // Calculate top scorers for team events
   const topScorers = useMemo(() => {
-    if (registrationType !== 'team' || matchPlayerStats.length === 0) return [];
+    if (registrationType !== 'team' || scopedMatchPlayerStats.length === 0) return [];
     
     const goalsMap = new Map<string, { name: string; goals: number; teamName?: string; jerseyNumber?: number | null }>();
     
     // Sum up player_goals from match_player_stats for each team member
-    matchPlayerStats.forEach(stat => {
+    scopedMatchPlayerStats.forEach(stat => {
       if (stat.stat_name === 'player_goals' && stat.team_member_id && stat.stat_value) {
         const member = teamMembers.find(m => m.id === stat.team_member_id);
         if (member) {
@@ -358,7 +385,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         teamName: item.teamName,
         jerseyNumber: item.jerseyNumber
       }));
-  }, [matchPlayerStats, teamMembers, registrationType, players]);
+  }, [scopedMatchPlayerStats, teamMembers, registrationType, players]);
   
   // Get top 5 and all scorers
   const top5Scorers = topScorers.slice(0, 5);
@@ -368,7 +395,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   const topYellowCards = useMemo(() => {
     const cardsMap = new Map<string, { name: string; cards: number; teamName?: string; jerseyNumber?: number | null }>();
     
-    matchPlayerStats.forEach(stat => {
+    scopedMatchPlayerStats.forEach(stat => {
       // 檢查常見的黃牌統計名稱（支援多種命名方式）
       const isYellowCard = stat.stat_name === 'yellow_card' || 
                           stat.stat_name === 'yellow_cards' || 
@@ -423,7 +450,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         teamName: item.teamName,
         jerseyNumber: item.jerseyNumber
       }));
-  }, [matchPlayerStats, teamMembers, registrationType, players]);
+  }, [scopedMatchPlayerStats, teamMembers, registrationType, players]);
   
   // Get top 5 and all yellow cards
   const top5YellowCards = topYellowCards.slice(0, 5);
@@ -433,7 +460,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   const topRedCards = useMemo(() => {
     const cardsMap = new Map<string, { name: string; cards: number; teamName?: string; jerseyNumber?: number | null }>();
     
-    matchPlayerStats.forEach(stat => {
+    scopedMatchPlayerStats.forEach(stat => {
       // 檢查常見的紅牌統計名稱（支援多種命名方式）
       const isRedCard = stat.stat_name === 'red_card' || 
                         stat.stat_name === 'red_cards' || 
@@ -488,7 +515,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         teamName: item.teamName,
         jerseyNumber: item.jerseyNumber
       }));
-  }, [matchPlayerStats, teamMembers, registrationType, players]);
+  }, [scopedMatchPlayerStats, teamMembers, registrationType, players]);
   
   // Get top 5 and all red cards
   const top5RedCards = topRedCards.slice(0, 5);
@@ -1283,6 +1310,194 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   ).length;
   const totalRegularMatches = regularSeasonMatches.length;
 
+  /** Soccer goal / card leaderboards (shared between Standings and Playoffs tabs) */
+  function renderSoccerStatsSection() {
+    if (!showTopScorers) return null;
+    if (view !== "standings" && view !== "playoffs") return null;
+
+    const scopeBtn = (scope: StatsScope, label: string) => (
+      <button
+        key={scope}
+        type="button"
+        onClick={() => setStatsScope(scope)}
+        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+          statsScope === scope
+            ? "bg-ntu-green text-white shadow-sm"
+            : "bg-white border border-gray-300 text-gray-700 hover:border-ntu-green hover:text-ntu-green"
+        }`}
+      >
+        {label}
+      </button>
+    );
+
+    return (
+      <div className="mt-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <p className="text-sm font-medium text-gray-700">
+            {t("seasonPlay.statsSectionTitle")}
+          </p>
+          <div className="flex flex-wrap gap-1.5 justify-start sm:justify-end" role="tablist" aria-label={t("seasonPlay.statsScopeLabel")}>
+            {scopeBtn("season", t("seasonPlay.statsScopeSeason"))}
+            {scopeBtn("playoffs", t("seasonPlay.statsScopePlayoffs"))}
+            {scopeBtn("overall", t("seasonPlay.statsScopeOverall"))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {showTopScorers && allScorers.length > 0 ? (
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-ntu-green">⚽ {t("seasonPlay.topScorers")}</h3>
+                {allScorers.length > 5 && (
+                  <button
+                    onClick={() => setExpandedScorers(!expandedScorers)}
+                    className="text-sm text-ntu-green hover:text-green-700 font-medium underline"
+                  >
+                    {expandedScorers ? t("seasonPlay.collapse") : t("seasonPlay.viewAllCount").replace("{n}", String(allScorers.length))}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-3">
+                {(expandedScorers ? allScorers : top5Scorers).map((stat, idx) => {
+                  const maxGoals = allScorers[0].goalsFor;
+                  const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
+                  let displayName = stat.name;
+                  if (registrationType === 'team' && 'teamName' in stat && stat.teamName) {
+                    const jerseyPart = 'jerseyNumber' in stat && stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                      ? ` #${stat.jerseyNumber}` 
+                      : '';
+                    displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                  }
+                  return (
+                    <div key={stat.id}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-700">
+                          {idx + 1}. {displayName}
+                        </span>
+                        <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} {t("seasonPlay.goalsUnit")}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-ntu-green h-3 rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ {t("seasonPlay.topScorers")}</h3>
+              <p className="text-sm text-gray-500">{registrationType === 'team' ? t("seasonPlay.noData") : t("seasonPlay.statsTeamGoalsOnly")}</p>
+            </div>
+          )}
+
+          {showTopScorers && (allYellowCards.length > 0 ? (
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-yellow-600">🟨 {t("seasonPlay.yellowCards")}</h3>
+                {allYellowCards.length > 5 && (
+                  <button
+                    onClick={() => setExpandedYellowCards(!expandedYellowCards)}
+                    className="text-sm text-yellow-600 hover:text-yellow-700 font-medium underline"
+                  >
+                    {expandedYellowCards ? t("seasonPlay.collapse") : t("seasonPlay.viewAllCount").replace("{n}", String(allYellowCards.length))}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-3">
+                {(expandedYellowCards ? allYellowCards : top5YellowCards).map((stat, idx) => {
+                  const maxCards = allYellowCards[0].count;
+                  const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
+                  let displayName = stat.name;
+                  if (registrationType === 'team' && stat.teamName) {
+                    const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                      ? ` #${stat.jerseyNumber}` 
+                      : '';
+                    displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                  }
+                  return (
+                    <div key={stat.id}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-700">
+                          {idx + 1}. {displayName}
+                        </span>
+                        <span className="text-sm font-bold text-yellow-600">{stat.count} {t("seasonPlay.cardsUnit")}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-yellow-500 h-3 rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 {t("seasonPlay.yellowCards")}</h3>
+              <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
+            </div>
+          ))}
+
+          {showTopScorers && (allRedCards.length > 0 ? (
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-red-600">🟥 {t("seasonPlay.redCards")}</h3>
+                {allRedCards.length > 5 && (
+                  <button
+                    onClick={() => setExpandedRedCards(!expandedRedCards)}
+                    className="text-sm text-red-600 hover:text-red-700 font-medium underline"
+                  >
+                    {expandedRedCards ? t("seasonPlay.collapse") : t("seasonPlay.viewAllCount").replace("{n}", String(allRedCards.length))}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-3">
+                {(expandedRedCards ? allRedCards : top5RedCards).map((stat, idx) => {
+                  const maxCards = allRedCards[0].count;
+                  const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
+                  let displayName = stat.name;
+                  if (registrationType === 'team' && stat.teamName) {
+                    const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
+                      ? ` #${stat.jerseyNumber}` 
+                      : '';
+                    displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
+                  }
+                  return (
+                    <div key={stat.id}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-700">
+                          {idx + 1}. {displayName}
+                        </span>
+                        <span className="text-sm font-bold text-red-600">{stat.count} {t("seasonPlay.cardsUnit")}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-red-500 h-3 rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 {t("seasonPlay.redCards")}</h3>
+              <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={theme.root}>
       {/* View Tabs: sticky on mobile so Games/Standings/Playoffs stay visible when scrolling */}
@@ -1966,165 +2181,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             <span>{t("seasonPlay.qualifyHint")}</span>
           </div>
 
-          {/* Statistics Charts — goals & cards only for soccer/football */}
-          {(showTopScorers && (topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0)) && (
-            <div className="mt-8">
-              {/* Top Performers: Goals, Yellow Cards, Red Cards (soccer only) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {showTopScorers && allScorers.length > 0 ? (
-                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-ntu-green">⚽ {t("seasonPlay.topScorers")}</h3>
-                      {allScorers.length > 5 && (
-                        <button
-                          onClick={() => setExpandedScorers(!expandedScorers)}
-                          className="text-sm text-ntu-green hover:text-green-700 font-medium underline"
-                        >
-                          {expandedScorers ? t("seasonPlay.collapse") : t("seasonPlay.viewAllCount").replace("{n}", String(allScorers.length))}
-                        </button>
-                      )}
-                    </div>
-                    <div className="space-y-3">
-                      {(expandedScorers ? allScorers : top5Scorers).map((stat, idx) => {
-                        const maxGoals = allScorers[0].goalsFor;
-                        const percentage = maxGoals > 0 ? (stat.goalsFor / maxGoals) * 100 : 0;
-                        let displayName = stat.name;
-                        if (registrationType === 'team' && 'teamName' in stat && stat.teamName) {
-                          const jerseyPart = 'jerseyNumber' in stat && stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
-                            ? ` #${stat.jerseyNumber}` 
-                            : '';
-                          displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
-                        }
-                        return (
-                          <div key={stat.id}>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-sm font-medium text-gray-700">
-                                {idx + 1}. {displayName}
-                              </span>
-                              <span className="text-sm font-bold text-ntu-green">{stat.goalsFor} {t("seasonPlay.goalsUnit")}</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3">
-                              <div
-                                className="bg-ntu-green h-3 rounded-full transition-all"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold text-ntu-green mb-4">⚽ {t("seasonPlay.topScorers")}</h3>
-                    <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
-                  </div>
-                )}
-
-                {/* Top Yellow Cards Chart (soccer only) */}
-                {showTopScorers && (allYellowCards.length > 0 ? (
-                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-yellow-600">🟨 {t("seasonPlay.yellowCards")}</h3>
-                      {allYellowCards.length > 5 && (
-                        <button
-                          onClick={() => setExpandedYellowCards(!expandedYellowCards)}
-                          className="text-sm text-yellow-600 hover:text-yellow-700 font-medium underline"
-                        >
-                          {expandedYellowCards ? t("seasonPlay.collapse") : t("seasonPlay.viewAllCount").replace("{n}", String(allYellowCards.length))}
-                        </button>
-                      )}
-                    </div>
-                    <div className="space-y-3">
-                      {(expandedYellowCards ? allYellowCards : top5YellowCards).map((stat, idx) => {
-                        const maxCards = allYellowCards[0].count;
-                        const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
-                        let displayName = stat.name;
-                        if (registrationType === 'team' && stat.teamName) {
-                          const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
-                            ? ` #${stat.jerseyNumber}` 
-                            : '';
-                          displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
-                        }
-                        return (
-                          <div key={stat.id}>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-sm font-medium text-gray-700">
-                                {idx + 1}. {displayName}
-                              </span>
-                              <span className="text-sm font-bold text-yellow-600">{stat.count} {t("seasonPlay.cardsUnit")}</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3">
-                              <div
-                                className="bg-yellow-500 h-3 rounded-full transition-all"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold text-yellow-600 mb-4">🟨 {t("seasonPlay.yellowCards")}</h3>
-                    <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
-                  </div>
-                ))}
-
-                {/* Top Red Cards Chart (soccer only) */}
-                {showTopScorers && (allRedCards.length > 0 ? (
-                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-red-600">🟥 {t("seasonPlay.redCards")}</h3>
-                      {allRedCards.length > 5 && (
-                        <button
-                          onClick={() => setExpandedRedCards(!expandedRedCards)}
-                          className="text-sm text-red-600 hover:text-red-700 font-medium underline"
-                        >
-                          {expandedRedCards ? t("seasonPlay.collapse") : t("seasonPlay.viewAllCount").replace("{n}", String(allRedCards.length))}
-                        </button>
-                      )}
-                    </div>
-                    <div className="space-y-3">
-                      {(expandedRedCards ? allRedCards : top5RedCards).map((stat, idx) => {
-                        const maxCards = allRedCards[0].count;
-                        const percentage = maxCards > 0 ? (stat.count / maxCards) * 100 : 0;
-                        let displayName = stat.name;
-                        if (registrationType === 'team' && stat.teamName) {
-                          const jerseyPart = stat.jerseyNumber !== null && stat.jerseyNumber !== undefined 
-                            ? ` #${stat.jerseyNumber}` 
-                            : '';
-                          displayName = `${stat.name}${jerseyPart} (${stat.teamName})`;
-                        }
-                        return (
-                          <div key={stat.id}>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-sm font-medium text-gray-700">
-                                {idx + 1}. {displayName}
-                              </span>
-                              <span className="text-sm font-bold text-red-600">{stat.count} {t("seasonPlay.cardsUnit")}</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3">
-                              <div
-                                className="bg-red-500 h-3 rounded-full transition-all"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold text-red-600 mb-4">🟥 {t("seasonPlay.redCards")}</h3>
-                    <p className="text-sm text-gray-500">{t("seasonPlay.noData")}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {renderSoccerStatsSection()}
 
           <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
             <p className="font-semibold text-gray-800 mb-1">{locale === "zh" ? "排名規則（同分時依序比較）" : "Ranking rules (tiebreakers in order)"}</p>
@@ -2311,6 +2368,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               </table>
             </div>
           </div>
+          {renderSoccerStatsSection()}
         </div>
       )}
 
@@ -2343,6 +2401,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             players={players}
             sportName={sportName}
           />
+          {renderSoccerStatsSection()}
         </div>
       )}
 
