@@ -22,6 +22,11 @@ export default function BracketSeedingManager({
   const [showManager, setShowManager] = useState(false);
   const [bracketPositions, setBracketPositions] = useState<Map<number, string>>(new Map());
   const [groupStandings, setGroupStandings] = useState<any[]>([]);
+  const [pendingRemoval, setPendingRemoval] = useState<{
+    position: number;
+    playerId: string;
+    playerName: string;
+  } | null>(null);
   const supabase = createClient();
 
   // Get playoff matches (round >= 1) - handle null/undefined matches
@@ -144,6 +149,24 @@ export default function BracketSeedingManager({
     const newPositions = new Map(bracketPositions);
     newPositions.set(position, playerId);
     setBracketPositions(newPositions);
+  };
+
+  const promptRemovePlayer = (position: number, playerId: string, playerName: string) => {
+    setPendingRemoval({ position, playerId, playerName });
+  };
+
+  const cancelRemovePlayer = () => {
+    setPendingRemoval(null);
+  };
+
+  const confirmRemovePlayer = () => {
+    if (!pendingRemoval) return;
+
+    const newPositions = new Map(bracketPositions);
+    newPositions.delete(pendingRemoval.position);
+    setBracketPositions(newPositions);
+    toast.success(`已移除 ${pendingRemoval.playerName} 的籤位`);
+    setPendingRemoval(null);
   };
 
   const randomizeBracket = () => {
@@ -405,12 +428,9 @@ export default function BracketSeedingManager({
                 </span>
                 {player && (
                   <button
-                    onClick={() => {
-                      const newPositions = new Map(bracketPositions);
-                      newPositions.delete(i);
-                      setBracketPositions(newPositions);
-                    }}
+                    onClick={() => promptRemovePlayer(i, player.id, player.name)}
                     className="text-red-500 hover:text-red-700 text-sm"
+                    title="移除選手"
                   >
                     ✕
                   </button>
@@ -452,6 +472,34 @@ export default function BracketSeedingManager({
           );
         })}
       </div>
+      {pendingRemoval && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md mx-4 rounded-xl bg-white p-6 shadow-xl">
+            <h4 className="text-lg font-semibold text-gray-900 mb-2">確認移除選手</h4>
+            <p className="text-sm text-gray-700 mb-1">
+              你即將從籤表位置 #{pendingRemoval.position + 1} 移除
+              <span className="font-semibold"> {pendingRemoval.playerName}</span>。
+            </p>
+            <p className="text-sm text-red-600 mb-5">
+              此操作會立即改變目前籤位配置，確定要繼續嗎？
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={cancelRemovePlayer}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmRemovePlayer}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+              >
+                確認移除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

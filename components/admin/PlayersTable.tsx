@@ -53,6 +53,10 @@ export default function PlayersTable({
   const [expandedBlackout, setExpandedBlackout] = useState<string | null>(null);
   const [savingBlackoutLimit, setSavingBlackoutLimit] = useState(false);
   const [addingBlackoutForPlayer, setAddingBlackoutForPlayer] = useState<string | null>(null);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [deleteAllConfirmationText, setDeleteAllConfirmationText] = useState("");
+  const [deleteAllError, setDeleteAllError] = useState("");
+  const [deletingAll, setDeletingAll] = useState(false);
   const supabase = createClient();
   const { t } = useI18n();
   const WEEKDAY_LABELS = [t("admin.weekday0"), t("admin.weekday1"), t("admin.weekday2"), t("admin.weekday3"), t("admin.weekday4"), t("admin.weekday5"), t("admin.weekday6")];
@@ -490,52 +494,115 @@ export default function PlayersTable({
 
   const handleDeleteAll = async () => {
     const entityName = registrationType === 'team' ? '隊伍' : '選手';
-    const confirmText = `⚠️ 確定要刪除所有 ${players.length} 個${entityName}嗎？\n\n這也會重置所有比賽和籤表資料！\n\n此操作無法復原！`;
-    
-    if (!confirm(confirmText)) return;
-    
-    // Double confirmation for safety
-    if (!confirm(`⚠️ 最終確認：刪除所有${entityName}並重置所有比賽？`)) return;
-
-    // First, delete round completion tracking
-    await supabase
-      .from("round_completion_announcements")
-      .delete()
-      .eq("event_id", eventId);
-
-    // Second, delete all matches for this event
-    const { error: matchesError } = await supabase
-      .from("matches")
-      .delete()
-      .eq("event_id", eventId);
-
-    if (matchesError) {
-      toast.error(`Error deleting matches: ${matchesError.message}`);
+    if (deleteAllConfirmationText !== "DELETE") {
+      setDeleteAllError("請輸入 DELETE 以確認刪除。");
       return;
     }
 
-    // Then, delete all players
-    const { error: playersError } = await supabase
-      .from("players")
-      .delete()
-      .eq("event_id", eventId);
+    setDeletingAll(true);
+    setDeleteAllError("");
 
-    if (playersError) {
-      toast.error(`Error deleting players: ${playersError.message}`);
-    } else {
+    try {
+      // First, delete round completion tracking
+      const { error: announcementsError } = await supabase
+        .from("round_completion_announcements")
+        .delete()
+        .eq("event_id", eventId);
+      if (announcementsError) {
+        throw new Error(`刪除回合公告失敗：${announcementsError.message}`);
+      }
+
+      // Second, delete all matches for this event
+      const { error: matchesError } = await supabase
+        .from("matches")
+        .delete()
+        .eq("event_id", eventId);
+      if (matchesError) {
+        throw new Error(`刪除比賽失敗：${matchesError.message}`);
+      }
+
+      // Then, delete all players
+      const { error: playersError } = await supabase
+        .from("players")
+        .delete()
+        .eq("event_id", eventId);
+      if (playersError) {
+        throw new Error(`刪除${entityName}失敗：${playersError.message}`);
+      }
+
       setPlayers([]);
-      toast.success(`✅ 所有${entityName}和比賽已刪除！重新開始...`);
-      
+      toast.success(`所有${entityName}已刪除，並已重置比賽資料。`);
+      setShowDeleteAllModal(false);
+      setDeleteAllConfirmationText("");
+
       // Refresh the page after a short delay
       setTimeout(() => {
         window.location.reload();
       }, 1500);
+    } catch (error: any) {
+      const message = error?.message || "刪除失敗，請稍後再試。";
+      setDeleteAllError(message);
+      toast.error(message);
+    } finally {
+      setDeletingAll(false);
     }
   };
 
   return (
     <>
       <Toaster position="top-right" />
+
+      {showDeleteAllModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              確認刪除全部{registrationType === 'team' ? '隊伍' : '選手'}
+            </h3>
+            <p className="text-sm text-gray-700 mb-2">
+              這將刪除全部 <span className="font-semibold">{players.length}</span> 個
+              {registrationType === 'team' ? '隊伍' : '選手'}，並重置所有比賽與籤表資料。
+            </p>
+            <p className="text-sm text-red-600 mb-4">
+              此操作無法復原。請輸入 <span className="font-semibold">DELETE</span> 以確認。
+            </p>
+
+            <input
+              type="text"
+              value={deleteAllConfirmationText}
+              onChange={(e) => {
+                setDeleteAllConfirmationText(e.target.value);
+                if (deleteAllError) setDeleteAllError("");
+              }}
+              placeholder="輸入 DELETE"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            {deleteAllError && (
+              <p className="mt-2 text-sm text-red-600">{deleteAllError}</p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowDeleteAllModal(false);
+                  setDeleteAllConfirmationText("");
+                  setDeleteAllError("");
+                }}
+                disabled={deletingAll}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {t('admin.cancel')}
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={deletingAll}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deletingAll ? t('admin.loading') : t('admin.registration.deleteAll')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {showBulkImport && (
         <div className="mb-6">
@@ -658,8 +725,9 @@ export default function PlayersTable({
           <div className="flex justify-end items-center gap-3">
             {players.length > 0 && (
               <button
-                onClick={handleDeleteAll}
-                className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-medium border-2 border-red-200 hover:bg-red-600 hover:text-white transition-colors"
+                onClick={() => setShowDeleteAllModal(true)}
+                disabled={deletingAll}
+                className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-medium border-2 border-red-200 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
               >
                 🗑️ {t('admin.registration.deleteAll')}
               </button>
