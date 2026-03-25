@@ -36,7 +36,7 @@ export default function LoginPage() {
     setError(null);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/alumni/dashboard` },
+      options: { emailRedirectTo: `${window.location.origin}/admin/dashboard` },
     });
     if (error) {
       setError(error.message || "Failed to send sign‑in link");

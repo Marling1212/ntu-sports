@@ -19,13 +19,13 @@ export default async function AdminFeedbackPage() {
     redirect("/admin/login");
   }
 
-  const { data: organizers } = await supabase
-    .from("organizers")
+  const { data: platformAdmin } = await supabase
+    .from("platform_admins")
     .select("id")
     .eq("user_id", user.id)
-    .limit(1);
+    .single();
 
-  if (!organizers?.length) {
+  if (!platformAdmin) {
     redirect("/admin/dashboard");
   }
 
