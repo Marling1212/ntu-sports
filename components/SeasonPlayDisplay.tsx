@@ -1220,10 +1220,27 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         if (label) next.player2 = { id: `tie-${key}-p2`, name: label };
       }
 
-      // Before all group games are finalized, never show real names (or XXX/YYY tie placeholders).
+      // UX requirement:
+      // - While groups are not fully finalized, hide team names for *unlocked* seed/group slots.
+      // - Preserve team names for slots that are mathematically locked (your background rank-lock feature).
       if (!allGroupsFinalized) {
-        next.player1 = null;
-        next.player2 = null;
+        const slot1 = next.slot1 && typeof next.slot1 === "object" ? next.slot1 : null;
+        const slot2 = next.slot2 && typeof next.slot2 === "object" ? next.slot2 : null;
+
+        if (slot1) {
+          const expected = lockedPlayoffSeeds.get(`${slot1.seed},${slot1.group}`);
+          if (!expected || next.player1?.id !== expected) next.player1 = null;
+        } else {
+          // If we don't know the seed/group for player1, safest is to hide it.
+          next.player1 = null;
+        }
+
+        if (slot2) {
+          const expected = lockedPlayoffSeeds.get(`${slot2.seed},${slot2.group}`);
+          if (!expected || next.player2?.id !== expected) next.player2 = null;
+        } else {
+          next.player2 = null;
+        }
       }
 
       return next;
