@@ -197,11 +197,12 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   }
 
   const resolveSlot = (seed: number, group: number): string | null => {
+    // UX requirement:
+    // - Until all group games are finalized, keep playoff slots as "Seed N Group X"
+    //   (do not fill real team names into player1_id/player2_id).
+    if (!allRegularComplete) return null;
     const k = `${seed},${group}`;
-    const fromLock = locked.get(k);
-    if (fromLock) return fromLock;
-    if (allRegularComplete) return seedGroupToPlayer.get(k) ?? null;
-    return null;
+    return seedGroupToPlayer.get(k) ?? null;
   };
 
   const bothSeededSides = (m: any) =>

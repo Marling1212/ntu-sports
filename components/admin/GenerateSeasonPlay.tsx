@@ -168,17 +168,44 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
         return;
       }
 
-      // Randomly shuffle players
-      const shuffledPlayers = shuffleArray(players);
+      // Divide players into groups.
+      // Seed-aware distribution:
+      // - Take seeded teams ordered by seed.
+      // - For each block of `numGroups` consecutive seeds, assign them to groups randomly (one per group).
+      // - Fill remaining capacity with unseeded teams randomly.
+      const seeded = players
+        .filter((p: any) => p.seed != null)
+        .sort((a: any, b: any) => (a.seed ?? 0) - (b.seed ?? 0));
+      const unseeded = players.filter((p: any) => p.seed == null);
 
-      // Divide players into groups
-      const groups: Player[][] = [];
-      let playerIndex = 0;
-      
+      const groupTargets = Array.from({ length: numGroups }, (_, g) => playersPerGroup + (g < remainder ? 1 : 0));
+      const groups: Player[][] = Array.from({ length: numGroups }, () => []);
+
+      // Place seeded players in seed-number blocks.
+      for (let seedStart = 0; seedStart < seeded.length; seedStart += numGroups) {
+        const block = seeded.slice(seedStart, seedStart + numGroups);
+        const groupOrder = shuffleArray(Array.from({ length: numGroups }, (_, i) => i));
+        for (let i = 0; i < block.length; i++) {
+          groups[groupOrder[i]].push(block[i]);
+        }
+      }
+
+      // Fill remaining slots with unseeded teams.
+      const shuffledUnseeded = shuffleArray(unseeded);
+      let u = 0;
       for (let g = 0; g < numGroups; g++) {
-        const groupSize = playersPerGroup + (g < remainder ? 1 : 0);
-        groups.push(shuffledPlayers.slice(playerIndex, playerIndex + groupSize));
-        playerIndex += groupSize;
+        while (groups[g].length < groupTargets[g] && u < shuffledUnseeded.length) {
+          groups[g].push(shuffledUnseeded[u++]);
+        }
+      }
+
+      // Fallback: if due to unexpected data we still have unplaced players, distribute them.
+      if (u < shuffledUnseeded.length) {
+        for (const p of shuffledUnseeded.slice(u)) {
+          const targetGroup = groups.findIndex((gr, idx) => gr.length < groupTargets[idx]);
+          if (targetGroup === -1) break;
+          groups[targetGroup].push(p);
+        }
       }
 
       // Generate round-robin matches within each group (Round 0)
