@@ -1222,14 +1222,26 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
       // UX requirement:
       // - While groups are not fully finalized, hide team names for *unlocked* seed/group slots.
-      // - Preserve team names for slots that are mathematically locked (your background rank-lock feature).
+      // - Preserve/enable team names for slots that are mathematically locked (your background rank-lock feature).
+      //   Note: the server may clear stale player1_id/player2_id before groups are complete, so we must fill
+      //   from `lockedPlayoffSeeds` + `players` instead of relying on DB-populated `player1/player2`.
       if (!allGroupsFinalized) {
         const slot1 = next.slot1 && typeof next.slot1 === "object" ? next.slot1 : null;
         const slot2 = next.slot2 && typeof next.slot2 === "object" ? next.slot2 : null;
 
         if (slot1) {
           const expected = lockedPlayoffSeeds.get(`${slot1.seed},${slot1.group}`);
-          if (!expected || next.player1?.id !== expected) next.player1 = null;
+          if (expected) {
+            const pl = players.find((p: any) => p.id === expected);
+            if (pl) {
+              next.player1 = { id: pl.id, name: pl.name, seed: pl.seed, school: pl.school };
+            }
+          } else {
+            // If it's not locked, allow tie placeholder (if present), otherwise hide.
+            const key = `${slot1.seed},${slot1.group}`;
+            const label = tieSeedLabels.get(key);
+            next.player1 = label ? { id: `tie-${key}-p1`, name: label } : null;
+          }
         } else {
           // If we don't know the seed/group for player1, safest is to hide it.
           next.player1 = null;
@@ -1237,7 +1249,16 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
         if (slot2) {
           const expected = lockedPlayoffSeeds.get(`${slot2.seed},${slot2.group}`);
-          if (!expected || next.player2?.id !== expected) next.player2 = null;
+          if (expected) {
+            const pl = players.find((p: any) => p.id === expected);
+            if (pl) {
+              next.player2 = { id: pl.id, name: pl.name, seed: pl.seed, school: pl.school };
+            }
+          } else {
+            const key = `${slot2.seed},${slot2.group}`;
+            const label = tieSeedLabels.get(key);
+            next.player2 = label ? { id: `tie-${key}-p2`, name: label } : null;
+          }
         } else {
           next.player2 = null;
         }
