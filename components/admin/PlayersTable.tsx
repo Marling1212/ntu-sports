@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { Player, TeamMember, EventSlotTemplate, TeamBlackoutTemplate, EventDivision } from "@/types/database";
@@ -34,6 +35,7 @@ export default function PlayersTable({
   defaultDivisionId = null,
 }: PlayersTableProps) {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
+  const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [newPlayer, setNewPlayer] = useState<any>({ name: "", department: "", email: "", seed: "" });
@@ -548,6 +550,8 @@ export default function PlayersTable({
     }
   };
 
+  const showEmptyRosterCta = players.length === 0 && !isAdding && !showBulkImport;
+
   return (
     <>
       <Toaster position="top-right" />
@@ -747,6 +751,34 @@ export default function PlayersTable({
           </div>
         </div>
 
+        {showEmptyRosterCta && (
+          <div className="p-8 md:p-12 border-b border-gray-200 bg-white">
+            <div className="max-w-3xl mx-auto border-2 border-dashed border-ntu-green/40 rounded-2xl bg-ntu-green/5 p-8 md:p-10 text-center">
+              <div className="text-5xl mb-4">👥</div>
+              <h3 className="text-2xl md:text-3xl font-bold text-ntu-green mb-3">
+                {registrationType === "team" ? "先新增第一支隊伍" : "先新增第一位選手"}
+              </h3>
+              <p className="text-gray-700 text-base md:text-lg mb-6">
+                完成這一步後，系統才能產生賽程與籤表。
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={() => setIsAdding(true)}
+                  className="w-full sm:w-auto min-w-[220px] bg-ntu-green text-white px-6 py-3 rounded-lg text-base font-semibold hover:opacity-90 transition-opacity"
+                >
+                  + {registrationType === "team" ? "新增第一支隊伍" : "新增第一位選手"}
+                </button>
+                <button
+                  onClick={() => setShowBulkImport(true)}
+                  className="w-full sm:w-auto min-w-[220px] bg-white text-ntu-green px-6 py-3 rounded-lg text-base font-semibold border-2 border-ntu-green hover:bg-ntu-green hover:text-white transition-colors"
+                >
+                  📋 批次匯入名單
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isAdding && (
           <form
             onSubmit={handleAddPlayer}
@@ -770,7 +802,17 @@ export default function PlayersTable({
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.registration.divisionLabel')}</label>
                   <select
                     value={selectedDivisionId}
-                    onChange={(e) => setSelectedDivisionId(e.target.value)}
+                    onChange={(e) => {
+                      const nextDivisionId = e.target.value;
+                      setSelectedDivisionId(nextDivisionId);
+
+                      // Keep the server-rendered Step 2 in sync:
+                      // `app/admin/[eventId]/players/page.tsx` filters by `searchParams.divisionId`,
+                      // but our dropdown previously only changed client state.
+                      const hash = typeof window !== "undefined" ? window.location.hash : "";
+                      router.push(`/admin/${eventId}/players?divisionId=${nextDivisionId}${hash}`);
+                      router.refresh();
+                    }}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
                   >
                     {divisions.map((d) => (
@@ -867,6 +909,7 @@ export default function PlayersTable({
         )}
 
         {/* Desktop Table View */}
+        {!showEmptyRosterCta && (
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -1197,8 +1240,10 @@ export default function PlayersTable({
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Mobile Card View */}
+        {!showEmptyRosterCta && (
         <div className="md:hidden space-y-3">
           {filteredPlayers.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
@@ -1386,6 +1431,7 @@ export default function PlayersTable({
             })
           )}
         </div>
+        )}
       </div>
     </>
   );
