@@ -303,8 +303,14 @@ export default function PlayersTable({
 
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const divisionId = defaultDivisionId ?? (divisions.length > 1 ? selectedDivisionId : divisions[0]?.id) ?? null;
+
+    // Important: use the currently selected division for the insert.
+    // Step 2 server-rendering filters by URL `divisionId`, so keeping insertion + selection in sync avoids "teams disappear after refresh".
+    const divisionId =
+      divisions.length > 1
+        ? selectedDivisionId
+        : (defaultDivisionId ?? divisions[0]?.id) ?? null;
+
     const playerData: any = {
       event_id: eventId,
       ...(divisionId ? { division_id: divisionId } : {}),
@@ -364,6 +370,8 @@ export default function PlayersTable({
         custom_fields: data.custom_fields || {},
       };
       setPlayers([...players, newPlayerData]);
+      // Force the server-rendered Step 2 (waiting message vs tools) to update.
+      router.refresh();
       // Reset form based on enabled fields
       const resetPlayer: any = { name: "", department: "", email: "", seed: "" };
       enabledFields.forEach(field => {
