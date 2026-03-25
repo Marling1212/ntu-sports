@@ -92,6 +92,25 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   const allRegularComplete =
     regularForLock.length > 0 && regularForLock.every((m) => DECIDED.has(m.status));
 
+  // UX requirement:
+  // Until *all* group games are finalized, the playoff preview should remain "Seed N Group X"
+  // and must not show resolved team names.
+  //
+  // If earlier runs already populated player1_id/player2_id, clear them now so stale data
+  // doesn't keep showing team names in the bracket.
+  if (!allRegularComplete) {
+    await supabase
+      .from("matches")
+      .update({
+        player1_id: null,
+        player2_id: null,
+        winner_id: null,
+      })
+      .eq("event_id", eventId)
+      .gte("round", 1);
+    return;
+  }
+
   const playersForStandings = (dbPlayers || []).map((p: any) => ({
     id: p.id,
     name: p.name,
