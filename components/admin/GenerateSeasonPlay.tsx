@@ -439,6 +439,31 @@ export default function GenerateSeasonPlay({ eventId, players, initialQualifiers
 
   const generatePlayoffs = async () => {
     const { syncLockedPlayoffSeeds } = await import("@/lib/actions/syncLockedPlayoffSeeds");
+    const decidedStatuses = ["completed", "forfeit", "walkover"] as const;
+
+    // Safety: only allow filling playoffs once *all* group games are decided.
+    const { data: allR0Matches, error: allR0Err } = await supabase
+      .from("matches")
+      .select("id,status,group_number")
+      .eq("event_id", eventId)
+      .eq("round", 0);
+
+    if (allR0Err) {
+      toast.error(`Error fetching regular season matches: ${allR0Err.message}`);
+      return;
+    }
+
+    if (!allR0Matches || allR0Matches.length === 0) {
+      toast.error("No regular season matches found for this event.");
+      return;
+    }
+
+    const allRegularComplete = allR0Matches.every((m: any) => decidedStatuses.includes(m.status));
+    if (!allRegularComplete) {
+      toast.error("請先完成所有例行賽比賽（每組所有場次）後再進行「填入季後賽」。");
+      return;
+    }
+
     await syncLockedPlayoffSeeds(eventId);
 
     const { data: eventRow, error: eventErr } = await supabase
