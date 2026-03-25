@@ -1237,10 +1237,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               next.player1 = { id: pl.id, name: pl.name, seed: pl.seed, school: pl.school };
             }
           } else {
-            // If it's not locked, allow tie placeholder (if present), otherwise hide.
-            const key = `${slot1.seed},${slot1.group}`;
-            const label = tieSeedLabels.get(key);
-            next.player1 = label ? { id: `tie-${key}-p1`, name: label } : null;
+            // If it's not locked and groups aren't finalized, do not show any team names
+            // (including tie labels like "TeamA/TeamB"). Keep placeholder as Seed N Group X.
+            next.player1 = null;
           }
         } else {
           // If we don't know the seed/group for player1, safest is to hide it.
@@ -1255,9 +1254,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               next.player2 = { id: pl.id, name: pl.name, seed: pl.seed, school: pl.school };
             }
           } else {
-            const key = `${slot2.seed},${slot2.group}`;
-            const label = tieSeedLabels.get(key);
-            next.player2 = label ? { id: `tie-${key}-p2`, name: label } : null;
+            // Same as slot1: hide team names until the whole group is finalized.
+            next.player2 = null;
           }
         } else {
           next.player2 = null;
