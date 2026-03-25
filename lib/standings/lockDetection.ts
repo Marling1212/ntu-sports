@@ -93,7 +93,10 @@ export function computeLockedSeeds(
   const cfg = normalizeTiebreakerConfig(config);
   const isAdminDecide = cfg.final_tiebreaker === "admin_decide";
   const maxSeed = options.maxSeed ?? 8;
-  const decidedStatuses = ["completed", "forfeit", "walkover"];
+  // Include structural byes as "decided" so points/W-D-L standings and lock detection
+  // stay consistent. Otherwise, BYE wins can be dropped from enumeration inputs,
+  // causing seeds to not lock even when the table clearly indicates they should.
+  const decidedStatuses = ["completed", "forfeit", "walkover", "bye"];
   const completed = regularSeasonMatches.filter((m) => decidedStatuses.includes(m.status));
   const remaining = regularSeasonMatches.filter((m) => !decidedStatuses.includes(m.status));
   const groupNumbers = [

@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getSportMatches } from "@/lib/utils/getSportEvent";
 import { computeLockedSeeds, computeStandings, normalizeTiebreakerConfig } from "@/lib/standings";
 
-const DECIDED = new Set(["completed", "forfeit", "walkover"]);
+// Consider structural byes as decided so allRegularComplete and lock resolution
+// match what users see in standings.
+const DECIDED = new Set(["completed", "forfeit", "walkover", "bye"]);
 
 /**
  * Run lock detection and persist (seed, group) → playoff match slots.
