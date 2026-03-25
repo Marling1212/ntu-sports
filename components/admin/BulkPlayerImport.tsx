@@ -10,6 +10,7 @@ interface BulkPlayerImportProps {
   eventId: string;
   onImportComplete: () => void;
   registrationType?: 'player' | 'team';
+  divisionId?: string | null;
 }
 
 interface ParsedPlayer {
@@ -20,7 +21,12 @@ interface ParsedPlayer {
   [key: string]: any; // For custom fields
 }
 
-export default function BulkPlayerImport({ eventId, onImportComplete, registrationType = 'player' }: BulkPlayerImportProps) {
+export default function BulkPlayerImport({
+  eventId,
+  onImportComplete,
+  registrationType = 'player',
+  divisionId = null,
+}: BulkPlayerImportProps) {
   const [step, setStep] = useState<'config' | 'import'>('config');
   const [textInput, setTextInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -188,6 +194,7 @@ export default function BulkPlayerImport({ eventId, onImportComplete, registrati
       const players = parsedPlayers.map(player => {
         const playerData: any = {
           event_id: eventId,
+          ...(divisionId ? { division_id: divisionId } : {}),
           name: player.name,
           type: registrationType,
           email_opt_in: true,

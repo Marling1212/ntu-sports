@@ -621,9 +621,11 @@ export default function PlayersTable({
           <BulkPlayerImport 
             eventId={eventId} 
             registrationType={registrationType}
+            divisionId={divisions.length > 1 ? selectedDivisionId : (defaultDivisionId ?? divisions[0]?.id) ?? null}
             onImportComplete={() => {
               setShowBulkImport(false);
               refreshPlayers();
+              router.refresh();
             }}
           />
         </div>
