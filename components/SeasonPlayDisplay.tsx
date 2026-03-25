@@ -179,6 +179,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   const playoffMatches = matches.filter(m => m.round >= 1);
 
+  // Gating for playoff preview UX:
+  // Public draw should show "Seed N Group X" placeholders until ALL regular-season (round 0) games are finalized.
+  // Even if playoff match rows contain stale player1_id/player2_id from a previous run, we must not display real team names early.
+  const allRound0Matches = useMemo(() => matches.filter((m) => m.round === 0), [matches]);
+  const decidedStatuses = ["completed", "forfeit", "walkover", "bye"] as const;
+  const allGroupsFinalized = allRound0Matches.length > 0 && allRound0Matches.every((m: any) => decidedStatuses.includes(m.status));
+
   const seasonMatchIds = useMemo(
     () => new Set(matches.filter((m) => m.round === 0).map((m) => m.id)),
     [matches]
@@ -1213,9 +1220,15 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
         if (label) next.player2 = { id: `tie-${key}-p2`, name: label };
       }
 
+      // Before all group games are finalized, never show real names (or XXX/YYY tie placeholders).
+      if (!allGroupsFinalized) {
+        next.player1 = null;
+        next.player2 = null;
+      }
+
       return next;
     });
-  }, [hasPlayoffs, isAdminDecide, tieSeedLabels, resolvedPlayoffMatches]);
+  }, [hasPlayoffs, isAdminDecide, tieSeedLabels, resolvedPlayoffMatches, allGroupsFinalized]);
 
   /** Which playoff seed (1..X) this team is mathematically locked into for this group, if any. */
   const getLockedPlayoffSeed = (playerId: string, groupNum: number): number | null => {
