@@ -1192,12 +1192,12 @@ export default function MatchesTable({
                 )}
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: batchMode ? '11%' : '12%' }}>Round</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Match #</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '11%' }}>Player 1</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Score</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '11%' }}>Player 2</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '11%' }}>Winner</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Player 1</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Score</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Player 2</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '9%' }}>Winner</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '15%', minWidth: '120px' }}>Schedule</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '9%' }}>Court</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Court</th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Status</th>
                 <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Actions</th>
               </tr>
@@ -1246,7 +1246,7 @@ export default function MatchesTable({
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player1?.name || "TBD"}</td>
                         <td className="px-3 py-4 whitespace-nowrap overflow-hidden">
-                          <div className="flex gap-1 items-center min-w-0">
+                          <div className="flex gap-0.5 items-center min-w-0 w-full">
                             <input
                               type="number"
                               min={0}
