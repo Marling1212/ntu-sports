@@ -318,13 +318,32 @@ export default function MatchesTable({
       scheduledIso = deriveIsoFromSlot(selectedSlot);
     }
 
-    // Convert DRAW_WINNER_ID to null for database storage
-    const winnerIdValue = editForm.winner_id === DRAW_WINNER_ID ? null : (editForm.winner_id || null);
+    const hasBothScores =
+      editForm.score1 !== "" &&
+      editForm.score1 !== undefined &&
+      editForm.score2 !== "" &&
+      editForm.score2 !== undefined;
+
+    // Auto-decide winner from scores when both scores are present.
+    // For ties, treat as draw (winner_id = null).
+    const inferredWinnerId = hasBothScores
+      ? (
+          raw1 === raw2
+            ? DRAW_WINNER_ID
+            : raw1 > raw2
+            ? (currentMatch.player1_id || null)
+            : (currentMatch.player2_id || null)
+        )
+      : null;
+
+    const chosenWinnerId = inferredWinnerId ?? (editForm.winner_id || null);
+    const winnerIdValue = chosenWinnerId === DRAW_WINNER_ID ? null : chosenWinnerId;
 
     // Infer status so user doesn't have to set it manually: score + winner = completed (unless forfeit/walkover)
     const needsCompleted =
-      editForm.winner_id === DRAW_WINNER_ID ||
-      (winnerIdValue && ["upcoming", "live", "delayed"].includes(editForm.status));
+      chosenWinnerId === DRAW_WINNER_ID ||
+      (winnerIdValue && ["upcoming", "live", "delayed"].includes(editForm.status)) ||
+      (hasBothScores && ["upcoming", "live", "delayed"].includes(editForm.status));
     const finalStatus = needsCompleted ? "completed" : editForm.status;
 
     // Update current match
@@ -457,8 +476,8 @@ export default function MatchesTable({
       }
     }
 
-    // If a winner was set (and it's not a draw), advance them to the next round
-    if (editForm.winner_id && !isDrawOption(editForm.winner_id) && currentMatch.round) {
+    // Sync next-round slot when winner is set/changed/cleared.
+    if (currentMatch.round) {
       const nextRound = currentMatch.round + 1;
       const nextMatchNumber = Math.ceil(currentMatch.match_number / 2);
       // Odd match numbers (1, 3, 5...) feed into player1; even (2, 4, 6...) into player2
@@ -469,90 +488,98 @@ export default function MatchesTable({
       );
 
       if (nextMatch) {
-        const updateData = isPlayer1Slot
-          ? { player1_id: editForm.winner_id, updated_at: new Date().toISOString() }
-          : { player2_id: editForm.winner_id, updated_at: new Date().toISOString() };
+        const slotKey = isPlayer1Slot ? "player1_id" : "player2_id";
+        const existingSlotValue = isPlayer1Slot ? nextMatch.player1_id : nextMatch.player2_id;
+        const shouldClearSlot = !winnerIdValue && !!currentMatch.winner_id && existingSlotValue === currentMatch.winner_id;
 
-        const { data: nextMatchData, error: nextMatchError } = await supabase
-          .from("matches")
-          .update(updateData)
-          .eq("id", nextMatch.id)
-          .select(`
-            *,
-            player1:players!matches_player1_id_fkey(id, name, seed),
-            player2:players!matches_player2_id_fkey(id, name, seed),
-            winner:players!matches_winner_id_fkey(id, name, seed)
-          `)
-          .single();
+        const updateData = winnerIdValue
+          ? { [slotKey]: winnerIdValue, updated_at: new Date().toISOString() }
+          : shouldClearSlot
+          ? { [slotKey]: null, updated_at: new Date().toISOString() }
+          : null;
 
-        if (nextMatchError) {
-          toast.error(`Failed to advance winner: ${nextMatchError.message}`);
-        } else {
-          // Check if this is a semifinal match - if so, advance loser to 3rd place match
-          const maxRound = Math.max(...matches.map(m => m.round));
-          const isSemifinal = currentMatch.round === maxRound - 1;
+        if (updateData) {
+          const { data: nextMatchData, error: nextMatchError } = await supabase
+            .from("matches")
+            .update(updateData)
+            .eq("id", nextMatch.id)
+            .select(`
+              *,
+              player1:players!matches_player1_id_fkey(id, name, seed),
+              player2:players!matches_player2_id_fkey(id, name, seed),
+              winner:players!matches_winner_id_fkey(id, name, seed)
+            `)
+            .single();
 
-          if (isSemifinal && editForm.winner_id) {
-            // Find loser
-            const loserId = currentMatch.player1_id === editForm.winner_id 
-              ? currentMatch.player2_id 
-              : currentMatch.player1_id;
-            
-            if (loserId) {
-              // Find 3rd place match (match_number = 2 in final round)
-              const thirdPlaceMatch = matches.find(
-                m => m.round === maxRound && m.match_number === 2
-              );
-              
-              if (thirdPlaceMatch) {
-                // Determine which slot to fill (fill player1 first, then player2)
-                const slotToFill = !thirdPlaceMatch.player1_id ? 'player1_id' : 'player2_id';
-                
-                const { data: thirdPlaceData, error: thirdPlaceError } = await supabase
-                  .from("matches")
-                  .update({
-                    [slotToFill]: loserId,
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq("id", thirdPlaceMatch.id)
-                  .select(`
-                    *,
-                    player1:players!matches_player1_id_fkey(id, name, seed),
-                    player2:players!matches_player2_id_fkey(id, name, seed),
-                    winner:players!matches_winner_id_fkey(id, name, seed)
-                  `)
-                  .single();
-                
-                if (!thirdPlaceError) {
-                  setMatches(matches.map(m => {
-                    if (m.id === matchId) return data;
-                    if (m.id === nextMatch.id) return nextMatchData;
-                    if (m.id === thirdPlaceMatch.id) return thirdPlaceData;
-                    return m;
-                  }));
+          if (nextMatchError) {
+            toast.error(`Failed to sync next round: ${nextMatchError.message}`);
+          } else {
+            // Check if this is a semifinal match - if so, advance loser to 3rd place match
+            const maxRound = Math.max(...matches.map(m => m.round));
+            const isSemifinal = currentMatch.round === maxRound - 1;
+
+            if (isSemifinal && winnerIdValue) {
+              // Find loser
+              const loserId = currentMatch.player1_id === winnerIdValue
+                ? currentMatch.player2_id
+                : currentMatch.player1_id;
+
+              if (loserId) {
+                // Find 3rd place match (match_number = 2 in final round)
+                const thirdPlaceMatch = matches.find(
+                  m => m.round === maxRound && m.match_number === 2
+                );
+
+                if (thirdPlaceMatch) {
+                  // Determine which slot to fill (fill player1 first, then player2)
+                  const slotToFill = !thirdPlaceMatch.player1_id ? "player1_id" : "player2_id";
+
+                  const { data: thirdPlaceData, error: thirdPlaceError } = await supabase
+                    .from("matches")
+                    .update({
+                      [slotToFill]: loserId,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq("id", thirdPlaceMatch.id)
+                    .select(`
+                      *,
+                      player1:players!matches_player1_id_fkey(id, name, seed),
+                      player2:players!matches_player2_id_fkey(id, name, seed),
+                      winner:players!matches_winner_id_fkey(id, name, seed)
+                    `)
+                    .single();
+
+                  if (!thirdPlaceError) {
+                    setMatches(matches.map(m => {
+                      if (m.id === matchId) return data;
+                      if (m.id === nextMatch.id) return nextMatchData;
+                      if (m.id === thirdPlaceMatch.id) return thirdPlaceData;
+                      return m;
+                    }));
+                  }
                 }
               }
-            }
-          } else {
-            // Update local state with both matches
-            setMatches(matches.map(m => {
-              if (m.id === matchId) return data;
-              if (m.id === nextMatch.id) return nextMatchData;
-              return m;
-            }));
-          }
-          
-          setEditingMatch(null);
-
-          checkAndAnnounceRoundCompletion(eventId, currentMatch.round).then((announced) => {
-            if (announced) {
-              toast.success("🎉 Round completed! Announcement posted. Refreshing...");
             } else {
-              toast.success("Match updated! Winner advanced to next round. Refreshing...");
+              // Update local state with both matches
+              setMatches(matches.map(m => {
+                if (m.id === matchId) return data;
+                if (m.id === nextMatch.id) return nextMatchData;
+                return m;
+              }));
             }
-            setTimeout(() => router.refresh(), 500);
-          });
-          return;
+
+            setEditingMatch(null);
+
+            checkAndAnnounceRoundCompletion(eventId, currentMatch.round).then((announced) => {
+              if (announced) {
+                toast.success("🎉 Round completed! Announcement posted. Refreshing...");
+              } else {
+                toast.success("Match updated! Bracket synced. Refreshing...");
+              }
+              setTimeout(() => router.refresh(), 500);
+            });
+            return;
+          }
         }
       }
     }
@@ -1218,8 +1245,8 @@ export default function MatchesTable({
                           {formatMatchNumber(match)}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player1?.name || "TBD"}</td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <div className="flex gap-1">
+                        <td className="px-3 py-4 whitespace-nowrap overflow-hidden">
+                          <div className="flex gap-1 items-center min-w-0">
                             <input
                               type="number"
                               min={0}
@@ -1229,7 +1256,7 @@ export default function MatchesTable({
                                 if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
                                 if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
                               }}
-                              className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                              className="w-[3.25rem] px-1 py-1 border border-gray-300 rounded text-sm"
                               placeholder="0"
                             />
                             <span className="py-1">-</span>
@@ -1242,7 +1269,7 @@ export default function MatchesTable({
                                 if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
                                 if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
                               }}
-                              className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                              className="w-[3.25rem] px-1 py-1 border border-gray-300 rounded text-sm"
                               placeholder="0"
                             />
                           </div>
