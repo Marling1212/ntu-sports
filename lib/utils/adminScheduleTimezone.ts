@@ -147,3 +147,70 @@ export function parseLooseDateTimeToUtcIso(raw: string, zone: string): string | 
   }
   return null;
 }
+
+/** JS weekday: 0=Sun … 6=Sat (same as SchedulingManager `parseWeekdayValue`). */
+function daysFromMondayJs(jsWeekday: number): number {
+  return jsWeekday === 0 ? 6 : jsWeekday - 1;
+}
+
+/** Luxon weekday 1=Mon … 7=Sun → JS 0=Sun … 6=Sat */
+function luxonWeekdayToJs(w: number): number {
+  return w === 7 ? 0 : w;
+}
+
+function parseHmsParts(hms: string): { h: number; m: number; s: number } {
+  const [hRaw, mRaw, sRaw = "0"] = hms.split(":");
+  return { h: Number(hRaw), m: Number(mRaw), s: Number(sRaw) };
+}
+
+export type WeeklySlotTemplateConvertResult =
+  | { ok: true; day_of_week: number; start_time: string; end_time: string }
+  | { ok: false; reason: string };
+
+/**
+ * Weekly slot template CSV: `weekday` + `start_time`/`end_time` are wall times in `sourceZone`.
+ * Converts to Asia/Taipei wall clock + weekday for DB (matches event_slots / auto-schedule).
+ * Anchor: 2025-06-09 (Monday) reference week to stabilize DST.
+ */
+export function convertWeeklySlotTemplateTimesToTaipei(
+  dayOfWeek: number,
+  startTime: string,
+  endTime: string,
+  sourceZone: string,
+): WeeklySlotTemplateConvertResult {
+  const z = validZone(sourceZone);
+  if (z === DEFAULT_SCHEDULE_INPUT_TIMEZONE) {
+    return { ok: true, day_of_week: dayOfWeek, start_time: startTime, end_time: endTime };
+  }
+
+  const anchorMonday = DateTime.fromObject(
+    { year: 2025, month: 6, day: 9, hour: 0, minute: 0, second: 0 },
+    { zone: z },
+  );
+  const wallDay = anchorMonday.plus({ days: daysFromMondayJs(dayOfWeek) });
+  const sp = parseHmsParts(startTime);
+  const ep = parseHmsParts(endTime);
+  const startInst = wallDay.set({ hour: sp.h, minute: sp.m, second: sp.s });
+  const endInst = wallDay.set({ hour: ep.h, minute: ep.m, second: ep.s });
+
+  if (!startInst.isValid || !endInst.isValid) {
+    return { ok: false, reason: "時間無法解析" };
+  }
+
+  const startT = startInst.setZone(DEFAULT_SCHEDULE_INPUT_TIMEZONE);
+  const endT = endInst.setZone(DEFAULT_SCHEDULE_INPUT_TIMEZONE);
+
+  if (endT <= startT) {
+    return {
+      ok: false,
+      reason: "轉成台灣時間後結束時間需晚於開始時間（跨日或時段過短時請改用手動新增）",
+    };
+  }
+
+  return {
+    ok: true,
+    day_of_week: luxonWeekdayToJs(startT.weekday),
+    start_time: startT.toFormat("HH:mm:ss"),
+    end_time: endT.toFormat("HH:mm:ss"),
+  };
+}

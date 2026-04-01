@@ -1,8 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
+import ScheduleInputTimezoneField from "@/components/admin/ScheduleInputTimezoneField";
+import {
+  convertWeeklySlotTemplateTimesToTaipei,
+  readStoredScheduleInputTimezone,
+  writeStoredScheduleInputTimezone,
+  DEFAULT_SCHEDULE_INPUT_TIMEZONE,
+} from "@/lib/utils/adminScheduleTimezone";
 import {
   EventCourt,
   EventSlot,
@@ -243,6 +250,7 @@ export default function SchedulingManager({
   const [slotTemplateImporting, setSlotTemplateImporting] = useState(false);
   const [slotTemplateImportSummary, setSlotTemplateImportSummary] = useState<string | null>(null);
   const [slotTemplateImportReplace, setSlotTemplateImportReplace] = useState(false);
+  const [slotTemplateImportTz, setSlotTemplateImportTz] = useState(DEFAULT_SCHEDULE_INPUT_TIMEZONE);
   const [autoScheduling, setAutoScheduling] = useState(false);
   const [autoScheduleClearExisting, setAutoScheduleClearExisting] = useState(false);
   const [minSlotsBetweenSameTeam, setMinSlotsBetweenSameTeam] = useState(1);
@@ -255,6 +263,15 @@ export default function SchedulingManager({
   } | null>(null);
 
   const slotTemplateFileRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setSlotTemplateImportTz(readStoredScheduleInputTimezone());
+  }, []);
+
+  const handleSlotTemplateImportTzChange = (next: string) => {
+    writeStoredScheduleInputTimezone(next);
+    setSlotTemplateImportTz(next);
+  };
 
   const courtsByName = useMemo(() => {
     const map = new Map<string, EventCourt>();
@@ -748,6 +765,17 @@ export default function SchedulingManager({
           return;
         }
 
+        const converted = convertWeeklySlotTemplateTimesToTaipei(
+          dayValue,
+          startTime,
+          endTime,
+          slotTemplateImportTz,
+        );
+        if (!converted.ok) {
+          errors.push(`第 ${rowNumber} 行：${converted.reason}`);
+          return;
+        }
+
         const courtName = courtRaw.trim();
         let courtId: string | null = null;
         if (courtName) {
@@ -778,9 +806,9 @@ export default function SchedulingManager({
 
         rowsByCode.set(code, {
           code,
-          day_of_week: dayValue,
-          start_time: startTime,
-          end_time: endTime,
+          day_of_week: converted.day_of_week,
+          start_time: converted.start_time,
+          end_time: converted.end_time,
           court_id: courtId,
           capacity,
           notes,
@@ -1032,9 +1060,16 @@ export default function SchedulingManager({
                 <li><span className="font-mono">start_time, end_time</span> — HH:MM</li>
                 <li><span className="font-mono">court, capacity, notes</span> — {t('admin.scheduling.notes')}</li>
               </ul>
-              <p className="text-xs text-gray-500 mt-2">
-                每週時段為<strong>場地牆上時間</strong>（本賽事預設與台灣公開賽程一致）；此處不套用「比賽時間時區」選項。
-              </p>
+              <div className="mt-3 max-w-md">
+                <ScheduleInputTimezoneField
+                  id="schedule-slot-template-import-tz"
+                  value={slotTemplateImportTz}
+                  onChange={handleSlotTemplateImportTzChange}
+                  locale="zh"
+                  labelZh="CSV 內 start／end 的時區"
+                  hintZh="每週星期與起迄時間依此時區解讀，匯入後換算成台灣時間存檔（與其他賽程匯入共用此選項）。變更後請重新選擇檔案。"
+                />
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <button
