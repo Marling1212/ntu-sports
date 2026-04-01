@@ -1,9 +1,17 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { DateTime } from "luxon";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import { Player } from "@/types/database";
+import {
+  parseCsvScheduleFirstColumnToUtcIso,
+  readStoredScheduleInputTimezone,
+  writeStoredScheduleInputTimezone,
+  DEFAULT_SCHEDULE_INPUT_TIMEZONE,
+} from "@/lib/utils/adminScheduleTimezone";
+import ScheduleInputTimezoneField from "@/components/admin/ScheduleInputTimezoneField";
 
 interface ImportMatchScheduleProps {
   eventId: string;
@@ -12,6 +20,8 @@ interface ImportMatchScheduleProps {
 
 interface ParsedRow {
   date: string | null; // null means TBD or not specified
+  /** YYYY-MM-DD only → sequential slots that day; includes time → match nearest slot by clock */
+  datePrecision: "day" | "minute" | null;
   teamA: string;
   teamB: string;
   scoreA?: string;
@@ -52,30 +62,6 @@ const normalizeName = (name: string) =>
     .trim()
     .toLowerCase();
 
-const parseDateValue = (value: string): string | null => {
-  if (!value) return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  // Ignore header rows like "Week 1"
-  if (/^week/i.test(trimmed)) {
-    return null;
-  }
-
-  const dateOnlyRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (dateOnlyRegex.test(trimmed)) {
-    return `${trimmed}T00:00:00+08:00`;
-  }
-
-  // Try to parse generic datetime string
-  const parsed = new Date(trimmed);
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString();
-  }
-
-  return null;
-};
-
 const determineStatusAndWinner = (
   scoreA: string | undefined,
   scoreB: string | undefined,
@@ -112,6 +98,16 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
   const [summary, setSummary] = useState<string | null>(null);
   const [replaceRegularSeason, setReplaceRegularSeason] = useState(true);
   const [roundValue, setRoundValue] = useState("0");
+  const [importTimeZone, setImportTimeZone] = useState(DEFAULT_SCHEDULE_INPUT_TIMEZONE);
+
+  useEffect(() => {
+    setImportTimeZone(readStoredScheduleInputTimezone());
+  }, []);
+
+  const handleImportTimeZoneChange = (z: string) => {
+    writeStoredScheduleInputTimezone(z);
+    setImportTimeZone(z);
+  };
 
   const playersByName = useMemo(() => {
     const map = new Map<string, Player>();
@@ -125,7 +121,7 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
     fileInputRef.current?.click();
   };
 
-  const parseCsv = (text: string): ParsedRow[] => {
+  const parseCsv = (text: string, timeZone: string): ParsedRow[] => {
     const lines = text
       .split(/\r?\n/)
       .map((line) => line.trimEnd())
@@ -145,18 +141,21 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
       if (!firstCell) return;
       if (/^week/i.test(firstCell)) return;
 
-      // Try to parse date, but allow empty/TBD values
-      const date = parseDateValue(firstCell);
-      // If first cell is not a date, treat it as teamA (date column is optional)
+      const strictDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(firstCell);
+      const parsedIso = parseCsvScheduleFirstColumnToUtcIso(firstCell, timeZone);
+      let date: string | null = parsedIso;
+      let datePrecision: "day" | "minute" | null = null;
+      if (parsedIso) {
+        datePrecision = strictDateOnly ? "day" : "minute";
+      }
+
       let teamA: string;
       let teamB: string;
-      
+
       if (date) {
-        // Format: Date, TeamA, TeamB, ...
         teamA = parts[1]?.trim() || "";
         teamB = parts[2]?.trim() || "";
       } else {
-        // Format: TeamA, TeamB, ... (no date column)
         teamA = firstCell;
         teamB = parts[1]?.trim() || "";
       }
@@ -164,7 +163,6 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
       // Require both teams to proceed
       if (!teamA || !teamB) return;
 
-      // Adjust score column indices based on whether date was present
       const scoreIndex = date ? 3 : 2;
       const scoreA = parts[scoreIndex]?.trim() || undefined;
       const scoreB = parts[scoreIndex + 1]?.trim() || undefined;
@@ -172,6 +170,7 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
 
       parsedRows.push({
         date,
+        datePrecision,
         teamA,
         teamB,
         scoreA,
@@ -193,7 +192,7 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
     try {
       setImporting(true);
       const text = await file.text();
-      const rows = parseCsv(text);
+      const rows = parseCsv(text, importTimeZone);
 
       if (rows.length === 0) {
         toast.error("檔案內沒有可匯入的賽程資料");
@@ -256,17 +255,21 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
       const slotUsageByDate = new Map<string, number>();
       const overflowWarnedForDate = new Set<string>();
 
-      const matchDateToSlot = (dateStr: string): { scheduledTime: string; slotId: string; court?: string } | null => {
-        const dateOnly = dateStr.split("T")[0];
+      const matchDateToSlot = (
+        dateIso: string,
+        precision: "day" | "minute",
+      ): { scheduledTime: string; slotId: string; court?: string } | null => {
+        const dt = DateTime.fromISO(dateIso, { setZone: true });
+        if (!dt.isValid) return null;
+        const tpe = dt.setZone("Asia/Taipei");
+        const dateOnly = tpe.toFormat("yyyy-MM-dd");
         const slotsForDate = slotsByDate.get(dateOnly);
         if (!slotsForDate || slotsForDate.length === 0) return null;
 
-        const d = new Date(dateStr);
-        const timeMinutes = Number.isNaN(d.getTime()) ? null : d.getHours() * 60 + d.getMinutes();
-        const hasExplicitTime = timeMinutes !== null && timeMinutes !== 0;
+        const timeMinutes = tpe.hour * 60 + tpe.minute;
+        const hasExplicitTime = precision === "minute";
 
         if (hasExplicitTime) {
-          // CSV 有帶時間：找該日期下「開始時間最接近」的 slot
           let best = slotsForDate[0];
           let bestDiff = Math.abs(slotStartMinutes(best) - timeMinutes);
           for (let i = 1; i < slotsForDate.length; i++) {
@@ -279,7 +282,6 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
           return buildSlotResult(best);
         }
 
-        // 僅日期：同一天多筆依序使用該日的 slot（第 1 筆→第 1 個時段，第 2 筆→第 2 個時段…）
         const index = slotUsageByDate.get(dateOnly) ?? 0;
         const slot = slotsForDate[Math.min(index, slotsForDate.length - 1)];
         slotUsageByDate.set(dateOnly, index + 1);
@@ -353,20 +355,16 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
         };
 
         // Only update scheduled_time if date is provided in CSV
-        if (row.date) {
-          // Try to match to an existing slot first
-          const matchedSlot = matchDateToSlot(row.date);
+        if (row.date && row.datePrecision) {
+          const matchedSlot = matchDateToSlot(row.date, row.datePrecision);
           if (matchedSlot) {
             updateData.scheduled_time = matchedSlot.scheduledTime;
             updateData.slot_id = matchedSlot.slotId;
-            // If slot has associated court, set it to match.court
             if (matchedSlot.court) {
               updateData.court = matchedSlot.court;
             }
           } else {
-            // No slot found, use the date as-is (will default to midnight)
             updateData.scheduled_time = row.date;
-            // Clear slot_id if no slot matched
             updateData.slot_id = null;
           }
         }
@@ -421,8 +419,8 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
             let scheduledTime = row.date;
             let slotId = null;
             let court = null;
-            if (row.date) {
-              const matchedSlot = matchDateToSlot(row.date);
+            if (row.date && row.datePrecision) {
+              const matchedSlot = matchDateToSlot(row.date, row.datePrecision);
               if (matchedSlot) {
                 scheduledTime = matchedSlot.scheduledTime;
                 slotId = matchedSlot.slotId;
@@ -499,6 +497,17 @@ export default function ImportMatchSchedule({ eventId, players }: ImportMatchSch
           <p className="text-sm text-gray-600 max-w-2xl">
             主辦方若已排定部分賽程，可直接匯入 CSV 檔。系統會更新 CSV 中提到的比賽日期/比分，未提及的比賽將保持 TBD 狀態。
           </p>
+
+          <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg max-w-xl">
+            <ScheduleInputTimezoneField
+              id="schedule-import-tz-match-csv"
+              value={importTimeZone}
+              onChange={handleImportTimeZoneChange}
+              locale="zh"
+              labelZh="第一欄日期／時間的時區"
+              hintZh="依此解讀 CSV 第一欄；僅填 YYYY-MM-DD 時為該時區當日 00:00。變更時區後請重新選擇檔案以重新解析。"
+            />
+          </div>
 
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="flex flex-col gap-2 text-sm text-gray-700">

@@ -1032,6 +1032,9 @@ export default function SchedulingManager({
                 <li><span className="font-mono">start_time, end_time</span> — HH:MM</li>
                 <li><span className="font-mono">court, capacity, notes</span> — {t('admin.scheduling.notes')}</li>
               </ul>
+              <p className="text-xs text-gray-500 mt-2">
+                每週時段為<strong>場地牆上時間</strong>（本賽事預設與台灣公開賽程一致）；此處不套用「比賽時間時區」選項。
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <button

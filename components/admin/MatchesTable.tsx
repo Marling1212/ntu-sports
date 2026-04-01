@@ -13,6 +13,15 @@ import { useI18n } from "@/lib/i18n/context";
 import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
+import {
+  datetimeLocalValueToUtcIso,
+  utcIsoToDatetimeLocalValue,
+  rehomeDatetimeLocalValue,
+  readStoredScheduleInputTimezone,
+  writeStoredScheduleInputTimezone,
+  DEFAULT_SCHEDULE_INPUT_TIMEZONE,
+} from "@/lib/utils/adminScheduleTimezone";
+import ScheduleInputTimezoneField from "@/components/admin/ScheduleInputTimezoneField";
 import { DRAW_WINNER_ID, isDrawOption, isDrawMatch } from "@/lib/constants/matchConstants";
 import CreateMatchModal from "@/components/admin/CreateMatchModal";
 
@@ -65,22 +74,6 @@ const formatSlotLabel = (slot: SlotOption): string => {
 
 const formatDateTimeDisplay = (iso?: string | null): string => {
   return formatScheduledTimeAsStored(iso ?? null);
-};
-
-const toLocalInputValue = (iso?: string | null): string => {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60 * 1000);
-  return local.toISOString().slice(0, 16);
-};
-
-const toIsoString = (value?: string | null): string | null => {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
 };
 
 const deriveIsoFromSlot = (slot?: SlotOption | null): string | null => {
@@ -183,6 +176,24 @@ export default function MatchesTable({
 
   // Create match modal state
   const [showCreateMatch, setShowCreateMatch] = useState(false);
+
+  const [scheduleInputTz, setScheduleInputTz] = useState(DEFAULT_SCHEDULE_INPUT_TIMEZONE);
+  useEffect(() => {
+    setScheduleInputTz(readStoredScheduleInputTimezone());
+  }, []);
+
+  const handleScheduleInputTzChange = (next: string) => {
+    const prev = scheduleInputTz;
+    writeStoredScheduleInputTimezone(next);
+    setScheduleInputTz(next);
+    setEditForm((prevForm: any) => {
+      if (!editingMatch || !prevForm?.scheduled_time) return prevForm;
+      return {
+        ...prevForm,
+        scheduled_time: rehomeDatetimeLocalValue(prevForm.scheduled_time, prev, next),
+      };
+    });
+  };
 
   const slotMap = useMemo(() => {
     const map = new Map<string, SlotOption>();
@@ -292,7 +303,7 @@ export default function MatchesTable({
       })(),
       court: match.court || "",
       status: match.status || "upcoming",
-      scheduled_time: toLocalInputValue(scheduledSource),
+      scheduled_time: utcIsoToDatetimeLocalValue(scheduledSource, scheduleInputTz),
       slot_id: match.slot_id || "",
     });
   };
@@ -313,7 +324,9 @@ export default function MatchesTable({
 
     const slotIdValue: string | null = editForm.slot_id ? editForm.slot_id : null;
     const selectedSlot = slotIdValue ? slotMap.get(slotIdValue) || null : null;
-    let scheduledIso = toIsoString(editForm.scheduled_time);
+    let scheduledIso = editForm.scheduled_time
+      ? datetimeLocalValueToUtcIso(editForm.scheduled_time, scheduleInputTz)
+      : null;
     if (!scheduledIso && selectedSlot) {
       scheduledIso = deriveIsoFromSlot(selectedSlot);
     }
@@ -1040,6 +1053,15 @@ export default function MatchesTable({
             </div>
           )}
 
+          <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg max-w-xl">
+            <ScheduleInputTimezoneField
+              id="schedule-input-tz-matches"
+              value={scheduleInputTz}
+              onChange={handleScheduleInputTzChange}
+              locale="zh"
+            />
+          </div>
+
           {/* Clear Filters Button */}
           {(searchQuery || statusFilter !== "all" || courtFilter !== "all" || dateFilter || roundFilter !== "all") && (
             <div className="mt-4">
@@ -1338,7 +1360,7 @@ export default function MatchesTable({
                                   setEditForm({
                                     ...editForm,
                                     slot_id: newSlotId,
-                                    scheduled_time: toLocalInputValue(deriveIsoFromSlot(slot)),
+                                    scheduled_time: utcIsoToDatetimeLocalValue(deriveIsoFromSlot(slot), scheduleInputTz),
                                   });
                                 }}
                                 className="w-full max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm"
@@ -1853,6 +1875,8 @@ export default function MatchesTable({
           onClose={() => setShowCreateMatch(false)}
           divisions={divisions}
           defaultDivisionId={defaultDivisionId}
+          scheduleInputTimeZone={scheduleInputTz}
+          onScheduleInputTimezoneChange={handleScheduleInputTzChange}
         />
       )}
     </>

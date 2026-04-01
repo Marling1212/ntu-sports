@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Player } from "@/types/database";
 import { useI18n } from "@/lib/i18n/context";
+import { datetimeLocalValueToUtcIso } from "@/lib/utils/adminScheduleTimezone";
+import ScheduleInputTimezoneField from "@/components/admin/ScheduleInputTimezoneField";
 
 interface CreateMatchModalProps {
   eventId: string;
@@ -16,6 +18,9 @@ interface CreateMatchModalProps {
   defaultPlayer2Id?: string;
   divisions?: Array<{ id: string; sport: string; name?: string | null }>;
   defaultDivisionId?: string | null;
+  /** Controlled from parent (matches list); same value as global admin schedule TZ */
+  scheduleInputTimeZone: string;
+  onScheduleInputTimezoneChange: (timeZone: string) => void;
 }
 
 export default function CreateMatchModal({
@@ -28,6 +33,8 @@ export default function CreateMatchModal({
   defaultPlayer2Id,
   divisions = [],
   defaultDivisionId = null,
+  scheduleInputTimeZone,
+  onScheduleInputTimezoneChange,
 }: CreateMatchModalProps) {
   const { t } = useI18n();
   const divisionId = defaultDivisionId ?? (divisions[0]?.id ?? null);
@@ -91,7 +98,8 @@ export default function CreateMatchModal({
       }
 
       if (formData.scheduledTime) {
-        matchData.scheduled_time = new Date(formData.scheduledTime).toISOString();
+        const iso = datetimeLocalValueToUtcIso(formData.scheduledTime, scheduleInputTimeZone);
+        if (iso) matchData.scheduled_time = iso;
       }
 
       const { error } = await supabase
@@ -221,6 +229,14 @@ export default function CreateMatchModal({
               onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
+            <div className="mt-3">
+              <ScheduleInputTimezoneField
+                id="schedule-input-tz-create-match"
+                value={scheduleInputTimeZone}
+                onChange={onScheduleInputTimezoneChange}
+                locale="zh"
+              />
+            </div>
           </div>
 
           <div>

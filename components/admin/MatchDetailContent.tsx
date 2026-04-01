@@ -8,6 +8,14 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
 import { DRAW_WINNER_ID, isDrawOption } from "@/lib/constants/matchConstants";
 import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
+import ScheduleInputTimezoneField from "@/components/admin/ScheduleInputTimezoneField";
+import {
+  datetimeLocalValueToUtcIso,
+  utcIsoToDatetimeLocalValue,
+  rehomeDatetimeLocalValue,
+  readStoredScheduleInputTimezone,
+  writeStoredScheduleInputTimezone,
+} from "@/lib/utils/adminScheduleTimezone";
 
 interface Match {
   id: string;
@@ -78,22 +86,6 @@ const formatDateTimeDisplay = (iso?: string | null): string => {
   }).format(date);
 };
 
-const toLocalInputValue = (iso?: string | null): string => {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60 * 1000);
-  return local.toISOString().slice(0, 16);
-};
-
-const toIsoString = (value?: string | null): string | null => {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
-};
-
 const normalizeTime = (time?: string | null): string => {
   if (!time) return "00:00";
   const [hour = "00", minute = "00"] = time.split(":");
@@ -144,13 +136,26 @@ export default function MatchDetailContent({
   const initialWinnerId = isMatchDraw ? DRAW_WINNER_ID : (match.winner_id || "");
   const outcomeType = match.status === "forfeit" ? "forfeit" : match.status === "walkover" ? "walkover" : "normal";
 
+  const [scheduleInputTz, setScheduleInputTz] = useState(() => readStoredScheduleInputTimezone());
+
+  const handleScheduleInputTzChange = (next: string) => {
+    const prev = scheduleInputTz;
+    writeStoredScheduleInputTimezone(next);
+    setScheduleInputTz(next);
+    setMatchForm((f) => ({
+      ...f,
+      scheduled_time: f.scheduled_time ? rehomeDatetimeLocalValue(f.scheduled_time, prev, next) : "",
+    }));
+    setPostponeManualTime((t) => (t ? rehomeDatetimeLocalValue(t, prev, next) : ""));
+  };
+
   const [matchForm, setMatchForm] = useState({
     score1: match.score1 || "",
     score2: match.score2 || "",
     winner_id: initialWinnerId,
     court: match.court || "",
     status: match.status || "upcoming",
-    scheduled_time: toLocalInputValue(match.scheduled_time),
+    scheduled_time: utcIsoToDatetimeLocalValue(match.scheduled_time ?? null, readStoredScheduleInputTimezone()),
     slot_id: match.slot_id || "",
     outcomeType: outcomeType as "normal" | "forfeit" | "walkover",
     forfeit_team_id: match.forfeit_team_id || "",
@@ -181,7 +186,7 @@ export default function MatchDetailContent({
     const slot = postponeSlotId ? (slots.find((s) => s.id === postponeSlotId) ?? null) : null;
     const scheduledIso = hasSlots
       ? (slot ? deriveIsoFromSlot(slot) : null)
-      : toIsoString(postponeManualTime);
+      : datetimeLocalValueToUtcIso(postponeManualTime, scheduleInputTz);
     if (!scheduledIso) {
       toast.error(hasSlots ? t("admin.postpone.errorPickSlot") : t("admin.postpone.errorDate"));
       return;
@@ -244,7 +249,10 @@ export default function MatchDetailContent({
         ...prev,
         status: "upcoming",
         slot_id: postponeSlotId || "",
-        scheduled_time: (slot ? toLocalInputValue(deriveIsoFromSlot(slot)) : postponeManualTime) || prev.scheduled_time,
+        scheduled_time:
+          (slot
+            ? utcIsoToDatetimeLocalValue(deriveIsoFromSlot(slot), scheduleInputTz)
+            : postponeManualTime) || prev.scheduled_time,
         court: postponeCourt || prev.court,
       }));
 
@@ -311,7 +319,9 @@ export default function MatchDetailContent({
     try {
       const slotIdValue: string | null = matchForm.slot_id ? matchForm.slot_id : null;
       const selectedSlot = slotIdValue ? slots.find(s => s.id === slotIdValue) || null : null;
-      let scheduledIso = toIsoString(matchForm.scheduled_time);
+      let scheduledIso = matchForm.scheduled_time
+        ? datetimeLocalValueToUtcIso(matchForm.scheduled_time, scheduleInputTz)
+        : null;
       if (!scheduledIso && selectedSlot) {
         scheduledIso = deriveIsoFromSlot(selectedSlot);
       }
@@ -776,6 +786,14 @@ export default function MatchDetailContent({
         <p className="text-lg text-gray-600">
           Round {match.round}, Match {match.match_number}
         </p>
+        <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg max-w-xl">
+          <ScheduleInputTimezoneField
+            id="schedule-input-tz-match-detail"
+            value={scheduleInputTz}
+            onChange={handleScheduleInputTzChange}
+            locale="zh"
+          />
+        </div>
       </div>
 
       {/* Postpone & reschedule (atomic action) — only when match is upcoming or live */}
@@ -1104,7 +1122,7 @@ export default function MatchDetailContent({
                     setMatchForm({
                       ...matchForm,
                       slot_id: newSlotId,
-                      scheduled_time: toLocalInputValue(deriveIsoFromSlot(slot)),
+                      scheduled_time: utcIsoToDatetimeLocalValue(deriveIsoFromSlot(slot), scheduleInputTz),
                     });
                   }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"

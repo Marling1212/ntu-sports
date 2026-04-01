@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import { Player } from "@/types/database";
+import {
+  parseLooseDateTimeToUtcIso,
+  readStoredScheduleInputTimezone,
+  writeStoredScheduleInputTimezone,
+  DEFAULT_SCHEDULE_INPUT_TIMEZONE,
+} from "@/lib/utils/adminScheduleTimezone";
+import ScheduleInputTimezoneField from "@/components/admin/ScheduleInputTimezoneField";
 
 interface ImportSeasonPlayProps {
   eventId: string;
@@ -40,6 +47,16 @@ export default function ImportSeasonPlay({ eventId, players, defaultDivisionId }
   const [parsedPlayerStats, setParsedPlayerStats] = useState<ParsedPlayerStatRow[]>([]);
   const [playerMappings, setPlayerMappings] = useState<Record<string, string>>({});
   const [fileName, setFileName] = useState<string>("");
+  const [importTimeZone, setImportTimeZone] = useState(DEFAULT_SCHEDULE_INPUT_TIMEZONE);
+
+  useEffect(() => {
+    setImportTimeZone(readStoredScheduleInputTimezone());
+  }, []);
+
+  const handleImportTimeZoneChange = (z: string) => {
+    writeStoredScheduleInputTimezone(z);
+    setImportTimeZone(z);
+  };
 
   const handleFileButtonClick = () => {
     fileInputRef.current?.click();
@@ -606,47 +623,12 @@ export default function ImportSeasonPlay({ eventId, players, defaultDivisionId }
           });
         }
 
-        // Parse scheduled time - handle various formats
+        // Parse scheduled time as wall clock in `importTimeZone`, store UTC ISO
         let scheduledTime: string | null = null;
         if (match.scheduledTime && match.scheduledTime !== "TBD" && match.scheduledTime.trim() !== "") {
-          try {
-            let dateStr = match.scheduledTime.trim();
-            // Handle Chinese date format: "2025/11/17 下午12:30:00"
-            // Replace "下午" with PM and "上午" with AM
-            dateStr = dateStr.replace(/下午/g, 'PM').replace(/上午/g, 'AM');
-            // Try to parse with various formats
-            let date = new Date(dateStr);
-            
-            // If parsing failed, try manual parsing (export format "YYYY/MM/DD HH:MM" or "YYYY/MM/DD HH:MM:SS")
-            if (isNaN(date.getTime())) {
-              const matchDate = dateStr.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(AM|PM)?\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
-              if (matchDate) {
-                const year = parseInt(matchDate[1], 10);
-                const month = parseInt(matchDate[2], 10) - 1; // Month is 0-indexed
-                const day = parseInt(matchDate[3], 10);
-                let hour = parseInt(matchDate[5], 10);
-                const minute = parseInt(matchDate[6], 10);
-                const second = parseInt(matchDate[7] || "0", 10);
-                const ampm = matchDate[4];
-                
-                // Handle 12-hour format
-                if (ampm === 'PM' && hour < 12) {
-                  hour += 12;
-                } else if (ampm === 'AM' && hour === 12) {
-                  hour = 0;
-                }
-                
-                date = new Date(year, month, day, hour, minute, second);
-              }
-            }
-            
-            if (!isNaN(date.getTime())) {
-              scheduledTime = date.toISOString();
-            } else {
-              console.warn(`Could not parse date: ${match.scheduledTime}`);
-            }
-          } catch (e) {
-            console.error("Error parsing date:", e, match.scheduledTime);
+          scheduledTime = parseLooseDateTimeToUtcIso(match.scheduledTime, importTimeZone);
+          if (!scheduledTime) {
+            console.warn(`Could not parse date: ${match.scheduledTime}`);
           }
         }
 
@@ -833,6 +815,16 @@ export default function ImportSeasonPlay({ eventId, players, defaultDivisionId }
         </div>
 
         <div>
+          <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-lg max-w-xl">
+            <ScheduleInputTimezoneField
+              id="schedule-import-tz-season"
+              value={importTimeZone}
+              onChange={handleImportTimeZoneChange}
+              locale="zh"
+              labelZh="檔案內比賽時間的時區"
+              hintZh="表內日期時間會依此時區解讀為牆上時間，再換算成單一時間點儲存；前台仍以台灣時間顯示。"
+            />
+          </div>
           <input
             ref={fileInputRef}
             type="file"
