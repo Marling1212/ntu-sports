@@ -27,7 +27,7 @@ export default function DashboardContent({ user, initialEvents, divisionsByEvent
   const handleEventCreated = (newId?: string) => {
     setShowCreateModal(false);
     if (newId) {
-      router.push(`/admin/${newId}/settings`); // Route directly into the new event
+      router.push(`/admin/${newId}/players`); // Route directly into participant setup
     } else {
       router.refresh();
     }

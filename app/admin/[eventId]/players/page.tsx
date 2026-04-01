@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getEventDivisions } from "@/lib/utils/getSportEvent";
 import PlayersTable from "@/components/admin/PlayersTable";
-import GenerateBracket from "@/components/admin/GenerateBracket";
 import GenerateSeasonPlay from "@/components/admin/GenerateSeasonPlay";
 import EditPlayoffDraw from "@/components/admin/EditPlayoffDraw";
 import ImportBracket from "@/components/admin/ImportBracket";
@@ -164,13 +163,11 @@ export default async function PlayersPage({
           ) : (
             <div className="space-y-6 mt-8">
               <div id="generate-bracket" className="scroll-mt-24">
-                <GenerateBracket 
-                  eventId={eventId}
-                  players={players || []}
-                  defaultDivisionId={effectiveDefaultDivisionId}
-                />
-              </div>
-              <div id="manual-bracket" className="scroll-mt-24">
+                <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-900">
+                    Step 2：完成籤位分配後，請使用下方主按鈕「Finalize Bracket & Create Matches」一次建立所有比賽。
+                  </p>
+                </div>
                 <ManualBracketEditor 
                   eventId={eventId}
                   players={players || []}

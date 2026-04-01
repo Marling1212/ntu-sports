@@ -1049,7 +1049,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
           disabled={loading || isLocked}
           className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? t('admin.manualBracket.saving') : isLocked ? `🔒 ${t('admin.manualBracket.lockSuccess')}` : `💾 ${t('admin.manualBracket.saveBracket')}`}
+          {loading ? t('admin.manualBracket.saving') : isLocked ? `🔒 ${t('admin.manualBracket.lockSuccess')}` : "🚀 Finalize Bracket & Create Matches"}
         </button>
       </div>
     </div>
