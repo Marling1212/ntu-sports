@@ -5,6 +5,7 @@ import SchedulingManager from "@/components/admin/SchedulingManager";
 import ImportMatchSchedule from "@/components/admin/ImportMatchSchedule";
 import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
 import SchedulingPageNav from "@/components/admin/SchedulingPageNav";
+import ShiftAllScheduleTimesPanel from "@/components/admin/ShiftAllScheduleTimesPanel";
 
 export default async function SchedulingPage({
   params,
@@ -127,6 +128,8 @@ export default async function SchedulingPage({
         <div id="import-schedule" className="scroll-mt-24 pt-2">
           <ImportMatchSchedule eventId={eventId} players={players || []} />
         </div>
+
+        <ShiftAllScheduleTimesPanel eventId={eventId} />
 
         <SchedulingManager
           eventId={eventId}
