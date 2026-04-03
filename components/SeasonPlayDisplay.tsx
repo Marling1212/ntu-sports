@@ -1116,6 +1116,9 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   const hasUnresolvedSeedTies = useMemo(() => {
     if (!hasPlayoffs || !isAdminDecide || tieSeedLabels.size === 0) return false;
+    // Only warn after every regular-season (round 0) match is finalized — early in the season
+    // many teams are still "tied" on 0 points; that is not an admin seeding emergency yet.
+    if (!allGroupsFinalized) return false;
 
     // If the ambiguous seed slots still have empty player slots, show the warning.
     const firstRound = resolvedPlayoffMatches.filter((m: any) => Number(m.round) === 1);
@@ -1130,7 +1133,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       }
     }
     return false;
-  }, [hasPlayoffs, isAdminDecide, tieSeedLabels, resolvedPlayoffMatches]);
+  }, [hasPlayoffs, isAdminDecide, tieSeedLabels, resolvedPlayoffMatches, allGroupsFinalized]);
 
   const standings = useMemo(() => {
     const opts = {

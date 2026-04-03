@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
@@ -42,7 +42,10 @@ export default function PlayersTable({
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>(() => (defaultDivisionId || divisions[0]?.id) ?? "");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSeed, setFilterSeed] = useState<string>("all");
-  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  /** Per-team roster panel: default expanded when roster empty, collapsed when it has members (see loadTeamMembers). */
+  const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
+  const memberCountByTeamRef = useRef<Record<string, number>>({});
+  const [teamMembersReady, setTeamMembersReady] = useState(false);
   const [teamMembers, setTeamMembers] = useState<Record<string, TeamMember[]>>({});
   const [editingMember, setEditingMember] = useState<{ teamId: string; memberId?: string; name: string; jerseyNumber: string } | null>(null);
   const [showBulkMemberImport, setShowBulkMemberImport] = useState<Record<string, boolean>>({});
@@ -113,6 +116,12 @@ export default function PlayersTable({
     const id = (defaultDivisionId || divisions[0]?.id) ?? "";
     if (id) setSelectedDivisionId(id);
   }, [defaultDivisionId, divisions]);
+
+  useEffect(() => {
+    memberCountByTeamRef.current = {};
+    setExpandedTeams({});
+    setTeamMembersReady(false);
+  }, [eventId]);
 
   const persistBlackoutSettings = async () => {
     setSavingBlackoutLimit(true);
@@ -237,8 +246,14 @@ export default function PlayersTable({
   }, [registrationType, players]);
 
   const loadTeamMembers = async () => {
-    const teamIds = players.filter(p => p.type === 'team').map(p => p.id);
-    if (teamIds.length === 0) return;
+    if (registrationType !== "team") return;
+
+    const teamIds = players.filter((p) => p.type === "team").map((p) => p.id);
+    if (teamIds.length === 0) {
+      setTeamMembers({});
+      setTeamMembersReady(true);
+      return;
+    }
 
     const { data } = await supabase
       .from("team_members")
@@ -247,16 +262,45 @@ export default function PlayersTable({
       .order("jersey_number", { ascending: true, nullsFirst: true })
       .order("name", { ascending: true });
 
+    const membersByTeam: Record<string, TeamMember[]> = {};
     if (data) {
-      const membersByTeam: Record<string, TeamMember[]> = {};
       data.forEach((member) => {
         if (!membersByTeam[member.player_id]) {
           membersByTeam[member.player_id] = [];
         }
         membersByTeam[member.player_id].push(member);
       });
-      setTeamMembers(membersByTeam);
     }
+    setTeamMembers(membersByTeam);
+
+    setExpandedTeams((prev) => {
+      const next: Record<string, boolean> = { ...prev };
+      for (const id of teamIds) {
+        const c = (membersByTeam[id] || []).length;
+        const p = memberCountByTeamRef.current[id];
+        if (p === undefined) {
+          next[id] = prev[id] ?? c === 0;
+        } else if (p === 0 && c > 0) {
+          next[id] = false;
+        } else if (p > 0 && c === 0) {
+          next[id] = true;
+        } else if (next[id] === undefined) {
+          next[id] = c === 0;
+        }
+        memberCountByTeamRef.current[id] = c;
+      }
+      return next;
+    });
+    setTeamMembersReady(true);
+  };
+
+  const toggleTeamExpanded = (teamId: string) => {
+    setExpandedTeams((prev) => {
+      const members = teamMembers[teamId] || [];
+      const cur =
+        prev[teamId] ?? (teamMembersReady ? members.length === 0 : false);
+      return { ...prev, [teamId]: !cur };
+    });
   };
 
   // Filter players based on search and filters
@@ -952,8 +996,11 @@ export default function PlayersTable({
               ) : (
                 filteredPlayers.map((player) => {
                   const isTeam = player.type === 'team';
-                  const isExpanded = expandedTeam === player.id;
                   const members = teamMembers[player.id] || [];
+                  const isExpanded =
+                    isTeam &&
+                    teamMembersReady &&
+                    (expandedTeams[player.id] ?? members.length === 0);
                   
                   return (
                     <>
@@ -965,7 +1012,8 @@ export default function PlayersTable({
                                 <div className="flex items-center gap-2">
                                   {isTeam && (
                                     <button
-                                      onClick={() => setExpandedTeam(isExpanded ? null : player.id)}
+                                      type="button"
+                                      onClick={() => toggleTeamExpanded(player.id)}
                                       className="text-ntu-green hover:text-ntu-green-dark"
                                     >
                                       {isExpanded ? '▼' : '▶'}
@@ -1264,8 +1312,11 @@ export default function PlayersTable({
           ) : (
             filteredPlayers.map((player) => {
               const isTeam = player.type === 'team';
-              const isExpanded = expandedTeam === player.id;
               const members = teamMembers[player.id] || [];
+              const isExpanded =
+                isTeam &&
+                teamMembersReady &&
+                (expandedTeams[player.id] ?? members.length === 0);
               
               return (
                 <div key={player.id}>
@@ -1275,7 +1326,8 @@ export default function PlayersTable({
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           {isTeam && (
                             <button
-                              onClick={() => setExpandedTeam(isExpanded ? null : player.id)}
+                              type="button"
+                              onClick={() => toggleTeamExpanded(player.id)}
                               className="text-ntu-green hover:text-ntu-green-dark"
                             >
                               {isExpanded ? '▼' : '▶'}
