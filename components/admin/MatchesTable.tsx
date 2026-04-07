@@ -312,15 +312,38 @@ export default function MatchesTable({
     const currentMatch = matches.find(m => m.id === matchId);
     if (!currentMatch) return;
 
-    // Normalize scores: blank = 0, reject negative (Bug 1)
-    const raw1 = editForm.score1 === "" || editForm.score1 === undefined ? 0 : parseInt(String(editForm.score1), 10) || 0;
-    const raw2 = editForm.score2 === "" || editForm.score2 === undefined ? 0 : parseInt(String(editForm.score2), 10) || 0;
-    if (raw1 < 0 || raw2 < 0) {
-      toast.error(t("admin.matchScoreNegative") || "Score cannot be negative.");
+    // Scores: both blank → null in DB (do not write "0", so delayed edits don't fake a result).
+    // One side filled without the other → error.
+    const s1 = String(editForm.score1 ?? "").trim();
+    const s2 = String(editForm.score2 ?? "").trim();
+
+    let score1Val: string | null;
+    let score2Val: string | null;
+    let raw1 = 0;
+    let raw2 = 0;
+    let hasBothScores = false;
+
+    if (s1 === "" && s2 === "") {
+      score1Val = null;
+      score2Val = null;
+    } else if (s1 === "" || s2 === "") {
+      toast.error("請兩邊都填寫比分，或兩邊都留空。");
       return;
+    } else {
+      raw1 = parseInt(s1, 10);
+      raw2 = parseInt(s2, 10);
+      if (Number.isNaN(raw1) || Number.isNaN(raw2)) {
+        toast.error("比分必須為有效數字。");
+        return;
+      }
+      if (raw1 < 0 || raw2 < 0) {
+        toast.error(t("admin.matchScoreNegative") || "Score cannot be negative.");
+        return;
+      }
+      hasBothScores = true;
+      score1Val = String(raw1);
+      score2Val = String(raw2);
     }
-    const score1Val = String(raw1);
-    const score2Val = String(raw2);
 
     const slotIdValue: string | null = editForm.slot_id ? editForm.slot_id : null;
     const selectedSlot = slotIdValue ? slotMap.get(slotIdValue) || null : null;
@@ -331,31 +354,32 @@ export default function MatchesTable({
       scheduledIso = deriveIsoFromSlot(selectedSlot);
     }
 
-    const hasBothScores =
-      editForm.score1 !== "" &&
-      editForm.score1 !== undefined &&
-      editForm.score2 !== "" &&
-      editForm.score2 !== undefined;
-
     // Auto-decide winner from scores when both scores are present.
     // For ties, treat as draw (winner_id = null).
     const inferredWinnerId = hasBothScores
-      ? (
-          raw1 === raw2
-            ? DRAW_WINNER_ID
-            : raw1 > raw2
-            ? (currentMatch.player1_id || null)
-            : (currentMatch.player2_id || null)
-        )
+      ? raw1 === raw2
+        ? DRAW_WINNER_ID
+        : raw1 > raw2
+          ? (currentMatch.player1_id || null)
+          : (currentMatch.player2_id || null)
       : null;
 
     const chosenWinnerId = inferredWinnerId ?? (editForm.winner_id || null);
-    const winnerIdValue = chosenWinnerId === DRAW_WINNER_ID ? null : chosenWinnerId;
 
-    // Infer status so user doesn't have to set it manually: score + winner = completed (unless forfeit/walkover)
+    let winnerIdValue: string | null;
+    if (hasBothScores) {
+      winnerIdValue = chosenWinnerId === DRAW_WINNER_ID ? null : chosenWinnerId;
+    } else if (editForm.status === "forfeit" || editForm.status === "walkover") {
+      const w = editForm.winner_id || null;
+      winnerIdValue = w === DRAW_WINNER_ID || !w ? null : w;
+    } else {
+      winnerIdValue = null;
+    }
+
+    // Infer status so user doesn't have to set it manually: real score + winner = completed (unless forfeit/walkover)
     const needsCompleted =
-      chosenWinnerId === DRAW_WINNER_ID ||
-      (winnerIdValue && ["upcoming", "live", "delayed"].includes(editForm.status)) ||
+      (hasBothScores && inferredWinnerId === DRAW_WINNER_ID) ||
+      (!!winnerIdValue && ["upcoming", "live", "delayed"].includes(editForm.status)) ||
       (hasBothScores && ["upcoming", "live", "delayed"].includes(editForm.status));
     const finalStatus = needsCompleted ? "completed" : editForm.status;
 
@@ -452,7 +476,8 @@ export default function MatchesTable({
       const oldScore = currentMatch.score1 != null && currentMatch.score2 != null
         ? `${currentMatch.score1}-${currentMatch.score2}` 
         : "未記錄";
-      const newScore = `${score1Val}-${score2Val}`;
+      const newScore =
+        score1Val != null && score2Val != null ? `${score1Val}-${score2Val}` : "未記錄";
       
       if (oldScore !== newScore) {
         const draftId = `score-${matchId}-${Date.now()}`;
