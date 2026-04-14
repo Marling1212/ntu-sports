@@ -128,6 +128,30 @@ export interface Match {
   updated_at: string;
 }
 
+export type RefereeRole = "Main" | "Side" | "Reserve";
+
+export interface MatchReferee {
+  match_id: string;
+  user_id: string;
+  role: RefereeRole | string;
+  wage: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TeamRoster {
+  team_id: string;
+  user_id: string;
+  created_at?: string;
+}
+
+export interface RefereeAvailability {
+  user_id: string;
+  slot_start: string;
+  slot_end: string;
+  created_at?: string;
+}
+
 export interface Announcement {
   id: string;
   event_id: string;
