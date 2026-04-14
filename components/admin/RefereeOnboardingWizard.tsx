@@ -47,7 +47,17 @@ export default function RefereeOnboardingWizard({
     if (!q) return toast.error("Enter a name first.");
     const found = candidateIdentities
       .filter((c) => !existingUserIds.has(c.user_id))
-      .filter((c) => c.name.toLowerCase().includes(q))
+      .filter((c) => {
+        const target = [
+          c.name,
+          c.email || "",
+          c.user_id,
+          ...c.teams,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return target.includes(q);
+      })
       .slice(0, 8);
     setMatches(found);
     setDecision(found.length === 0 ? "new" : "");

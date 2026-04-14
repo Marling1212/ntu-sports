@@ -19,7 +19,7 @@ export default async function AdminRefereesPage({
       .order("display_name", { ascending: true }),
     supabase
       .from("team_rosters")
-      .select("user_id, team_id, player:players!team_rosters_team_id_fkey(id, name, email)")
+      .select("*, player:players!team_rosters_team_id_fkey(id, name, email)")
       .in(
         "team_id",
         (await supabase.from("players").select("id").eq("event_id", eventId)).data?.map((p) => p.id) ?? [
@@ -34,21 +34,33 @@ export default async function AdminRefereesPage({
   >();
   for (const row of rosterRaw ?? []) {
     const playerRow = Array.isArray(row.player) ? row.player[0] : row.player;
+    const rawRow = row as Record<string, unknown>;
     const userId = row.user_id as string;
     const playerId = playerRow?.id as string;
     const teamName = playerRow?.name as string;
-    const email = (playerRow?.email as string | null) ?? null;
-    if (!userId || !teamName) continue;
+    const rosterName =
+      (typeof rawRow.name === "string" && rawRow.name) ||
+      (typeof rawRow.member_name === "string" && rawRow.member_name) ||
+      (typeof rawRow.user_name === "string" && rawRow.user_name) ||
+      (typeof rawRow.display_name === "string" && rawRow.display_name) ||
+      (typeof rawRow.student_id === "string" && rawRow.student_id) ||
+      userId;
+    const email =
+      ((typeof rawRow.email === "string" && rawRow.email) as string | undefined) ||
+      ((typeof rawRow.user_email === "string" && rawRow.user_email) as string | undefined) ||
+      (playerRow?.email as string | null) ||
+      null;
+    if (!userId) continue;
     const prev = grouped.get(userId);
     if (!prev) {
       grouped.set(userId, {
         user_id: userId,
         linked_player_id: playerId || null,
-        name: teamName,
+        name: rosterName,
         email,
-        teams: [teamName],
+        teams: teamName ? [teamName] : [],
       });
-    } else if (!prev.teams.includes(teamName)) {
+    } else if (teamName && !prev.teams.includes(teamName)) {
       prev.teams.push(teamName);
     }
   }
