@@ -33,10 +33,11 @@ export default async function AdminRefereesPage({
     { user_id: string; linked_player_id: string | null; name: string; email: string | null; teams: string[] }
   >();
   for (const row of rosterRaw ?? []) {
+    const playerRow = Array.isArray(row.player) ? row.player[0] : row.player;
     const userId = row.user_id as string;
-    const playerId = row.player?.id as string;
-    const teamName = row.player?.name as string;
-    const email = (row.player?.email as string | null) ?? null;
+    const playerId = playerRow?.id as string;
+    const teamName = playerRow?.name as string;
+    const email = (playerRow?.email as string | null) ?? null;
     if (!userId || !teamName) continue;
     const prev = grouped.get(userId);
     if (!prev) {
