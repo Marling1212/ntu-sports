@@ -152,6 +152,17 @@ export interface RefereeAvailability {
   created_at?: string;
 }
 
+export interface EventReferee {
+  id: string;
+  event_id: string;
+  user_id: string;
+  display_name?: string | null;
+  email?: string | null;
+  linked_player_id?: string | null;
+  note?: string | null;
+  created_at?: string;
+}
+
 export interface Announcement {
   id: string;
   event_id: string;

@@ -32,18 +32,26 @@ export default async function RefereeSchedulingPage({
         ),
       supabase.from("organizers").select("user_id").eq("event_id", eventId),
     ]);
+  const { data: eventRefsRaw } = await supabase
+    .from("event_referees")
+    .select("user_id, display_name, email")
+    .eq("event_id", eventId);
 
   const candidateUserIds = Array.from(
     new Set([
       ...(availabilityRaw ?? []).map((r) => r.user_id),
       ...(assignmentsRaw ?? []).map((r) => r.user_id),
+      ...(eventRefsRaw ?? []).map((r) => r.user_id),
       ...(organizersRaw ?? []).map((r) => r.user_id),
     ])
   );
 
   const userLabelMap: Record<string, string> = {};
+  for (const row of eventRefsRaw ?? []) {
+    if (row.display_name?.trim()) userLabelMap[row.user_id] = row.display_name.trim();
+  }
   for (const userId of candidateUserIds) {
-    userLabelMap[userId] = `User ${userId.slice(0, 8)}`;
+    if (!userLabelMap[userId]) userLabelMap[userId] = `User ${userId.slice(0, 8)}`;
   }
 
   return (
@@ -55,6 +63,12 @@ export default async function RefereeSchedulingPage({
             {event?.name} — Manage referee availability in a separate scheduling workspace.
           </p>
           <div className="mt-3">
+            <Link
+              href={`/admin/${eventId}/dispatch/referees`}
+              className="mr-4 text-sm font-medium text-ntu-green hover:underline"
+            >
+              Manage Referees →
+            </Link>
             <Link
               href={`/admin/${eventId}/dispatch`}
               className="text-sm font-medium text-ntu-green hover:underline"

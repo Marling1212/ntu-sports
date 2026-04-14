@@ -55,6 +55,11 @@ export default async function DispatchPage({
     .from("referee_availability")
     .select("user_id");
 
+  const { data: eventRefsRaw } = await supabase
+    .from("event_referees")
+    .select("user_id, display_name, email")
+    .eq("event_id", eventId);
+
   const { data: organizersRaw } = await supabase
     .from("organizers")
     .select("user_id")
@@ -80,14 +85,18 @@ export default async function DispatchPage({
     new Set([
       ...(teamRostersRaw ?? []).map((row) => row.user_id),
       ...(availabilityRaw ?? []).map((row) => row.user_id),
+      ...(eventRefsRaw ?? []).map((row) => row.user_id),
       ...(organizersRaw ?? []).map((row) => row.user_id),
       ...(assignmentsRaw ?? []).map((row) => row.user_id),
     ])
   ).filter(Boolean);
 
   const userLabelMap: Record<string, string> = {};
+  for (const row of eventRefsRaw ?? []) {
+    if (row.display_name?.trim()) userLabelMap[row.user_id] = row.display_name.trim();
+  }
   for (const userId of candidateUserIds) {
-    userLabelMap[userId] = `User ${userId.slice(0, 8)}`;
+    if (!userLabelMap[userId]) userLabelMap[userId] = `User ${userId.slice(0, 8)}`;
   }
 
   return (
@@ -99,6 +108,12 @@ export default async function DispatchPage({
             {event?.name} — Assign referees, block conflicts, and track wages.
           </p>
           <div className="mt-3">
+            <Link
+              href={`/admin/${eventId}/dispatch/referees`}
+              className="mr-4 text-sm font-medium text-ntu-green hover:underline"
+            >
+              Manage Referees →
+            </Link>
             <Link
               href={`/admin/${eventId}/dispatch/scheduling`}
               className="text-sm font-medium text-ntu-green hover:underline"
