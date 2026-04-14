@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import RefereeOnboardingManager from "@/components/admin/RefereeOnboardingManager";
+import RefereeOnboardingWizard from "@/components/admin/RefereeOnboardingWizard";
 
 export default async function AdminRefereesPage({
   params,
@@ -28,14 +28,30 @@ export default async function AdminRefereesPage({
       ),
   ]);
 
-  const candidateProfiles = (rosterRaw ?? [])
-    .map((r: any) => ({
-      user_id: r.user_id,
-      player_id: r.player?.id as string,
-      name: r.player?.name as string,
-      email: (r.player?.email as string | null) ?? null,
-    }))
-    .filter((row) => row.user_id && row.player_id && row.name);
+  const grouped = new Map<
+    string,
+    { user_id: string; linked_player_id: string | null; name: string; email: string | null; teams: string[] }
+  >();
+  for (const row of rosterRaw ?? []) {
+    const userId = row.user_id as string;
+    const playerId = row.player?.id as string;
+    const teamName = row.player?.name as string;
+    const email = (row.player?.email as string | null) ?? null;
+    if (!userId || !teamName) continue;
+    const prev = grouped.get(userId);
+    if (!prev) {
+      grouped.set(userId, {
+        user_id: userId,
+        linked_player_id: playerId || null,
+        name: teamName,
+        email,
+        teams: [teamName],
+      });
+    } else if (!prev.teams.includes(teamName)) {
+      prev.teams.push(teamName);
+    }
+  }
+  const candidateIdentities = Array.from(grouped.values());
 
   return (
     <div className="pt-6 pb-12">
@@ -55,10 +71,10 @@ export default async function AdminRefereesPage({
           </div>
         </div>
 
-        <RefereeOnboardingManager
+        <RefereeOnboardingWizard
           eventId={eventId}
           initialReferees={(refsRaw ?? []) as any[]}
-          candidateProfiles={candidateProfiles}
+          candidateIdentities={candidateIdentities}
         />
       </div>
     </div>

@@ -34,10 +34,12 @@ export async function POST(
   }
 
   const name = body.name?.trim() || "";
-  const email = body.email?.trim() || "";
-  if (!name || !email) {
-    return json(400, { ok: false, message: "Name and email are required." });
+  const providedEmail = body.email?.trim() || "";
+  if (!name) {
+    return json(400, { ok: false, message: "Name is required." });
   }
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "ref";
+  const email = providedEmail || `${slug}.${Date.now()}@ref.local`;
 
   const service = createServiceClient();
   const tempPassword = `Ref!${Math.random().toString(36).slice(2)}A1`;
