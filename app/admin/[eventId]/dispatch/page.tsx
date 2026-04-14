@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import RefereeDispatchBoard from "@/components/admin/RefereeDispatchBoard";
+import Link from "next/link";
 
 export default async function DispatchPage({
   params,
@@ -97,6 +98,14 @@ export default async function DispatchPage({
           <p className="text-lg text-gray-600">
             {event?.name} — Assign referees, block conflicts, and track wages.
           </p>
+          <div className="mt-3">
+            <Link
+              href={`/admin/${eventId}/dispatch/scheduling`}
+              className="text-sm font-medium text-ntu-green hover:underline"
+            >
+              Open Referee Scheduling →
+            </Link>
+          </div>
         </div>
 
         <RefereeDispatchBoard
