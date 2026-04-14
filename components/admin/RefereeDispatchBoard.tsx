@@ -27,6 +27,7 @@ type TeamRoster = {
 };
 
 interface RefereeDispatchBoardProps {
+  eventId: string;
   matches: DispatchMatch[];
   initialAssignments: MatchReferee[];
   teamRosters: TeamRoster[];
@@ -36,8 +37,11 @@ interface RefereeDispatchBoardProps {
 }
 
 const ROLE_OPTIONS = ["Main", "Side", "Reserve"];
+type CandidateStateReason = "bias" | "playing" | "busy" | null;
+type CandidateState = { hidden: boolean; disabled: boolean; reason: CandidateStateReason };
 
 export default function RefereeDispatchBoard({
+  eventId,
   matches,
   initialAssignments,
   teamRosters,
@@ -101,33 +105,33 @@ export default function RefereeDispatchBoard({
     return map;
   }, [matches, teamRosters]);
 
-  const getCandidateState = (match: DispatchMatch, userId: string) => {
+  const getCandidateState = (match: DispatchMatch, userId: string): CandidateState => {
     const teamsInMatch = new Set([match.player1_id, match.player2_id].filter(Boolean) as string[]);
     const userTeams = userTeamMap.get(userId) ?? new Set<string>();
 
     for (const teamId of userTeams) {
       if (teamsInMatch.has(teamId)) {
-        return { hidden: true, disabled: true, reason: "bias" as const };
+        return { hidden: true, disabled: true, reason: "bias" };
       }
     }
 
     if (!match.scheduled_time) {
-      return { hidden: false, disabled: false, reason: null as const };
+      return { hidden: false, disabled: false, reason: null };
     }
 
     const playingKey = `${userId}__${match.scheduled_time}`;
     const playingMatches = playerBusyIndex.get(playingKey);
     if (playingMatches && Array.from(playingMatches).some((id) => id !== match.id)) {
-      return { hidden: false, disabled: true, reason: "playing" as const };
+      return { hidden: false, disabled: true, reason: "playing" };
     }
 
     const busyKey = `${userId}__${match.scheduled_time}`;
     const busyMatches = refereeBusyIndex.get(busyKey);
     if (busyMatches && Array.from(busyMatches).some((id) => id !== match.id)) {
-      return { hidden: false, disabled: true, reason: "busy" as const };
+      return { hidden: false, disabled: true, reason: "busy" };
     }
 
-    return { hidden: false, disabled: false, reason: null as const };
+    return { hidden: false, disabled: false, reason: null };
   };
 
   const getRefOptions = (match: DispatchMatch) => {
@@ -221,7 +225,7 @@ export default function RefereeDispatchBoard({
     <div className="space-y-6">
       <Toaster position="top-right" />
 
-      <WageLedger assignments={assignments} userLabelMap={userLabelMap} />
+      <WageLedger eventId={eventId} assignments={assignments} userLabelMap={userLabelMap} />
 
       <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-4">

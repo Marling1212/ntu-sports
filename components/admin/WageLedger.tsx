@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import toast from "react-hot-toast";
 
 interface MatchRefereeRow {
   match_id: string;
@@ -10,11 +11,12 @@ interface MatchRefereeRow {
 }
 
 interface WageLedgerProps {
+  eventId: string;
   assignments: MatchRefereeRow[];
   userLabelMap: Record<string, string>;
 }
 
-export default function WageLedger({ assignments, userLabelMap }: WageLedgerProps) {
+export default function WageLedger({ eventId, assignments, userLabelMap }: WageLedgerProps) {
   const rows = useMemo(() => {
     const summary = new Map<string, { totalWage: number; roleCount: Record<string, number> }>();
 
@@ -42,6 +44,22 @@ export default function WageLedger({ assignments, userLabelMap }: WageLedgerProp
     [rows]
   );
 
+  const copyRefereePortalLink = async (userId: string) => {
+    const response = await fetch(`/api/admin/events/${eventId}/referee-link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.token) {
+      toast.error(payload?.message || "Failed to generate referee link.");
+      return;
+    }
+    const url = `${window.location.origin}/referee/${payload.token}`;
+    await navigator.clipboard.writeText(url);
+    toast.success("Referee link copied.");
+  };
+
   return (
     <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -61,6 +79,7 @@ export default function WageLedger({ assignments, userLabelMap }: WageLedgerProp
                 <th className="px-3 py-2 font-medium">Referee</th>
                 <th className="px-3 py-2 font-medium">Roles</th>
                 <th className="px-3 py-2 text-right font-medium">Total Wage</th>
+                <th className="px-3 py-2 text-right font-medium">Access</th>
               </tr>
             </thead>
             <tbody>
@@ -70,6 +89,15 @@ export default function WageLedger({ assignments, userLabelMap }: WageLedgerProp
                   <td className="px-3 py-2 text-gray-600">{row.roleSummary || "-"}</td>
                   <td className="px-3 py-2 text-right font-semibold text-ntu-green">
                     NT$ {row.totalWage.toLocaleString()}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => copyRefereePortalLink(row.userId)}
+                      className="text-xs font-semibold text-ntu-green hover:underline"
+                    >
+                      Copy Ref Link
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -100,6 +100,7 @@ export default async function DispatchPage({
         </div>
 
         <RefereeDispatchBoard
+          eventId={eventId}
           matches={matches}
           initialAssignments={assignments}
           teamRosters={teamRosters}
