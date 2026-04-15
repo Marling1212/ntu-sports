@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
-import WageLedger from "@/components/admin/WageLedger";
 
 type DispatchMatch = {
   id: string;
@@ -328,8 +327,6 @@ export default function RefereeDispatchBoard({
   return (
     <div className="space-y-6">
       <Toaster position="top-right" />
-
-      <WageLedger eventId={eventId} assignments={assignments} userLabelMap={userLabelMap} />
 
       <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-4">

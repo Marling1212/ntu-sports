@@ -37,15 +37,24 @@ interface ManualTeamOption {
   team_name: string;
 }
 
+interface MatchRefereeRow {
+  user_id: string;
+  role: string;
+  wage: number;
+  assignment_status?: "assigned" | "completed";
+}
+
 export default function RefereeOnboardingWizard({
   eventId,
   initialReferees,
+  assignments,
   candidateIdentities,
   manualPlayerOptions,
   manualTeams,
 }: {
   eventId: string;
   initialReferees: RefereeRow[];
+  assignments: MatchRefereeRow[];
   candidateIdentities: CandidateIdentity[];
   manualPlayerOptions: ManualPlayerOption[];
   manualTeams: ManualTeamOption[];
@@ -63,6 +72,27 @@ export default function RefereeOnboardingWizard({
   const [saving, setSaving] = useState(false);
 
   const existingUserIds = useMemo(() => new Set(rows.map((r) => r.user_id)), [rows]);
+  const wageByUser = useMemo(() => {
+    const map = new Map<
+      string,
+      { assigned: number; completed: number; total: number; roleCount: Record<string, number> }
+    >();
+    for (const row of assignments) {
+      const current = map.get(row.user_id) ?? {
+        assigned: 0,
+        completed: 0,
+        total: 0,
+        roleCount: {},
+      };
+      const wage = Number(row.wage) || 0;
+      current.total += wage;
+      if (row.assignment_status === "completed") current.completed += wage;
+      else current.assigned += wage;
+      current.roleCount[row.role] = (current.roleCount[row.role] ?? 0) + 1;
+      map.set(row.user_id, current);
+    }
+    return map;
+  }, [assignments]);
   const teamScopedManualPlayers = useMemo(() => {
     if (!manualTeamId) return [] as ManualPlayerOption[];
     return manualPlayerOptions.filter((p) => p.team_id === manualTeamId);
@@ -171,6 +201,22 @@ export default function RefereeOnboardingWizard({
     if (error) return toast.error(error.message);
     setRows((prev) => prev.filter((r) => r.id !== id));
     toast.success("Referee removed.");
+  };
+
+  const copyRefereePortalLink = async (userId: string) => {
+    const response = await fetch(`/api/admin/events/${eventId}/referee-link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.token) {
+      toast.error(payload?.message || "Failed to generate referee link.");
+      return;
+    }
+    const url = `${window.location.origin}/referee/${payload.token}`;
+    await navigator.clipboard.writeText(url);
+    toast.success("Referee link copied.");
   };
 
   return (
@@ -310,7 +356,7 @@ export default function RefereeOnboardingWizard({
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold text-ntu-green">Current Referees</h2>
+        <h2 className="text-xl font-semibold text-ntu-green">Current Referees + Wage Ledger</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -318,25 +364,55 @@ export default function RefereeOnboardingWizard({
                 <th className="px-3 py-2 font-medium">Name</th>
                 <th className="px-3 py-2 font-medium">Email</th>
                 <th className="px-3 py-2 font-medium">Linked Player Profile</th>
+                <th className="px-3 py-2 font-medium">Roles</th>
+                <th className="px-3 py-2 text-right font-medium">Assigned</th>
+                <th className="px-3 py-2 text-right font-medium">Completed</th>
+                <th className="px-3 py-2 text-right font-medium">Total</th>
+                <th className="px-3 py-2 text-right font-medium">Access</th>
                 <th className="px-3 py-2 text-right font-medium">Remove</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-8 text-center text-gray-500">
+                  <td colSpan={9} className="px-3 py-8 text-center text-gray-500">
                     No referees yet.
                   </td>
                 </tr>
               ) : (
                 rows.map((row) => (
                   <tr key={row.id} className="border-b border-gray-100 last:border-b-0">
+                    {(() => {
+                      const wage = wageByUser.get(row.user_id) ?? {
+                        assigned: 0,
+                        completed: 0,
+                        total: 0,
+                        roleCount: {},
+                      };
+                      const roleSummary = Object.entries(wage.roleCount)
+                        .map(([role, count]) => `${role} x${count}`)
+                        .join(", ");
+                      return (
+                        <>
                     <td className="px-3 py-2 font-medium text-gray-800">
                       {row.display_name || `User ${row.user_id.slice(0, 8)}`}
                     </td>
                     <td className="px-3 py-2 text-gray-700">{row.email || "-"}</td>
                     <td className="px-3 py-2 text-gray-700">
                       {row.linked_player_id ? `Linked (${row.linked_player_id.slice(0, 8)})` : "External / None"}
+                    </td>
+                    <td className="px-3 py-2 text-gray-700">{roleSummary || "-"}</td>
+                    <td className="px-3 py-2 text-right text-amber-700">NT$ {wage.assigned.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right text-emerald-700">NT$ {wage.completed.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-ntu-green">NT$ {wage.total.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => copyRefereePortalLink(row.user_id)}
+                        className="text-xs font-semibold text-ntu-green hover:underline"
+                      >
+                        Copy Ref Link
+                      </button>
                     </td>
                     <td className="px-3 py-2 text-right">
                       <button
@@ -347,6 +423,9 @@ export default function RefereeOnboardingWizard({
                         Remove
                       </button>
                     </td>
+                        </>
+                      );
+                    })()}
                   </tr>
                 ))
               )}

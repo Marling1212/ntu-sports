@@ -262,6 +262,7 @@ export default async function DispatchPage({
             <RefereeOnboardingWizard
               eventId={eventId}
               initialReferees={(refsRaw ?? []) as any[]}
+              assignments={(assignmentsRaw ?? []) as any[]}
               candidateIdentities={candidateIdentities}
               manualPlayerOptions={manualPlayerOptions}
               manualTeams={manualTeams}
