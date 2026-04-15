@@ -134,6 +134,7 @@ export default function RefereeOnboardingWizard({
 
   const completeOnboarding = async () => {
     const resolvedName = name.trim() || selectedManualOption?.member_name || selectedManualOption?.name || "";
+    const resolvedEmail = email.trim();
     if (!resolvedName) return toast.error("Name is required.");
     setSaving(true);
 
@@ -150,7 +151,7 @@ export default function RefereeOnboardingWizard({
           user_id: chosen.user_id,
           linked_player_id: chosen.linked_player_id,
           display_name: chosen.name,
-          email: chosen.email,
+          email: resolvedEmail || null,
           note: note.trim() || null,
         })
         .select("id, event_id, user_id, display_name, email, linked_player_id, note")
@@ -171,7 +172,7 @@ export default function RefereeOnboardingWizard({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: resolvedName,
-        email: email || selectedManualOption?.email || "",
+        email: resolvedEmail,
         note,
         linkedPlayerId: selectedManualOption?.player_id || null,
       }),
@@ -237,7 +238,7 @@ export default function RefereeOnboardingWizard({
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email (optional, for new person)"
+            placeholder="Referee email (optional, admin entered)"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           />
           <input

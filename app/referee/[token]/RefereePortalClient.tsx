@@ -47,6 +47,7 @@ export default function RefereePortalClient({
   existingPlayerStats,
   teamMembersByTeam,
   isTeamEvent,
+  hasTeamMembersData,
 }: {
   token: string;
   matches: MatchRow[];
@@ -54,6 +55,7 @@ export default function RefereePortalClient({
   existingPlayerStats: ExistingPlayerStat[];
   teamMembersByTeam: Record<string, TeamMember[]>;
   isTeamEvent: boolean;
+  hasTeamMembersData: boolean;
 }) {
   const [savingId, setSavingId] = useState<string>("");
   const [playerStatsByMatch, setPlayerStatsByMatch] = useState<
@@ -299,7 +301,49 @@ export default function RefereePortalClient({
                   {[match.player1, match.player2].filter(Boolean).map((player) => (
                     <div key={player!.id}>
                       <h5 className="mb-3 border-b pb-2 text-base font-semibold text-gray-900">{player!.name}</h5>
-                      {isTeamEvent ? (
+                      {(() => {
+                        const memberOptions = teamMembersByTeam[player!.id] ?? [];
+                        const showTeamMemberPicker = isTeamEvent || hasTeamMembersData || memberOptions.length > 0;
+                        if (!showTeamMemberPicker) {
+                          return (
+                            <div className="space-y-3">
+                              {playerStatDefinitions.map((def) => {
+                                const value = playerStatsByMatch[match.id]?.[player!.id]?.[def.stat_name] ?? "";
+                                return (
+                                  <div key={`${player!.id}-${def.stat_name}`}>
+                                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                                      {def.stat_label}
+                                    </label>
+                                    {def.stat_type === "boolean" ? (
+                                      <select
+                                        value={value}
+                                        onChange={(e) =>
+                                          setPlayerStatField(match.id, player!.id, def.stat_name, e.target.value)
+                                        }
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+                                      >
+                                        <option value="">-</option>
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type={def.stat_type === "number" ? "number" : "text"}
+                                        value={value}
+                                        onChange={(e) =>
+                                          setPlayerStatField(match.id, player!.id, def.stat_name, e.target.value)
+                                        }
+                                        placeholder={def.stat_label}
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+                                      />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        }
+                        return (
                         <div className="space-y-3">
                           <div>
                             <label className="mb-1 block text-sm font-medium text-gray-700">Choose Player</label>
@@ -317,7 +361,7 @@ export default function RefereePortalClient({
                               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
                             >
                               <option value="">Select team member...</option>
-                              {(teamMembersByTeam[player!.id] ?? []).map((member) => (
+                              {memberOptions.map((member) => (
                                 <option key={member.id} value={member.id}>
                                   {member.name}
                                   {member.jersey_number !== null && member.jersey_number !== undefined
@@ -327,6 +371,11 @@ export default function RefereePortalClient({
                               ))}
                             </select>
                           </div>
+                          {memberOptions.length === 0 && (
+                            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                              No team members found for this team yet. Add members in admin to assign player-level stats.
+                            </p>
+                          )}
                           {(selectedMemberByMatch[match.id]?.[player!.id] ?? "") !== "" && (
                             <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
                               {playerStatDefinitions.map((def) => {
@@ -379,43 +428,8 @@ export default function RefereePortalClient({
                             </div>
                           )}
                         </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {playerStatDefinitions.map((def) => {
-                            const value = playerStatsByMatch[match.id]?.[player!.id]?.[def.stat_name] ?? "";
-                            return (
-                              <div key={`${player!.id}-${def.stat_name}`}>
-                                <label className="mb-1 block text-sm font-medium text-gray-700">
-                                  {def.stat_label}
-                                </label>
-                                {def.stat_type === "boolean" ? (
-                                  <select
-                                    value={value}
-                                    onChange={(e) =>
-                                      setPlayerStatField(match.id, player!.id, def.stat_name, e.target.value)
-                                    }
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
-                                  >
-                                    <option value="">-</option>
-                                    <option value="true">Yes</option>
-                                    <option value="false">No</option>
-                                  </select>
-                                ) : (
-                                  <input
-                                    type={def.stat_type === "number" ? "number" : "text"}
-                                    value={value}
-                                    onChange={(e) =>
-                                      setPlayerStatField(match.id, player!.id, def.stat_name, e.target.value)
-                                    }
-                                    placeholder={def.stat_label}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
-                                  />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>

@@ -96,6 +96,7 @@ export default async function RefereePortalPage({
         existingPlayerStats={(existingStatsResult.data ?? []) as any[]}
         teamMembersByTeam={teamMembersByTeam}
         isTeamEvent={event.registration_type === "team"}
+        hasTeamMembersData={Object.keys(teamMembersByTeam).length > 0}
       />
 
       <p className="mt-8 text-center text-xs text-gray-400">

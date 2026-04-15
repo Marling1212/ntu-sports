@@ -177,9 +177,7 @@ export default async function DispatchPage({
       userId;
     const email =
       authProfile?.email ||
-      ((typeof rawRow.email === "string" && rawRow.email) as string | undefined) ||
       ((typeof rawRow.user_email === "string" && rawRow.user_email) as string | undefined) ||
-      (playerRow?.email as string | null) ||
       null;
     if (!userId) continue;
     const prev = grouped.get(userId);
@@ -205,7 +203,7 @@ export default async function DispatchPage({
       team_name: teamName,
       player_id: m.player_id as string,
       name: m.name as string,
-      email: (team?.email as string | null) ?? null,
+      email: null,
       member_name: m.name as string,
     };
   });
@@ -215,7 +213,7 @@ export default async function DispatchPage({
     team_name: p.type === "team" ? (p.name as string) : "Individual Players",
     player_id: p.id as string,
     name: p.name as string,
-    email: (p.email as string | null) ?? null,
+    email: p.type === "team" ? null : ((p.email as string | null) ?? null),
     member_name: p.type === "team" ? null : (p.name as string),
   }));
   const manualPlayerOptions = [...manualPlayerOptionsFromMembers, ...manualPlayerOptionsFromPlayers].filter(
