@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS match_referees (
   wage        NUMERIC(10,2) NOT NULL DEFAULT 0,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (match_id, user_id, role)
+  PRIMARY KEY (match_id, user_id, role),
+  CONSTRAINT match_referees_wage_nonnegative CHECK (wage >= 0),
+  CONSTRAINT match_referees_match_role_unique UNIQUE (match_id, role)
 );
 
 CREATE INDEX IF NOT EXISTS idx_match_referees_match
