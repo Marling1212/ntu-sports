@@ -23,9 +23,17 @@ interface CandidateIdentity {
 }
 
 interface ManualPlayerOption {
+  team_id: string;
+  team_name: string;
   player_id: string;
   name: string;
   email: string | null;
+  member_name: string | null;
+}
+
+interface ManualTeamOption {
+  team_id: string;
+  team_name: string;
 }
 
 export default function RefereeOnboardingWizard({
@@ -33,11 +41,13 @@ export default function RefereeOnboardingWizard({
   initialReferees,
   candidateIdentities,
   manualPlayerOptions,
+  manualTeams,
 }: {
   eventId: string;
   initialReferees: RefereeRow[];
   candidateIdentities: CandidateIdentity[];
   manualPlayerOptions: ManualPlayerOption[];
+  manualTeams: ManualTeamOption[];
 }) {
   const supabase = createClient();
   const [rows, setRows] = useState<RefereeRow[]>(initialReferees);
@@ -46,18 +56,24 @@ export default function RefereeOnboardingWizard({
   const [note, setNote] = useState("");
   const [matches, setMatches] = useState<CandidateIdentity[]>([]);
   const [decision, setDecision] = useState<string>("");
+  const [manualTeamId, setManualTeamId] = useState("");
   const [manualPlayerId, setManualPlayerId] = useState("");
   const [manualPlayerQuery, setManualPlayerQuery] = useState("");
   const [saving, setSaving] = useState(false);
 
   const existingUserIds = useMemo(() => new Set(rows.map((r) => r.user_id)), [rows]);
+  const teamScopedManualPlayers = useMemo(() => {
+    if (!manualTeamId) return [] as ManualPlayerOption[];
+    return manualPlayerOptions.filter((p) => p.team_id === manualTeamId);
+  }, [manualPlayerOptions, manualTeamId]);
+
   const filteredManualPlayers = useMemo(() => {
     const q = manualPlayerQuery.trim().toLowerCase();
-    if (!q) return manualPlayerOptions.slice(0, 40);
-    return manualPlayerOptions
-      .filter((p) => `${p.name} ${p.email || ""}`.toLowerCase().includes(q))
-      .slice(0, 40);
-  }, [manualPlayerOptions, manualPlayerQuery]);
+    if (!q) return teamScopedManualPlayers;
+    return teamScopedManualPlayers.filter((p) =>
+      `${p.name} ${p.member_name || ""} ${p.email || ""}`.toLowerCase().includes(q)
+    );
+  }, [teamScopedManualPlayers, manualPlayerQuery]);
 
   const runCheck = () => {
     const q = name.trim().toLowerCase();
@@ -134,6 +150,7 @@ export default function RefereeOnboardingWizard({
     setNote("");
     setMatches([]);
     setDecision("");
+    setManualTeamId("");
     setManualPlayerId("");
     setManualPlayerQuery("");
     toast.success("Created new referee identity.");
@@ -232,31 +249,52 @@ export default function RefereeOnboardingWizard({
           </div>
         )}
 
+        <div className="mt-3 space-y-3 rounded-lg bg-emerald-50 px-3 py-3">
+          <p className="text-sm text-emerald-800">
+            Manual fallback: pick team first, then pick player. This stays available even if auto-check succeeds.
+          </p>
+          <select
+            value={manualTeamId}
+            onChange={(e) => {
+              setManualTeamId(e.target.value);
+              setManualPlayerId("");
+            }}
+            className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+          >
+            <option value="">Pick team</option>
+            {manualTeams.map((team) => (
+              <option key={team.team_id} value={team.team_id}>
+                {team.team_name}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={manualPlayerQuery}
+            onChange={(e) => setManualPlayerQuery(e.target.value)}
+            placeholder="Search player within selected team..."
+            className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+          />
+          <select
+            value={manualPlayerId}
+            onChange={(e) => setManualPlayerId(e.target.value)}
+            className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+          >
+            <option value="">No linked player (external only)</option>
+            {filteredManualPlayers.map((p) => (
+              <option key={`${p.team_id}-${p.player_id}-${p.name}`} value={p.player_id}>
+                {p.member_name || p.name}
+                {p.email ? ` · ${p.email}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {matches.length === 0 && decision === "new" && (
           <div className="mt-3 space-y-3 rounded-lg bg-emerald-50 px-3 py-3">
             <p className="text-sm text-emerald-800">
-              No matching player found automatically. You can still pick a player manually before creating this referee.
+              No automatic match found. You can still complete onboarding with the manual Team → Player picker above.
             </p>
-            <input
-              type="text"
-              value={manualPlayerQuery}
-              onChange={(e) => setManualPlayerQuery(e.target.value)}
-              placeholder="Search players manually..."
-              className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
-            />
-            <select
-              value={manualPlayerId}
-              onChange={(e) => setManualPlayerId(e.target.value)}
-              className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
-            >
-              <option value="">No linked player (external only)</option>
-              {filteredManualPlayers.map((p) => (
-                <option key={p.player_id} value={p.player_id}>
-                  {p.name}
-                  {p.email ? ` · ${p.email}` : ""}
-                </option>
-              ))}
-            </select>
           </div>
         )}
       </section>

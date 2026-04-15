@@ -116,15 +116,21 @@ export default async function AdminRefereesPage({
     const team = Array.isArray(m.team) ? m.team[0] : m.team;
     const teamName = (team?.name as string | undefined) ?? "Team";
     return {
+      team_id: m.player_id as string,
+      team_name: teamName,
       player_id: m.player_id as string,
-      name: `${m.name as string} (${teamName})`,
+      name: m.name as string,
       email: (team?.email as string | null) ?? null,
+      member_name: m.name as string,
     };
   });
   const manualPlayerOptionsFromPlayers = (eventPlayers ?? []).map((p: any) => ({
+    team_id: p.id as string,
+    team_name: p.type === "team" ? (p.name as string) : "Individual Players",
     player_id: p.id as string,
-    name: p.type === "team" ? `${p.name as string} (Team)` : (p.name as string),
+    name: p.type === "team" ? (p.name as string) : (p.name as string),
     email: (p.email as string | null) ?? null,
+    member_name: p.type === "team" ? null : (p.name as string),
   }));
   const manualPlayerOptions = [
     ...manualPlayerOptionsFromMembers,
@@ -133,10 +139,21 @@ export default async function AdminRefereesPage({
     return (
       index ===
       arr.findIndex(
-        (x) => x.player_id === option.player_id && x.name === option.name
+        (x) =>
+          x.player_id === option.player_id &&
+          x.name === option.name &&
+          x.team_id === option.team_id
       )
     );
   });
+  const manualTeams = Array.from(
+    new Map(
+      manualPlayerOptions.map((option) => [
+        option.team_id,
+        { team_id: option.team_id, team_name: option.team_name },
+      ])
+    ).values()
+  ).sort((a, b) => a.team_name.localeCompare(b.team_name));
 
   return (
     <div className="pt-6 pb-12">
@@ -161,6 +178,7 @@ export default async function AdminRefereesPage({
           initialReferees={(refsRaw ?? []) as any[]}
           candidateIdentities={candidateIdentities}
           manualPlayerOptions={manualPlayerOptions}
+          manualTeams={manualTeams}
         />
       </div>
     </div>
