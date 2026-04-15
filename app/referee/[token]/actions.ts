@@ -16,6 +16,12 @@ export async function updateRefereeMatchResult(
     winner_id: string;
     status: string;
     playerStats?: Array<{ player_id: string; stat_name: string; stat_value: string }>;
+    teamMemberStats?: Array<{
+      player_id: string;
+      team_member_id: string;
+      stat_name: string;
+      stat_value: string;
+    }>;
   }
 ): Promise<RefereeUpdateResult> {
   const claims = verifyRefereeAccessToken(token.trim());
@@ -74,11 +80,18 @@ export async function updateRefereeMatchResult(
     .eq("match_id", matchId)
     .eq("user_id", claims.userId);
 
-  const statsInput = (input.playerStats ?? []).filter(
+  const teamStatsInput = (input.playerStats ?? []).filter(
     (row) => row?.player_id && row?.stat_name
   );
-  const statNames = Array.from(new Set(statsInput.map((s) => s.stat_name)));
-  const playerIds = Array.from(new Set(statsInput.map((s) => s.player_id)));
+  const memberStatsInput = (input.teamMemberStats ?? []).filter(
+    (row) => row?.player_id && row?.team_member_id && row?.stat_name
+  );
+  const statNames = Array.from(
+    new Set([...teamStatsInput.map((s) => s.stat_name), ...memberStatsInput.map((s) => s.stat_name)])
+  );
+  const playerIds = Array.from(
+    new Set([...teamStatsInput.map((s) => s.player_id), ...memberStatsInput.map((s) => s.player_id)])
+  );
   if (statNames.length > 0 && playerIds.length > 0) {
     const { error: deleteErr } = await supabase
       .from("match_player_stats")
@@ -88,12 +101,24 @@ export async function updateRefereeMatchResult(
       .in("stat_name", statNames);
     if (deleteErr) return { ok: false, error: deleteErr.message };
 
-    const insertRows = statsInput
-      .map((row) => ({
+    const insertRows = [
+      ...teamStatsInput.map((row) => ({
         match_id: matchId,
         player_id: row.player_id,
+        team_member_id: null,
         stat_name: row.stat_name,
         stat_value: row.stat_value?.trim() ?? "",
+      })),
+      ...memberStatsInput.map((row) => ({
+        match_id: matchId,
+        player_id: row.player_id,
+        team_member_id: row.team_member_id,
+        stat_name: row.stat_name,
+        stat_value: row.stat_value?.trim() ?? "",
+      })),
+    ]
+      .map((row) => ({
+        ...row,
       }))
       .filter((row) => row.stat_value !== "");
     if (insertRows.length > 0) {

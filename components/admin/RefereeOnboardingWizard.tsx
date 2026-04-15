@@ -73,30 +73,27 @@ export default function RefereeOnboardingWizard({
 
   const existingUserIds = useMemo(() => new Set(rows.map((r) => r.user_id)), [rows]);
   const wageByUser = useMemo(() => {
-    const map = new Map<
-      string,
-      { assigned: number; completed: number; total: number; roleCount: Record<string, number> }
-    >();
+    const map = new Map<string, { assigned: number; completed: number; total: number; assignmentCount: number }>();
     for (const row of assignments) {
       const current = map.get(row.user_id) ?? {
         assigned: 0,
         completed: 0,
         total: 0,
-        roleCount: {},
+        assignmentCount: 0,
       };
       const wage = Number(row.wage) || 0;
       current.total += wage;
       if (row.assignment_status === "completed") current.completed += wage;
       else current.assigned += wage;
-      current.roleCount[row.role] = (current.roleCount[row.role] ?? 0) + 1;
+      current.assignmentCount += 1;
       map.set(row.user_id, current);
     }
     return map;
   }, [assignments]);
-  const teamScopedManualPlayers = useMemo(() => {
-    if (!manualTeamId) return [] as ManualPlayerOption[];
-    return manualPlayerOptions.filter((p) => p.team_id === manualTeamId);
-  }, [manualPlayerOptions, manualTeamId]);
+  const teamScopedManualPlayers = useMemo(
+    () => (manualTeamId ? manualPlayerOptions.filter((p) => p.team_id === manualTeamId) : manualPlayerOptions),
+    [manualPlayerOptions, manualTeamId]
+  );
 
   const filteredManualPlayers = useMemo(() => {
     const q = manualPlayerQuery.trim().toLowerCase();
@@ -224,7 +221,7 @@ export default function RefereeOnboardingWizard({
       <Toaster position="top-right" />
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold text-ntu-green">Onboard Referee (Dummy-Proof)</h2>
+        <h2 className="text-xl font-semibold text-ntu-green">Onboard Referee</h2>
         <p className="mt-1 text-sm text-gray-600">
           Enter name. We check matching player identities and ask you whether it is the same person.
         </p>
@@ -328,7 +325,7 @@ export default function RefereeOnboardingWizard({
             type="text"
             value={manualPlayerQuery}
             onChange={(e) => setManualPlayerQuery(e.target.value)}
-            placeholder="Search player within selected team..."
+            placeholder="Search player (all teams if team not selected)..."
             className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           />
           <select
@@ -364,7 +361,7 @@ export default function RefereeOnboardingWizard({
                 <th className="px-3 py-2 font-medium">Name</th>
                 <th className="px-3 py-2 font-medium">Email</th>
                 <th className="px-3 py-2 font-medium">Linked Player Profile</th>
-                <th className="px-3 py-2 font-medium">Roles</th>
+                <th className="px-3 py-2 font-medium">Assignments</th>
                 <th className="px-3 py-2 text-right font-medium">Assigned</th>
                 <th className="px-3 py-2 text-right font-medium">Completed</th>
                 <th className="px-3 py-2 text-right font-medium">Total</th>
@@ -387,11 +384,8 @@ export default function RefereeOnboardingWizard({
                         assigned: 0,
                         completed: 0,
                         total: 0,
-                        roleCount: {},
+                        assignmentCount: 0,
                       };
-                      const roleSummary = Object.entries(wage.roleCount)
-                        .map(([role, count]) => `${role} x${count}`)
-                        .join(", ");
                       return (
                         <>
                     <td className="px-3 py-2 font-medium text-gray-800">
@@ -401,7 +395,7 @@ export default function RefereeOnboardingWizard({
                     <td className="px-3 py-2 text-gray-700">
                       {row.linked_player_id ? `Linked (${row.linked_player_id.slice(0, 8)})` : "External / None"}
                     </td>
-                    <td className="px-3 py-2 text-gray-700">{roleSummary || "-"}</td>
+                    <td className="px-3 py-2 text-gray-700">{wage.assignmentCount || "-"}</td>
                     <td className="px-3 py-2 text-right text-amber-700">NT$ {wage.assigned.toLocaleString()}</td>
                     <td className="px-3 py-2 text-right text-emerald-700">NT$ {wage.completed.toLocaleString()}</td>
                     <td className="px-3 py-2 text-right font-semibold text-ntu-green">NT$ {wage.total.toLocaleString()}</td>

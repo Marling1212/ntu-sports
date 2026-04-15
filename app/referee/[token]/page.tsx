@@ -23,7 +23,7 @@ export default async function RefereePortalPage({
   const [{ data: event }, { data: assignedMatches }] = await Promise.all([
     supabase
       .from("events")
-      .select("id, name, sport")
+      .select("id, name, sport, registration_type")
       .eq("id", claims.eventId)
       .maybeSingle(),
     supabase
@@ -51,6 +51,11 @@ export default async function RefereePortalPage({
   if (!event) notFound();
 
   const matchIds = matches.map((m: any) => m.id).filter(Boolean);
+  const teamIds = Array.from(
+    new Set(
+      matches.flatMap((m: any) => [m?.player1?.id, m?.player2?.id]).filter(Boolean)
+    )
+  );
   const [statDefsResult, existingStatsResult] = await Promise.all([
     supabase
       .from("sport_stat_definitions")
@@ -60,9 +65,20 @@ export default async function RefereePortalPage({
       .order("display_order", { ascending: true }),
     supabase
       .from("match_player_stats")
-      .select("match_id, player_id, stat_name, stat_value")
+      .select("match_id, player_id, team_member_id, stat_name, stat_value")
       .in("match_id", matchIds.length ? matchIds : ["00000000-0000-0000-0000-000000000000"]),
   ]);
+  const { data: teamMembersRaw } = await supabase
+    .from("team_members")
+    .select("id, player_id, name, jersey_number")
+    .in("player_id", teamIds.length ? teamIds : ["00000000-0000-0000-0000-000000000000"])
+    .order("jersey_number", { ascending: true, nullsFirst: true })
+    .order("name", { ascending: true });
+  const teamMembersByTeam: Record<string, any[]> = {};
+  for (const row of teamMembersRaw ?? []) {
+    if (!teamMembersByTeam[row.player_id]) teamMembersByTeam[row.player_id] = [];
+    teamMembersByTeam[row.player_id].push(row);
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
@@ -78,6 +94,8 @@ export default async function RefereePortalPage({
         matches={matches as any[]}
         playerStatDefinitions={(statDefsResult.data ?? []) as any[]}
         existingPlayerStats={(existingStatsResult.data ?? []) as any[]}
+        teamMembersByTeam={teamMembersByTeam}
+        isTeamEvent={event.registration_type === "team"}
       />
 
       <p className="mt-8 text-center text-xs text-gray-400">
