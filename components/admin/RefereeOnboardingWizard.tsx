@@ -23,6 +23,7 @@ interface CandidateIdentity {
 }
 
 interface ManualPlayerOption {
+  option_id: string;
   team_id: string;
   team_name: string;
   player_id: string;
@@ -57,7 +58,7 @@ export default function RefereeOnboardingWizard({
   const [matches, setMatches] = useState<CandidateIdentity[]>([]);
   const [decision, setDecision] = useState<string>("");
   const [manualTeamId, setManualTeamId] = useState("");
-  const [manualPlayerId, setManualPlayerId] = useState("");
+  const [manualOptionId, setManualOptionId] = useState("");
   const [manualPlayerQuery, setManualPlayerQuery] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -74,6 +75,10 @@ export default function RefereeOnboardingWizard({
       `${p.name} ${p.member_name || ""} ${p.email || ""}`.toLowerCase().includes(q)
     );
   }, [teamScopedManualPlayers, manualPlayerQuery]);
+  const selectedManualOption = useMemo(
+    () => filteredManualPlayers.find((p) => p.option_id === manualOptionId) || null,
+    [filteredManualPlayers, manualOptionId]
+  );
 
   const runCheck = () => {
     const q = name.trim().toLowerCase();
@@ -136,7 +141,7 @@ export default function RefereeOnboardingWizard({
         name,
         email,
         note,
-        linkedPlayerId: manualPlayerId || null,
+        linkedPlayerId: selectedManualOption?.player_id || null,
       }),
     });
     const payload = await response.json();
@@ -151,7 +156,7 @@ export default function RefereeOnboardingWizard({
     setMatches([]);
     setDecision("");
     setManualTeamId("");
-    setManualPlayerId("");
+    setManualOptionId("");
     setManualPlayerQuery("");
     toast.success("Created new referee identity.");
   };
@@ -257,7 +262,7 @@ export default function RefereeOnboardingWizard({
             value={manualTeamId}
             onChange={(e) => {
               setManualTeamId(e.target.value);
-              setManualPlayerId("");
+              setManualOptionId("");
             }}
             className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           >
@@ -276,13 +281,13 @@ export default function RefereeOnboardingWizard({
             className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           />
           <select
-            value={manualPlayerId}
-            onChange={(e) => setManualPlayerId(e.target.value)}
+            value={manualOptionId}
+            onChange={(e) => setManualOptionId(e.target.value)}
             className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           >
             <option value="">No linked player (external only)</option>
             {filteredManualPlayers.map((p) => (
-              <option key={`${p.team_id}-${p.player_id}-${p.name}`} value={p.player_id}>
+              <option key={p.option_id} value={p.option_id}>
                 {p.member_name || p.name}
                 {p.email ? ` · ${p.email}` : ""}
               </option>

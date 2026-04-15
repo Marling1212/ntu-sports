@@ -116,6 +116,7 @@ export default async function AdminRefereesPage({
     const team = Array.isArray(m.team) ? m.team[0] : m.team;
     const teamName = (team?.name as string | undefined) ?? "Team";
     return {
+      option_id: `${m.player_id as string}::member::${m.id as string}`,
       team_id: m.player_id as string,
       team_name: teamName,
       player_id: m.player_id as string,
@@ -125,6 +126,7 @@ export default async function AdminRefereesPage({
     };
   });
   const manualPlayerOptionsFromPlayers = (eventPlayers ?? []).map((p: any) => ({
+    option_id: `${p.id as string}::player`,
     team_id: p.id as string,
     team_name: p.type === "team" ? (p.name as string) : "Individual Players",
     player_id: p.id as string,
@@ -140,9 +142,7 @@ export default async function AdminRefereesPage({
       index ===
       arr.findIndex(
         (x) =>
-          x.player_id === option.player_id &&
-          x.name === option.name &&
-          x.team_id === option.team_id
+          x.option_id === option.option_id
       )
     );
   });
