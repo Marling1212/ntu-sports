@@ -11,7 +11,14 @@ export default async function AdminRefereesPage({
   const supabase = await createClient();
   const { eventId } = await params;
 
-  const [{ data: event }, { data: refsRaw }, { data: rosterRaw }, { data: playersRaw }] = await Promise.all([
+  const { data: eventPlayers } = await supabase
+    .from("players")
+    .select("id, name, email, type")
+    .eq("event_id", eventId)
+    .order("name", { ascending: true });
+  const eventPlayerIds = (eventPlayers ?? []).map((p) => p.id);
+
+  const [{ data: event }, { data: refsRaw }, { data: rosterRaw }, { data: teamMembersRaw }] = await Promise.all([
     supabase.from("events").select("id, name").eq("id", eventId).single(),
     supabase
       .from("event_referees")
@@ -23,11 +30,15 @@ export default async function AdminRefereesPage({
       .select("*, player:players!team_rosters_team_id_fkey(id, name, email)")
       .in(
         "team_id",
-        (await supabase.from("players").select("id").eq("event_id", eventId)).data?.map((p) => p.id) ?? [
+        eventPlayerIds.length ? eventPlayerIds : [
           "00000000-0000-0000-0000-000000000000",
         ]
       ),
-    supabase.from("players").select("id, name, email").eq("event_id", eventId).order("name", { ascending: true }),
+    supabase
+      .from("team_members")
+      .select("id, name, player_id, team:players!team_members_player_id_fkey(id, name, email)")
+      .in("player_id", eventPlayerIds.length ? eventPlayerIds : ["00000000-0000-0000-0000-000000000000"])
+      .order("name", { ascending: true }),
   ]);
 
   const grouped = new Map<
@@ -101,11 +112,31 @@ export default async function AdminRefereesPage({
     }
   }
   const candidateIdentities = Array.from(grouped.values());
-  const manualPlayerOptions = (playersRaw ?? []).map((p) => ({
+  const manualPlayerOptionsFromMembers = (teamMembersRaw ?? []).map((m: any) => {
+    const team = Array.isArray(m.team) ? m.team[0] : m.team;
+    const teamName = (team?.name as string | undefined) ?? "Team";
+    return {
+      player_id: m.player_id as string,
+      name: `${m.name as string} (${teamName})`,
+      email: (team?.email as string | null) ?? null,
+    };
+  });
+  const manualPlayerOptionsFromPlayers = (eventPlayers ?? []).map((p: any) => ({
     player_id: p.id as string,
-    name: p.name as string,
+    name: p.type === "team" ? `${p.name as string} (Team)` : (p.name as string),
     email: (p.email as string | null) ?? null,
   }));
+  const manualPlayerOptions = [
+    ...manualPlayerOptionsFromMembers,
+    ...manualPlayerOptionsFromPlayers,
+  ].filter((option, index, arr) => {
+    return (
+      index ===
+      arr.findIndex(
+        (x) => x.player_id === option.player_id && x.name === option.name
+      )
+    );
+  });
 
   return (
     <div className="pt-6 pb-12">
