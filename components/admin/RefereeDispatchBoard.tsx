@@ -20,6 +20,7 @@ type MatchReferee = {
   user_id: string;
   role: string;
   wage: number;
+  assignment_status?: "assigned" | "completed";
 };
 
 type TeamRoster = {
@@ -285,8 +286,9 @@ export default function RefereeDispatchBoard({
         user_id: draft.userId,
         role: roleForJob(jobId),
         wage,
+        assignment_status: "assigned",
       })
-      .select("match_id, user_id, role, wage")
+      .select("match_id, user_id, role, wage, assignment_status")
       .single();
 
     setSavingByMatch((prev) => ({ ...prev, [matchId]: false }));
@@ -395,6 +397,9 @@ export default function RefereeDispatchBoard({
                               </p>
                               <p className="text-xs text-gray-600">
                                 {job.name} · NT$ {Number(assigned.wage).toLocaleString()}
+                              </p>
+                              <p className="text-[11px] text-gray-500">
+                                {assigned.assignment_status === "completed" ? "completed" : "assigned"}
                               </p>
                               <button
                                 type="button"

@@ -135,6 +135,7 @@ export interface MatchReferee {
   user_id: string;
   role: RefereeRole | string;
   wage: number;
+  assignment_status?: "assigned" | "completed";
   created_at?: string;
   updated_at?: string;
 }

@@ -18,14 +18,55 @@ interface MatchRow {
   player2: { id: string; name: string } | null;
 }
 
+interface PlayerStatDef {
+  stat_name: string;
+  stat_label: string;
+  stat_type: "number" | "text" | "boolean";
+  default_value?: string | null;
+}
+
+interface ExistingPlayerStat {
+  match_id: string;
+  player_id: string;
+  stat_name: string;
+  stat_value: string | null;
+}
+
 export default function RefereePortalClient({
   token,
   matches,
+  playerStatDefinitions,
+  existingPlayerStats,
 }: {
   token: string;
   matches: MatchRow[];
+  playerStatDefinitions: PlayerStatDef[];
+  existingPlayerStats: ExistingPlayerStat[];
 }) {
   const [savingId, setSavingId] = useState<string>("");
+  const [playerStatsByMatch, setPlayerStatsByMatch] = useState<
+    Record<string, Record<string, Record<string, string>>>
+  >(
+    (() => {
+      const initial: Record<string, Record<string, Record<string, string>>> = {};
+      for (const match of matches) {
+        initial[match.id] = {};
+        const players = [match.player1, match.player2].filter(Boolean) as Array<{ id: string; name: string }>;
+        for (const player of players) {
+          initial[match.id][player.id] = {};
+          for (const def of playerStatDefinitions) {
+            initial[match.id][player.id][def.stat_name] = def.default_value ?? "";
+          }
+        }
+      }
+      for (const row of existingPlayerStats) {
+        if (!initial[row.match_id]) continue;
+        if (!initial[row.match_id][row.player_id]) continue;
+        initial[row.match_id][row.player_id][row.stat_name] = row.stat_value ?? "";
+      }
+      return initial;
+    })()
+  );
   const [formByMatch, setFormByMatch] = useState<Record<string, { score1: string; score2: string; winner_id: string; status: string }>>(
     Object.fromEntries(
       matches.map((m) => [
@@ -53,11 +94,40 @@ export default function RefereePortalClient({
     }));
   };
 
+  const setPlayerStatField = (
+    matchId: string,
+    playerId: string,
+    statName: string,
+    value: string
+  ) => {
+    setPlayerStatsByMatch((prev) => ({
+      ...prev,
+      [matchId]: {
+        ...(prev[matchId] ?? {}),
+        [playerId]: {
+          ...(prev[matchId]?.[playerId] ?? {}),
+          [statName]: value,
+        },
+      },
+    }));
+  };
+
   const saveMatch = async (matchId: string) => {
     const form = formByMatch[matchId];
     if (!form) return;
+    const playerStats = Object.entries(playerStatsByMatch[matchId] ?? {}).flatMap(
+      ([playerId, stats]) =>
+        Object.entries(stats).map(([statName, statValue]) => ({
+          player_id: playerId,
+          stat_name: statName,
+          stat_value: statValue,
+        }))
+    );
     setSavingId(matchId);
-    const result = await updateRefereeMatchResult(token, matchId, form);
+    const result = await updateRefereeMatchResult(token, matchId, {
+      ...form,
+      playerStats,
+    });
     setSavingId("");
     if (!result.ok) {
       toast.error(result.error);
@@ -124,6 +194,56 @@ export default function RefereePortalClient({
                 <option value="delayed">delayed</option>
               </select>
             </div>
+
+            {playerStatDefinitions.length > 0 && (
+              <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="mb-2 text-sm font-semibold text-gray-800">Player-level stats</p>
+                <div className="space-y-3">
+                  {[match.player1, match.player2].filter(Boolean).map((player) => (
+                    <div key={player!.id} className="rounded-lg border border-gray-200 bg-white p-3">
+                      <p className="mb-2 text-sm font-medium text-gray-800">{player!.name}</p>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+                        {playerStatDefinitions.map((def) => {
+                          const value =
+                            playerStatsByMatch[match.id]?.[player!.id]?.[def.stat_name] ?? "";
+                          if (def.stat_type === "boolean") {
+                            return (
+                              <label key={`${player!.id}-${def.stat_name}`} className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={value === "true"}
+                                  onChange={(e) =>
+                                    setPlayerStatField(
+                                      match.id,
+                                      player!.id,
+                                      def.stat_name,
+                                      e.target.checked ? "true" : "false"
+                                    )
+                                  }
+                                />
+                                <span>{def.stat_label}</span>
+                              </label>
+                            );
+                          }
+                          return (
+                            <input
+                              key={`${player!.id}-${def.stat_name}`}
+                              type={def.stat_type === "number" ? "number" : "text"}
+                              value={value}
+                              onChange={(e) =>
+                                setPlayerStatField(match.id, player!.id, def.stat_name, e.target.value)
+                              }
+                              placeholder={def.stat_label}
+                              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mt-3 flex justify-end">
               <button

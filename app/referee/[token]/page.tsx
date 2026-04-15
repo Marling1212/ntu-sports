@@ -50,6 +50,20 @@ export default async function RefereePortalPage({
 
   if (!event) notFound();
 
+  const matchIds = matches.map((m: any) => m.id).filter(Boolean);
+  const [statDefsResult, existingStatsResult] = await Promise.all([
+    supabase
+      .from("sport_stat_definitions")
+      .select("stat_name, stat_label, stat_type, default_value, stat_level, display_order")
+      .eq("sport", event.sport ?? "")
+      .or("stat_level.eq.player,stat_name.like.player\\_%")
+      .order("display_order", { ascending: true }),
+    supabase
+      .from("match_player_stats")
+      .select("match_id, player_id, stat_name, stat_value")
+      .in("match_id", matchIds.length ? matchIds : ["00000000-0000-0000-0000-000000000000"]),
+  ]);
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -59,7 +73,12 @@ export default async function RefereePortalPage({
         </p>
       </div>
 
-      <RefereePortalClient token={token} matches={matches as any[]} />
+      <RefereePortalClient
+        token={token}
+        matches={matches as any[]}
+        playerStatDefinitions={(statDefsResult.data ?? []) as any[]}
+        existingPlayerStats={(existingStatsResult.data ?? []) as any[]}
+      />
 
       <p className="mt-8 text-center text-xs text-gray-400">
         <Link href="/" className="hover:text-gray-600">

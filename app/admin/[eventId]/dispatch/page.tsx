@@ -84,7 +84,7 @@ export default async function DispatchPage({
   const matchIds = matches.map((match) => match.id);
   const { data: assignmentsRaw } = await supabase
     .from("match_referees")
-    .select("match_id, user_id, role, wage")
+    .select("match_id, user_id, role, wage, assignment_status")
     .in("match_id", matchIds.length ? matchIds : ["00000000-0000-0000-0000-000000000000"]);
   const teamIds = Array.from(
     new Set(
