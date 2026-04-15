@@ -22,14 +22,22 @@ interface CandidateIdentity {
   teams: string[];
 }
 
+interface ManualPlayerOption {
+  player_id: string;
+  name: string;
+  email: string | null;
+}
+
 export default function RefereeOnboardingWizard({
   eventId,
   initialReferees,
   candidateIdentities,
+  manualPlayerOptions,
 }: {
   eventId: string;
   initialReferees: RefereeRow[];
   candidateIdentities: CandidateIdentity[];
+  manualPlayerOptions: ManualPlayerOption[];
 }) {
   const supabase = createClient();
   const [rows, setRows] = useState<RefereeRow[]>(initialReferees);
@@ -38,9 +46,18 @@ export default function RefereeOnboardingWizard({
   const [note, setNote] = useState("");
   const [matches, setMatches] = useState<CandidateIdentity[]>([]);
   const [decision, setDecision] = useState<string>("");
+  const [manualPlayerId, setManualPlayerId] = useState("");
+  const [manualPlayerQuery, setManualPlayerQuery] = useState("");
   const [saving, setSaving] = useState(false);
 
   const existingUserIds = useMemo(() => new Set(rows.map((r) => r.user_id)), [rows]);
+  const filteredManualPlayers = useMemo(() => {
+    const q = manualPlayerQuery.trim().toLowerCase();
+    if (!q) return manualPlayerOptions.slice(0, 40);
+    return manualPlayerOptions
+      .filter((p) => `${p.name} ${p.email || ""}`.toLowerCase().includes(q))
+      .slice(0, 40);
+  }, [manualPlayerOptions, manualPlayerQuery]);
 
   const runCheck = () => {
     const q = name.trim().toLowerCase();
@@ -99,7 +116,12 @@ export default function RefereeOnboardingWizard({
     const response = await fetch(`/api/admin/events/${eventId}/referees/external`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, note }),
+      body: JSON.stringify({
+        name,
+        email,
+        note,
+        linkedPlayerId: manualPlayerId || null,
+      }),
     });
     const payload = await response.json();
     setSaving(false);
@@ -112,6 +134,8 @@ export default function RefereeOnboardingWizard({
     setNote("");
     setMatches([]);
     setDecision("");
+    setManualPlayerId("");
+    setManualPlayerQuery("");
     toast.success("Created new referee identity.");
   };
 
@@ -209,9 +233,31 @@ export default function RefereeOnboardingWizard({
         )}
 
         {matches.length === 0 && decision === "new" && (
-          <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-            No matching player found. Completing onboarding will create a new person in the referee directory.
-          </p>
+          <div className="mt-3 space-y-3 rounded-lg bg-emerald-50 px-3 py-3">
+            <p className="text-sm text-emerald-800">
+              No matching player found automatically. You can still pick a player manually before creating this referee.
+            </p>
+            <input
+              type="text"
+              value={manualPlayerQuery}
+              onChange={(e) => setManualPlayerQuery(e.target.value)}
+              placeholder="Search players manually..."
+              className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+            />
+            <select
+              value={manualPlayerId}
+              onChange={(e) => setManualPlayerId(e.target.value)}
+              className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+            >
+              <option value="">No linked player (external only)</option>
+              {filteredManualPlayers.map((p) => (
+                <option key={p.player_id} value={p.player_id}>
+                  {p.name}
+                  {p.email ? ` · ${p.email}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
       </section>
 

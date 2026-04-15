@@ -11,7 +11,7 @@ export default async function AdminRefereesPage({
   const supabase = await createClient();
   const { eventId } = await params;
 
-  const [{ data: event }, { data: refsRaw }, { data: rosterRaw }] = await Promise.all([
+  const [{ data: event }, { data: refsRaw }, { data: rosterRaw }, { data: playersRaw }] = await Promise.all([
     supabase.from("events").select("id, name").eq("id", eventId).single(),
     supabase
       .from("event_referees")
@@ -27,6 +27,7 @@ export default async function AdminRefereesPage({
           "00000000-0000-0000-0000-000000000000",
         ]
       ),
+    supabase.from("players").select("id, name, email").eq("event_id", eventId).order("name", { ascending: true }),
   ]);
 
   const grouped = new Map<
@@ -100,6 +101,11 @@ export default async function AdminRefereesPage({
     }
   }
   const candidateIdentities = Array.from(grouped.values());
+  const manualPlayerOptions = (playersRaw ?? []).map((p) => ({
+    player_id: p.id as string,
+    name: p.name as string,
+    email: (p.email as string | null) ?? null,
+  }));
 
   return (
     <div className="pt-6 pb-12">
@@ -123,6 +129,7 @@ export default async function AdminRefereesPage({
           eventId={eventId}
           initialReferees={(refsRaw ?? []) as any[]}
           candidateIdentities={candidateIdentities}
+          manualPlayerOptions={manualPlayerOptions}
         />
       </div>
     </div>

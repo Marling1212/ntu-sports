@@ -26,7 +26,7 @@ export async function POST(
     .maybeSingle();
   if (!organizer) return json(403, { ok: false, message: "Forbidden" });
 
-  let body: { name?: string; email?: string; note?: string } = {};
+  let body: { name?: string; email?: string; note?: string; linkedPlayerId?: string } = {};
   try {
     body = await req.json();
   } catch {
@@ -60,6 +60,7 @@ export async function POST(
       user_id: created.user.id,
       display_name: name,
       email,
+      linked_player_id: body.linkedPlayerId?.trim() || null,
       note: body.note?.trim() || null,
     })
     .select("id, event_id, user_id, display_name, email, linked_player_id, note")
