@@ -66,7 +66,7 @@ export default async function DispatchPage({
       .order("start_time", { ascending: true }),
     supabase
       .from("event_referee_jobs")
-      .select("id, event_id, name, display_order, is_active")
+      .select("id, event_id, name, display_order, default_wage, is_active")
       .eq("event_id", eventId)
       .eq("is_active", true)
       .order("display_order", { ascending: true })

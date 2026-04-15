@@ -45,6 +45,7 @@ type RefereeJob = {
   id: string;
   name: string;
   display_order: number;
+  default_wage?: number;
 };
 
 interface RefereeDispatchBoardProps {
@@ -407,7 +408,15 @@ export default function RefereeDispatchBoard({
                             <div className="space-y-2">
                               <select
                                 value={slotDraft.userId}
-                                onChange={(e) => setDraft(match.id, job.id, { userId: e.target.value })}
+                                onChange={(e) =>
+                                  setDraft(match.id, job.id, {
+                                    userId: e.target.value,
+                                    wage:
+                                      (draft[job.id]?.wage ?? "").trim() !== ""
+                                        ? draft[job.id]?.wage
+                                        : String(Number(job.default_wage ?? 0)),
+                                  })
+                                }
                                 className="w-56 rounded-lg border border-gray-300 px-2 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
                               >
                                 <option value="">Select ref...</option>
@@ -430,7 +439,7 @@ export default function RefereeDispatchBoard({
                                 <input
                                   type="number"
                                   min={0}
-                                  value={slotDraft.wage}
+                                  value={slotDraft.wage === "" ? String(Number(job.default_wage ?? 0)) : slotDraft.wage}
                                   onChange={(e) => setDraft(match.id, job.id, { wage: e.target.value })}
                                   placeholder="Wage"
                                   className="w-24 rounded-lg border border-gray-300 px-2 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"

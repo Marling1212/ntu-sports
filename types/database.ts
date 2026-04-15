@@ -176,6 +176,7 @@ export interface EventRefereeJob {
   event_id: string;
   name: string;
   display_order: number;
+  default_wage?: number;
   is_active?: boolean;
   created_at?: string;
 }
