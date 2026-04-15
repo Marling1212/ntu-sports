@@ -79,6 +79,10 @@ export default function RefereeOnboardingWizard({
     () => filteredManualPlayers.find((p) => p.option_id === manualOptionId) || null,
     [filteredManualPlayers, manualOptionId]
   );
+  const hasManualSelection = !!selectedManualOption;
+  const canSubmit =
+    !saving &&
+    (decision === "new" || !!decision || matches.length === 0 || hasManualSelection);
 
   const runCheck = () => {
     const q = name.trim().toLowerCase();
@@ -211,7 +215,7 @@ export default function RefereeOnboardingWizard({
           <button
             type="button"
             onClick={completeOnboarding}
-            disabled={saving || (!decision && matches.length > 0)}
+            disabled={!canSubmit}
             className="rounded-lg bg-ntu-green px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
             {saving ? "Saving..." : "Complete Onboarding"}
