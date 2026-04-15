@@ -15,14 +15,14 @@ export default async function RefereeSchedulingPage({
     .eq("event_id", eventId);
   const matchIds = (eventMatchIds ?? []).map((m) => m.id);
 
-  const [{ data: event }, { data: availabilityRaw }, { data: assignmentsRaw }, { data: organizersRaw }] =
+  const [{ data: event }, { data: availabilityRaw }, { data: assignmentsRaw }, { data: organizersRaw }, { data: slotTemplatesRaw }] =
     await Promise.all([
       supabase.from("events").select("id, name").eq("id", eventId).single(),
       supabase
-        .from("referee_availability")
-        .select("user_id, slot_start, slot_end")
+        .from("referee_availability_templates")
+        .select("id, user_id, slot_template_id")
         .eq("event_id", eventId)
-        .order("slot_start", { ascending: true }),
+        .order("created_at", { ascending: true }),
       supabase
         .from("match_referees")
         .select("user_id")
@@ -31,6 +31,12 @@ export default async function RefereeSchedulingPage({
           matchIds.length ? matchIds : ["00000000-0000-0000-0000-000000000000"]
         ),
       supabase.from("organizers").select("user_id").eq("event_id", eventId),
+      supabase
+        .from("event_slot_templates")
+        .select("id, day_of_week, start_time, end_time, code")
+        .eq("event_id", eventId)
+        .order("day_of_week", { ascending: true })
+        .order("start_time", { ascending: true }),
     ]);
   const { data: eventRefsRaw } = await supabase
     .from("event_referees")
@@ -81,6 +87,7 @@ export default async function RefereeSchedulingPage({
         <RefereeSchedulingManager
           eventId={eventId}
           initialAvailability={availabilityRaw ?? []}
+          slotTemplates={slotTemplatesRaw ?? []}
           candidateUserIds={candidateUserIds}
           userLabelMap={userLabelMap}
         />

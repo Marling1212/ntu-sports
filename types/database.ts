@@ -163,6 +163,14 @@ export interface EventReferee {
   created_at?: string;
 }
 
+export interface RefereeAvailabilityTemplate {
+  id: string;
+  event_id: string;
+  user_id: string;
+  slot_template_id: string;
+  created_at?: string;
+}
+
 export interface Announcement {
   id: string;
   event_id: string;
