@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import RefereeOnboardingWizard from "@/components/admin/RefereeOnboardingWizard";
 import RefereeSchedulingManager from "@/components/admin/RefereeSchedulingManager";
+import RefereeJobManager from "@/components/admin/RefereeJobManager";
 import RefereeDispatchBoard from "@/components/admin/RefereeDispatchBoard";
 
 export default async function DispatchPage({
@@ -27,6 +28,7 @@ export default async function DispatchPage({
     { data: matchesRaw },
     { data: availabilityRaw },
     { data: slotTemplatesRaw },
+    { data: refereeJobsRaw },
   ] = await Promise.all([
     supabase.from("events").select("id, name").eq("id", eventId).single(),
     supabase
@@ -62,6 +64,13 @@ export default async function DispatchPage({
       .eq("event_id", eventId)
       .order("day_of_week", { ascending: true })
       .order("start_time", { ascending: true }),
+    supabase
+      .from("event_referee_jobs")
+      .select("id, event_id, name, display_order, is_active")
+      .eq("event_id", eventId)
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .order("created_at", { ascending: true }),
   ]);
 
   const matches = (matchesRaw ?? []).map((match) => ({
@@ -238,8 +247,12 @@ export default async function DispatchPage({
               2. Ref Availability
             </a>
             <span className="text-gray-400">→</span>
+            <a href="#ref-jobs" className="rounded-full border border-ntu-green px-3 py-1 text-ntu-green hover:bg-ntu-green hover:text-white">
+              3. Job Setup
+            </a>
+            <span className="text-gray-400">→</span>
             <a href="#ref-dispatch" className="rounded-full border border-ntu-green px-3 py-1 text-ntu-green hover:bg-ntu-green hover:text-white">
-              3. Dispatch
+              4. Dispatch
             </a>
           </div>
         </div>
@@ -265,6 +278,13 @@ export default async function DispatchPage({
             />
           </section>
 
+          <section id="ref-jobs" className="scroll-mt-24">
+            <RefereeJobManager
+              eventId={eventId}
+              initialJobs={(refereeJobsRaw ?? []) as any[]}
+            />
+          </section>
+
           <section id="ref-dispatch" className="scroll-mt-24">
             <RefereeDispatchBoard
               eventId={eventId}
@@ -273,6 +293,7 @@ export default async function DispatchPage({
               teamRosters={teamRosters}
               availabilityTemplates={availabilityRaw ?? []}
               slotTemplates={slotTemplatesRaw ?? []}
+              refereeJobs={(refereeJobsRaw ?? []) as any[]}
               candidateUserIds={candidateUserIds}
               teamLabelMap={teamLabelMap}
               userLabelMap={userLabelMap}

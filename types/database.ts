@@ -171,6 +171,15 @@ export interface RefereeAvailabilityTemplate {
   created_at?: string;
 }
 
+export interface EventRefereeJob {
+  id: string;
+  event_id: string;
+  name: string;
+  display_order: number;
+  is_active?: boolean;
+  created_at?: string;
+}
+
 export interface Announcement {
   id: string;
   event_id: string;

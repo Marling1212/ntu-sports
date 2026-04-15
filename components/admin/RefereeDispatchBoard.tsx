@@ -41,6 +41,12 @@ type SlotTemplate = {
   code?: string | null;
 };
 
+type RefereeJob = {
+  id: string;
+  name: string;
+  display_order: number;
+};
+
 interface RefereeDispatchBoardProps {
   eventId: string;
   matches: DispatchMatch[];
@@ -48,19 +54,13 @@ interface RefereeDispatchBoardProps {
   teamRosters: TeamRoster[];
   availabilityTemplates: RefereeAvailabilityTemplate[];
   slotTemplates: SlotTemplate[];
+  refereeJobs: RefereeJob[];
   candidateUserIds: string[];
   teamLabelMap: Record<string, string>;
   userLabelMap: Record<string, string>;
 }
 
 const WEEKDAY_CH = ["日", "一", "二", "三", "四", "五", "六"];
-const SLOT_ROLE_COLUMNS = [
-  { key: "main1", role: "Main", label: "主裁判 1" },
-  { key: "main2", role: "Main", label: "主裁判 2" },
-  { key: "side1", role: "Side", label: "邊裁判 1" },
-  { key: "side2", role: "Side", label: "邊裁判 2" },
-] as const;
-type SlotKey = (typeof SLOT_ROLE_COLUMNS)[number]["key"];
 type CandidateStateReason =
   | "bias"
   | "playing"
@@ -78,16 +78,23 @@ export default function RefereeDispatchBoard({
   teamRosters,
   availabilityTemplates,
   slotTemplates,
+  refereeJobs,
   candidateUserIds,
   teamLabelMap,
   userLabelMap,
 }: RefereeDispatchBoardProps) {
   const supabase = createClient();
   const [assignments, setAssignments] = useState<MatchReferee[]>(initialAssignments);
-  const [drafts, setDrafts] = useState<
-    Record<string, Record<SlotKey, { userId: string; wage: string }>>
-  >({});
+  const [drafts, setDrafts] = useState<Record<string, Record<string, { userId: string; wage: string }>>>({});
   const [savingByMatch, setSavingByMatch] = useState<Record<string, boolean>>({});
+
+  const sortedJobs = useMemo(
+    () =>
+      [...refereeJobs].sort(
+        (a, b) => a.display_order - b.display_order || a.name.localeCompare(b.name)
+      ),
+    [refereeJobs]
+  );
 
   const userTeamMap = useMemo(() => {
     const map = new Map<string, Set<string>>();
@@ -176,6 +183,9 @@ export default function RefereeDispatchBoard({
     return "Available";
   };
 
+  const roleForJob = (jobId: string) => `job:${jobId}`;
+  const jobIdFromRole = (role: string) => (role.startsWith("job:") ? role.slice(4) : null);
+
   const getCandidateState = (match: DispatchMatch, userId: string): CandidateState => {
     const teamsInMatch = new Set([match.player1_id, match.player2_id].filter(Boolean) as string[]);
     const userTeams = userTeamMap.get(userId) ?? new Set<string>();
@@ -244,29 +254,24 @@ export default function RefereeDispatchBoard({
 
   const setDraft = (
     matchId: string,
-    slotKey: SlotKey,
+    jobId: string,
     next: Partial<{ userId: string; wage: string }>
   ) => {
     setDrafts((prev) => ({
       ...prev,
       [matchId]: {
-        ...(prev[matchId] ?? {
-          main1: { userId: "", wage: "" },
-          main2: { userId: "", wage: "" },
-          side1: { userId: "", wage: "" },
-          side2: { userId: "", wage: "" },
-        }),
-        [slotKey]: {
-          userId: prev[matchId]?.[slotKey]?.userId ?? "",
-          wage: prev[matchId]?.[slotKey]?.wage ?? "",
+        ...(prev[matchId] ?? {}),
+        [jobId]: {
+          userId: prev[matchId]?.[jobId]?.userId ?? "",
+          wage: prev[matchId]?.[jobId]?.wage ?? "",
           ...next,
         },
       },
     }));
   };
 
-  const addAssignment = async (matchId: string, slotKey: SlotKey, role: string) => {
-    const draft = drafts[matchId]?.[slotKey];
+  const addAssignment = async (matchId: string, jobId: string) => {
+    const draft = drafts[matchId]?.[jobId];
     if (!draft?.userId) return toast.error("Select a referee first.");
     const wage = Number(draft.wage);
     if (!Number.isFinite(wage) || wage < 0) return toast.error("Enter a valid wage.");
@@ -277,7 +282,7 @@ export default function RefereeDispatchBoard({
       .insert({
         match_id: matchId,
         user_id: draft.userId,
-        role,
+        role: roleForJob(jobId),
         wage,
       })
       .select("match_id, user_id, role, wage")
@@ -291,7 +296,7 @@ export default function RefereeDispatchBoard({
     }
 
     setAssignments((prev) => [...prev, data]);
-    setDraft(matchId, slotKey, { userId: "", wage: "" });
+    setDraft(matchId, jobId, { userId: "", wage: "" });
     toast.success("Referee assigned.");
   };
 
@@ -327,12 +332,12 @@ export default function RefereeDispatchBoard({
         <div className="border-b border-gray-100 px-5 py-4">
           <h2 className="text-xl font-semibold text-ntu-green">Referee Dispatch</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Schedule-style dispatch table with slot-aware availability and conflict reasons.
+            Schedule-style dispatch table. Columns come from Job Setup and can be changed per event.
           </p>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1480px]">
+          <table className="w-full min-w-[980px]">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Date</th>
@@ -340,12 +345,12 @@ export default function RefereeDispatchBoard({
                 <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Field</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Team A</th>
                 <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Team B</th>
-                {SLOT_ROLE_COLUMNS.map((col) => (
+                {sortedJobs.map((job) => (
                   <th
-                    key={col.key}
+                    key={job.id}
                     className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
                   >
-                    {col.label}
+                    {job.name}
                   </th>
                 ))}
               </tr>
@@ -354,12 +359,7 @@ export default function RefereeDispatchBoard({
               {matches.map((match) => {
                 const rows = assignmentsByMatch.get(match.id) ?? [];
                 const options = getRefOptions(match);
-                const draft = drafts[match.id] ?? {
-                  main1: { userId: "", wage: "" },
-                  main2: { userId: "", wage: "" },
-                  side1: { userId: "", wage: "" },
-                  side2: { userId: "", wage: "" },
-                };
+                const draft = drafts[match.id] ?? {};
                 const saving = !!savingByMatch[match.id];
                 const home = match.player1_id ? teamLabelMap[match.player1_id] ?? match.player1_id : "TBD";
                 const away = match.player2_id ? teamLabelMap[match.player2_id] ?? match.player2_id : "TBD";
@@ -368,14 +368,12 @@ export default function RefereeDispatchBoard({
                   dt && !Number.isNaN(dt.getTime()) ? dt.toLocaleDateString("en-CA") : "Unscheduled";
                 const dayLabel = dt && !Number.isNaN(dt.getTime()) ? WEEKDAY_CH[dt.getDay()] : "-";
 
-                const mainRows = rows.filter((r) => r.role === "Main");
-                const sideRows = rows.filter((r) => r.role === "Side");
-                const getAssignedForSlot = (slotKey: SlotKey) => {
-                  if (slotKey === "main1") return mainRows[0] ?? null;
-                  if (slotKey === "main2") return mainRows[1] ?? null;
-                  if (slotKey === "side1") return sideRows[0] ?? null;
-                  return sideRows[1] ?? null;
-                };
+                const assignmentByJob = new Map<string, MatchReferee>();
+                for (const row of rows) {
+                  const jobId = jobIdFromRole(row.role);
+                  if (!jobId) continue;
+                  if (!assignmentByJob.has(jobId)) assignmentByJob.set(jobId, row);
+                }
 
                 return (
                   <tr key={match.id} className="border-t border-gray-100 align-top">
@@ -384,18 +382,18 @@ export default function RefereeDispatchBoard({
                     <td className="px-3 py-3 text-sm text-gray-700 whitespace-nowrap">{match.court || "-"}</td>
                     <td className="px-3 py-3 text-sm text-gray-800">{home}</td>
                     <td className="px-3 py-3 text-sm text-gray-800">{away}</td>
-                    {SLOT_ROLE_COLUMNS.map((col) => {
-                      const assigned = getAssignedForSlot(col.key);
-                      const slotDraft = draft[col.key];
+                    {sortedJobs.map((job) => {
+                      const assigned = assignmentByJob.get(job.id) ?? null;
+                      const slotDraft = draft[job.id] ?? { userId: "", wage: "" };
                       return (
-                        <td key={col.key} className="px-3 py-3">
+                        <td key={job.id} className="px-3 py-3">
                           {assigned ? (
                             <div className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 p-2">
                               <p className="text-sm font-medium text-gray-800">
                                 {userLabelMap[assigned.user_id] ?? assigned.user_id}
                               </p>
                               <p className="text-xs text-gray-600">
-                                {assigned.role} · NT$ {Number(assigned.wage).toLocaleString()}
+                                {job.name} · NT$ {Number(assigned.wage).toLocaleString()}
                               </p>
                               <button
                                 type="button"
@@ -409,13 +407,13 @@ export default function RefereeDispatchBoard({
                             <div className="space-y-2">
                               <select
                                 value={slotDraft.userId}
-                                onChange={(e) => setDraft(match.id, col.key, { userId: e.target.value })}
+                                onChange={(e) => setDraft(match.id, job.id, { userId: e.target.value })}
                                 className="w-56 rounded-lg border border-gray-300 px-2 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
                               >
                                 <option value="">Select ref...</option>
                                 {options.map((option) => (
                                   <option
-                                    key={`${col.key}-${option.userId}`}
+                                    key={`${job.id}-${option.userId}`}
                                     value={option.userId}
                                     disabled={option.disabled}
                                     style={{
@@ -433,13 +431,13 @@ export default function RefereeDispatchBoard({
                                   type="number"
                                   min={0}
                                   value={slotDraft.wage}
-                                  onChange={(e) => setDraft(match.id, col.key, { wage: e.target.value })}
+                                  onChange={(e) => setDraft(match.id, job.id, { wage: e.target.value })}
                                   placeholder="Wage"
                                   className="w-24 rounded-lg border border-gray-300 px-2 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
                                 />
                                 <button
                                   type="button"
-                                  onClick={() => addAssignment(match.id, col.key, col.role)}
+                                  onClick={() => addAssignment(match.id, job.id)}
                                   disabled={saving}
                                   className="rounded-lg bg-ntu-green px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
                                 >
@@ -456,6 +454,11 @@ export default function RefereeDispatchBoard({
               })}
             </tbody>
           </table>
+          {sortedJobs.length === 0 && (
+            <div className="px-5 py-4 text-sm text-gray-600">
+              No referee jobs configured yet. Create jobs in Job Setup first, then dispatch.
+            </div>
+          )}
         </div>
         <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-600">
           <span className="mr-4 inline-flex items-center gap-1">
