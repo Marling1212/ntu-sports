@@ -106,7 +106,8 @@ export default function RefereeOnboardingWizard({
   };
 
   const completeOnboarding = async () => {
-    if (!name.trim()) return toast.error("Name is required.");
+    const resolvedName = name.trim() || selectedManualOption?.member_name || selectedManualOption?.name || "";
+    if (!resolvedName) return toast.error("Name is required.");
     setSaving(true);
 
     if (decision && decision !== "new") {
@@ -142,8 +143,8 @@ export default function RefereeOnboardingWizard({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name,
-        email,
+        name: resolvedName,
+        email: email || selectedManualOption?.email || "",
         note,
         linkedPlayerId: selectedManualOption?.player_id || null,
       }),
