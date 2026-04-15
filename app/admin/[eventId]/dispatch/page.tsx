@@ -109,7 +109,7 @@ export default async function DispatchPage({
           </p>
           <div className="mt-3">
             <Link
-              href={`/admin/${eventId}/dispatch/referees`}
+              href={`/admin/${eventId}/referees`}
               className="mr-4 text-sm font-medium text-ntu-green hover:underline"
             >
               Manage Referees →

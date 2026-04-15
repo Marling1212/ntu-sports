@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import RefereeOnboardingWizard from "@/components/admin/RefereeOnboardingWizard";
 
 export default async function AdminRefereesPage({
@@ -32,13 +33,46 @@ export default async function AdminRefereesPage({
     string,
     { user_id: string; linked_player_id: string | null; name: string; email: string | null; teams: string[] }
   >();
+  const userIds = Array.from(new Set((rosterRaw ?? []).map((r: any) => r.user_id).filter(Boolean)));
+  const authNameByUserId = new Map<string, { name: string | null; email: string | null }>();
+  if (userIds.length > 0) {
+    try {
+      const service = createServiceClient();
+      const authRows = await Promise.allSettled(
+        userIds.slice(0, 300).map(async (userId) => {
+          const { data } = await service.auth.admin.getUserById(userId);
+          return {
+            userId,
+            name:
+              (data.user?.user_metadata?.name as string | undefined) ||
+              (data.user?.user_metadata?.full_name as string | undefined) ||
+              null,
+            email: data.user?.email ?? null,
+          };
+        })
+      );
+      for (const row of authRows) {
+        if (row.status === "fulfilled" && row.value.userId) {
+          authNameByUserId.set(row.value.userId, {
+            name: row.value.name,
+            email: row.value.email,
+          });
+        }
+      }
+    } catch {
+      // If service role isn't available, keep roster-only fallback.
+    }
+  }
+
   for (const row of rosterRaw ?? []) {
     const playerRow = Array.isArray(row.player) ? row.player[0] : row.player;
     const rawRow = row as Record<string, unknown>;
     const userId = row.user_id as string;
     const playerId = playerRow?.id as string;
     const teamName = playerRow?.name as string;
+    const authProfile = authNameByUserId.get(userId);
     const rosterName =
+      authProfile?.name ||
       (typeof rawRow.name === "string" && rawRow.name) ||
       (typeof rawRow.member_name === "string" && rawRow.member_name) ||
       (typeof rawRow.user_name === "string" && rawRow.user_name) ||
@@ -46,6 +80,7 @@ export default async function AdminRefereesPage({
       (typeof rawRow.student_id === "string" && rawRow.student_id) ||
       userId;
     const email =
+      authProfile?.email ||
       ((typeof rawRow.email === "string" && rawRow.email) as string | undefined) ||
       ((typeof rawRow.user_email === "string" && rawRow.user_email) as string | undefined) ||
       (playerRow?.email as string | null) ||
