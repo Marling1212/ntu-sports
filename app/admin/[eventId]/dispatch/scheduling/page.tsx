@@ -9,13 +9,8 @@ export default async function RefereeSchedulingPage({
 }) {
   const supabase = await createClient();
   const { eventId } = await params;
-  const { data: eventMatchIds } = await supabase
-    .from("matches")
-    .select("id")
-    .eq("event_id", eventId);
-  const matchIds = (eventMatchIds ?? []).map((m) => m.id);
 
-  const [{ data: event }, { data: availabilityRaw }, { data: assignmentsRaw }, { data: organizersRaw }, { data: slotTemplatesRaw }] =
+  const [{ data: event }, { data: availabilityRaw }, { data: slotTemplatesRaw }] =
     await Promise.all([
       supabase.from("events").select("id, name").eq("id", eventId).single(),
       supabase
@@ -23,14 +18,6 @@ export default async function RefereeSchedulingPage({
         .select("id, user_id, slot_template_id")
         .eq("event_id", eventId)
         .order("created_at", { ascending: true }),
-      supabase
-        .from("match_referees")
-        .select("user_id")
-        .in(
-          "match_id",
-          matchIds.length ? matchIds : ["00000000-0000-0000-0000-000000000000"]
-        ),
-      supabase.from("organizers").select("user_id").eq("event_id", eventId),
       supabase
         .from("event_slot_templates")
         .select("id, day_of_week, start_time, end_time, code")
@@ -43,14 +30,8 @@ export default async function RefereeSchedulingPage({
     .select("user_id, display_name, email")
     .eq("event_id", eventId);
 
-  const candidateUserIds = Array.from(
-    new Set([
-      ...(availabilityRaw ?? []).map((r) => r.user_id),
-      ...(assignmentsRaw ?? []).map((r) => r.user_id),
-      ...(eventRefsRaw ?? []).map((r) => r.user_id),
-      ...(organizersRaw ?? []).map((r) => r.user_id),
-    ])
-  );
+  // Scheduling should mirror "Manage Referees" exactly.
+  const candidateUserIds = Array.from(new Set((eventRefsRaw ?? []).map((r) => r.user_id)));
 
   const userLabelMap: Record<string, string> = {};
   for (const row of eventRefsRaw ?? []) {
