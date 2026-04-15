@@ -45,7 +45,7 @@ export default async function DispatchPage({
       .order("name", { ascending: true }),
     supabase
       .from("matches")
-      .select("id, round, match_number, scheduled_time, player1_id, player2_id")
+      .select("id, round, match_number, court, scheduled_time, player1_id, player2_id")
       .eq("event_id", eventId)
       .neq("status", "bye")
       .order("scheduled_time", { ascending: true, nullsFirst: false })
@@ -66,6 +66,7 @@ export default async function DispatchPage({
 
   const matches = (matchesRaw ?? []).map((match) => ({
     ...match,
+    court: match.court ?? null,
     player1_id: match.player1_id ?? null,
     player2_id: match.player2_id ?? null,
     scheduled_time: match.scheduled_time ?? null,
@@ -270,6 +271,8 @@ export default async function DispatchPage({
               matches={matches}
               initialAssignments={assignments}
               teamRosters={teamRosters}
+              availabilityTemplates={availabilityRaw ?? []}
+              slotTemplates={slotTemplatesRaw ?? []}
               candidateUserIds={candidateUserIds}
               teamLabelMap={teamLabelMap}
               userLabelMap={userLabelMap}
