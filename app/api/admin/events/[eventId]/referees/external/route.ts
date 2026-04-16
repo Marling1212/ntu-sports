@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
 
 function json(status: number, body: unknown) {
   return NextResponse.json(body, { status });
@@ -38,26 +37,14 @@ export async function POST(
   if (!name) {
     return json(400, { ok: false, message: "Name is required." });
   }
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "ref";
-  const email = providedEmail || `${slug}.${Date.now()}@ref.local`;
+  const email = providedEmail || null;
+  const externalRefUserId = crypto.randomUUID();
 
-  const service = createServiceClient();
-  const tempPassword = `Ref!${Math.random().toString(36).slice(2)}A1`;
-  const { data: created, error: createErr } = await service.auth.admin.createUser({
-    email,
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { name },
-  });
-  if (createErr || !created.user) {
-    return json(400, { ok: false, message: createErr?.message || "Failed to create user." });
-  }
-
-  const { data: refRow, error: refErr } = await service
+  const { data: refRow, error: refErr } = await supabase
     .from("event_referees")
     .insert({
       event_id: eventId,
-      user_id: created.user.id,
+      user_id: externalRefUserId,
       display_name: name,
       email,
       linked_player_id: body.linkedPlayerId?.trim() || null,
