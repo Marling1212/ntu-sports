@@ -69,6 +69,8 @@ export default function RefereeOnboardingWizard({
   const [manualTeamId, setManualTeamId] = useState("");
   const [manualOptionId, setManualOptionId] = useState("");
   const [manualPlayerQuery, setManualPlayerQuery] = useState("");
+  const [editingEmailById, setEditingEmailById] = useState<Record<string, string>>({});
+  const [savingEmailId, setSavingEmailId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const existingUserIds = useMemo(() => new Set(rows.map((r) => r.user_id)), [rows]);
@@ -199,6 +201,21 @@ export default function RefereeOnboardingWizard({
     if (error) return toast.error(error.message);
     setRows((prev) => prev.filter((r) => r.id !== id));
     toast.success("Referee removed.");
+  };
+
+  const saveRefereeEmail = async (row: RefereeRow) => {
+    const nextEmail = (editingEmailById[row.id] ?? row.email ?? "").trim();
+    setSavingEmailId(row.id);
+    const { data, error } = await supabase
+      .from("event_referees")
+      .update({ email: nextEmail || null })
+      .eq("id", row.id)
+      .select("id, event_id, user_id, display_name, email, linked_player_id, note")
+      .single();
+    setSavingEmailId("");
+    if (error || !data) return toast.error(error?.message || "Failed to update referee email.");
+    setRows((prev) => prev.map((r) => (r.id === row.id ? data : r)));
+    toast.success("Referee email updated.");
   };
 
   const copyRefereePortalLink = async (userId: string) => {
@@ -392,7 +409,30 @@ export default function RefereeOnboardingWizard({
                     <td className="px-3 py-2 font-medium text-gray-800">
                       {row.display_name || `User ${row.user_id.slice(0, 8)}`}
                     </td>
-                    <td className="px-3 py-2 text-gray-700">{row.email || "-"}</td>
+                    <td className="px-3 py-2 text-gray-700">
+                      <div className="flex items-center justify-end gap-2 md:justify-start">
+                        <input
+                          type="email"
+                          value={editingEmailById[row.id] ?? row.email ?? ""}
+                          onChange={(e) =>
+                            setEditingEmailById((prev) => ({
+                              ...prev,
+                              [row.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Add email"
+                          className="w-52 rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveRefereeEmail(row)}
+                          disabled={savingEmailId === row.id}
+                          className="text-xs font-semibold text-ntu-green hover:underline disabled:opacity-60"
+                        >
+                          {savingEmailId === row.id ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-3 py-2 text-gray-700">
                       {row.linked_player_id ? `Linked (${row.linked_player_id.slice(0, 8)})` : "External / None"}
                     </td>
