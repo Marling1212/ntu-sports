@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import RefereePortalClient from "./RefereePortalClient";
 import { verifyRefereeAccessToken } from "@/lib/utils/refereeAccessToken";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export default async function RefereePortalPage({
   params,
@@ -19,6 +20,9 @@ export default async function RefereePortalPage({
   } catch {
     notFound();
   }
+
+  const locale = await getLocale();
+  const t = getT(locale);
 
   const [{ data: event }, { data: assignedMatches }] = await Promise.all([
     supabase
@@ -52,9 +56,7 @@ export default async function RefereePortalPage({
 
   const matchIds = matches.map((m: any) => m.id).filter(Boolean);
   const teamIds = Array.from(
-    new Set(
-      matches.flatMap((m: any) => [m?.player1?.id, m?.player2?.id]).filter(Boolean)
-    )
+    new Set(matches.flatMap((m: any) => [m?.player1?.id, m?.player2?.id]).filter(Boolean))
   );
   const [statDefsResult, existingStatsResult] = await Promise.all([
     supabase
@@ -80,13 +82,15 @@ export default async function RefereePortalPage({
     teamMembersByTeam[row.player_id].push(row);
   }
 
+  const portalSubtitle = event.sport
+    ? t("referee.portalSubtitleWithSport", { eventName: event.name ?? "", sport: event.sport })
+    : t("referee.portalSubtitleNoSport", { eventName: event.name ?? "" });
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h1 className="text-2xl font-bold text-ntu-green">Referee Match Portal</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          {event.name} {event.sport ? `· ${event.sport}` : ""} — update scores and result status for your assigned matches.
-        </p>
+        <h1 className="text-2xl font-bold text-ntu-green">{t("referee.portalTitle")}</h1>
+        <p className="mt-1 text-sm text-gray-600">{portalSubtitle}</p>
       </div>
 
       <RefereePortalClient
@@ -101,7 +105,7 @@ export default async function RefereePortalPage({
 
       <p className="mt-8 text-center text-xs text-gray-400">
         <Link href="/" className="hover:text-gray-600">
-          返回首頁
+          {t("referee.backHome")}
         </Link>
       </p>
     </div>

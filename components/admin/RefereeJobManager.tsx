@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
+import { useI18n } from "@/lib/i18n/context";
 
 interface RefereeJob {
   id: string;
@@ -19,6 +20,7 @@ interface RefereeJobManagerProps {
 }
 
 export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobManagerProps) {
+  const { t } = useI18n();
   const supabase = createClient();
   const [jobs, setJobs] = useState<RefereeJob[]>(initialJobs);
   const [newName, setNewName] = useState("");
@@ -35,9 +37,9 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
 
   const addJob = async () => {
     const name = newName.trim();
-    if (!name) return toast.error("Job name is required.");
+    if (!name) return toast.error(t("referee.jobs.toastNameRequired"));
     const wage = Number(newWage);
-    if (!Number.isFinite(wage) || wage < 0) return toast.error("Default salary must be 0 or higher.");
+    if (!Number.isFinite(wage) || wage < 0) return toast.error(t("referee.jobs.toastSalaryInvalid"));
 
     setSaving(true);
     const nextOrder = (orderedJobs[orderedJobs.length - 1]?.display_order ?? -1) + 1;
@@ -54,14 +56,14 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
     setSaving(false);
 
     if (error || !data) {
-      toast.error(error?.message || "Failed to add referee job.");
+      toast.error(error?.message || t("referee.jobs.toastAddFail"));
       return;
     }
 
     setJobs((prev) => [...prev, data]);
     setNewName("");
     setNewWage("0");
-    toast.success("Referee job added.");
+    toast.success(t("referee.jobs.toastAddOk"));
   };
 
   const startEdit = (job: RefereeJob) => {
@@ -72,9 +74,9 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
 
   const saveEdit = async (jobId: string) => {
     const name = editingName.trim();
-    if (!name) return toast.error("Job name is required.");
+    if (!name) return toast.error(t("referee.jobs.toastNameRequired"));
     const wage = Number(editingWage);
-    if (!Number.isFinite(wage) || wage < 0) return toast.error("Default salary must be 0 or higher.");
+    if (!Number.isFinite(wage) || wage < 0) return toast.error(t("referee.jobs.toastSalaryInvalid"));
 
     setSaving(true);
     const { data, error } = await supabase
@@ -87,7 +89,7 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
     setSaving(false);
 
     if (error || !data) {
-      toast.error(error?.message || "Failed to update referee job.");
+      toast.error(error?.message || t("referee.jobs.toastUpdateFail"));
       return;
     }
 
@@ -95,7 +97,7 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
     setEditingId(null);
     setEditingName("");
     setEditingWage("0");
-    toast.success("Referee job updated.");
+    toast.success(t("referee.jobs.toastUpdateOk"));
   };
 
   const removeJob = async (job: RefereeJob) => {
@@ -108,28 +110,26 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
     setSaving(false);
 
     if (error) {
-      toast.error(error.message || "Failed to remove referee job.");
+      toast.error(error.message || t("referee.jobs.toastRemoveFail"));
       return;
     }
 
     setJobs((prev) => prev.filter((j) => j.id !== job.id));
-    toast.success("Referee job removed.");
+    toast.success(t("referee.jobs.toastRemoveOk"));
   };
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <Toaster position="top-right" />
-      <h2 className="text-xl font-semibold text-ntu-green">Referee Job Setup</h2>
-      <p className="mt-1 text-sm text-gray-600">
-        Define the referee positions and default salary for this event. Dispatch columns are generated from this list.
-      </p>
+      <h2 className="text-xl font-semibold text-ntu-green">{t("referee.jobs.title")}</h2>
+      <p className="mt-1 text-sm text-gray-600">{t("referee.jobs.intro")}</p>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <input
           type="text"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          placeholder="Add job (e.g., 主裁判, 邊裁判, Scorekeeper)"
+          placeholder={t("referee.jobs.placeholderJobName")}
           className="min-w-[280px] flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
         />
         <input
@@ -138,7 +138,7 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
           step="1"
           value={newWage}
           onChange={(e) => setNewWage(e.target.value)}
-          placeholder="Default salary"
+          placeholder={t("referee.jobs.placeholderDefaultSalary")}
           className="w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
         />
         <button
@@ -147,13 +147,13 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
           disabled={saving}
           className="rounded-lg bg-ntu-green px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
         >
-          Add Job
+          {t("referee.jobs.addJob")}
         </button>
       </div>
 
       <div className="mt-4 space-y-2">
         {orderedJobs.length === 0 ? (
-          <p className="text-sm text-gray-600">No jobs yet. Add at least one position before dispatching.</p>
+          <p className="text-sm text-gray-600">{t("referee.jobs.emptyHint")}</p>
         ) : (
           orderedJobs.map((job) => (
             <div
@@ -180,7 +180,10 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
               ) : (
                 <div className="flex flex-1 items-center justify-between gap-3">
                   <span className="text-sm font-medium text-gray-800">{job.name}</span>
-                  <span className="text-xs text-gray-600">Default salary: NT$ {Number(job.default_wage ?? 0).toLocaleString()}</span>
+                  <span className="text-xs text-gray-600">
+                    {t("referee.jobs.defaultSalaryLabel")} {t("referee.admin.currency")}{" "}
+                    {Number(job.default_wage ?? 0).toLocaleString()}
+                  </span>
                 </div>
               )}
 
@@ -193,7 +196,7 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
                       disabled={saving}
                       className="rounded-md bg-ntu-green px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
                     >
-                      Save
+                      {t("referee.jobs.save")}
                     </button>
                     <button
                       type="button"
@@ -204,7 +207,7 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
                       }}
                       className="rounded-md border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100"
                     >
-                      Cancel
+                      {t("referee.jobs.cancel")}
                     </button>
                   </>
                 ) : (
@@ -213,7 +216,7 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
                     onClick={() => startEdit(job)}
                     className="rounded-md border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-100"
                   >
-                    Edit
+                    {t("referee.jobs.edit")}
                   </button>
                 )}
                 <button
@@ -222,7 +225,7 @@ export default function RefereeJobManager({ eventId, initialJobs }: RefereeJobMa
                   disabled={saving}
                   className="rounded-md border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
                 >
-                  Remove
+                  {t("referee.jobs.remove")}
                 </button>
               </div>
             </div>

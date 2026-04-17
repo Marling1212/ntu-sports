@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
+import { useI18n } from "@/lib/i18n/context";
 
 interface RefereeRow {
   id: string;
@@ -59,6 +60,7 @@ export default function RefereeOnboardingWizard({
   manualPlayerOptions: ManualPlayerOption[];
   manualTeams: ManualTeamOption[];
 }) {
+  const { t } = useI18n();
   const supabase = createClient();
   const [rows, setRows] = useState<RefereeRow[]>(initialReferees);
   const [name, setName] = useState("");
@@ -115,7 +117,7 @@ export default function RefereeOnboardingWizard({
 
   const runCheck = () => {
     const q = name.trim().toLowerCase();
-    if (!q) return toast.error("Enter a name first.");
+    if (!q) return toast.error(t("referee.admin.toastEnterNameFirst"));
     const found = candidateIdentities
       .filter((c) => !existingUserIds.has(c.user_id))
       .filter((c) => {
@@ -137,14 +139,14 @@ export default function RefereeOnboardingWizard({
   const completeOnboarding = async () => {
     const resolvedName = name.trim() || selectedManualOption?.member_name || selectedManualOption?.name || "";
     const resolvedEmail = email.trim();
-    if (!resolvedName) return toast.error("Name is required.");
+    if (!resolvedName) return toast.error(t("referee.admin.toastNameRequired"));
     setSaving(true);
 
     if (decision && decision !== "new") {
       const chosen = matches.find((m) => m.user_id === decision);
       if (!chosen) {
         setSaving(false);
-        return toast.error("Please choose a valid linked profile.");
+        return toast.error(t("referee.admin.toastChooseValidProfile"));
       }
       const { data, error } = await supabase
         .from("event_referees")
@@ -159,14 +161,14 @@ export default function RefereeOnboardingWizard({
         .select("id, event_id, user_id, display_name, email, linked_player_id, note")
         .single();
       setSaving(false);
-      if (error || !data) return toast.error(error?.message || "Failed to link referee.");
+      if (error || !data) return toast.error(error?.message || t("referee.admin.toastFailedLink"));
       setRows((prev) => [...prev, data]);
       setName("");
       setEmail("");
       setNote("");
       setMatches([]);
       setDecision("");
-      return toast.success("Linked to existing player identity.");
+      return toast.success(t("referee.admin.toastLinkedSuccess"));
     }
 
     const response = await fetch(`/api/admin/events/${eventId}/referees/external`, {
@@ -182,7 +184,7 @@ export default function RefereeOnboardingWizard({
     const payload = await response.json();
     setSaving(false);
     if (!response.ok || !payload?.referee) {
-      return toast.error(payload?.message || "Failed to create new referee.");
+      return toast.error(payload?.message || t("referee.admin.toastFailedCreate"));
     }
     setRows((prev) => [...prev, payload.referee]);
     setName("");
@@ -193,14 +195,14 @@ export default function RefereeOnboardingWizard({
     setManualTeamId("");
     setManualOptionId("");
     setManualPlayerQuery("");
-    toast.success("Created new referee identity.");
+    toast.success(t("referee.admin.toastCreatedSuccess"));
   };
 
   const removeReferee = async (id: string) => {
     const { error } = await supabase.from("event_referees").delete().eq("id", id);
     if (error) return toast.error(error.message);
     setRows((prev) => prev.filter((r) => r.id !== id));
-    toast.success("Referee removed.");
+    toast.success(t("referee.admin.toastRemoved"));
   };
 
   const saveRefereeEmail = async (row: RefereeRow) => {
@@ -213,9 +215,9 @@ export default function RefereeOnboardingWizard({
       .select("id, event_id, user_id, display_name, email, linked_player_id, note")
       .single();
     setSavingEmailId("");
-    if (error || !data) return toast.error(error?.message || "Failed to update referee email.");
+    if (error || !data) return toast.error(error?.message || t("referee.admin.toastEmailUpdateFail"));
     setRows((prev) => prev.map((r) => (r.id === row.id ? data : r)));
-    toast.success("Referee email updated.");
+    toast.success(t("referee.admin.toastEmailUpdated"));
   };
 
   const copyRefereePortalLink = async (userId: string) => {
@@ -226,12 +228,12 @@ export default function RefereeOnboardingWizard({
     });
     const payload = await response.json();
     if (!response.ok || !payload?.token) {
-      toast.error(payload?.message || "Failed to generate referee link.");
+      toast.error(payload?.message || t("referee.admin.toastLinkGenFail"));
       return;
     }
     const url = `${window.location.origin}/referee/${payload.token}`;
     await navigator.clipboard.writeText(url);
-    toast.success("Referee link copied.");
+    toast.success(t("referee.admin.toastLinkCopied"));
   };
 
   return (
@@ -239,30 +241,28 @@ export default function RefereeOnboardingWizard({
       <Toaster position="top-right" />
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold text-ntu-green">Onboard Referee</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Enter name. We check matching player identities and ask you whether it is the same person.
-        </p>
+        <h2 className="text-xl font-semibold text-ntu-green">{t("referee.admin.onboardTitle")}</h2>
+        <p className="mt-1 text-sm text-gray-600">{t("referee.admin.onboardIntro")}</p>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name"
+            placeholder={t("referee.admin.placeholderName")}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           />
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Referee email (optional, admin entered)"
+            placeholder={t("referee.admin.placeholderRefereeEmail")}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           />
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Note (optional)"
+            placeholder={t("referee.admin.placeholderNote")}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           />
         </div>
@@ -272,7 +272,7 @@ export default function RefereeOnboardingWizard({
             onClick={runCheck}
             className="rounded-lg border border-ntu-green px-4 py-2 text-sm font-semibold text-ntu-green hover:bg-ntu-green hover:text-white"
           >
-            Check Matching Players
+            {t("referee.admin.checkMatchingPlayers")}
           </button>
           <button
             type="button"
@@ -280,15 +280,13 @@ export default function RefereeOnboardingWizard({
             disabled={!canSubmit}
             className="rounded-lg bg-ntu-green px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
-            {saving ? "Saving..." : "Complete Onboarding"}
+            {saving ? t("referee.admin.saving") : t("referee.admin.completeOnboarding")}
           </button>
         </div>
 
         {matches.length > 0 && (
           <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
-            <p className="mb-2 text-sm font-medium text-amber-900">
-              We found possible same-person matches in team rosters. Is this the same person?
-            </p>
+            <p className="mb-2 text-sm font-medium text-amber-900">{t("referee.admin.matchFoundTitle")}</p>
             <div className="space-y-2">
               {matches.map((m) => (
                 <label key={m.user_id} className="flex cursor-pointer items-start gap-2 rounded border border-amber-200 bg-white p-2">
@@ -302,7 +300,10 @@ export default function RefereeOnboardingWizard({
                   <span className="text-sm text-gray-800">
                     <span className="block font-medium">{m.name}</span>
                     <span className="block text-xs text-gray-600">
-                      Teams: {m.teams.join(", ") || "-"} · user {m.user_id.slice(0, 8)}
+                      {t("referee.admin.teamsLine", {
+                        teams: m.teams.join(", ") || "-",
+                        userShort: m.user_id.slice(0, 8),
+                      })}
                     </span>
                   </span>
                 </label>
@@ -314,16 +315,14 @@ export default function RefereeOnboardingWizard({
                   checked={decision === "new"}
                   onChange={() => setDecision("new")}
                 />
-                <span className="text-sm text-gray-800">Not the same person — create new referee identity.</span>
+                <span className="text-sm text-gray-800">{t("referee.admin.notSamePerson")}</span>
               </label>
             </div>
           </div>
         )}
 
         <div className="mt-3 space-y-3 rounded-lg bg-emerald-50 px-3 py-3">
-          <p className="text-sm text-emerald-800">
-            Manual fallback: pick team first, then pick player. This stays available even if auto-check succeeds.
-          </p>
+          <p className="text-sm text-emerald-800">{t("referee.admin.manualFallbackHelp")}</p>
           <select
             value={manualTeamId}
             onChange={(e) => {
@@ -332,7 +331,7 @@ export default function RefereeOnboardingWizard({
             }}
             className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           >
-            <option value="">Pick team</option>
+            <option value="">{t("referee.admin.pickTeam")}</option>
             {manualTeams.map((team) => (
               <option key={team.team_id} value={team.team_id}>
                 {team.team_name}
@@ -343,7 +342,7 @@ export default function RefereeOnboardingWizard({
             type="text"
             value={manualPlayerQuery}
             onChange={(e) => setManualPlayerQuery(e.target.value)}
-            placeholder="Search player (all teams if team not selected)..."
+            placeholder={t("referee.admin.searchPlayerPlaceholder")}
             className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           />
           <select
@@ -351,7 +350,7 @@ export default function RefereeOnboardingWizard({
             onChange={(e) => setManualOptionId(e.target.value)}
             className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
           >
-            <option value="">No linked player (external only)</option>
+            <option value="">{t("referee.admin.noLinkedPlayerOption")}</option>
             {filteredManualPlayers.map((p) => (
               <option key={p.option_id} value={p.option_id}>
                 {p.member_name || p.name}
@@ -363,35 +362,33 @@ export default function RefereeOnboardingWizard({
 
         {matches.length === 0 && decision === "new" && (
           <div className="mt-3 space-y-3 rounded-lg bg-emerald-50 px-3 py-3">
-            <p className="text-sm text-emerald-800">
-              No automatic match found. You can still complete onboarding with the manual Team → Player picker above.
-            </p>
+            <p className="text-sm text-emerald-800">{t("referee.admin.noAutoMatchHelp")}</p>
           </div>
         )}
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold text-ntu-green">Current Referees + Wage Ledger</h2>
+        <h2 className="text-xl font-semibold text-ntu-green">{t("referee.admin.ledgerTitle")}</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-gray-600">
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Email</th>
-                <th className="px-3 py-2 font-medium">Linked Player Profile</th>
-                <th className="px-3 py-2 font-medium">Assignments</th>
-                <th className="px-3 py-2 text-right font-medium">Assigned</th>
-                <th className="px-3 py-2 text-right font-medium">Completed</th>
-                <th className="px-3 py-2 text-right font-medium">Total</th>
-                <th className="px-3 py-2 text-right font-medium">Access</th>
-                <th className="px-3 py-2 text-right font-medium">Remove</th>
+                <th className="px-3 py-2 font-medium">{t("referee.admin.colName")}</th>
+                <th className="px-3 py-2 font-medium">{t("referee.admin.colEmail")}</th>
+                <th className="px-3 py-2 font-medium">{t("referee.admin.colLinkedProfile")}</th>
+                <th className="px-3 py-2 font-medium">{t("referee.admin.colAssignments")}</th>
+                <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colAssigned")}</th>
+                <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colCompleted")}</th>
+                <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colTotal")}</th>
+                <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colAccess")}</th>
+                <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colRemove")}</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-3 py-8 text-center text-gray-500">
-                    No referees yet.
+                    {t("referee.admin.noRefereesYet")}
                   </td>
                 </tr>
               ) : (
@@ -407,7 +404,8 @@ export default function RefereeOnboardingWizard({
                       return (
                         <>
                     <td className="px-3 py-2 font-medium text-gray-800">
-                      {row.display_name || `User ${row.user_id.slice(0, 8)}`}
+                      {row.display_name ||
+                        t("referee.admin.userFallback", { short: row.user_id.slice(0, 8) })}
                     </td>
                     <td className="px-3 py-2 text-gray-700">
                       <div className="flex items-center justify-end gap-2 md:justify-start">
@@ -420,7 +418,7 @@ export default function RefereeOnboardingWizard({
                               [row.id]: e.target.value,
                             }))
                           }
-                          placeholder="Add email"
+                          placeholder={t("referee.admin.addEmailPlaceholder")}
                           className="w-52 rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
                         />
                         <button
@@ -429,24 +427,32 @@ export default function RefereeOnboardingWizard({
                           disabled={savingEmailId === row.id}
                           className="text-xs font-semibold text-ntu-green hover:underline disabled:opacity-60"
                         >
-                          {savingEmailId === row.id ? "Saving..." : "Save"}
+                          {savingEmailId === row.id ? t("referee.admin.saving") : t("referee.admin.save")}
                         </button>
                       </div>
                     </td>
                     <td className="px-3 py-2 text-gray-700">
-                      {row.linked_player_id ? `Linked (${row.linked_player_id.slice(0, 8)})` : "External / None"}
+                      {row.linked_player_id
+                        ? t("referee.admin.linkedShort", { short: row.linked_player_id.slice(0, 8) })
+                        : t("referee.admin.externalNone")}
                     </td>
                     <td className="px-3 py-2 text-gray-700">{wage.assignmentCount || "-"}</td>
-                    <td className="px-3 py-2 text-right text-amber-700">NT$ {wage.assigned.toLocaleString()}</td>
-                    <td className="px-3 py-2 text-right text-emerald-700">NT$ {wage.completed.toLocaleString()}</td>
-                    <td className="px-3 py-2 text-right font-semibold text-ntu-green">NT$ {wage.total.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right text-amber-700">
+                      {t("referee.admin.currency")} {wage.assigned.toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-right text-emerald-700">
+                      {t("referee.admin.currency")} {wage.completed.toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-right font-semibold text-ntu-green">
+                      {t("referee.admin.currency")} {wage.total.toLocaleString()}
+                    </td>
                     <td className="px-3 py-2 text-right">
                       <button
                         type="button"
                         onClick={() => copyRefereePortalLink(row.user_id)}
                         className="text-xs font-semibold text-ntu-green hover:underline"
                       >
-                        Copy Ref Link
+                        {t("referee.admin.copyRefLink")}
                       </button>
                     </td>
                     <td className="px-3 py-2 text-right">
@@ -455,7 +461,7 @@ export default function RefereeOnboardingWizard({
                         onClick={() => removeReferee(row.id)}
                         className="text-xs font-semibold text-red-600 hover:text-red-800"
                       >
-                        Remove
+                        {t("referee.admin.remove")}
                       </button>
                     </td>
                         </>

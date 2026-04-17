@@ -13,7 +13,7 @@ export async function getLocale(): Promise<Locale> {
 
 /** Get t(key) for server components. Use with await getLocale(). */
 export function getT(locale: Locale) {
-  return function t(key: string): string {
+  return function t(key: string, params?: Record<string, string | number>): string {
     const keys = key.split(".");
     let value: unknown = translations[locale];
     for (const k of keys) {
@@ -26,7 +26,13 @@ export function getT(locale: Locale) {
         break;
       }
     }
-    return typeof value === "string" ? value : key;
+    let result = typeof value === "string" ? value : key;
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        result = result.replace(new RegExp(`{${k}}`, "g"), String(v));
+      });
+    }
+    return result;
   };
 }
 

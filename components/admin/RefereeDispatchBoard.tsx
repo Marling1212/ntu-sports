@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
+import { useI18n } from "@/lib/i18n/context";
 
 type DispatchMatch = {
   id: string;
@@ -61,7 +62,8 @@ interface RefereeDispatchBoardProps {
   userLabelMap: Record<string, string>;
 }
 
-const WEEKDAY_CH = ["日", "一", "二", "三", "四", "五", "六"];
+const WEEKDAY_ZH = ["日", "一", "二", "三", "四", "五", "六"];
+const WEEKDAY_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 type CandidateStateReason =
   | "bias"
   | "playing"
@@ -84,7 +86,20 @@ export default function RefereeDispatchBoard({
   teamLabelMap,
   userLabelMap,
 }: RefereeDispatchBoardProps) {
+  const { t, locale } = useI18n();
   const supabase = createClient();
+  const weekdayLabels = locale === "zh" ? WEEKDAY_ZH : WEEKDAY_EN;
+
+  const getReasonLabel = (reason: CandidateStateReason) => {
+    if (reason === "bias") return t("referee.dispatch.reasonBias");
+    if (reason === "playing") return t("referee.dispatch.reasonPlaying");
+    if (reason === "busy") return t("referee.dispatch.reasonBusy");
+    if (reason === "slot_unavailable") return t("referee.dispatch.reasonSlotUnavailable");
+    if (reason === "no_slot_match") return t("referee.dispatch.reasonNoSlotMatch");
+    if (reason === "unscheduled") return t("referee.dispatch.reasonUnscheduled");
+    return t("referee.dispatch.reasonAvailable");
+  };
+
   const [assignments, setAssignments] = useState<MatchReferee[]>(initialAssignments);
   const [drafts, setDrafts] = useState<Record<string, Record<string, { userId: string; wage: string }>>>({});
   const [savingByMatch, setSavingByMatch] = useState<Record<string, boolean>>({});
@@ -172,16 +187,6 @@ export default function RefereeDispatchBoard({
         return slot.day_of_week === weekday && start <= current && current < end;
       })
       .map((slot) => slot.id);
-  };
-
-  const getReasonLabel = (reason: CandidateStateReason) => {
-    if (reason === "bias") return "Bias conflict";
-    if (reason === "playing") return "Playing another match";
-    if (reason === "busy") return "Refereeing another match";
-    if (reason === "slot_unavailable") return "Not available in this slot";
-    if (reason === "no_slot_match") return "No matching scheduling slot";
-    if (reason === "unscheduled") return "Match is unscheduled";
-    return "Available";
   };
 
   const roleForJob = (jobId: string) => `job:${jobId}`;
@@ -273,9 +278,9 @@ export default function RefereeDispatchBoard({
 
   const addAssignment = async (matchId: string, jobId: string) => {
     const draft = drafts[matchId]?.[jobId];
-    if (!draft?.userId) return toast.error("Select a referee first.");
+    if (!draft?.userId) return toast.error(t("referee.dispatch.toastSelectRef"));
     const wage = Number(draft.wage);
-    if (!Number.isFinite(wage) || wage < 0) return toast.error("Enter a valid wage.");
+    if (!Number.isFinite(wage) || wage < 0) return toast.error(t("referee.dispatch.toastValidWage"));
 
     setSavingByMatch((prev) => ({ ...prev, [matchId]: true }));
     const { data, error } = await supabase
@@ -293,13 +298,13 @@ export default function RefereeDispatchBoard({
     setSavingByMatch((prev) => ({ ...prev, [matchId]: false }));
 
     if (error || !data) {
-      toast.error(error?.message || "Failed to assign referee.");
+      toast.error(error?.message || t("referee.dispatch.toastAssignFailed"));
       return;
     }
 
     setAssignments((prev) => [...prev, data]);
     setDraft(matchId, jobId, { userId: "", wage: "" });
-    toast.success("Referee assigned.");
+    toast.success(t("referee.dispatch.toastAssignOk"));
   };
 
   const removeAssignment = async (row: MatchReferee) => {
@@ -311,7 +316,7 @@ export default function RefereeDispatchBoard({
       .eq("role", row.role);
 
     if (error) {
-      toast.error(error.message || "Failed to remove assignment.");
+      toast.error(error.message || t("referee.dispatch.toastRemoveFailed"));
       return;
     }
 
@@ -321,7 +326,7 @@ export default function RefereeDispatchBoard({
           !(item.match_id === row.match_id && item.user_id === row.user_id && item.role === row.role)
       )
     );
-    toast.success("Assignment removed.");
+    toast.success(t("referee.dispatch.toastRemoveOk"));
   };
 
   return (
@@ -330,21 +335,29 @@ export default function RefereeDispatchBoard({
 
       <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="text-xl font-semibold text-ntu-green">Referee Dispatch</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Schedule-style dispatch table. Columns come from Job Setup and can be changed per event.
-          </p>
+          <h2 className="text-xl font-semibold text-ntu-green">{t("referee.dispatch.title")}</h2>
+          <p className="mt-1 text-sm text-gray-600">{t("referee.dispatch.subtitle")}</p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px]">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Date</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Day</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Field</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Team A</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Team B</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t("referee.dispatch.colDate")}
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t("referee.dispatch.colDay")}
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t("referee.dispatch.colField")}
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t("referee.dispatch.colTeamA")}
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t("referee.dispatch.colTeamB")}
+                </th>
                 {sortedJobs.map((job) => (
                   <th
                     key={job.id}
@@ -361,12 +374,19 @@ export default function RefereeDispatchBoard({
                 const options = getRefOptions(match);
                 const draft = drafts[match.id] ?? {};
                 const saving = !!savingByMatch[match.id];
-                const home = match.player1_id ? teamLabelMap[match.player1_id] ?? match.player1_id : "TBD";
-                const away = match.player2_id ? teamLabelMap[match.player2_id] ?? match.player2_id : "TBD";
+                const home = match.player1_id
+                  ? teamLabelMap[match.player1_id] ?? match.player1_id
+                  : t("referee.dispatch.tbd");
+                const away = match.player2_id
+                  ? teamLabelMap[match.player2_id] ?? match.player2_id
+                  : t("referee.dispatch.tbd");
                 const dt = match.scheduled_time ? new Date(match.scheduled_time) : null;
                 const dateLabel =
-                  dt && !Number.isNaN(dt.getTime()) ? dt.toLocaleDateString("en-CA") : "Unscheduled";
-                const dayLabel = dt && !Number.isNaN(dt.getTime()) ? WEEKDAY_CH[dt.getDay()] : "-";
+                  dt && !Number.isNaN(dt.getTime())
+                    ? dt.toLocaleDateString(locale === "zh" ? "zh-TW" : "en-CA")
+                    : t("referee.dispatch.unscheduled");
+                const dayLabel =
+                  dt && !Number.isNaN(dt.getTime()) ? weekdayLabels[dt.getDay()] : t("referee.dispatch.dash");
 
                 const assignmentByJob = new Map<string, MatchReferee>();
                 for (const row of rows) {
@@ -379,7 +399,9 @@ export default function RefereeDispatchBoard({
                   <tr key={match.id} className="border-t border-gray-100 align-top">
                     <td className="px-3 py-3 text-sm text-gray-700 whitespace-nowrap">{dateLabel}</td>
                     <td className="px-3 py-3 text-sm text-gray-700 whitespace-nowrap">{dayLabel}</td>
-                    <td className="px-3 py-3 text-sm text-gray-700 whitespace-nowrap">{match.court || "-"}</td>
+                    <td className="px-3 py-3 text-sm text-gray-700 whitespace-nowrap">
+                      {match.court || t("referee.dispatch.dash")}
+                    </td>
                     <td className="px-3 py-3 text-sm text-gray-800">{home}</td>
                     <td className="px-3 py-3 text-sm text-gray-800">{away}</td>
                     {sortedJobs.map((job) => {
@@ -393,17 +415,20 @@ export default function RefereeDispatchBoard({
                                 {userLabelMap[assigned.user_id] ?? assigned.user_id}
                               </p>
                               <p className="text-xs text-gray-600">
-                                {job.name} · NT$ {Number(assigned.wage).toLocaleString()}
+                                {job.name} · {t("referee.admin.currency")}{" "}
+                                {Number(assigned.wage).toLocaleString()}
                               </p>
                               <p className="text-[11px] text-gray-500">
-                                {assigned.assignment_status === "completed" ? "completed" : "assigned"}
+                                {assigned.assignment_status === "completed"
+                                  ? t("referee.dispatch.statusCompleted")
+                                  : t("referee.dispatch.statusAssigned")}
                               </p>
                               <button
                                 type="button"
                                 onClick={() => removeAssignment(assigned)}
                                 className="text-xs font-medium text-red-600 hover:text-red-800"
                               >
-                                Remove
+                                {t("referee.dispatch.remove")}
                               </button>
                             </div>
                           ) : (
@@ -421,7 +446,7 @@ export default function RefereeDispatchBoard({
                                 }
                                 className="w-56 rounded-lg border border-gray-300 px-2 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
                               >
-                                <option value="">Select ref...</option>
+                                <option value="">{t("referee.dispatch.selectRefPlaceholder")}</option>
                                 {options.map((option) => (
                                   <option
                                     key={`${job.id}-${option.userId}`}
@@ -443,7 +468,7 @@ export default function RefereeDispatchBoard({
                                   min={0}
                                   value={slotDraft.wage === "" ? String(Number(job.default_wage ?? 0)) : slotDraft.wage}
                                   onChange={(e) => setDraft(match.id, job.id, { wage: e.target.value })}
-                                  placeholder="Wage"
+                                  placeholder={t("referee.dispatch.wagePlaceholder")}
                                   className="w-24 rounded-lg border border-gray-300 px-2 py-2 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
                                 />
                                 <button
@@ -452,7 +477,7 @@ export default function RefereeDispatchBoard({
                                   disabled={saving}
                                   className="rounded-lg bg-ntu-green px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
                                 >
-                                  {saving ? "..." : "Add"}
+                                  {saving ? t("referee.dispatch.savingShort") : t("referee.dispatch.add")}
                                 </button>
                               </div>
                             </div>
@@ -467,17 +492,16 @@ export default function RefereeDispatchBoard({
           </table>
           {sortedJobs.length === 0 && (
             <div className="px-5 py-4 text-sm text-gray-600">
-              No referee jobs configured yet. Create jobs in Job Setup first, then dispatch.
+              {t("referee.dispatch.noJobsHint")}
             </div>
           )}
         </div>
         <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-600">
           <span className="mr-4 inline-flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-green-100" /> Available
+            <span className="inline-block h-3 w-3 rounded bg-green-100" /> {t("referee.dispatch.legendAvailable")}
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded bg-red-100" /> Unavailable (reason shown in
-            dropdown)
+            <span className="inline-block h-3 w-3 rounded bg-red-100" /> {t("referee.dispatch.legendUnavailable")}
           </span>
         </div>
       </section>

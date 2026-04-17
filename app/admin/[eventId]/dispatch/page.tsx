@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getLocale, getT } from "@/lib/i18n/server";
 import RefereeOnboardingWizard from "@/components/admin/RefereeOnboardingWizard";
 import RefereeSchedulingManager from "@/components/admin/RefereeSchedulingManager";
 import RefereeJobManager from "@/components/admin/RefereeJobManager";
@@ -12,6 +13,8 @@ export default async function DispatchPage({
 }) {
   const supabase = await createClient();
   const { eventId } = await params;
+  const locale = await getLocale();
+  const t = getT(locale);
 
   const { data: eventPlayers } = await supabase
     .from("players")
@@ -122,7 +125,9 @@ export default async function DispatchPage({
     if (row.display_name?.trim()) userLabelMap[row.user_id] = row.display_name.trim();
   }
   for (const userId of candidateUserIds) {
-    if (!userLabelMap[userId]) userLabelMap[userId] = `User ${userId.slice(0, 8)}`;
+    if (!userLabelMap[userId]) {
+      userLabelMap[userId] = t("referee.admin.userFallback", { short: userId.slice(0, 8) });
+    }
   }
 
   const grouped = new Map<
@@ -196,7 +201,7 @@ export default async function DispatchPage({
   const candidateIdentities = Array.from(grouped.values());
   const manualPlayerOptionsFromMembers = (teamMembersRaw ?? []).map((m: any) => {
     const team = Array.isArray(m.team) ? m.team[0] : m.team;
-    const teamName = (team?.name as string | undefined) ?? "Team";
+    const teamName = (team?.name as string | undefined) ?? t("referee.admin.defaultTeamName");
     return {
       option_id: `${m.player_id as string}::member::${m.id as string}`,
       team_id: m.player_id as string,
@@ -210,7 +215,7 @@ export default async function DispatchPage({
   const manualPlayerOptionsFromPlayers = (eventPlayers ?? []).map((p: any) => ({
     option_id: `${p.id as string}::player`,
     team_id: p.id as string,
-    team_name: p.type === "team" ? (p.name as string) : "Individual Players",
+    team_name: p.type === "team" ? (p.name as string) : t("referee.admin.individualPlayers"),
     player_id: p.id as string,
     name: p.name as string,
     email: p.type === "team" ? null : ((p.email as string | null) ?? null),
@@ -232,25 +237,25 @@ export default async function DispatchPage({
     <div className="pt-6 pb-12">
       <div className="container mx-auto px-4">
         <div className="mb-6">
-          <h1 className="mb-2 text-4xl font-bold text-ntu-green">Referee Operations</h1>
+          <h1 className="mb-2 text-4xl font-bold text-ntu-green">{t("referee.admin.dispatchTitle")}</h1>
           <p className="text-lg text-gray-600">
-            {event?.name} — One flow: directory, availability, then dispatch.
+            {t("referee.admin.dispatchSubtitle", { eventName: event?.name ?? "" })}
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm font-medium">
             <a href="#ref-directory" className="rounded-full border border-ntu-green px-3 py-1 text-ntu-green hover:bg-ntu-green hover:text-white">
-              1. Ref Directory
+              {t("referee.admin.navStep1Directory")}
             </a>
             <span className="text-gray-400">→</span>
             <a href="#ref-availability" className="rounded-full border border-ntu-green px-3 py-1 text-ntu-green hover:bg-ntu-green hover:text-white">
-              2. Ref Availability
+              {t("referee.admin.navStep2Availability")}
             </a>
             <span className="text-gray-400">→</span>
             <a href="#ref-jobs" className="rounded-full border border-ntu-green px-3 py-1 text-ntu-green hover:bg-ntu-green hover:text-white">
-              3. Job Setup
+              {t("referee.admin.navStep3Jobs")}
             </a>
             <span className="text-gray-400">→</span>
             <a href="#ref-dispatch" className="rounded-full border border-ntu-green px-3 py-1 text-ntu-green hover:bg-ntu-green hover:text-white">
-              4. Dispatch
+              {t("referee.admin.navStep4Dispatch")}
             </a>
           </div>
         </div>

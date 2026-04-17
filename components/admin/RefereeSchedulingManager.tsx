@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
+import { useI18n } from "@/lib/i18n/context";
 
 interface RefereeAvailabilityRow {
   id: string;
@@ -33,7 +34,8 @@ interface RefereeSchedulingManagerProps {
   userLabelMap: Record<string, string>;
 }
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_ZH = ["日", "一", "二", "三", "四", "五", "六"];
+const WEEKDAY_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const hhmm = (t: string) => t.slice(0, 5);
 
 export default function RefereeSchedulingManager({
@@ -43,7 +45,9 @@ export default function RefereeSchedulingManager({
   candidateUserIds,
   userLabelMap,
 }: RefereeSchedulingManagerProps) {
+  const { t, locale } = useI18n();
   const supabase = createClient();
+  const weekdayLabels = locale === "zh" ? WEEKDAY_ZH : WEEKDAY_EN;
   const [rows, setRows] = useState<RefereeAvailabilityRow[]>(initialAvailability);
   const [savingKey, setSavingKey] = useState<string>("");
 
@@ -103,7 +107,7 @@ export default function RefereeSchedulingManager({
         .eq("user_id", userId)
         .in("slot_template_id", group.template_ids);
       setSavingKey("");
-      if (error) return toast.error(error.message || "Failed to update availability.");
+      if (error) return toast.error(error.message || t("referee.availability.toastUpdateFail"));
       setRows((prev) =>
         prev.filter((r) => !(r.user_id === userId && group.template_ids.includes(r.slot_template_id)))
       );
@@ -128,7 +132,7 @@ export default function RefereeSchedulingManager({
       )
       .select("id, user_id, slot_template_id");
     setSavingKey("");
-    if (error || !data) return toast.error(error?.message || "Failed to update availability.");
+    if (error || !data) return toast.error(error?.message || t("referee.availability.toastUpdateFail"));
     setRows((prev) => [...prev, ...data]);
   };
 
@@ -137,22 +141,22 @@ export default function RefereeSchedulingManager({
       <Toaster position="top-right" />
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold text-ntu-green">Referee Availability Matrix</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Click cells to toggle availability. Duplicate slots with the same day and time are merged into one column.
-        </p>
+        <h2 className="text-xl font-semibold text-ntu-green">{t("referee.availability.title")}</h2>
+        <p className="mt-1 text-sm text-gray-600">{t("referee.availability.intro")}</p>
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-gray-600">
-                <th className="px-3 py-2 font-medium">Referee</th>
+                <th className="px-3 py-2 font-medium">{t("referee.availability.colReferee")}</th>
                 {groupedSlots.map((group) => (
                   <th key={group.key} className="px-2 py-2 text-center font-medium whitespace-nowrap">
-                    <div>{WEEKDAYS[group.day_of_week] ?? group.day_of_week}</div>
+                    <div>{weekdayLabels[group.day_of_week] ?? group.day_of_week}</div>
                     <div className="text-xs text-gray-500">
                       {hhmm(group.start_time)}-{hhmm(group.end_time)}
-                      {group.template_ids.length > 1 ? ` (${group.template_ids.length} slots)` : ""}
+                      {group.template_ids.length > 1
+                        ? ` ${t("referee.availability.slotsSuffix", { count: group.template_ids.length })}`
+                        : ""}
                     </div>
                   </th>
                 ))}
@@ -184,10 +188,10 @@ export default function RefereeSchedulingManager({
                           } ${loading ? "opacity-60" : ""}`}
                           title={
                             active
-                              ? "Available"
+                              ? t("referee.availability.cellAvailable")
                               : activeCount > 0
-                                ? "Partially available across duplicate slots"
-                                : "Not available"
+                                ? t("referee.availability.cellPartial")
+                                : t("referee.availability.cellUnavailable")
                           }
                         >
                           {active ? "O" : ""}
