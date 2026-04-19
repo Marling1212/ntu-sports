@@ -60,12 +60,16 @@ interface RefereeDispatchBoardProps {
   candidateUserIds: string[];
   teamLabelMap: Record<string, string>;
   userLabelMap: Record<string, string>;
+  /** event_referees.linked_player_id by user_id — block if that player row is player1/2 in the match */
+  refereeLinkedPlayerByUserId: Record<string, string | null>;
 }
 
 const WEEKDAY_ZH = ["日", "一", "二", "三", "四", "五", "六"];
 const WEEKDAY_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 type CandidateStateReason =
   | "bias"
+  | "linked_competitor"
+  | "already_in_match"
   | "playing"
   | "busy"
   | "slot_unavailable"
@@ -85,6 +89,7 @@ export default function RefereeDispatchBoard({
   candidateUserIds,
   teamLabelMap,
   userLabelMap,
+  refereeLinkedPlayerByUserId,
 }: RefereeDispatchBoardProps) {
   const { t, locale } = useI18n();
   const supabase = createClient();
@@ -92,6 +97,8 @@ export default function RefereeDispatchBoard({
 
   const getReasonLabel = (reason: CandidateStateReason) => {
     if (reason === "bias") return t("referee.dispatch.reasonBias");
+    if (reason === "linked_competitor") return t("referee.dispatch.reasonLinkedCompetitor");
+    if (reason === "already_in_match") return t("referee.dispatch.reasonAlreadyInMatch");
     if (reason === "playing") return t("referee.dispatch.reasonPlaying");
     if (reason === "busy") return t("referee.dispatch.reasonBusy");
     if (reason === "slot_unavailable") return t("referee.dispatch.reasonSlotUnavailable");
@@ -194,12 +201,21 @@ export default function RefereeDispatchBoard({
 
   const getCandidateState = (match: DispatchMatch, userId: string): CandidateState => {
     const teamsInMatch = new Set([match.player1_id, match.player2_id].filter(Boolean) as string[]);
-    const userTeams = userTeamMap.get(userId) ?? new Set<string>();
+    const linkedPid = refereeLinkedPlayerByUserId[userId] ?? null;
+    if (linkedPid && (linkedPid === match.player1_id || linkedPid === match.player2_id)) {
+      return { hidden: false, disabled: true, reason: "linked_competitor" };
+    }
 
+    const userTeams = userTeamMap.get(userId) ?? new Set<string>();
     for (const teamId of userTeams) {
       if (teamsInMatch.has(teamId)) {
         return { hidden: false, disabled: true, reason: "bias" };
       }
+    }
+
+    const assignedThisMatch = assignmentsByMatch.get(match.id) ?? [];
+    if (assignedThisMatch.some((a) => a.user_id === userId)) {
+      return { hidden: false, disabled: true, reason: "already_in_match" };
     }
 
     if (!match.scheduled_time) {
@@ -208,7 +224,7 @@ export default function RefereeDispatchBoard({
 
     const playingKey = `${userId}__${match.scheduled_time}`;
     const playingMatches = playerBusyIndex.get(playingKey);
-    if (playingMatches && Array.from(playingMatches).some((id) => id !== match.id)) {
+    if (playingMatches && playingMatches.size > 0) {
       return { hidden: false, disabled: true, reason: "playing" };
     }
 

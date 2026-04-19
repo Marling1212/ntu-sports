@@ -234,6 +234,12 @@ export default async function DispatchPage({
     ).values()
   ).sort((a, b) => a.team_name.localeCompare(b.team_name));
 
+  const refereeLinkedPlayerByUserId: Record<string, string | null> = {};
+  for (const row of refsRaw ?? []) {
+    refereeLinkedPlayerByUserId[row.user_id as string] = (row as { linked_player_id?: string | null })
+      .linked_player_id ?? null;
+  }
+
   return (
     <div className="pt-6 pb-12">
       <div className="container mx-auto px-4">
@@ -305,6 +311,7 @@ export default async function DispatchPage({
               candidateUserIds={candidateUserIds}
               teamLabelMap={teamLabelMap}
               userLabelMap={userLabelMap}
+              refereeLinkedPlayerByUserId={refereeLinkedPlayerByUserId}
             />
           </section>
         </div>
