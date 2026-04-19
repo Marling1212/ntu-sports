@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getEventDivisions } from "@/lib/utils/getSportEvent";
+import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
 import SettingsContent from "@/components/admin/SettingsContent";
 import SettingsPageNav from "@/components/admin/SettingsPageNav";
 
@@ -84,6 +85,9 @@ export default async function SettingsPage({
             venue: event?.venue || "",
             description: event?.description || "",
             tournamentType: event?.tournament_type || "single_elimination",
+            refereeLinkTtlDays: clampRefereeLinkTtlDays(
+              (event as { referee_link_ttl_days?: number } | null | undefined)?.referee_link_ttl_days
+            ),
           }}
           initialRules={rules || []}
           initialScheduleItems={scheduleItems || []}

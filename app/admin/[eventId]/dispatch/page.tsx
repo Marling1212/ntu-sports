@@ -5,6 +5,7 @@ import RefereeOnboardingWizard from "@/components/admin/RefereeOnboardingWizard"
 import RefereeSchedulingManager from "@/components/admin/RefereeSchedulingManager";
 import RefereeJobManager from "@/components/admin/RefereeJobManager";
 import RefereeDispatchBoard from "@/components/admin/RefereeDispatchBoard";
+import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
 
 export default async function DispatchPage({
   params,
@@ -33,7 +34,7 @@ export default async function DispatchPage({
     { data: slotTemplatesRaw },
     { data: refereeJobsRaw },
   ] = await Promise.all([
-    supabase.from("events").select("id, name").eq("id", eventId).single(),
+    supabase.from("events").select("id, name, referee_link_ttl_days").eq("id", eventId).single(),
     supabase
       .from("event_referees")
       .select("id, event_id, user_id, display_name, email, linked_player_id, note")
@@ -264,6 +265,9 @@ export default async function DispatchPage({
           <section id="ref-directory" className="scroll-mt-24">
             <RefereeOnboardingWizard
               eventId={eventId}
+              defaultRefereeLinkTtlDays={clampRefereeLinkTtlDays(
+                (event as { referee_link_ttl_days?: number } | null)?.referee_link_ttl_days
+              )}
               initialReferees={(refsRaw ?? []) as any[]}
               assignments={(assignmentsRaw ?? []) as any[]}
               candidateIdentities={candidateIdentities}

@@ -6,7 +6,19 @@ type RefereeTokenPayload = {
   exp: number;
 };
 
-const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 14; // 14 days
+/** Default when event setting is missing or invalid */
+export const DEFAULT_REFEREE_LINK_TTL_DAYS = 14;
+export const MAX_REFEREE_LINK_TTL_DAYS = 365;
+
+export function clampRefereeLinkTtlDays(days: unknown): number {
+  const n = Math.round(Number(days));
+  if (!Number.isFinite(n)) return DEFAULT_REFEREE_LINK_TTL_DAYS;
+  return Math.min(MAX_REFEREE_LINK_TTL_DAYS, Math.max(1, n));
+}
+
+function ttlSecondsFromDays(days: number) {
+  return clampRefereeLinkTtlDays(days) * 60 * 60 * 24;
+}
 
 function base64urlEncode(input: string) {
   return Buffer.from(input, "utf8").toString("base64url");
@@ -24,7 +36,11 @@ function signPayload(payloadB64: string, secret: string) {
   return createHmac("sha256", secret).update(payloadB64).digest("base64url");
 }
 
-export function createRefereeAccessToken(eventId: string, userId: string) {
+export function createRefereeAccessToken(
+  eventId: string,
+  userId: string,
+  ttlDays: number = DEFAULT_REFEREE_LINK_TTL_DAYS
+) {
   const secret = getSecret();
   if (!secret) {
     throw new Error("Missing REFEREE_PORTAL_SECRET (or SUPABASE_SERVICE_ROLE_KEY fallback)");
@@ -33,7 +49,7 @@ export function createRefereeAccessToken(eventId: string, userId: string) {
   const payload: RefereeTokenPayload = {
     eventId,
     userId,
-    exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
+    exp: Math.floor(Date.now() / 1000) + ttlSecondsFromDays(ttlDays),
   };
   const payloadB64 = base64urlEncode(JSON.stringify(payload));
   const sig = signPayload(payloadB64, secret);

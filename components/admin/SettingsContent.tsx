@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import TiebreakerConfigEditor from "./TiebreakerConfigEditor";
 import { useI18n } from "@/lib/i18n/context";
+import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
 
 interface TournamentRule {
   id: string;
@@ -34,6 +35,8 @@ interface EventData {
   venue: string;
   description: string;
   tournamentType: string;
+  /** Default referee portal link TTL (days), 1–365 */
+  refereeLinkTtlDays: number;
 }
 
 interface Game {
@@ -573,7 +576,8 @@ export default function SettingsContent({
           description: eventData.description || null,
           tournament_type: eventData.tournamentType,
           registration_type: registrationType,
-          is_visible: isVisible
+          is_visible: isVisible,
+          referee_link_ttl_days: clampRefereeLinkTtlDays(eventData.refereeLinkTtlDays),
         })
         .eq("id", eventId);
 
@@ -838,6 +842,27 @@ export default function SettingsContent({
                 <option value="single_elimination">{t('admin.settings.singleElimination')}</option>
                 <option value="season_play">{t('admin.settings.seasonPlay')}</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="referee-link-ttl-settings">
+                {t("admin.settings.refereeLinkTtlDays")}
+              </label>
+              <input
+                id="referee-link-ttl-settings"
+                type="number"
+                min={1}
+                max={365}
+                value={eventData.refereeLinkTtlDays}
+                onChange={(e) =>
+                  setEventData({
+                    ...eventData,
+                    refereeLinkTtlDays: clampRefereeLinkTtlDays(e.target.value === "" ? 14 : Number(e.target.value)),
+                  })
+                }
+                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+              />
+              <p className="text-xs text-gray-500 mt-1">{t("admin.settings.refereeLinkTtlHelp")}</p>
             </div>
 
             {/* Dates */}

@@ -1,7 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useI18n } from "@/lib/i18n/context";
+import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
+
+const REFEREE_LINK_DAY_OPTIONS = [7, 14, 30, 60, 90, 180, 365] as const;
 
 interface MatchRefereeRow {
   match_id: string;
@@ -15,9 +19,30 @@ interface WageLedgerProps {
   eventId: string;
   assignments: MatchRefereeRow[];
   userLabelMap: Record<string, string>;
+  defaultRefereeLinkTtlDays?: number;
 }
 
-export default function WageLedger({ eventId, assignments, userLabelMap }: WageLedgerProps) {
+export default function WageLedger({
+  eventId,
+  assignments,
+  userLabelMap,
+  defaultRefereeLinkTtlDays = 14,
+}: WageLedgerProps) {
+  const { t, locale } = useI18n();
+  const [linkValidityDays, setLinkValidityDays] = useState(() =>
+    clampRefereeLinkTtlDays(defaultRefereeLinkTtlDays)
+  );
+
+  useEffect(() => {
+    setLinkValidityDays(clampRefereeLinkTtlDays(defaultRefereeLinkTtlDays));
+  }, [defaultRefereeLinkTtlDays]);
+
+  const linkDaySelectOptions = useMemo(() => {
+    const s = new Set<number>([...REFEREE_LINK_DAY_OPTIONS]);
+    s.add(clampRefereeLinkTtlDays(defaultRefereeLinkTtlDays));
+    s.add(clampRefereeLinkTtlDays(linkValidityDays));
+    return Array.from(s).sort((a, b) => a - b);
+  }, [defaultRefereeLinkTtlDays, linkValidityDays]);
   const rows = useMemo(() => {
     const summary = new Map<string, { totalWage: number; assignedWage: number; completedWage: number; roleCount: Record<string, number> }>();
 
@@ -66,22 +91,35 @@ export default function WageLedger({ eventId, assignments, userLabelMap }: WageL
     const response = await fetch(`/api/admin/events/${eventId}/referee-link`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ userId, validityDays: linkValidityDays }),
     });
     const payload = await response.json();
     if (!response.ok || !payload?.token) {
-      toast.error(payload?.message || "Failed to generate referee link.");
+      toast.error(payload?.message || t("referee.admin.toastLinkGenFail"));
       return;
     }
     const url = `${window.location.origin}/referee/${payload.token}`;
     await navigator.clipboard.writeText(url);
-    toast.success("Referee link copied.");
+    const days = clampRefereeLinkTtlDays(payload.validityDays ?? linkValidityDays);
+    const expiresAt = typeof payload.expiresAt === "string" ? payload.expiresAt : null;
+    const dateStr = expiresAt
+      ? new Date(expiresAt).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : "";
+    toast.success(
+      dateStr
+        ? t("referee.admin.toastLinkCopiedWithExpiry", { date: dateStr, days })
+        : t("referee.admin.toastLinkCopied")
+    );
   };
 
   return (
     <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-ntu-green">Wage Ledger</h2>
+        <h2 className="text-xl font-semibold text-ntu-green">{t("referee.admin.ledgerTitle")}</h2>
         <div className="flex flex-wrap gap-2 text-sm font-medium">
           <p className="rounded-lg bg-white px-3 py-1 text-gray-700">
             Assigned: <span className="text-amber-700">NT$ {totalAssigned.toLocaleString()}</span>
@@ -92,6 +130,30 @@ export default function WageLedger({ eventId, assignments, userLabelMap }: WageL
           <p className="rounded-lg bg-white px-3 py-1 text-gray-700">
             Total: <span className="text-ntu-green">NT$ {totalBudget.toLocaleString()}</span>
           </p>
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-col gap-2 rounded-lg border border-emerald-200 bg-white/80 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-1">
+          <label className="block text-xs font-medium text-gray-800" htmlFor="wage-ledger-link-ttl">
+            {t("referee.admin.linkValidityLabel")}
+          </label>
+          <p className="text-xs text-gray-600">{t("referee.admin.linkValidityHint")}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <select
+            id="wage-ledger-link-ttl"
+            value={linkValidityDays}
+            onChange={(e) => setLinkValidityDays(clampRefereeLinkTtlDays(Number(e.target.value)))}
+            className="rounded-lg border border-emerald-300 bg-white px-2 py-1.5 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+          >
+            {linkDaySelectOptions.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-gray-700 whitespace-nowrap">{locale === "zh" ? "天" : "days"}</span>
         </div>
       </div>
 
@@ -126,7 +188,7 @@ export default function WageLedger({ eventId, assignments, userLabelMap }: WageL
                       onClick={() => copyRefereePortalLink(row.userId)}
                       className="text-xs font-semibold text-ntu-green hover:underline"
                     >
-                      Copy Ref Link
+                      {t("referee.admin.copyRefLinkReissue")}
                     </button>
                   </td>
                 </tr>

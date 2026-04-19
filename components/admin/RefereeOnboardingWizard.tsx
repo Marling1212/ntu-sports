@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { useI18n } from "@/lib/i18n/context";
+import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
+
+const REFEREE_LINK_DAY_OPTIONS = [7, 14, 30, 60, 90, 180, 365] as const;
 
 interface RefereeRow {
   id: string;
@@ -47,6 +50,7 @@ interface MatchRefereeRow {
 
 export default function RefereeOnboardingWizard({
   eventId,
+  defaultRefereeLinkTtlDays,
   initialReferees,
   assignments,
   candidateIdentities,
@@ -54,13 +58,15 @@ export default function RefereeOnboardingWizard({
   manualTeams,
 }: {
   eventId: string;
+  /** Saved event default (1–365); each copy can override via `linkValidityDays` before copying. */
+  defaultRefereeLinkTtlDays: number;
   initialReferees: RefereeRow[];
   assignments: MatchRefereeRow[];
   candidateIdentities: CandidateIdentity[];
   manualPlayerOptions: ManualPlayerOption[];
   manualTeams: ManualTeamOption[];
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const supabase = createClient();
   const [rows, setRows] = useState<RefereeRow[]>(initialReferees);
   const [name, setName] = useState("");
@@ -74,6 +80,20 @@ export default function RefereeOnboardingWizard({
   const [editingEmailById, setEditingEmailById] = useState<Record<string, string>>({});
   const [savingEmailId, setSavingEmailId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [linkValidityDays, setLinkValidityDays] = useState(() =>
+    clampRefereeLinkTtlDays(defaultRefereeLinkTtlDays)
+  );
+
+  useEffect(() => {
+    setLinkValidityDays(clampRefereeLinkTtlDays(defaultRefereeLinkTtlDays));
+  }, [defaultRefereeLinkTtlDays]);
+
+  const linkDaySelectOptions = useMemo(() => {
+    const s = new Set<number>([...REFEREE_LINK_DAY_OPTIONS]);
+    s.add(clampRefereeLinkTtlDays(defaultRefereeLinkTtlDays));
+    s.add(clampRefereeLinkTtlDays(linkValidityDays));
+    return Array.from(s).sort((a, b) => a - b);
+  }, [defaultRefereeLinkTtlDays, linkValidityDays]);
 
   const existingUserIds = useMemo(() => new Set(rows.map((r) => r.user_id)), [rows]);
   const wageByUser = useMemo(() => {
@@ -224,7 +244,7 @@ export default function RefereeOnboardingWizard({
     const response = await fetch(`/api/admin/events/${eventId}/referee-link`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ userId, validityDays: linkValidityDays }),
     });
     const payload = await response.json();
     if (!response.ok || !payload?.token) {
@@ -233,7 +253,20 @@ export default function RefereeOnboardingWizard({
     }
     const url = `${window.location.origin}/referee/${payload.token}`;
     await navigator.clipboard.writeText(url);
-    toast.success(t("referee.admin.toastLinkCopied"));
+    const days = clampRefereeLinkTtlDays(payload.validityDays ?? linkValidityDays);
+    const expiresAt = typeof payload.expiresAt === "string" ? payload.expiresAt : null;
+    const dateStr = expiresAt
+      ? new Date(expiresAt).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : "";
+    toast.success(
+      dateStr
+        ? t("referee.admin.toastLinkCopiedWithExpiry", { date: dateStr, days })
+        : t("referee.admin.toastLinkCopied")
+    );
   };
 
   return (
@@ -369,6 +402,31 @@ export default function RefereeOnboardingWizard({
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-xl font-semibold text-ntu-green">{t("referee.admin.ledgerTitle")}</h2>
+        <div className="mt-4 flex flex-col gap-2 rounded-lg border border-emerald-100 bg-emerald-50/80 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1 space-y-1">
+            <label className="block text-xs font-medium text-emerald-900" htmlFor="ref-link-ttl">
+              {t("referee.admin.linkValidityLabel")}
+            </label>
+            <p className="text-xs text-emerald-800">{t("referee.admin.linkValidityHint")}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <select
+              id="ref-link-ttl"
+              value={linkValidityDays}
+              onChange={(e) => setLinkValidityDays(clampRefereeLinkTtlDays(Number(e.target.value)))}
+              className="rounded-lg border border-emerald-300 bg-white px-2 py-1.5 text-sm focus:border-ntu-green focus:outline-none focus:ring-2 focus:ring-ntu-green/20"
+            >
+              {linkDaySelectOptions.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-emerald-900 whitespace-nowrap">
+              {locale === "zh" ? "天" : "days"}
+            </span>
+          </div>
+        </div>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -452,7 +510,7 @@ export default function RefereeOnboardingWizard({
                         onClick={() => copyRefereePortalLink(row.user_id)}
                         className="text-xs font-semibold text-ntu-green hover:underline"
                       >
-                        {t("referee.admin.copyRefLink")}
+                        {t("referee.admin.copyRefLinkReissue")}
                       </button>
                     </td>
                     <td className="px-3 py-2 text-right">
