@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import Link from "next/link";
-import LogoutButton from "@/components/admin/LogoutButton";
+import AdminFontSizeControl from "@/components/admin/AdminFontSizeControl";
 import { useI18n } from "@/lib/i18n/context";
 
 export type SponsorTier = 'Gold' | 'Silver' | 'Bronze';
@@ -150,11 +150,16 @@ export default function GlobalSponsorManager({ initialSponsors = [] }: GlobalSpo
     <div className="min-h-screen bg-ntu-gray">
       <main className="container mx-auto px-4 py-8">
         <Toaster position="top-right" />
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin/dashboard" className="text-ntu-green hover:underline">
-            {t("admin.backToDashboard")}
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-800 border-l-2 border-gray-300 pl-4">{t("admin.globalSponsorsTitle")}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div className="flex flex-wrap items-center gap-4 min-w-0">
+            <Link href="/admin/dashboard" className="text-ntu-green hover:underline shrink-0">
+              {t("admin.backToDashboard")}
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-800 border-l-2 border-gray-300 pl-4 min-w-0">
+              {t("admin.globalSponsorsTitle")}
+            </h1>
+          </div>
+          <AdminFontSizeControl variant="light" />
         </div>
 
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">

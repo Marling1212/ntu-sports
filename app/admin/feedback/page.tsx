@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import AdminPageHeaderBar from "@/components/admin/AdminPageHeaderBar";
 
 const CATEGORY_LABELS: Record<string, string> = {
   bug: "Bug report",
@@ -38,25 +38,15 @@ export default async function AdminFeedbackPage() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-12">
+        <AdminPageHeaderBar title="Site feedback" backHref="/admin/dashboard" backLabel="← Dashboard" />
         <p className="text-red-600">Failed to load feedback: {error.message}</p>
-        <Link href="/admin/dashboard" className="text-ntu-green underline mt-4 inline-block">
-          ← Back to dashboard
-        </Link>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ntu-green">Site feedback</h1>
-        <Link
-          href="/admin/dashboard"
-          className="text-ntu-green font-medium hover:underline"
-        >
-          ← Dashboard
-        </Link>
-      </div>
+      <AdminPageHeaderBar title="Site feedback" backHref="/admin/dashboard" backLabel="← Dashboard" />
       <p className="text-sm text-gray-500 mb-6">
         User feedback from the public site. Set <code className="bg-gray-100 px-1 rounded">FEEDBACK_WEBHOOK_URL</code> in env to get notified (e.g. Slack or Zapier webhook).
       </p>

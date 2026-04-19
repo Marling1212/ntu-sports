@@ -114,3 +114,93 @@ html {
   background-color: var(--color-primary-hover);
 }
 
+/*
+ * Admin UI text scale — applied under /admin via AdminUiScaleProvider.
+ * Slight root font-size helps unclassed copy inherit a larger base; text-* rules below
+ * still target explicit Tailwind utilities (rem-based).
+ */
+.admin-scale-comfortable {
+  font-size: 1.03125rem;
+}
+.admin-scale-large {
+  font-size: 1.0625rem;
+}
+
+/*
+ * Bump common Tailwind text-* utilities so tables, forms, and nav read larger.
+ * (Higher specificity than standalone .text-* utilities.)
+ */
+.admin-scale-comfortable .text-xs {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+.admin-scale-comfortable .text-sm {
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+}
+.admin-scale-comfortable .text-base {
+  font-size: 1.0625rem;
+  line-height: 1.625rem;
+}
+.admin-scale-comfortable .text-lg {
+  font-size: 1.1875rem;
+  line-height: 1.75rem;
+}
+.admin-scale-comfortable .text-xl {
+  font-size: 1.3125rem;
+  line-height: 1.875rem;
+}
+.admin-scale-comfortable .text-2xl {
+  font-size: 1.5625rem;
+  line-height: 2rem;
+}
+.admin-scale-comfortable .text-3xl {
+  font-size: 1.9375rem;
+  line-height: 2.25rem;
+}
+.admin-scale-comfortable .text-4xl {
+  font-size: 2.375rem;
+  line-height: 2.5rem;
+}
+.admin-scale-comfortable .text-5xl {
+  font-size: 2.625rem;
+  line-height: 1;
+}
+
+.admin-scale-large .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+.admin-scale-large .text-sm {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+.admin-scale-large .text-base {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+.admin-scale-large .text-lg {
+  font-size: 1.25rem;
+  line-height: 1.875rem;
+}
+.admin-scale-large .text-xl {
+  font-size: 1.375rem;
+  line-height: 2rem;
+}
+.admin-scale-large .text-2xl {
+  font-size: 1.625rem;
+  line-height: 2.125rem;
+}
+.admin-scale-large .text-3xl {
+  font-size: 2rem;
+  line-height: 2.375rem;
+}
+.admin-scale-large .text-4xl {
+  font-size: 2.5rem;
+  line-height: 2.75rem;
+}
+.admin-scale-large .text-5xl {
+  font-size: 2.875rem;
+  line-height: 1;
+}
+

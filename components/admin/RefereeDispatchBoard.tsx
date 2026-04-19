@@ -418,7 +418,7 @@ export default function RefereeDispatchBoard({
                                 {job.name} · {t("referee.admin.currency")}{" "}
                                 {Number(assigned.wage).toLocaleString()}
                               </p>
-                              <p className="text-[11px] text-gray-500">
+                              <p className="text-xs text-gray-500">
                                 {assigned.assignment_status === "completed"
                                   ? t("referee.dispatch.statusCompleted")
                                   : t("referee.dispatch.statusAssigned")}

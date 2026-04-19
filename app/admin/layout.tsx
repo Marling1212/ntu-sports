@@ -1,3 +1,5 @@
+import { AdminUiScaleProvider } from "@/components/admin/AdminUiScaleProvider";
+
 export default function AdminLayout({
   children,
 }: {
@@ -5,7 +7,7 @@ export default function AdminLayout({
 }) {
   return (
     <div className="min-h-screen bg-ntu-gray">
-      {children}
+      <AdminUiScaleProvider>{children}</AdminUiScaleProvider>
     </div>
   );
 }

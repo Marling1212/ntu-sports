@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/context";
 
 import EventCard, { DivisionInfo } from "@/components/admin/EventCard";
+import AdminFontSizeControl from "@/components/admin/AdminFontSizeControl";
 
 interface DashboardContentProps {
   user: any;
@@ -42,7 +43,8 @@ export default function DashboardContent({ user, initialEvents, divisionsByEvent
             <h1 className="text-4xl font-bold text-ntu-green mb-2">{t("admin.dashboardTitle")}</h1>
             <p className="text-lg text-gray-600">{t("admin.welcome", { email: user?.email || "" })}</p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <AdminFontSizeControl variant="light" />
             <button
               onClick={() => setShowCreateModal(true)}
               className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"

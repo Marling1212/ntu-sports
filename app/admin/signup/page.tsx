@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import AdminFontSizeControl from "@/components/admin/AdminFontSizeControl";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -81,6 +82,10 @@ export default function SignUpPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-ntu-green mb-2">Create Account</h1>
           <p className="text-gray-600">Tournament Organizer Sign Up</p>
+        </div>
+
+        <div className="mb-6 flex justify-center">
+          <AdminFontSizeControl variant="light" />
         </div>
 
         <form onSubmit={handleSignUp} className="space-y-4">

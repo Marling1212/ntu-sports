@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import LogoutButton from "./LogoutButton";
+import AdminFontSizeControl from "@/components/admin/AdminFontSizeControl";
 import DivisionSwitcher from "./DivisionSwitcher";
 import EventVisibilityToggle from "./EventVisibilityToggle";
 import { useI18n } from "@/lib/i18n/context";
@@ -89,7 +90,8 @@ export default function AdminNavbar({ eventId, eventName, sport, divisions = [],
               </Link>
             </div>
           )}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            <AdminFontSizeControl variant="navbar" />
             <LogoutButton />
           </div>
         </div>
