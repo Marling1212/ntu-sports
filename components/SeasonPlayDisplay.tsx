@@ -2273,7 +2273,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                   const isLastRound = Number(match.round) === maxPlayoffRound;
                   const matchNum = Number((match as any).matchNumber) ?? 0;
                   const roundLabel = isLastRound && count === 2
-                    ? (matchNum === 2 ? t("bracket.final") : t("bracket.thirdPlace"))
+                    ? (matchNum === 2 ? t("bracket.thirdPlace") : t("bracket.final"))
                     : count === 4 ? t("bracket.quarterfinals") : count === 2 ? t("bracket.semifinals") : count === 1 ? t("bracket.final") : t("bracket.roundOf").replace("{n}", String(count * 2));
                   return (
                     <div
@@ -2353,7 +2353,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                       const isLastRound = Number(match.round) === maxPlayoffRound;
                       const matchNum = Number((match as any).matchNumber) ?? 0;
                       const roundLabel = isLastRound && count === 2
-                        ? (matchNum === 2 ? t("bracket.final") : t("bracket.thirdPlace"))
+                        ? (matchNum === 2 ? t("bracket.thirdPlace") : t("bracket.final"))
                         : count === 4 ? t("bracket.quarterfinals") : count === 2 ? t("bracket.semifinals") : count === 1 ? t("bracket.final") : t("bracket.roundOf").replace("{n}", String(count * 2));
                       return (
                         <tr key={match.id} className={idx % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}>
