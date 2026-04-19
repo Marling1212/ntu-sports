@@ -8,6 +8,11 @@ import { isDrawMatch } from "@/lib/constants/matchConstants";
 import CopyMatchLinkButton from "./CopyMatchLinkButton";
 import AddToCalendarButton from "./AddToCalendarButton";
 
+interface MatchRefereeLine {
+  displayName: string;
+  jobName: string;
+}
+
 interface MatchDetailViewProps {
   match: any;
   event: any;
@@ -16,6 +21,7 @@ interface MatchDetailViewProps {
   statDefinitions: any[];
   matchStats: any[];
   sportName: string;
+  matchReferees?: MatchRefereeLine[];
 }
 
 const formatDateTimeDisplay = (iso?: string | null): string => {
@@ -31,6 +37,7 @@ export default function MatchDetailView({
   statDefinitions,
   matchStats,
   sportName,
+  matchReferees = [],
 }: MatchDetailViewProps) {
   const { t } = useI18n();
   const player1 = match.player1_id ? players.find(p => p.id === match.player1_id) : null;
@@ -373,6 +380,21 @@ export default function MatchDetailView({
               )}
             </div>
           </div>
+
+          {matchReferees.length > 0 && (
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                {t("matchDetail.refereesTitle")}
+              </label>
+              <ul className="list-disc list-inside px-3 py-2 sm:px-4 sm:py-2 bg-emerald-50/80 border border-emerald-100 rounded-lg text-sm text-gray-800 space-y-1">
+                {matchReferees.map((r, i) => (
+                  <li key={`${r.displayName}-${r.jobName}-${i}`}>
+                    {t("matchDetail.refereesLine", { name: r.displayName, role: r.jobName })}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 

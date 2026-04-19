@@ -282,6 +282,11 @@ export const translations = {
         linkValidityHint:
           '每次複製會產生新網址並重新計算到期日；舊連結在原本到期日前仍可使用。',
         copyRefLinkReissue: '複製新連結',
+        emailAssignments: '寄送行程與連結',
+        emailAssignmentsSending: '寄送中…',
+        emailAssignmentsOk: '已寄出 Email。',
+        emailAssignmentsFail: '寄送失敗。',
+        emailAssignmentsNoEmail: '請先儲存裁判 Email 後再寄送。',
         matchFoundTitle: '在名單中找到可能為同一人之資料，是否為同一人？',
         teamsLine: '隊伍：{teams} · 使用者 {userShort}',
         notSamePerson: '不是同一人 — 建立新的裁判（外部）身分。',
@@ -387,6 +392,8 @@ export const translations = {
       forfeit: '棄權',
       walkover: '不戰而勝',
       eventNote: '比賽備註',
+      refereesTitle: '本場裁判／工作人員',
+      refereesLine: '{name}（{role}）',
     },
     teamDetail: {
       titleTeam: '隊伍詳情',
@@ -1266,6 +1273,11 @@ export const translations = {
         linkValidityHint:
           'Each copy creates a new URL with a fresh expiry. Older links still work until their own expiry.',
         copyRefLinkReissue: 'Copy new link',
+        emailAssignments: 'Email schedule & portal link',
+        emailAssignmentsSending: 'Sending…',
+        emailAssignmentsOk: 'Email sent.',
+        emailAssignmentsFail: 'Failed to send email.',
+        emailAssignmentsNoEmail: 'Save a referee email first, then send.',
         matchFoundTitle: 'We found possible same-person matches in team rosters. Is this the same person?',
         teamsLine: 'Teams: {teams} · user {userShort}',
         notSamePerson: 'Not the same person — create new referee identity.',
@@ -1373,6 +1385,8 @@ export const translations = {
       forfeit: 'Forfeit',
       walkover: 'Walkover',
       eventNote: 'Match Note',
+      refereesTitle: 'Match officials',
+      refereesLine: '{name} ({role})',
     },
     teamDetail: {
       titleTeam: 'Team Details',

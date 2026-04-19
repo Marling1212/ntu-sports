@@ -79,6 +79,7 @@ export default function RefereeOnboardingWizard({
   const [manualPlayerQuery, setManualPlayerQuery] = useState("");
   const [editingEmailById, setEditingEmailById] = useState<Record<string, string>>({});
   const [savingEmailId, setSavingEmailId] = useState<string>("");
+  const [emailingUserId, setEmailingUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [linkValidityDays, setLinkValidityDays] = useState(() =>
     clampRefereeLinkTtlDays(defaultRefereeLinkTtlDays)
@@ -267,6 +268,30 @@ export default function RefereeOnboardingWizard({
         ? t("referee.admin.toastLinkCopiedWithExpiry", { date: dateStr, days })
         : t("referee.admin.toastLinkCopied")
     );
+  };
+
+  const emailRefSchedule = async (row: RefereeRow) => {
+    const email = (row.email || "").trim();
+    if (!email) {
+      toast.error(t("referee.admin.emailAssignmentsNoEmail"));
+      return;
+    }
+    setEmailingUserId(row.user_id);
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}/referee-email-schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: row.user_id }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        toast.error(payload?.message || t("referee.admin.emailAssignmentsFail"));
+        return;
+      }
+      toast.success(t("referee.admin.emailAssignmentsOk"));
+    } finally {
+      setEmailingUserId(null);
+    }
   };
 
   return (
@@ -505,13 +530,25 @@ export default function RefereeOnboardingWizard({
                       {t("referee.admin.currency")} {wage.total.toLocaleString()}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => copyRefereePortalLink(row.user_id)}
-                        className="text-xs font-semibold text-ntu-green hover:underline"
-                      >
-                        {t("referee.admin.copyRefLinkReissue")}
-                      </button>
+                      <div className="flex flex-col items-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => copyRefereePortalLink(row.user_id)}
+                          className="text-xs font-semibold text-ntu-green hover:underline"
+                        >
+                          {t("referee.admin.copyRefLinkReissue")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => emailRefSchedule(row)}
+                          disabled={!row.email?.trim() || emailingUserId === row.user_id}
+                          className="text-xs font-semibold text-emerald-800 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {emailingUserId === row.user_id
+                            ? t("referee.admin.emailAssignmentsSending")
+                            : t("referee.admin.emailAssignments")}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-right">
                       <button

@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import PublicNavbar from "@/components/PublicNavbar";
 import MatchDetailView from "@/components/MatchDetailView";
 import { notFound } from "next/navigation";
+import { getMatchRefereesPublicDisplay } from "@/lib/utils/matchRefereesPublicDisplay";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -141,6 +142,8 @@ export default async function MatchDetailPage(context: any) {
 
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
 
+  const matchReferees = await getMatchRefereesPublicDisplay(match.event_id, matchId);
+
   return (
     <>
       <PublicNavbar eventName={event?.name} tournamentType={event?.tournament_type} eventId={event?.id} />
@@ -153,6 +156,7 @@ export default async function MatchDetailPage(context: any) {
           statDefinitions={statDefinitions || []}
           matchStats={matchStats || []}
           sportName={sportName}
+          matchReferees={matchReferees}
         />
       </div>
     </>
