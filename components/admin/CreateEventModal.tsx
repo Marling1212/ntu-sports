@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
+import LargeDatePicker from "@/components/admin/LargeDatePicker";
 
 interface CreateEventModalProps {
   userId: string;
@@ -133,7 +134,7 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
           <h2 className="text-2xl font-semibold text-ntu-green">Create New Event</h2>
           <button
@@ -318,25 +319,19 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                開始日期 (Start Date) *
-              </label>
-              <input
-                type="date"
-                value={formData.startDate.split("T")[0] ?? ""}
-                onChange={(e) => {
-                  setErrors((prev) => ({ ...prev, startDate: "" }));
-                  const time = formData.startDate.split("T")[1] ?? "09:00";
-                  setFormData({ ...formData, startDate: `${e.target.value}T${time}` });
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
-                  errors.startDate ? "border-red-400" : "border-gray-300"
-                }`}
-              />
-            </div>
-            <div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <LargeDatePicker
+              id="create-event-start-date"
+              label="開始日期 (Start Date) *"
+              value={formData.startDate.split("T")[0] ?? ""}
+              onChange={(d) => {
+                setErrors((prev) => ({ ...prev, startDate: "" }));
+                const time = formData.startDate.split("T")[1] ?? "09:00";
+                setFormData({ ...formData, startDate: `${d}T${time}` });
+              }}
+              hasError={!!errors.startDate}
+            />
+            <div className="flex flex-col justify-end">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 開始時間 (Start Time) *
               </label>
@@ -348,36 +343,30 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
                   const date = formData.startDate.split("T")[0] ?? "";
                   setFormData({ ...formData, startDate: `${date}T${e.target.value}` });
                 }}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
+                className={`min-h-[3rem] w-full px-4 py-3 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-ntu-green ${
                   errors.startDate ? "border-red-400" : "border-gray-300"
                 }`}
               />
-              {errors.startDate && (
-                <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>
-              )}
             </div>
           </div>
+          {errors.startDate && (
+            <p className="text-red-500 text-sm -mt-2">{errors.startDate}</p>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                結束日期 (End Date) *
-              </label>
-              <input
-                type="date"
-                value={formData.endDate.split("T")[0] ?? ""}
-                min={formData.startDate.split("T")[0] ?? undefined}
-                onChange={(e) => {
-                  setErrors((prev) => ({ ...prev, endDate: "" }));
-                  const time = formData.endDate.split("T")[1] ?? "18:00";
-                  setFormData({ ...formData, endDate: `${e.target.value}T${time}` });
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
-                  errors.endDate ? "border-red-400" : "border-gray-300"
-                }`}
-              />
-            </div>
-            <div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <LargeDatePicker
+              id="create-event-end-date"
+              label="結束日期 (End Date) *"
+              value={formData.endDate.split("T")[0] ?? ""}
+              min={formData.startDate.split("T")[0] || undefined}
+              onChange={(d) => {
+                setErrors((prev) => ({ ...prev, endDate: "" }));
+                const time = formData.endDate.split("T")[1] ?? "18:00";
+                setFormData({ ...formData, endDate: `${d}T${time}` });
+              }}
+              hasError={!!errors.endDate}
+            />
+            <div className="flex flex-col justify-end">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 結束時間 (End Time) *
               </label>
@@ -389,15 +378,13 @@ export default function CreateEventModal({ userId, onEventCreated, onClose }: Cr
                   const date = formData.endDate.split("T")[0] ?? "";
                   setFormData({ ...formData, endDate: `${date}T${e.target.value}` });
                 }}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green ${
+                className={`min-h-[3rem] w-full px-4 py-3 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-ntu-green ${
                   errors.endDate ? "border-red-400" : "border-gray-300"
                 }`}
               />
-              {errors.endDate && (
-                <p className="text-red-500 text-xs mt-1">{errors.endDate}</p>
-              )}
             </div>
           </div>
+          {errors.endDate && <p className="text-red-500 text-sm -mt-2">{errors.endDate}</p>}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
