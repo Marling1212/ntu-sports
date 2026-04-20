@@ -1,6 +1,16 @@
 const TAIPEI = "Asia/Taipei";
 
 /**
+ * Build an ISO instant for ICS from DB slot wall fields (slot_date + time in Taipei).
+ * Use for both DTSTART and DTEND so calendar events stay aligned after schedule shifts.
+ */
+export function slotWallToTaipeiIso(slotDate: string, time: string): string {
+  const raw = String(time).trim();
+  const withSecs = raw.length === 5 ? `${raw}:00` : raw;
+  return `${slotDate}T${withSecs}+08:00`;
+}
+
+/**
  * Format time for ICS so the event shows at the same wall-clock time as the site display (no +8 hr).
  * Uses TZID=Asia/Taipei and Taipei local time, consistent with formatScheduledTimeAsStored.
  */

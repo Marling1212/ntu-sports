@@ -7,6 +7,7 @@ import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
 import CopyMatchLinkButton from "./CopyMatchLinkButton";
 import AddToCalendarButton from "./AddToCalendarButton";
+import { slotWallToTaipeiIso } from "@/lib/utils/ics";
 
 interface MatchRefereeLine {
   displayName: string;
@@ -196,12 +197,18 @@ export default function MatchDetailView({
     : `${player1?.name ?? "TBD"} vs ${player2?.name ?? "TBD"}`;
   const calendarLocation = [getCourtDisplay(match), event?.venue].filter(Boolean).join(" — ") || undefined;
 
-  // Use slot's end_time as calendar end when available (時段有開始與結束)
+  // Calendar: use one source of truth. When the match has a full slot row, derive BOTH
+  // start and end from slot_date + start_time/end_time so DTSTART/DTEND stay in sync
+  // after timezone shifts (avoid mixing shifted scheduled_time with unshifted slot end).
   const slot = match.slot;
-  const calendarEndTime =
-    slot?.slot_date && slot?.end_time
-      ? `${slot.slot_date}T${String(slot.end_time).length === 5 ? `${slot.end_time}:00` : slot.end_time}+08:00`
-      : undefined;
+  const hasFullSlotWall =
+    Boolean(slot?.slot_date && slot?.start_time && slot?.end_time);
+  const calendarStartTime = hasFullSlotWall
+    ? slotWallToTaipeiIso(slot.slot_date, slot.start_time)
+    : match.scheduled_time;
+  const calendarEndTime = hasFullSlotWall
+    ? slotWallToTaipeiIso(slot.slot_date, slot.end_time)
+    : undefined;
 
   return (
     <div>
@@ -218,7 +225,7 @@ export default function MatchDetailView({
             title={calendarTitle}
             description={event?.name}
             location={calendarLocation}
-            startTime={match.scheduled_time}
+            startTime={calendarStartTime}
             endTime={calendarEndTime}
             url={undefined}
             className="min-h-[44px]"
