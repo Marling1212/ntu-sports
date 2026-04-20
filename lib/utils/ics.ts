@@ -1,13 +1,70 @@
+import { DateTime } from "luxon";
+
 const TAIPEI = "Asia/Taipei";
+
+function padWallTime(t: string): string {
+  const raw = String(t).trim();
+  return raw.length === 5 ? `${raw}:00` : raw;
+}
 
 /**
  * Build an ISO instant for ICS from DB slot wall fields (slot_date + time in Taipei).
- * Use for both DTSTART and DTEND so calendar events stay aligned after schedule shifts.
  */
 export function slotWallToTaipeiIso(slotDate: string, time: string): string {
-  const raw = String(time).trim();
-  const withSecs = raw.length === 5 ? `${raw}:00` : raw;
-  return `${slotDate}T${withSecs}+08:00`;
+  return `${slotDate}T${padWallTime(time)}+08:00`;
+}
+
+/** Length of the slot window in whole minutes (Taipei wall). Handles end after midnight. */
+export function slotWallDurationMinutes(
+  slotDate: string,
+  startTime: string,
+  endTime: string,
+): number | null {
+  let start = DateTime.fromISO(`${slotDate}T${padWallTime(startTime)}`, { zone: TAIPEI });
+  let end = DateTime.fromISO(`${slotDate}T${padWallTime(endTime)}`, { zone: TAIPEI });
+  if (!start.isValid || !end.isValid) return null;
+  if (end <= start) end = end.plus({ days: 1 });
+  const mins = end.diff(start, "minutes").minutes;
+  if (!Number.isFinite(mins) || mins <= 0) return null;
+  return Math.round(mins);
+}
+
+/**
+ * ICS start/end aligned with the match detail UI: start uses `matches.scheduled_time`
+ * (what the shift API updates). When a slot window exists, end = start + that window's
+ * duration so downloads track shifts even if `event_slots` wall times were not updated.
+ */
+export function calendarRangeFromMatchForICS(
+  scheduledTime: string | null | undefined,
+  slot: { slot_date?: string; start_time?: string; end_time?: string } | null | undefined,
+): { startTime: string | null | undefined; endTime: string | null | undefined } {
+  const slotDate = slot?.slot_date;
+  const st = slot?.start_time;
+  const et = slot?.end_time;
+  const hasSlotRange = Boolean(slotDate && st && et);
+
+  if (!scheduledTime?.trim()) {
+    if (hasSlotRange) {
+      return {
+        startTime: slotWallToTaipeiIso(slotDate!, st!),
+        endTime: slotWallToTaipeiIso(slotDate!, et!),
+      };
+    }
+    return { startTime: scheduledTime, endTime: undefined };
+  }
+
+  if (hasSlotRange) {
+    const mins = slotWallDurationMinutes(slotDate!, st!, et!);
+    if (mins != null) {
+      const start = DateTime.fromISO(scheduledTime, { setZone: true });
+      if (start.isValid) {
+        const endIso = start.plus({ minutes: mins }).toISO({ suppressMilliseconds: true });
+        return { startTime: scheduledTime, endTime: endIso ?? undefined };
+      }
+    }
+  }
+
+  return { startTime: scheduledTime, endTime: undefined };
 }
 
 /**

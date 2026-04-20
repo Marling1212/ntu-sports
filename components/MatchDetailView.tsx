@@ -7,7 +7,7 @@ import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
 import CopyMatchLinkButton from "./CopyMatchLinkButton";
 import AddToCalendarButton from "./AddToCalendarButton";
-import { slotWallToTaipeiIso } from "@/lib/utils/ics";
+import { calendarRangeFromMatchForICS } from "@/lib/utils/ics";
 
 interface MatchRefereeLine {
   displayName: string;
@@ -197,18 +197,12 @@ export default function MatchDetailView({
     : `${player1?.name ?? "TBD"} vs ${player2?.name ?? "TBD"}`;
   const calendarLocation = [getCourtDisplay(match), event?.venue].filter(Boolean).join(" — ") || undefined;
 
-  // Calendar: use one source of truth. When the match has a full slot row, derive BOTH
-  // start and end from slot_date + start_time/end_time so DTSTART/DTEND stay in sync
-  // after timezone shifts (avoid mixing shifted scheduled_time with unshifted slot end).
-  const slot = match.slot;
-  const hasFullSlotWall =
-    Boolean(slot?.slot_date && slot?.start_time && slot?.end_time);
-  const calendarStartTime = hasFullSlotWall
-    ? slotWallToTaipeiIso(slot.slot_date, slot.start_time)
-    : match.scheduled_time;
-  const calendarEndTime = hasFullSlotWall
-    ? slotWallToTaipeiIso(slot.slot_date, slot.end_time)
-    : undefined;
+  // Calendar: same anchor as the page (`scheduled_time`). End = start + slot duration
+  // when a slot exists, so ICS follows shift API updates even if slot wall rows lagged.
+  const { startTime: calendarStartTime, endTime: calendarEndTime } = calendarRangeFromMatchForICS(
+    match.scheduled_time,
+    match.slot,
+  );
 
   return (
     <div>
