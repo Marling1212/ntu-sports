@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { useI18n } from "@/lib/i18n/context";
+import { getMatchingSlotTemplateIds } from "@/lib/utils/matchSlotTemplateMatch";
 
 type DispatchMatch = {
   id: string;
@@ -178,24 +179,6 @@ export default function RefereeDispatchBoard({
     return map;
   }, [matches, teamRosters]);
 
-  const getMatchingTemplateIds = (match: DispatchMatch) => {
-    if (!match.scheduled_time) return [] as string[];
-    const dt = new Date(match.scheduled_time);
-    if (Number.isNaN(dt.getTime())) return [];
-    const weekday = dt.getDay();
-    const hh = dt.getHours().toString().padStart(2, "0");
-    const mm = dt.getMinutes().toString().padStart(2, "0");
-    const current = `${hh}:${mm}`;
-
-    return slotTemplates
-      .filter((slot) => {
-        const start = slot.start_time.slice(0, 5);
-        const end = slot.end_time.slice(0, 5);
-        return slot.day_of_week === weekday && start <= current && current < end;
-      })
-      .map((slot) => slot.id);
-  };
-
   const roleForJob = (jobId: string) => `job:${jobId}`;
   const jobIdFromRole = (role: string) => (role.startsWith("job:") ? role.slice(4) : null);
 
@@ -234,7 +217,7 @@ export default function RefereeDispatchBoard({
       return { hidden: false, disabled: true, reason: "busy" };
     }
 
-    const matchingTemplateIds = getMatchingTemplateIds(match);
+    const matchingTemplateIds = getMatchingSlotTemplateIds(match.scheduled_time, slotTemplates);
     if (matchingTemplateIds.length === 0) {
       return { hidden: false, disabled: true, reason: "no_slot_match" };
     }
