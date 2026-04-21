@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { DRAW_WINNER_ID } from "@/lib/constants/matchConstants";
 import { updateRefereeMatchResult } from "./actions";
@@ -49,8 +50,14 @@ const REFEREE_ERROR_I18N: Record<string, string> = {
   "Winner must be one of the teams in this match.": "referee.errorWinnerInvalid",
 };
 
+function identityAckStorageKey(token: string) {
+  return `refereePortalIdentityAck:${token}`;
+}
+
 export default function RefereePortalClient({
   token,
+  eventName,
+  refereeDisplayName,
   matches,
   initialMatchId,
   playerStatDefinitions,
@@ -60,6 +67,8 @@ export default function RefereePortalClient({
   hasTeamMembersData,
 }: {
   token: string;
+  eventName: string;
+  refereeDisplayName: string;
   matches: MatchRow[];
   /** Deep link: `/referee/[token]?match=<uuid>` */
   initialMatchId?: string | null;
@@ -152,6 +161,27 @@ export default function RefereePortalClient({
     if (initialMatchId && matches.some((m) => m.id === initialMatchId)) return initialMatchId;
     return matches[0]?.id ?? "";
   });
+
+  const [identityAcknowledged, setIdentityAcknowledged] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined" && window.sessionStorage.getItem(identityAckStorageKey(token)) === "1") {
+        setIdentityAcknowledged(true);
+      }
+    } catch {
+      // sessionStorage blocked — user must confirm each visit
+    }
+  }, [token]);
+
+  const confirmIdentity = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(identityAckStorageKey(token), "1");
+    } catch {
+      // still allow entry for this tab session
+    }
+    setIdentityAcknowledged(true);
+  }, [token]);
 
   const selectMatch = useCallback((id: string) => {
     setActiveMatchId(id);
@@ -275,16 +305,59 @@ export default function RefereePortalClient({
     toast.success(t("referee.toastMatchUpdated"));
   };
 
+  const identityGate = !identityAcknowledged ? (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="referee-identity-title"
+    >
+      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+        <h2 id="referee-identity-title" className="text-lg font-semibold text-ntu-green">
+          {t("referee.identityConfirmTitle")}
+        </h2>
+        <p className="mt-3 text-sm text-gray-600">{t("referee.identityConfirmLead")}</p>
+        <p className="mt-4 text-base font-medium text-gray-900">
+          {t("referee.identityConfirmQuestion", { name: refereeDisplayName })}
+        </p>
+        {eventName ? (
+          <p className="mt-2 text-sm text-gray-500">{t("referee.identityConfirmEvent", { eventName })}</p>
+        ) : null}
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Link
+            href="/"
+            className="order-2 rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 sm:order-1"
+          >
+            {t("referee.identityConfirmNo")}
+          </Link>
+          <button
+            type="button"
+            onClick={confirmIdentity}
+            className="order-1 rounded-lg bg-ntu-green px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 sm:order-2"
+          >
+            {t("referee.identityConfirmYes")}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   if (matches.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-600 shadow-sm">
-        {t("referee.emptyNoMatches")}
-      </div>
+      <>
+        {identityGate}
+        {identityAcknowledged ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-600 shadow-sm">
+            {t("referee.emptyNoMatches")}
+          </div>
+        ) : null}
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+    <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start">
+      {identityGate}
       <Toaster position="top-right" />
       <aside className="w-full shrink-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm lg:max-w-[20rem] lg:sticky lg:top-4 lg:self-start">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t("referee.navYourMatches")}</p>

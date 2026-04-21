@@ -60,6 +60,18 @@ export default async function RefereePortalPage({
 
   if (!event) notFound();
 
+  const { data: refDirectoryRow } = await supabase
+    .from("event_referees")
+    .select("display_name, email")
+    .eq("event_id", claims.eventId)
+    .eq("user_id", claims.userId)
+    .maybeSingle();
+
+  const refereeDisplayName =
+    (refDirectoryRow?.display_name as string | undefined)?.trim() ||
+    (refDirectoryRow?.email as string | undefined)?.trim() ||
+    t("referee.identityFallbackName", { short: claims.userId.slice(0, 8) });
+
   const initialMatchId =
     typeof matchQuery === "string" && matchQuery.trim() && matches.some((m: any) => m.id === matchQuery.trim())
       ? matchQuery.trim()
@@ -106,6 +118,8 @@ export default async function RefereePortalPage({
 
       <RefereePortalClient
         token={token}
+        eventName={event.name ?? ""}
+        refereeDisplayName={refereeDisplayName}
         initialMatchId={initialMatchId}
         matches={matches as any[]}
         playerStatDefinitions={(statDefsResult.data ?? []) as any[]}
