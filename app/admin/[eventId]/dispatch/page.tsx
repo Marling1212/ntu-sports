@@ -7,6 +7,9 @@ import RefereeJobManager from "@/components/admin/RefereeJobManager";
 import RefereeDispatchBoard from "@/components/admin/RefereeDispatchBoard";
 import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function DispatchPage({
   params,
 }: {

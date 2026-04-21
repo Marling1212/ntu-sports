@@ -5,12 +5,18 @@ import RefereePortalClient from "./RefereePortalClient";
 import { verifyRefereeAccessToken } from "@/lib/utils/refereeAccessToken";
 import { getLocale, getT } from "@/lib/i18n/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function RefereePortalPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ match?: string }>;
 }) {
   const token = ((await params).token ?? "").trim();
+  const { match: matchQuery } = await searchParams;
   const claims = verifyRefereeAccessToken(token);
   if (!token || !claims) notFound();
 
@@ -54,6 +60,11 @@ export default async function RefereePortalPage({
 
   if (!event) notFound();
 
+  const initialMatchId =
+    typeof matchQuery === "string" && matchQuery.trim() && matches.some((m: any) => m.id === matchQuery.trim())
+      ? matchQuery.trim()
+      : null;
+
   const matchIds = matches.map((m: any) => m.id).filter(Boolean);
   const teamIds = Array.from(
     new Set(matches.flatMap((m: any) => [m?.player1?.id, m?.player2?.id]).filter(Boolean))
@@ -95,6 +106,7 @@ export default async function RefereePortalPage({
 
       <RefereePortalClient
         token={token}
+        initialMatchId={initialMatchId}
         matches={matches as any[]}
         playerStatDefinitions={(statDefsResult.data ?? []) as any[]}
         existingPlayerStats={(existingStatsResult.data ?? []) as any[]}

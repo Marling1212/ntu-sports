@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { DRAW_WINNER_ID } from "@/lib/constants/matchConstants";
 import { updateRefereeMatchResult } from "./actions";
@@ -52,6 +52,7 @@ const REFEREE_ERROR_I18N: Record<string, string> = {
 export default function RefereePortalClient({
   token,
   matches,
+  initialMatchId,
   playerStatDefinitions,
   existingPlayerStats,
   teamMembersByTeam,
@@ -60,6 +61,8 @@ export default function RefereePortalClient({
 }: {
   token: string;
   matches: MatchRow[];
+  /** Deep link: `/referee/[token]?match=<uuid>` */
+  initialMatchId?: string | null;
   playerStatDefinitions: PlayerStatDef[];
   existingPlayerStats: ExistingPlayerStat[];
   teamMembersByTeam: Record<string, TeamMember[]>;
@@ -145,7 +148,27 @@ export default function RefereePortalClient({
     )
   );
 
+  const [activeMatchId, setActiveMatchId] = useState(() => {
+    if (initialMatchId && matches.some((m) => m.id === initialMatchId)) return initialMatchId;
+    return matches[0]?.id ?? "";
+  });
+
+  const selectMatch = useCallback((id: string) => {
+    setActiveMatchId(id);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("match", id);
+      const qs = url.searchParams.toString();
+      window.history.replaceState(null, "", qs ? `${url.pathname}?${qs}` : url.pathname);
+    }
+  }, []);
+
   const dateLocale = locale === "zh" ? "zh-TW" : "en-US";
+
+  const activeMatch = useMemo(
+    () => matches.find((m) => m.id === activeMatchId) ?? matches[0] ?? null,
+    [matches, activeMatchId]
+  );
 
   const statusLabel = (status: string) => {
     const key =
@@ -261,11 +284,51 @@ export default function RefereePortalClient({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
       <Toaster position="top-right" />
-      {matches.map((match) => {
-        const form = formByMatch[match.id];
-        return (
+      <aside className="w-full shrink-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm lg:max-w-[20rem] lg:sticky lg:top-4 lg:self-start">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t("referee.navYourMatches")}</p>
+        <p className="mt-1 text-xs text-gray-600">{t("referee.navHint")}</p>
+        <ul className="mt-3 max-h-[min(70vh,32rem)] space-y-1.5 overflow-y-auto">
+          {matches.map((m) => (
+            <li key={m.id}>
+              <button
+                type="button"
+                onClick={() => selectMatch(m.id)}
+                className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition ${
+                  m.id === activeMatchId
+                    ? "border-ntu-green bg-emerald-50 font-semibold text-ntu-green shadow-sm"
+                    : "border-transparent bg-gray-50 hover:border-gray-200 hover:bg-white"
+                }`}
+              >
+                <span className="block truncate text-gray-900">
+                  {m.player1?.name ?? t("referee.tbd")} {t("referee.vs")} {m.player2?.name ?? t("referee.tbd")}
+                </span>
+                <span className="mt-1 block truncate text-xs text-gray-500">
+                  {t("referee.roundMatch", { round: m.round, matchNumber: m.match_number })}
+                  {m.scheduled_time
+                    ? ` · ${new Date(m.scheduled_time).toLocaleString(dateLocale, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}`
+                    : ` · ${t("referee.unscheduled")}`}
+                </span>
+                <span className="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                  {statusLabel(m.status)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </aside>
+      <div className="min-w-0 flex-1">
+        {activeMatch &&
+          (() => {
+            const match = activeMatch;
+            const form = formByMatch[match.id];
+            return (
           <section key={match.id} className="rounded-xl border border-gray-100 bg-white p-6 shadow-md">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b pb-3">
               <div>
@@ -493,8 +556,9 @@ export default function RefereePortalClient({
               </button>
             </div>
           </section>
-        );
-      })}
+            );
+          })()}
+      </div>
     </div>
   );
 }

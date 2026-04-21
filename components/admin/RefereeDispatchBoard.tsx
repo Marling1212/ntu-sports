@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import { useI18n } from "@/lib/i18n/context";
@@ -93,6 +94,7 @@ export default function RefereeDispatchBoard({
   refereeLinkedPlayerByUserId,
 }: RefereeDispatchBoardProps) {
   const { t, locale } = useI18n();
+  const router = useRouter();
   const supabase = createClient();
   const weekdayLabels = locale === "zh" ? WEEKDAY_ZH : WEEKDAY_EN;
 
@@ -111,6 +113,10 @@ export default function RefereeDispatchBoard({
   const [assignments, setAssignments] = useState<MatchReferee[]>(initialAssignments);
   const [drafts, setDrafts] = useState<Record<string, Record<string, { userId: string; wage: string }>>>({});
   const [savingByMatch, setSavingByMatch] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setAssignments(initialAssignments);
+  }, [initialAssignments]);
 
   const sortedJobs = useMemo(
     () =>
@@ -304,6 +310,7 @@ export default function RefereeDispatchBoard({
     setAssignments((prev) => [...prev, data]);
     setDraft(matchId, jobId, { userId: "", wage: "" });
     toast.success(t("referee.dispatch.toastAssignOk"));
+    router.refresh();
   };
 
   const removeAssignment = async (row: MatchReferee) => {
@@ -326,6 +333,7 @@ export default function RefereeDispatchBoard({
       )
     );
     toast.success(t("referee.dispatch.toastRemoveOk"));
+    router.refresh();
   };
 
   return (
