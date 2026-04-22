@@ -68,40 +68,30 @@ export function calendarRangeFromMatchForICS(
 }
 
 /**
- * Format time for ICS so the event shows at the same wall-clock time as the site display (no +8 hr).
- * Uses TZID=Asia/Taipei and Taipei local time, consistent with formatScheduledTimeAsStored.
+ * Format ICS local datetime in Asia/Taipei.
+ * - Explicit `Z`/`±offset` inputs are treated as real instants and converted to Taipei wall time.
+ * - Naive strings are parsed by Date as local/UTC per platform; callers should prefer canonical ISO.
  */
 function formatICSTimeTaipei(iso: string | null | undefined): string | null {
   if (!iso || typeof iso !== "string" || !iso.trim()) return null;
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return null;
-    const isUtc = iso.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(iso);
-    const utcHour = d.getUTCHours();
-    let y: number, m: number, day: number, h: number, min: number;
-    if (isUtc && utcHour >= 8 && utcHour <= 23) {
-      y = d.getUTCFullYear();
-      m = d.getUTCMonth() + 1;
-      day = d.getUTCDate();
-      h = d.getUTCHours();
-      min = d.getUTCMinutes();
-    } else {
-      const s = new Intl.DateTimeFormat("en-CA", {
-        timeZone: TAIPEI,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).formatToParts(d);
-      const get = (type: string) => s.find((p) => p.type === type)?.value ?? "0";
-      y = parseInt(get("year"), 10);
-      m = parseInt(get("month"), 10);
-      day = parseInt(get("day"), 10);
-      h = parseInt(get("hour"), 10);
-      min = parseInt(get("minute"), 10);
-    }
+    const s = new Intl.DateTimeFormat("en-CA", {
+      timeZone: TAIPEI,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(d);
+    const get = (type: string) => s.find((p) => p.type === type)?.value ?? "0";
+    const y = parseInt(get("year"), 10);
+    const m = parseInt(get("month"), 10);
+    const day = parseInt(get("day"), 10);
+    const h = parseInt(get("hour"), 10);
+    const min = parseInt(get("minute"), 10);
     const Y = String(y);
     const M = String(m).padStart(2, "0");
     const D = String(day).padStart(2, "0");
