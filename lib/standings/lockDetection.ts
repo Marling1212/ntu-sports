@@ -24,7 +24,8 @@ import {
   type SimulatedScoreOutcome,
 } from "./scoreSimulation";
 
-const DEFAULT_ENUMERATION_BUDGET = 2_000_000;
+/** With 11 stress outcomes/match, 11^7 < 25M so groups with up to 7 remaining playable games can still enumerate. */
+const DEFAULT_ENUMERATION_BUDGET = 25_000_000;
 
 export interface LockDetectionOptions {
   matchPlayerStats?: ComputeStandingsOptions["matchPlayerStats"];
