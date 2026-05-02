@@ -1167,16 +1167,21 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
   const lockedPlayoffSeeds = useMemo(() => {
     if (!hasPlayoffs || qualifiersPerGroup < 1) return new Map<string, string>();
-    const regularForLock = regularSeasonMatches.map((m) => ({
-      player1_id: m.player1?.id ?? null,
-      player2_id: m.player2?.id ?? null,
-      winner_id: (m as any).winner_id ?? m.winner?.id ?? null,
-      score1: (m as any).score1,
-      score2: (m as any).score2,
-      status: m.status,
-      round: 0,
-      group_number: m.group_number,
-    }));
+    // Must include every group's round-robin matches. `regularSeasonMatches` is filtered by
+    // `selectedGroup`, which would otherwise drop other groups and prevent (seed, group) locks
+    // from being computed for the full bracket.
+    const regularForLock = matches
+      .filter((m) => m.round === 0)
+      .map((m) => ({
+        player1_id: m.player1?.id ?? null,
+        player2_id: m.player2?.id ?? null,
+        winner_id: (m as any).winner_id ?? m.winner?.id ?? null,
+        score1: (m as any).score1,
+        score2: (m as any).score2,
+        status: m.status,
+        round: 0,
+        group_number: (m as any).group_number ?? m.group_number ?? null,
+      }));
     const playersForLock = players.map((p) => ({
       id: p.id,
       name: p.name,
@@ -1193,34 +1198,38 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   }, [
     hasPlayoffs,
     qualifiersPerGroup,
-    regularSeasonMatches,
+    matches,
     players,
     tiebreakerConfig,
     matchPlayerStats,
     teamMembers,
     registrationType,
+    sportName,
   ]);
 
   const playoffMatchesForBracket = useMemo(() => {
     if (!hasPlayoffs) return resolvedPlayoffMatches;
     if (!isAdminDecide) return resolvedPlayoffMatches;
-    if (tieSeedLabels.size === 0) return resolvedPlayoffMatches;
+    // When every group is done and there are no seed-line ties, bracket data already resolves from DB.
+    if (allGroupsFinalized && tieSeedLabels.size === 0) return resolvedPlayoffMatches;
 
     return resolvedPlayoffMatches.map((m: any) => {
       const next = { ...m };
 
-      if (!next.player1 && next.slot1 && typeof next.slot1 === "object") {
-        const s = next.slot1;
-        const key = `${s.seed},${s.group}`;
-        const label = tieSeedLabels.get(key);
-        if (label) next.player1 = { id: `tie-${key}-p1`, name: label };
-      }
+      if (tieSeedLabels.size > 0) {
+        if (!next.player1 && next.slot1 && typeof next.slot1 === "object") {
+          const s = next.slot1;
+          const key = `${s.seed},${s.group}`;
+          const label = tieSeedLabels.get(key);
+          if (label) next.player1 = { id: `tie-${key}-p1`, name: label };
+        }
 
-      if (!next.player2 && next.slot2 && typeof next.slot2 === "object") {
-        const s = next.slot2;
-        const key = `${s.seed},${s.group}`;
-        const label = tieSeedLabels.get(key);
-        if (label) next.player2 = { id: `tie-${key}-p2`, name: label };
+        if (!next.player2 && next.slot2 && typeof next.slot2 === "object") {
+          const s = next.slot2;
+          const key = `${s.seed},${s.group}`;
+          const label = tieSeedLabels.get(key);
+          if (label) next.player2 = { id: `tie-${key}-p2`, name: label };
+        }
       }
 
       // UX requirement:
@@ -1267,7 +1276,15 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
       return next;
     });
-  }, [hasPlayoffs, isAdminDecide, tieSeedLabels, resolvedPlayoffMatches, allGroupsFinalized]);
+  }, [
+    hasPlayoffs,
+    isAdminDecide,
+    tieSeedLabels,
+    resolvedPlayoffMatches,
+    allGroupsFinalized,
+    lockedPlayoffSeeds,
+    players,
+  ]);
 
   /** Which playoff seed (1..X) this team is mathematically locked into for this group, if any. */
   const getLockedPlayoffSeed = (playerId: string, groupNum: number): number | null => {

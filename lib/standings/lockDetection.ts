@@ -3,7 +3,7 @@
  * to a single team given all possible outcomes of remaining matches.
  *
  * Uses exhaustive enumeration when branching^remaining <= enumerationBudget.
- * Score-magnitude tiebreakers (GD, GF, GA, H2H) trigger multi-scoreline "stress" simulation.
+ * Remaining matches always use multi-scoreline "stress" outcomes (GD/GF/H2H-safe), not W/D/L-only.
  */
 
 import type { TiebreakerConfig } from "@/types/database";
@@ -18,10 +18,8 @@ import {
 } from "./compute";
 import { normalizeTiebreakerConfig } from "./config";
 import {
-  tiebreakerUsesScoreSensitiveCriteria,
   getSportMaxGoalsPerSide,
   buildStressOutcomesForMatch,
-  buildSimpleOutcomesForMatch,
   maxRemainingMatchesForEnumeration,
   type SimulatedScoreOutcome,
 } from "./scoreSimulation";
@@ -110,7 +108,6 @@ export function computeLockedSeeds(
   const locked = new Map<string, string>();
 
   const orderNoFinal = cfg.order.filter((c) => c !== "final");
-  const stressScores = tiebreakerUsesScoreSensitiveCriteria(orderNoFinal);
   const maxGoalsM = getSportMaxGoalsPerSide(options.sport ?? null, options.maxGoalsPerSide);
   const budget = options.enumerationBudget ?? DEFAULT_ENUMERATION_BUDGET;
   const rrMode = options.roundRobinMode ?? "single";
@@ -125,7 +122,7 @@ export function computeLockedSeeds(
     const outcomesPerMatch: SimulatedScoreOutcome[][] = remainingPlayable.map((m) => {
       const p1 = getPlayerId(m, 1)!;
       const p2 = getPlayerId(m, 2)!;
-      return stressScores ? buildStressOutcomesForMatch(p1, p2, maxGoalsM) : buildSimpleOutcomesForMatch(p1, p2);
+      return buildStressOutcomesForMatch(p1, p2, maxGoalsM);
     });
 
     const branching =
