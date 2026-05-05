@@ -156,17 +156,37 @@ export async function getSportPlayers(
   divisionIds?: string[] | null
 ) {
   const supabase = await createClient();
-  let q = supabase
-    .from("players")
-    .select("*")
-    .eq("event_id", eventId)
-    .order("seed", { ascending: true, nullsFirst: false })
-    .order("name", { ascending: true });
-  if (divisionIds?.length) {
-    q = q.in("division_id", divisionIds);
+  if (!divisionIds?.length) {
+    const { data: players } = await supabase
+      .from("players")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("seed", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true });
+    return players || [];
   }
-  const { data: players } = await q;
-  return players || [];
+
+  // Backward-compatible: include both division-bound rows and legacy null-division rows.
+  const [{ data: inDivision }, { data: nullDivision }] = await Promise.all([
+    supabase
+      .from("players")
+      .select("*")
+      .eq("event_id", eventId)
+      .in("division_id", divisionIds)
+      .order("seed", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true }),
+    supabase
+      .from("players")
+      .select("*")
+      .eq("event_id", eventId)
+      .is("division_id", null)
+      .order("seed", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true }),
+  ]);
+
+  const map = new Map<string, any>();
+  [...(inDivision || []), ...(nullDivision || [])].forEach((p) => map.set(p.id, p));
+  return Array.from(map.values());
 }
 
 export async function getSportMatches(
@@ -174,9 +194,7 @@ export async function getSportMatches(
   divisionIds?: string[] | null
 ) {
   const supabase = await createClient();
-  let q = supabase
-    .from("matches")
-    .select(`
+  const selectClause = `
       *,
       player1:players!matches_player1_id_fkey(id, name, seed, department),
       player2:players!matches_player2_id_fkey(id, name, seed, department),
@@ -190,20 +208,42 @@ export async function getSportMatches(
         court_id,
         event_courts!event_slots_court_id_fkey(name)
       )
-    `)
-    .eq("event_id", eventId)
-    .order("scheduled_time", { ascending: true, nullsFirst: false })
-    .order("round", { ascending: true })
-    .order("match_number", { ascending: true });
-  if (divisionIds?.length) {
-    // Backward-compatible fallback:
-    // some legacy/admin-generated matches may have division_id = null even in multi-division events.
-    // Include those rows so public draw pages do not appear blank.
-    const idsCsv = divisionIds.join(",");
-    q = q.or(`division_id.in.(${idsCsv}),division_id.is.null`);
+    `;
+
+  if (!divisionIds?.length) {
+    const { data: matches } = await supabase
+      .from("matches")
+      .select(selectClause)
+      .eq("event_id", eventId)
+      .order("scheduled_time", { ascending: true, nullsFirst: false })
+      .order("round", { ascending: true })
+      .order("match_number", { ascending: true });
+    return matches || [];
   }
-  const { data: matches } = await q;
-  return matches || [];
+
+  // Backward-compatible: include division-bound rows + legacy null-division rows.
+  const [{ data: inDivision }, { data: nullDivision }] = await Promise.all([
+    supabase
+      .from("matches")
+      .select(selectClause)
+      .eq("event_id", eventId)
+      .in("division_id", divisionIds)
+      .order("scheduled_time", { ascending: true, nullsFirst: false })
+      .order("round", { ascending: true })
+      .order("match_number", { ascending: true }),
+    supabase
+      .from("matches")
+      .select(selectClause)
+      .eq("event_id", eventId)
+      .is("division_id", null)
+      .order("scheduled_time", { ascending: true, nullsFirst: false })
+      .order("round", { ascending: true })
+      .order("match_number", { ascending: true }),
+  ]);
+
+  const map = new Map<string, any>();
+  [...(inDivision || []), ...(nullDivision || [])].forEach((m) => map.set(m.id, m));
+  return Array.from(map.values());
 }
 
 /** For overview "latest" only: most recent by created_at. Pinned does not affect this. */
