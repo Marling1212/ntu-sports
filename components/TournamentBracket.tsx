@@ -195,9 +195,9 @@ export default function TournamentBracket({
     if (!match) {
       return (
         <div className="flex flex-col gap-1 opacity-40 relative z-10 w-[150px] md:w-[200px]">
-           <PlayerBlock player={null} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} />
+           <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} />
            <div className="h-1"></div>
-           <PlayerBlock player={null} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} />
+           <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} />
         </div>
       );
     }
@@ -211,9 +211,9 @@ export default function TournamentBracket({
         className="block relative group hover:scale-[1.02] active:scale-95 transition-transform duration-300 z-10 scroll-mt-24 w-max"
       >
         <div className="relative flex flex-col gap-1 w-[150px] md:w-[200px]">
-          <PlayerBlock player={match.player1 || null} slot={match.slot1} isWinner={player1IsWinner} isLoser={player1IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} />
+          <PlayerBlock player={match.player1 || null} slot={match.slot1} isWinner={player1IsWinner} isLoser={player1IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} />
           <div className="h-1"></div>
-          <PlayerBlock player={match.player2 || null} slot={match.slot2} isWinner={player2IsWinner} isLoser={player2IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === Math.min(...rounds) ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} />
+          <PlayerBlock player={match.player2 || null} slot={match.slot2} isWinner={player2IsWinner} isLoser={player2IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} />
           
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
              {match.status === "completed" && match.score ? (
