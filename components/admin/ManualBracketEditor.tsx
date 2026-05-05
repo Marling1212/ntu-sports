@@ -401,7 +401,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
     }
 
     const assignedCount = bracketPositions.filter((pos) => pos.player !== null).length;
-    const emptyPairCount = Array.from({ length: Math.floor(bracketSize / 2) }).reduce((acc, _, idx) => {
+    const emptyPairCount = Array.from({ length: Math.floor(bracketSize / 2) }).reduce<number>((acc, _, idx) => {
       const pos1 = bracketPositions[idx * 2];
       const pos2 = bracketPositions[idx * 2 + 1];
       return !pos1?.player && !pos2?.player ? acc + 1 : acc;
