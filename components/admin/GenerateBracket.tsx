@@ -120,7 +120,12 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
       console.log(`可產生非種子互打: ${unseededMatchesPossible} 場 (需要 ${unseededMatchesPossible * 2} 個非種子)`);
       
       // 決定給哪些種子這個優勢
-      const seedsWithAdvantage = Math.min(seeded.length, unseededMatchesPossible);
+      // 大量 BYE（例如 70 人進 128 格）時，若先消耗非種子去做「互打優勢」，
+      // 反而會觸發後續「非種子不足」誤判；此情況改為不先做優勢配對。
+      const useSeedAdvantageMatches = numByes <= seeded.length;
+      const seedsWithAdvantage = useSeedAdvantageMatches
+        ? Math.min(seeded.length, unseededMatchesPossible)
+        : 0;
       console.log(`可給予優勢的種子數: ${seedsWithAdvantage}`);
       
       let unseededIndex = 0;
