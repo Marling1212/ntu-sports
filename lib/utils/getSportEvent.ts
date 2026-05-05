@@ -196,7 +196,11 @@ export async function getSportMatches(
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });
   if (divisionIds?.length) {
-    q = q.in("division_id", divisionIds);
+    // Backward-compatible fallback:
+    // some legacy/admin-generated matches may have division_id = null even in multi-division events.
+    // Include those rows so public draw pages do not appear blank.
+    const idsCsv = divisionIds.join(",");
+    q = q.or(`division_id.in.(${idsCsv}),division_id.is.null`);
   }
   const { data: matches } = await q;
   return matches || [];
