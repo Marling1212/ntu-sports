@@ -37,63 +37,49 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
     try {
       // Seed players according to bracket rules
       const seeded = players.filter(p => p.seed).sort((a, b) => (a.seed || 0) - (b.seed || 0));
-      const unseeded = players.filter(p => !p.seed);
-      
-      // Randomize unseeded players using Fisher-Yates shuffle
-      const shuffledUnseeded = [...unseeded];
+      const positions: (Player | null)[] = new Array(bracketSize).fill(null);
+      const placedSeedIds = new Set<string>();
+
+      // Build seed-number template for all positions in this draw size.
+      // Example for 8: [1,8,4,5,2,7,3,6]
+      const buildSeedTemplate = (size: number): number[] => {
+        if (size <= 1) return [1];
+        let order = [1, 2];
+        while (order.length < size) {
+          const doubled = order.length * 2;
+          const mirrored = order.map((v) => doubled + 1 - v);
+          const next: number[] = [];
+          for (let i = 0; i < order.length; i++) {
+            next.push(order[i], mirrored[i]);
+          }
+          order = next;
+        }
+        return order;
+      };
+
+      const seedTemplate = buildSeedTemplate(bracketSize);
+
+      // Place ALL valid seed numbers (1..bracketSize) to their proper seeded slots.
+      seeded.forEach((player) => {
+        const seedNum = player.seed || 0;
+        if (seedNum < 1 || seedNum > bracketSize) return;
+        const slotIndex = seedTemplate.findIndex((s) => s === seedNum);
+        if (slotIndex < 0) return;
+        if (!positions[slotIndex]) {
+          positions[slotIndex] = player;
+          placedSeedIds.add(player.id);
+        }
+      });
+
+      // Remaining players enter random draw pool.
+      const drawPool = players.filter(p => !placedSeedIds.has(p.id));
+
+      // Randomize draw pool using Fisher-Yates shuffle
+      const shuffledUnseeded = [...drawPool];
       for (let i = shuffledUnseeded.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffledUnseeded[i], shuffledUnseeded[j]] = [shuffledUnseeded[j], shuffledUnseeded[i]];
       }
-      
-      // Get seed players by number
-      const seed1 = seeded.find(p => p.seed === 1);
-      const seed2 = seeded.find(p => p.seed === 2);
-      const seeds34 = seeded.filter(p => p.seed === 3 || p.seed === 4);
-      const seeds58 = seeded.filter(p => p.seed && p.seed >= 5 && p.seed <= 8);
-      
-      // Randomize seeds 3-4
-      const shuffled34 = [...seeds34];
-      for (let i = shuffled34.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled34[i], shuffled34[j]] = [shuffled34[j], shuffled34[i]];
-      }
-      
-      // Randomize seeds 5-8
-      const shuffled58 = [...seeds58];
-      for (let i = shuffled58.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled58[i], shuffled58[j]] = [shuffled58[j], shuffled58[i]];
-      }
-      
-      // Define positions for seeds
-      const positions: (Player | null)[] = new Array(bracketSize).fill(null);
-      
-      // Place Seed 1 and 2 (fixed positions)
-      if (seed1) positions[0] = seed1; // Seed 1 at top
-      if (seed2) positions[bracketSize - 1] = seed2; // Seed 2 at bottom
-      
-      // Place Seeds 3-4 (randomized between their designated positions)
-      const pos34 = [Math.floor(bracketSize / 2), Math.floor(bracketSize / 2) - 1];
-      shuffled34.forEach((player, index) => {
-        if (pos34[index] !== undefined) {
-          positions[pos34[index]] = player;
-        }
-      });
-      
-      // Place Seeds 5-8 (randomized between their designated positions)
-      // Only use valid positions (avoid -1 when bracketSize < 4)
-      const pos58 = [
-        Math.floor(bracketSize / 4),
-        bracketSize - 1 - Math.floor(bracketSize / 4),
-        Math.floor(bracketSize / 2) + Math.floor(bracketSize / 4),
-        Math.floor(bracketSize / 4) - 1
-      ].filter(p => p >= 0 && p < bracketSize);
-      shuffled58.forEach((player, index) => {
-        if (pos58[index] !== undefined) {
-          positions[pos58[index]] = player;
-        }
-      });
       
       // FINAL CORRECT Strategy:
       // 1. 計算可以安排多少場"非種子互打"
