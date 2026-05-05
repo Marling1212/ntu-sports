@@ -52,6 +52,7 @@ export default async function SportEventRulesPage({
           event={event}
           rules={rules || []}
           scheduleByDay={scheduleByDay}
+          tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
           sportSlug={sportParam}
           pageTitle={t("navigation.rules")}
           pageSubtitle={t("navigation.rulesDescription")}

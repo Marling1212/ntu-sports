@@ -1,5 +1,7 @@
 import MarkdownText from "@/components/MarkdownText";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { getTiebreakerRulesText } from "@/lib/standings";
+import type { TiebreakerConfig } from "@/types/database";
 
 interface ScheduleItemRow {
   id: string;
@@ -29,6 +31,8 @@ interface EventScheduleContentProps {
   pageTitle?: string;
   /** Override page subtitle */
   pageSubtitle?: string;
+  /** Season-play tiebreaker order shown in Rules page */
+  tiebreakerConfig?: TiebreakerConfig | null;
 }
 
 /** Shared view: tournament rules + schedule_items by day. Used for Schedule (bracket) and Rules page. Data from admin Settings. */
@@ -39,11 +43,16 @@ export default async function EventScheduleContent({
   sportSlug = "",
   pageTitle,
   pageSubtitle,
+  tiebreakerConfig,
 }: EventScheduleContentProps) {
   const locale = await getLocale();
   const t = getT(locale);
   const title = pageTitle ?? event.name ?? t("schedule.pageTitleWithSport").replace("{sport}", sportSlug);
   const subtitle = pageSubtitle ?? t("schedule.matchSchedulesDesc");
+  const tiebreakerRulesLines = getTiebreakerRulesText(
+    tiebreakerConfig,
+    locale === "zh" ? "zh" : "en"
+  );
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -72,6 +81,19 @@ export default async function EventScheduleContent({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {tiebreakerRulesLines.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-8">
+          <h2 className="text-xl font-bold text-ntu-green mb-3">
+            {locale === "zh" ? "排名規則（同分時依序比較）" : "Ranking rules (tiebreakers in order)"}
+          </h2>
+          <ul className="list-disc ml-5 text-sm text-gray-700 space-y-1">
+            {tiebreakerRulesLines.map((line, i) => (
+              <li key={`${i}-${line}`}>{line}</li>
+            ))}
+          </ul>
         </div>
       )}
 

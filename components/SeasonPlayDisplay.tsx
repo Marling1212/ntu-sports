@@ -14,7 +14,6 @@ import type { TiebreakerConfig } from "@/types/database";
 import {
   computeStandings,
   normalizeTiebreakerConfig,
-  getTiebreakerRulesText,
   computeLockedSeeds,
 } from "@/lib/standings";
 
@@ -1160,11 +1159,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     registrationType,
   ]);
 
-  const tiebreakerRulesLines = useMemo(
-    () => getTiebreakerRulesText(config, locale === "zh" ? "zh" : "en"),
-    [config, locale]
-  );
-
   const lockedPlayoffSeeds = useMemo(() => {
     if (!hasPlayoffs || qualifiersPerGroup < 1) return new Map<string, string>();
     // Must include every group's round-robin matches. `regularSeasonMatches` is filtered by
@@ -2252,14 +2246,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
 
           {renderSoccerStatsSection()}
 
-          <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-            <p className="font-semibold text-gray-800 mb-1">{locale === "zh" ? "排名規則（同分時依序比較）" : "Ranking rules (tiebreakers in order)"}</p>
-            <ul className="list-none space-y-0.5">
-              {tiebreakerRulesLines.map((line, i) => (
-                <li key={i}>{line}</li>
-              ))}
-            </ul>
-          </div>
         </div>
       )}
 
