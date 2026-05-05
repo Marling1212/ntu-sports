@@ -400,12 +400,19 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
       return;
     }
 
-    // Validate: no BYE vs BYE
-    for (let i = 0; i < bracketSize; i += 2) {
-      const pos1 = bracketPositions[i];
-      const pos2 = bracketPositions[i + 1];
-      if (!pos1.player && !pos2.player) {
-        toast.error(t('admin.manualBracket.byeByeError', { p1: String(i + 1), p2: String(i + 2) }));
+    const assignedCount = bracketPositions.filter((pos) => pos.player !== null).length;
+    const emptyPairCount = Array.from({ length: Math.floor(bracketSize / 2) }).reduce((acc, _, idx) => {
+      const pos1 = bracketPositions[idx * 2];
+      const pos2 = bracketPositions[idx * 2 + 1];
+      return !pos1?.player && !pos2?.player ? acc + 1 : acc;
+    }, 0);
+
+    if (emptyPairCount > 0) {
+      const proceed = window.confirm(
+        `目前有 ${emptyPairCount} 組空白對戰位（可能形成 BYE vs BYE）。仍要繼續儲存並建立比賽嗎？`
+      );
+      if (!proceed) {
+        toast("已取消儲存，請先補齊籤位或直接繼續。", { icon: "⚠️" });
         return;
       }
     }
@@ -427,6 +434,52 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
         .select("*", { count: "exact", head: true })
         .eq("event_id", eventId);
 
+      // If all positions are cleared, treat save as "clear bracket" and keep this action
+      // in manual editing history (no standalone destructive button needed).
+      if (assignedCount === 0) {
+        if (count && count > 0) {
+          const confirmClear = window.confirm("目前沒有任何分配位置。是否要清空現有籤表與比賽？");
+          if (!confirmClear) {
+            setLoading(false);
+            return;
+          }
+        }
+
+        let clearQuery = supabase.from("matches").delete().eq("event_id", eventId);
+        if (defaultDivisionId) {
+          clearQuery = clearQuery.eq("division_id", defaultDivisionId);
+        }
+        const { error: clearError } = await clearQuery;
+        if (clearError) throw clearError;
+
+        await supabase
+          .from("bracket_edit_history")
+          .insert({
+            event_id: eventId,
+            admin_id: user.id,
+            action: 'edit',
+            changes: { action: 'clear_bracket_via_manual_save' },
+            reason: '手動編輯儲存：清空籤表',
+          });
+
+        await supabase
+          .from("events")
+          .update({
+            bracket_generation_method: null,
+            bracket_generated_at: null,
+            has_third_place_match: false,
+          })
+          .eq("id", eventId);
+
+        toast.success("已透過手動編輯儲存清空籤表");
+        setTimeout(() => {
+          if (typeof window !== "undefined") {
+            window.location.reload();
+          }
+        }, 1000);
+        return;
+      }
+
       if (count && count > 0) {
         const confirmDelete = window.confirm(
           t('admin.manualBracket.confirmDeleteMatches')
@@ -437,7 +490,11 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
         }
 
         // Delete existing matches
-        await supabase.from("matches").delete().eq("event_id", eventId);
+        let deleteQuery = supabase.from("matches").delete().eq("event_id", eventId);
+        if (defaultDivisionId) {
+          deleteQuery = deleteQuery.eq("division_id", defaultDivisionId);
+        }
+        await deleteQuery;
 
         // Record deletion in history
         await supabase
@@ -791,14 +848,14 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
         <div className="flex gap-2">
           <button
             onClick={handleClearAll}
-            disabled={isLocked}
+            disabled={loading || isLocked}
             className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('admin.manualBracket.clearAll')}
           </button>
           <button
             onClick={handleAutoFill}
-            disabled={unassignedPlayers.length === 0 || isLocked}
+            disabled={loading || unassignedPlayers.length === 0 || isLocked}
             className="px-4 py-2 text-sm border border-ntu-green text-ntu-green rounded-lg hover:bg-ntu-green hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('admin.manualBracket.autoAssign')}

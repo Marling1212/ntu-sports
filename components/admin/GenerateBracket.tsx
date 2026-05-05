@@ -598,9 +598,11 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
         : matches.length;
       
       toast.success(`成功生成 ${totalMatchesCreated} 場比賽！${hasThirdPlaceMatch ? '（含季軍賽）' : ''}（${numRounds} 輪）前往 Matches 頁面查看。`);
-      setLoading(false);
-      // Optionally redirect to matches page
-      // window.location.href = `/admin/${eventId}/matches`;
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          window.location.reload();
+        }
+      }, 1000);
     } catch (err) {
       console.error(err);
       toast.error("生成籤表時發生錯誤");
