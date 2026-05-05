@@ -426,7 +426,17 @@ export default function TournamentBracket({
                 * round is the 3rd-place game — rendering it here builds empty feeder branches below the real bracket.
                 */}
                {gridMatches[rounds[rounds.length - 1]]
-                 ?.filter((match) => match && match.matchNumber === 1)
+                 ?.filter((match) => {
+                   if (!match) return false;
+                   // Only exclude the dedicated 3rd-place row when we are rendering
+                   // the tournament's actual final round. For section views (earlier rounds),
+                   // all roots in the highest visible round must be rendered.
+                   const isThirdPlaceInFinalRound =
+                     rounds[rounds.length - 1] === actualTotalRounds &&
+                     has3rdPlaceMatch &&
+                     match.matchNumber === 2;
+                   return !isThirdPlaceInFinalRound;
+                 })
                  .map((match, i) => (
                    <RecursiveMatchTree
                      key={`root-${match?.id ?? i}`}
