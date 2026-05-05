@@ -38,6 +38,19 @@ export default function TournamentBracket({
   compactLayout = false,
 }: TournamentBracketProps) {
   const { t } = useI18n();
+  if (!matches || matches.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 w-full min-w-0">
+        <div className="text-center py-8">
+          <h3 className="text-lg font-semibold text-ntu-green mb-2">尚無可預覽的籤表</h3>
+          <p className="text-sm text-gray-600">
+            請先產生或匯入籤表；若你已經建立比賽，請重新整理頁面再試一次。
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const maxRound = Math.max(...matches.map(m => m.round), 1);
   const uniqueRounds = [...new Set(matches.map(m => m.round))].sort((a, b) => a - b);
   const rounds = uniqueRounds.length > 0 ? uniqueRounds : Array.from({ length: maxRound }, (_, i) => i + 1);
