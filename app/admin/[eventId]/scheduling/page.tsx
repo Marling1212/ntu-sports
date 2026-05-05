@@ -6,7 +6,7 @@ import ImportMatchSchedule from "@/components/admin/ImportMatchSchedule";
 import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
 import SchedulingPageNav from "@/components/admin/SchedulingPageNav";
 import ShiftAllScheduleTimesPanel from "@/components/admin/ShiftAllScheduleTimesPanel";
-import SchedulingModePrompt from "@/components/admin/SchedulingModePrompt";
+import ScheduleItemsManager from "@/components/admin/ScheduleItemsManager";
 
 export default async function SchedulingPage({
   params,
@@ -91,6 +91,13 @@ export default async function SchedulingPage({
     .select("player_id, day_of_week, start_time, end_time")
     .eq("event_id", eventId);
 
+  const { data: scheduleItems } = await supabase
+    .from("schedule_items")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("day_number", { ascending: true })
+    .order("order_number", { ascending: true });
+
   const slotsForGrid = (slots || []).map((s: any) => ({
     id: s.id,
     slot_date: s.slot_date,
@@ -119,23 +126,12 @@ export default async function SchedulingPage({
         <SchedulingPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">
           <div className="container mx-auto px-4">
-            <SchedulingModePrompt eventId={eventId} />
             <div className="mb-6">
               <h1 className="text-4xl font-bold text-ntu-green mb-2">排程</h1>
               <p className="text-lg text-gray-600">
                 {event?.name} — 設定時段、場地，並將比賽拖曳排入
               </p>
             </div>
-
-            <section
-              id="fixed-scheduling-section"
-              className="rounded-xl border-2 border-ntu-green/20 bg-ntu-green/5 px-4 py-3 mb-4 scroll-mt-24"
-            >
-              <h2 className="text-lg font-semibold text-ntu-green">區塊一：原本排程功能（固定時間）</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                先建立場地與時段，接著將比賽拖曳到指定時間。
-              </p>
-            </section>
 
             <div id="import-schedule" className="scroll-mt-24 pt-2">
               <ImportMatchSchedule eventId={eventId} players={players || []} />
@@ -164,6 +160,14 @@ export default async function SchedulingPage({
                 blackoutTemplates={blackoutTemplates || []}
               />
             </div>
+
+            <ScheduleItemsManager
+              eventId={eventId}
+              initialScheduleItems={scheduleItems || []}
+              initialScheduleNotes={event?.schedule_notes || ""}
+              initialScheduleUpdatedAt={event?.schedule_updated_at || ""}
+              initialContactInfo={event?.contact_info || ""}
+            />
           </div>
         </main>
       </div>

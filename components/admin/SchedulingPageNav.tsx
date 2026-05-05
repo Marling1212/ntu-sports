@@ -9,6 +9,7 @@ const links = [
   { href: "#available-slots", label: "可用時段", barColor: "bg-indigo-500", hoverBg: "hover:bg-indigo-50" },
   { href: "#auto-schedule", label: "一鍵排程", barColor: "bg-emerald-600", hoverBg: "hover:bg-emerald-50" },
   { href: "#schedule-editor", label: "排程編輯（拖曳）", barColor: "bg-ntu-green", hoverBg: "hover:bg-green-50" },
+  { href: "#schedule-items", label: "比賽日與賽程說明", barColor: "bg-amber-500", hoverBg: "hover:bg-amber-50" },
 ];
 
 export default function SchedulingPageNav() {

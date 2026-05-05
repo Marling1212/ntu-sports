@@ -6,7 +6,7 @@ const CRITERIA_LABELS_ZH: Record<string, string> = {
   wins: "勝場數",
   losses: "敗場數（少者較前）",
   draws: "和局數",
-  head_to_head: "對戰成績（同分隊伍彼此對戰，純看勝負）",
+  head_to_head: "對戰成績（同分隊伍彼此之間的對戰，純看勝負）",
   goal_difference: "得失差",
   goals_for: "得分",
   goals_against: "失分（少者較前）",
