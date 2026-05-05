@@ -1038,9 +1038,9 @@ export default function SchedulingManager({
 
       <section id="slot-templates" className="order-4 bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 space-y-8 scroll-mt-24">
         <div className="rounded-xl border-2 border-purple-200 bg-purple-50 px-4 py-3">
-          <h3 className="text-lg font-semibold text-purple-700">區塊二：比賽日模式（動態接續賽程）</h3>
+          <h3 className="text-lg font-semibold text-purple-700">區塊二：新增比賽日與賽程說明</h3>
           <p className="text-sm text-gray-600 mt-1">
-            使用每週比賽日模板批次建立時段，適合一天多場、需依前場進度動態安排。
+            這裡管理公開頁「規則與賽程時間」的賽程日程與說明文字。
           </p>
         </div>
         <div className="flex items-center gap-3 pb-3 border-b-2 border-gray-200">

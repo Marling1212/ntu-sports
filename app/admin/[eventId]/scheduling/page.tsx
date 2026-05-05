@@ -133,6 +133,18 @@ export default async function SchedulingPage({
               </p>
             </div>
 
+            <div
+              id="fixed-scheduling-section"
+              className="rounded-xl border-2 border-ntu-green/20 bg-ntu-green/5 px-4 py-3 mb-4 scroll-mt-24"
+            >
+              <h2 className="text-lg font-semibold text-ntu-green">區塊一：原本排程功能（固定時間）</h2>
+              <div className="text-sm text-gray-600 mt-1 space-y-1">
+                <p>這裡是逐場比賽排程：先建立場地與時段，再把每一場比賽拖曳到對應時間。</p>
+                <p>你在這裡設定的開賽時間，會顯示在公開頁的「賽程 Schedule」頁面。</p>
+                <p>若要編輯「比賽日行程摘要與說明文字」，請在下方區塊二設定。</p>
+              </div>
+            </div>
+
             <div id="import-schedule" className="scroll-mt-24 pt-2">
               <ImportMatchSchedule eventId={eventId} players={players || []} />
             </div>

@@ -170,7 +170,10 @@ export default function ScheduleItemsManager({
     <section id="schedule-items" className="mt-8 scroll-mt-24 space-y-6">
       <div className="rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3">
         <h2 className="text-lg font-semibold text-amber-800">區塊二：新增比賽日與賽程說明</h2>
-        <p className="text-sm text-amber-700 mt-1">這裡管理公開頁「規則與賽程時間」的賽程日程與說明文字。</p>
+        <div className="text-sm text-amber-700 mt-1 space-y-1">
+          <p>這裡管理公開頁「規則與賽程時間」的賽程日程與說明文字。</p>
+          <p>這個區塊會影響的是公開頁「規則與賽程時間」內容，不是公開頁「賽程 Schedule」的逐場時間。</p>
+        </div>
       </div>
 
       <div className="flex justify-between items-center">
