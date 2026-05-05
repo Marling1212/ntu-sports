@@ -235,6 +235,28 @@ function miniLeagueStats(
   return res;
 }
 
+/** Head-to-head pure win counts (draw = 0 for both) among a tied set. */
+function headToHeadWinsAmong(
+  tiedIds: string[],
+  matches: MatchForStandings[]
+): Map<string, number> {
+  const set = new Set(tiedIds);
+  const wins = new Map<string, number>();
+  for (const id of tiedIds) wins.set(id, 0);
+
+  for (const m of matches) {
+    if (m.status !== "completed" && m.status !== "forfeit" && m.status !== "walkover") continue;
+    const a = getPlayerId(m, 1);
+    const b = getPlayerId(m, 2);
+    if (!a || !b || !set.has(a) || !set.has(b)) continue;
+
+    const winnerId = getWinnerId(m);
+    if (!winnerId || !set.has(winnerId)) continue; // draw or missing winner
+    wins.set(winnerId, (wins.get(winnerId) ?? 0) + 1);
+  }
+  return wins;
+}
+
 /** Context for comparing two standing rows exactly like `computeStandings` sort order. */
 export interface CompareStandingRowsContext {
   order: TiebreakerCriteria[];
@@ -287,30 +309,21 @@ export function compareStandingRows(
         tied.some((r) => r.player.id === a.player.id) &&
         tied.some((r) => r.player.id === b.player.id)
       ) {
-        const ml = miniLeagueStats(
-          tied.map((r) => r.player.id),
-          byGroup,
-          table,
-          pointsWin,
-          pointsDraw
-        );
-        const ma = ml.get(a.player.id)!;
-        const mb = ml.get(b.player.id)!;
-        if (mb.points !== ma.points) return mb.points - ma.points;
-        if (mb.goalDiff !== ma.goalDiff) return mb.goalDiff - ma.goalDiff;
-        if (mb.goalsFor !== ma.goalsFor) return mb.goalsFor - ma.goalsFor;
-      } else {
-        const twoH2h = h2h(a.player.id, b.player.id, byGroup, pointsWin, pointsDraw);
-        const aIsP1 = a.player.id < b.player.id;
-        const aPts = aIsP1 ? twoH2h.p1Points : twoH2h.p2Points;
-        const bPts = aIsP1 ? twoH2h.p2Points : twoH2h.p1Points;
-        if (bPts !== aPts) return bPts - aPts;
-        const aGD = aIsP1 ? twoH2h.p1GoalsFor - twoH2h.p1GoalsAgainst : twoH2h.p2GoalsFor - twoH2h.p2GoalsAgainst;
-        const bGD = aIsP1 ? twoH2h.p2GoalsFor - twoH2h.p2GoalsAgainst : twoH2h.p1GoalsFor - twoH2h.p1GoalsAgainst;
-        if (bGD !== aGD) return bGD - aGD;
-        const aGF = aIsP1 ? twoH2h.p1GoalsFor : twoH2h.p2GoalsFor;
-        const bGF = aIsP1 ? twoH2h.p2GoalsFor : twoH2h.p1GoalsFor;
-        if (bGF !== aGF) return bGF - aGF;
+        const tiedIds = tied.map((r) => r.player.id);
+        const wins = headToHeadWinsAmong(tiedIds, byGroup);
+        const aWins = wins.get(a.player.id) ?? 0;
+        const bWins = wins.get(b.player.id) ?? 0;
+
+        // 2-way tie: pure head-to-head winner.
+        if (tied.length === 2) {
+          if (bWins !== aWins) return bWins - aWins;
+        } else {
+          // 3+ tie: use H2H only when it produces a strict order (e.g. A>B>C).
+          // If mutual cycle / unresolved tie, skip H2H and continue next criterion.
+          const uniq = new Set<number>(tiedIds.map((id) => wins.get(id) ?? 0));
+          const hasStrictOrder = uniq.size === tiedIds.length;
+          if (hasStrictOrder && bWins !== aWins) return bWins - aWins;
+        }
       }
     }
   }
