@@ -171,6 +171,7 @@ export default function ScheduleItemsManager({
       <div className="rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3">
         <h2 className="text-lg font-semibold text-amber-800">區塊二：新增比賽日與賽程說明</h2>
         <div className="text-sm text-amber-700 mt-1 space-y-1">
+          <p>適用情境：一天很多場、需依前一場結束時間動態接續安排時，建議使用本區塊。</p>
           <p>這裡管理公開頁「規則與賽程時間」的賽程日程與說明文字。</p>
           <p>這個區塊會影響的是公開頁「規則與賽程時間」內容，不是公開頁「賽程 Schedule」的逐場時間。</p>
         </div>
