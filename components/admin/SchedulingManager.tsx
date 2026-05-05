@@ -946,8 +946,8 @@ export default function SchedulingManager({
   };
 
   return (
-    <div className="space-y-10">
-      <section id="courts" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
+    <div className="grid gap-10">
+      <section id="courts" className="order-1 bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
         <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-gray-200">
           <div className="w-1 h-8 bg-blue-500 rounded"></div>
           <div className="flex-1">
@@ -1036,7 +1036,13 @@ export default function SchedulingManager({
         )}
       </section>
 
-      <section id="slot-templates" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 space-y-8 scroll-mt-24">
+      <section id="slot-templates" className="order-4 bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 space-y-8 scroll-mt-24">
+        <div className="rounded-xl border-2 border-purple-200 bg-purple-50 px-4 py-3">
+          <h3 className="text-lg font-semibold text-purple-700">區塊二：比賽日模式（動態接續賽程）</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            使用每週比賽日模板批次建立時段，適合一天多場、需依前場進度動態安排。
+          </p>
+        </div>
         <div className="flex items-center gap-3 pb-3 border-b-2 border-gray-200">
           <div className="w-1 h-8 bg-purple-500 rounded"></div>
           <div className="flex-1">
@@ -1270,7 +1276,7 @@ export default function SchedulingManager({
         </form>
       </section>
 
-      <section id="available-slots" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
+      <section id="available-slots" className="order-2 bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
         <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-gray-200">
           <div className="w-1 h-8 bg-indigo-500 rounded"></div>
           <div className="flex-1">
@@ -1422,7 +1428,7 @@ export default function SchedulingManager({
         )}
       </section>
 
-      <section id="auto-schedule" className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
+      <section id="auto-schedule" className="order-3 bg-white rounded-xl shadow-lg p-6 border-2 border-gray-200 scroll-mt-24">
         <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-gray-200">
           <div className="w-1 h-8 bg-emerald-600 rounded"></div>
           <div className="flex-1">

@@ -6,6 +6,7 @@ import ImportMatchSchedule from "@/components/admin/ImportMatchSchedule";
 import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
 import SchedulingPageNav from "@/components/admin/SchedulingPageNav";
 import ShiftAllScheduleTimesPanel from "@/components/admin/ShiftAllScheduleTimesPanel";
+import SchedulingModePrompt from "@/components/admin/SchedulingModePrompt";
 
 export default async function SchedulingPage({
   params,
@@ -118,6 +119,7 @@ export default async function SchedulingPage({
         <SchedulingPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">
           <div className="container mx-auto px-4">
+            <SchedulingModePrompt eventId={eventId} />
             <div className="mb-6">
               <h1 className="text-4xl font-bold text-ntu-green mb-2">排程</h1>
               <p className="text-lg text-gray-600">
@@ -125,33 +127,43 @@ export default async function SchedulingPage({
               </p>
             </div>
 
-        <div id="import-schedule" className="scroll-mt-24 pt-2">
-          <ImportMatchSchedule eventId={eventId} players={players || []} />
-        </div>
+            <section
+              id="fixed-scheduling-section"
+              className="rounded-xl border-2 border-ntu-green/20 bg-ntu-green/5 px-4 py-3 mb-4 scroll-mt-24"
+            >
+              <h2 className="text-lg font-semibold text-ntu-green">區塊一：原本排程功能（固定時間）</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                先建立場地與時段，接著將比賽拖曳到指定時間。
+              </p>
+            </section>
 
-        <ShiftAllScheduleTimesPanel eventId={eventId} />
+            <div id="import-schedule" className="scroll-mt-24 pt-2">
+              <ImportMatchSchedule eventId={eventId} players={players || []} />
+            </div>
 
-        <SchedulingManager
-          eventId={eventId}
-          initialCourts={courts || []}
-          initialSlots={slots || []}
-          initialSlotTemplates={slotTemplates || []}
-        />
+            <ShiftAllScheduleTimesPanel eventId={eventId} />
 
-        <div id="schedule-editor" className="mt-10 scroll-mt-24">
-          <h2 className="text-2xl font-semibold text-ntu-green mb-2">排程編輯（拖曳比賽）</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            將左側比賽拖曳至下方時段格；若該時段為某隊不可出賽會顯示警示，仍可儲存。
-          </p>
-          <ScheduleGridEditor
-            eventId={eventId}
-            divisionId={effectiveDivisionId}
-            divisionsCount={divisions.length}
-            slots={slotsForGrid}
-            matches={matchesForGrid}
-            blackoutTemplates={blackoutTemplates || []}
-          />
-        </div>
+            <SchedulingManager
+              eventId={eventId}
+              initialCourts={courts || []}
+              initialSlots={slots || []}
+              initialSlotTemplates={slotTemplates || []}
+            />
+
+            <div id="schedule-editor" className="mt-10 scroll-mt-24">
+              <h2 className="text-2xl font-semibold text-ntu-green mb-2">排程編輯（拖曳比賽）</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                將左側比賽拖曳至下方時段格；若該時段為某隊不可出賽會顯示警示，仍可儲存。
+              </p>
+              <ScheduleGridEditor
+                eventId={eventId}
+                divisionId={effectiveDivisionId}
+                divisionsCount={divisions.length}
+                slots={slotsForGrid}
+                matches={matchesForGrid}
+                blackoutTemplates={blackoutTemplates || []}
+              />
+            </div>
           </div>
         </main>
       </div>
