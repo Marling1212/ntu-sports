@@ -29,7 +29,7 @@ export default function BracketSection({
   // Determine sections based on bracket size (memoized to avoid useCallback dep churn)
   const sections = useMemo(() => {
     const out: { name: string; startPos: number; endPos: number; rounds: number[] }[] = [];
-    if (bracketSize > 32) {
+    if (bracketSize > 64) {
       const quarter = bracketSize / 4;
       const round16 = maxRound - 3;
       out.push(
@@ -38,6 +38,16 @@ export default function BracketSection({
         { name: t("bracket.sectionN").replace("{n}", "3").replace("{start}", String(quarter * 2 + 1)).replace("{end}", String(quarter * 3)), startPos: quarter * 2 + 1, endPos: quarter * 3, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
         { name: t("bracket.sectionN").replace("{n}", "4").replace("{start}", String(quarter * 3 + 1)).replace("{end}", String(bracketSize)), startPos: quarter * 3 + 1, endPos: quarter * 4, rounds: Array.from({ length: round16 }, (_, i) => i + 1) },
         { name: t("bracket.finalsStage"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound - round16 }, (_, i) => round16 + i + 1) },
+      );
+    } else if (bracketSize > 32) {
+      // 64-draw: show 2 halves (1-32 / 33-64) + finals stage
+      // so admins can still see complete half-brackets instead of overly narrow quarters.
+      const half = bracketSize / 2;
+      const round32 = maxRound - 2;
+      out.push(
+        { name: t("bracket.sectionN").replace("{n}", "1").replace("{start}", "1").replace("{end}", String(half)), startPos: 1, endPos: half, rounds: Array.from({ length: round32 }, (_, i) => i + 1) },
+        { name: t("bracket.sectionN").replace("{n}", "2").replace("{start}", String(half + 1)).replace("{end}", String(bracketSize)), startPos: half + 1, endPos: bracketSize, rounds: Array.from({ length: round32 }, (_, i) => i + 1) },
+        { name: t("bracket.finalsStage"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound - round32 }, (_, i) => round32 + i + 1) },
       );
     } else {
       out.push(
