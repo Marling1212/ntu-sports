@@ -47,11 +47,13 @@ export default function SchedulingModePrompt({ eventId }: SchedulingModePromptPr
           </button>
           <button
             type="button"
-            onClick={() => pickMode("slot-templates")}
+            onClick={() => pickMode("schedule-items")}
             className="rounded-xl border-2 border-purple-300 bg-purple-50 p-4 text-left transition-colors hover:bg-purple-100"
           >
-            <p className="mb-1 font-semibold text-purple-700">比賽日模式（每週模板 → 產生時段）</p>
-            <p className="text-xs text-gray-600">適合一天很多場，先用模板批次建立可排程時段。</p>
+            <p className="mb-1 font-semibold text-purple-700">比賽日與賽程說明（區塊二）</p>
+            <p className="text-xs text-gray-600">
+              編輯公開頁「規則與賽程時間」的比賽日行程與文字說明。適合場次會依前一場進度接續、需在規則頁交代日程時。
+            </p>
           </button>
         </div>
       </div>
