@@ -7,6 +7,7 @@ import ScheduleGridEditor from "@/components/admin/ScheduleGridEditor";
 import SchedulingPageNav from "@/components/admin/SchedulingPageNav";
 import ShiftAllScheduleTimesPanel from "@/components/admin/ShiftAllScheduleTimesPanel";
 import ScheduleItemsManager from "@/components/admin/ScheduleItemsManager";
+import SchedulingModePrompt from "@/components/admin/SchedulingModePrompt";
 
 export default async function SchedulingPage({
   params,
@@ -126,6 +127,7 @@ export default async function SchedulingPage({
         <SchedulingPageNav />
         <main className="min-w-0 flex-1 pt-6 pb-12">
           <div className="container mx-auto px-4">
+            <SchedulingModePrompt eventId={eventId} />
             <div className="mb-6">
               <h1 className="text-4xl font-bold text-ntu-green mb-2">排程</h1>
               <p className="text-lg text-gray-600">
