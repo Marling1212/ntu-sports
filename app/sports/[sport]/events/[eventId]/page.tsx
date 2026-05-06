@@ -74,6 +74,7 @@ export default async function SportEventPage({
 
   const event = await getEventForPublicPage(eventId, sportParam, { preview });
   if (!event) notFound();
+  const previewSuffix = preview === "1" ? "?preview=1" : "";
 
   // Division filter: show only matches/players for this sport within the event
   const divisionIds = await getDivisionIdsForEventAndSport(event.id, sportParam);
@@ -178,7 +179,7 @@ export default async function SportEventPage({
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{court}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-800">
                         <Link 
-                          href={`/sports/${sportParam}/matches/${m.id}`}
+                          href={`/sports/${sportParam}/matches/${m.id}${previewSuffix}`}
                           className="hover:text-ntu-green hover:underline"
                         >
                           <span className="font-semibold">{p1}</span>
@@ -217,7 +218,7 @@ export default async function SportEventPage({
         <div className="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
           <div className="flex items-start justify-between mb-3">
             <h2 className="text-xl font-semibold text-ntu-green">{t("announcements.title")}</h2>
-            <Link href={`/sports/${sportParam}/events/${event.id}/announcements`} className="text-ntu-green hover:underline text-sm">
+            <Link href={`/sports/${sportParam}/events/${event.id}/announcements${previewSuffix}`} className="text-ntu-green hover:underline text-sm">
               {t("announcements.viewAllArrow")}
             </Link>
           </div>
@@ -244,7 +245,7 @@ export default async function SportEventPage({
       {/* Navigation Buttons */}
       <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-6 md:grid-cols-4">
         <Link
-          href={`/sports/${sportParam}/events/${event.id}/draw`}
+          href={`/sports/${sportParam}/events/${event.id}/draw${previewSuffix}`}
           className="bg-ntu-green text-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 text-center group"
         >
           <div className="text-center">
@@ -275,7 +276,7 @@ export default async function SportEventPage({
         </Link>
 
         <Link
-          href={`/sports/${sportParam}/events/${event.id}/schedule`}
+          href={`/sports/${sportParam}/events/${event.id}/schedule${previewSuffix}`}
           className="bg-ntu-green text-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 text-center group"
         >
           <div className="text-center">
@@ -304,7 +305,7 @@ export default async function SportEventPage({
         </Link>
 
         <Link
-          href={`/sports/${sportParam}/events/${event.id}/rules`}
+          href={`/sports/${sportParam}/events/${event.id}/rules${previewSuffix}`}
           className="bg-ntu-green text-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 text-center group"
         >
           <div className="text-center">
@@ -331,7 +332,7 @@ export default async function SportEventPage({
         </Link>
 
         <Link
-          href={`/sports/${sportParam}/events/${event.id}/announcements`}
+          href={`/sports/${sportParam}/events/${event.id}/announcements${previewSuffix}`}
           className="bg-ntu-green text-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-8 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 text-center group"
         >
           <div className="text-center">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import { useI18n } from "@/lib/i18n/context";
@@ -30,6 +31,8 @@ export default function BracketMatchScheduleClient({
   sportSlug,
 }: BracketMatchScheduleClientProps) {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
+  const previewSuffix = searchParams?.get("preview") === "1" ? "?preview=1" : "";
   const [filterByPlayerId, setFilterByPlayerId] = useState<string | null>(null);
 
   const displayMatches = useMemo(() => {
@@ -87,7 +90,7 @@ export default function BracketMatchScheduleClient({
             return (
               <Link
                 key={m.id}
-                href={`/sports/${sportSlug}/matches/${m.id}`}
+                href={`/sports/${sportSlug}/matches/${m.id}${previewSuffix}`}
                 className={`block p-4 transition-all duration-200 hover:bg-gray-50 hover:scale-[1.02] ${m.status === "live" ? "bg-red-100 animate-pulse" : ""}`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
@@ -230,7 +233,7 @@ export default function BracketMatchScheduleClient({
                   </td>
                   <td className="px-4 py-3 text-center text-sm">
                     <Link
-                      href={`/sports/${sportSlug}/matches/${m.id}`}
+                      href={`/sports/${sportSlug}/matches/${m.id}${previewSuffix}`}
                       className="text-ntu-green hover:underline font-semibold"
                     >
                       {t("sports.vs")}

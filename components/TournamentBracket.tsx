@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Player, Match, SlotPlaceholder } from "@/types/tournament";
 import { useI18n } from "@/lib/i18n/context";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
@@ -38,6 +39,8 @@ export default function TournamentBracket({
   compactLayout = false,
 }: TournamentBracketProps) {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
+  const previewSuffix = searchParams?.get("preview") === "1" ? "?preview=1" : "";
   const hasMatches = Boolean(matches && matches.length > 0);
   const maxRound = Math.max(...matches.map(m => m.round), 1);
   const uniqueRounds = [...new Set(matches.map(m => m.round))].sort((a, b) => a - b);
@@ -207,7 +210,7 @@ export default function TournamentBracket({
     return (
       <Link
         id={`match-${match.id}`}
-        href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
+        href={`/sports/${sportName.toLowerCase()}/matches/${match.id}${previewSuffix}`}
         className="block relative group hover:scale-[1.02] active:scale-95 transition-transform duration-300 z-10 scroll-mt-24 w-max"
       >
         <div className="relative flex flex-col gap-1 w-[150px] md:w-[200px]">

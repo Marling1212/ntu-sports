@@ -2,6 +2,7 @@
 
 import { Match, Player, SlotPlaceholder } from "@/types/tournament";
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import TournamentBracket from "./TournamentBracket";
 import BracketPlayerSearch from "./BracketPlayerSearch";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
@@ -89,6 +90,8 @@ function getDateRangeInTaipei(filter: DateFilter): { start: Date; end: Date } | 
 
 export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant, tiebreakerConfig, playoffsDisplayMode = "bracket" }: SeasonPlayDisplayProps) {
   const { t, locale } = useI18n();
+  const searchParams = useSearchParams();
+  const previewSuffix = searchParams?.get("preview") === "1" ? "?preview=1" : "";
   const theme = designVariant ? seasonPlayThemes[designVariant] : seasonPlayDefault;
   const showTopScorers = SOCCER_LIKE_SPORTS.includes((sportName || "").toLowerCase());
   const tabs = {
@@ -1663,7 +1666,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               ) : (
                 displayRegularMatches.map((match) => {
                   const matchData = match as any;
-                  const matchUrl = `/sports/${sportName.toLowerCase()}/matches/${match.id}`;
+                  const matchUrl = `/sports/${sportName.toLowerCase()}/matches/${match.id}${previewSuffix}`;
                   return (
                     <div
                       key={match.id}
@@ -1772,7 +1775,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                           </td>
                           <td className="px-4 py-3 text-center">
                             <Link
-                              href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`}
+                              href={`/sports/${sportName.toLowerCase()}/matches/${match.id}${previewSuffix}`}
                               className="text-lg font-bold text-ntu-green hover:text-green-700 hover:underline cursor-pointer transition-colors"
                             >
                               {t("seasonPlay.vs")}
@@ -2271,7 +2274,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
               ) : (
                 displayPlayoffScheduleMatches.map((match) => {
                   const matchData = match as any;
-                  const matchUrl = `/sports/${sportName.toLowerCase()}/matches/${match.id}`;
+                  const matchUrl = `/sports/${sportName.toLowerCase()}/matches/${match.id}${previewSuffix}`;
                   const count = playoffRoundTotalCount.get(Number(match.round)) ?? 0;
                   const isLastRound = Number(match.round) === maxPlayoffRound;
                   const matchNum = Number((match as any).matchNumber) ?? 0;
@@ -2376,13 +2379,13 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 {match.player1.name}
                               </Link>
                             ) : (
-                              <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-ntu-green hover:underline">
+                              <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}${previewSuffix}`} onClick={(e) => e.stopPropagation()} className="hover:text-ntu-green hover:underline">
                                 {t("bracket.tbd")}
                               </Link>
                             )}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} className="text-lg font-bold text-ntu-green hover:text-green-700 hover:underline">
+                            <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}${previewSuffix}`} className="text-lg font-bold text-ntu-green hover:text-green-700 hover:underline">
                               {t("seasonPlay.vs")}
                             </Link>
                           </td>
@@ -2396,7 +2399,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
                                 {match.player2.name}
                               </Link>
                             ) : (
-                              <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-ntu-green hover:underline">
+                              <Link href={`/sports/${sportName.toLowerCase()}/matches/${match.id}${previewSuffix}`} onClick={(e) => e.stopPropagation()} className="hover:text-ntu-green hover:underline">
                                 {t("bracket.tbd")}
                               </Link>
                             )}

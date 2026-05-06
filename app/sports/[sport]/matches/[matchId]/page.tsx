@@ -52,8 +52,10 @@ export async function generateMetadata({
 export default async function MatchDetailPage(context: any) {
   const supabase = await createClient();
   const params = (await context?.params) || {};
+  const searchParams = (await context?.searchParams) || {};
   const sportParam = (params.sport || "").toLowerCase();
   const matchId = params.matchId;
+  const preview = searchParams?.preview;
 
   if (!matchId) {
     notFound();
@@ -84,9 +86,9 @@ export default async function MatchDetailPage(context: any) {
     notFound();
   }
 
-  // Fetch the event; must be visible and have this sport (event.sport or a division)
-  const { getEventByIdAndSport, getDivisionIdsForEventAndSport } = await import("@/lib/utils/getSportEvent");
-  const event = await getEventByIdAndSport(match.event_id, sportParam);
+  // Fetch the event with preview support for hidden events when organizer uses ?preview=1
+  const { getEventForPublicPage, getDivisionIdsForEventAndSport } = await import("@/lib/utils/getSportEvent");
+  const event = await getEventForPublicPage(match.event_id, sportParam, { preview });
   if (!event) notFound();
 
   // For multi-sport events, match must belong to this sport's division(s)
