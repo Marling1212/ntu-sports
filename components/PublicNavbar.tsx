@@ -56,6 +56,7 @@ export default function PublicNavbar({ eventName, tournamentType, eventId: event
   const scheduleUrl = eventId ? `${basePath}/events/${eventId}/schedule${querySuffix}` : `${basePath}/schedule`;
   const rulesUrl = eventId ? `${basePath}/events/${eventId}/rules${querySuffix}` : `${basePath}/rules`;
   const announcementsUrl = eventId ? `${basePath}/events/${eventId}/announcements${querySuffix}` : `${basePath}/announcements`;
+  const adminUrl = eventId ? `/admin/${eventId}/players` : "/admin/dashboard";
 
   const isActive = (path: string) => pathname === path;
 
@@ -88,6 +89,16 @@ export default function PublicNavbar({ eventName, tournamentType, eventId: event
                   className="text-xs text-gray-600 hover:text-ntu-green transition-colors whitespace-nowrap"
                 >
                   ← {t("navigation.backToSport").replace("{sport}", sportName)}
+                </Link>
+              </div>
+            )}
+            {preview === "1" && eventId && (
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href={adminUrl}
+                  className="text-xs font-semibold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-1 rounded-md hover:bg-amber-200 transition-colors whitespace-nowrap"
+                >
+                  {locale === "zh" ? "返回 Admin" : "Back to Admin"}
                 </Link>
               </div>
             )}
@@ -214,6 +225,14 @@ export default function PublicNavbar({ eventName, tournamentType, eventId: event
           </div>
 
           <div className="flex items-center gap-3">
+            {preview === "1" && eventId && (
+              <Link
+                href={adminUrl}
+                className="text-sm font-semibold text-amber-900 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 hover:bg-amber-200 transition-colors min-h-[44px] flex items-center"
+              >
+                {locale === "zh" ? "返回 Admin" : "Back to Admin"}
+              </Link>
+            )}
             <Link 
               href={basePath} 
               className="text-sm text-gray-600 hover:text-ntu-green transition-colors flex items-center gap-1 min-h-[44px]"
