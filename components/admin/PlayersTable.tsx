@@ -10,6 +10,14 @@ import BulkTeamMemberImport from "./BulkTeamMemberImport";
 import { getEnabledFields, getFieldConfig, getCustomFields, getDefaultFieldConfig, type FieldConfig } from "@/lib/utils/fieldConfig";
 import { useI18n } from "@/lib/i18n/context";
 
+type PlayersSortKey =
+  | "draw_no"
+  | `field:${string}`
+  | "checked_in_at"
+  | "blackout_count"
+  | "elimination";
+
+type SortDirection = "asc" | "desc";
 
 interface PlayersTableProps {
   eventId: string;
@@ -46,6 +54,8 @@ export default function PlayersTable({
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>(() => (defaultDivisionId || divisions[0]?.id) ?? "");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSeed, setFilterSeed] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<PlayersSortKey>("field:name");
+  const [sortDir, setSortDir] = useState<SortDirection>("asc");
   /** Per-team roster panel: default expanded when roster empty, collapsed when it has members (see loadTeamMembers). */
   const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
   const memberCountByTeamRef = useRef<Record<string, number>>({});
@@ -344,6 +354,157 @@ export default function PlayersTable({
       });
     return map;
   }, [initialRoundOneMatches, tournamentType]);
+
+  const handleSortColumn = (key: PlayersSortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedFilteredPlayers = useMemo(() => {
+    const list = [...filteredPlayers];
+    const dir = sortDir === "asc" ? 1 : -1;
+
+    const tiebreak = (a: Player, b: Player, primary: number): number => {
+      if (primary !== 0) return primary * dir;
+      const n = (a.name || "").localeCompare(b.name || "", undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+      if (n !== 0) return n;
+      return a.id.localeCompare(b.id);
+    };
+
+    const getFieldComparable = (p: Player, fieldKey: string): string | number | null => {
+      if (fieldKey === "name") return (p.name || "").toLowerCase();
+      if (fieldKey === "department") return (p.department || "").toLowerCase();
+      if (fieldKey === "email") return (p.email || "").toLowerCase();
+      if (fieldKey === "seed") {
+        const s = p.seed;
+        return s == null ? null : Number(s);
+      }
+      const v = p.custom_fields?.[fieldKey];
+      if (v === null || v === undefined) return "";
+      if (typeof v === "number") return v;
+      if (typeof v === "boolean") return v ? "1" : "0";
+      return String(v).toLowerCase();
+    };
+
+    list.sort((a, b) => {
+      let primary = 0;
+      switch (sortKey) {
+        case "draw_no": {
+          const na = drawNumberByPlayerId[a.id];
+          const nb = drawNumberByPlayerId[b.id];
+          const aMiss = na === undefined;
+          const bMiss = nb === undefined;
+          if (aMiss && bMiss) primary = 0;
+          else if (aMiss) primary = 1;
+          else if (bMiss) primary = -1;
+          else primary = na - nb;
+          break;
+        }
+        case "checked_in_at": {
+          const ta = a.checked_in_at ? Date.parse(a.checked_in_at) : NaN;
+          const tb = b.checked_in_at ? Date.parse(b.checked_in_at) : NaN;
+          const aMiss = Number.isNaN(ta);
+          const bMiss = Number.isNaN(tb);
+          if (aMiss && bMiss) primary = 0;
+          else if (aMiss) primary = 1;
+          else if (bMiss) primary = -1;
+          else primary = ta - tb;
+          break;
+        }
+        case "blackout_count": {
+          primary =
+            (blackoutsByPlayer[a.id]?.length ?? 0) -
+            (blackoutsByPlayer[b.id]?.length ?? 0);
+          break;
+        }
+        case "elimination": {
+          const activeRank = (p: Player) => (p.eliminated_round == null ? 0 : 1);
+          primary = activeRank(a) - activeRank(b);
+          if (
+            primary === 0 &&
+            a.eliminated_round != null &&
+            b.eliminated_round != null
+          ) {
+            primary = a.eliminated_round - b.eliminated_round;
+          }
+          break;
+        }
+        default:
+          if (sortKey.startsWith("field:")) {
+            const fk = sortKey.slice("field:".length);
+            if (fk === "seed") {
+              const sa = a.seed;
+              const sb = b.seed;
+              const missA = sa == null || sa === undefined;
+              const missB = sb == null || sb === undefined;
+              if (missA && missB) primary = 0;
+              else if (missA) primary = 1;
+              else if (missB) primary = -1;
+              else primary = sa - sb;
+            } else {
+              primary = String(getFieldComparable(a, fk)).localeCompare(
+                String(getFieldComparable(b, fk)),
+                undefined,
+                { numeric: true, sensitivity: "base" }
+              );
+            }
+          }
+          break;
+      }
+      return tiebreak(a, b, primary);
+    });
+
+    return list;
+  }, [
+    filteredPlayers,
+    sortKey,
+    sortDir,
+    drawNumberByPlayerId,
+    blackoutsByPlayer,
+  ]);
+
+  function SortableTh({
+    columnKey,
+    label,
+    align = "left",
+  }: {
+    columnKey: PlayersSortKey;
+    label: React.ReactNode;
+    align?: "left" | "right";
+  }) {
+    const active = sortKey === columnKey;
+    return (
+      <th
+        scope="col"
+        className={`px-6 py-3 text-xs font-medium uppercase tracking-wider ${align === "right" ? "text-right" : "text-left"}`}
+      >
+        <button
+          type="button"
+          onClick={() => handleSortColumn(columnKey)}
+          className={`group inline-flex w-full max-w-full items-center gap-1 text-xs font-medium uppercase tracking-wider text-gray-600 hover:text-ntu-green ${
+            align === "right" ? "justify-end" : "justify-start"
+          }`}
+        >
+          <span className={align === "right" ? "text-right" : "text-left"}>{label}</span>
+          <span
+            className={`shrink-0 tabular-nums ${
+              active ? "text-ntu-green font-semibold" : "text-gray-300 opacity-0 group-hover:opacity-100"
+            }`}
+            aria-hidden
+          >
+            {active ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
+          </span>
+        </button>
+      </th>
+    );
+  }
 
   const refreshPlayers = async () => {
     const { data } = await supabase
@@ -778,7 +939,7 @@ export default function PlayersTable({
               {registrationType === 'team' ? t('admin.registration.titleTeam') : t('admin.registration.titlePlayer')}
             </h2>
             <div className="text-sm text-gray-500">
-              {t('admin.registration.showingCount')} {filteredPlayers.length} / {players.length} {registrationType === 'team' ? t('admin.registration.teamsCount') : t('admin.registration.playersCount')}
+              {t('admin.registration.showingCount')} {sortedFilteredPlayers.length} / {players.length} {registrationType === 'team' ? t('admin.registration.teamsCount') : t('admin.registration.playersCount')}
             </div>
           </div>
 
@@ -807,6 +968,38 @@ export default function PlayersTable({
                 <option value="unseeded">{t('admin.registration.unseeded')}</option>
               </select>
             </div>
+          </div>
+
+          {/* Mobile sort (desktop: click column headers). */}
+          <div className="flex flex-wrap items-center gap-2 mb-4 md:hidden text-sm">
+            <span className="text-gray-700 whitespace-nowrap">{t('admin.registration.sortBy')}</span>
+            <select
+              value={sortKey}
+              onChange={(e) => {
+                setSortKey(e.target.value as PlayersSortKey);
+                setSortDir('asc');
+              }}
+              className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+            >
+              <option value="draw_no">{t('admin.registration.drawNumberShort')}</option>
+              {enabledFields.map((f) => (
+                <option key={f.key} value={`field:${f.key}`}>
+                  {f.name}
+                </option>
+              ))}
+              <option value="checked_in_at">{t('admin.registration.checkInSort')}</option>
+              <option value="blackout_count">{t('admin.registration.blackouts')}</option>
+              <option value="elimination">{t('admin.actions')}</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              className="inline-flex items-center justify-center px-3 py-2 min-w-[2.75rem] border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700"
+              aria-label={sortDir === "asc" ? "Ascending" : "Descending"}
+              title={sortDir === "asc" ? "Ascending" : "Descending"}
+            >
+              {sortDir === "asc" ? "↑" : "↓"}
+            </button>
           </div>
 
           {/* Clear Filters Button */}
@@ -1009,30 +1202,27 @@ export default function PlayersTable({
         {/* Desktop Table View */}
         {!showEmptyRosterCta && (
         <div className="hidden md:block overflow-x-auto">
+          <p className="border-b border-gray-100 px-6 py-2 text-xs text-gray-500">
+            {t('admin.registration.tapHeaderToSort')}
+          </p>
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  編號
-                </th>
+                <SortableTh columnKey="draw_no" label={t('admin.registration.drawNumberShort')} />
                 {enabledFields.map((field) => (
-                  <th key={field.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {field.name}
-                  </th>
+                  <SortableTh
+                    key={field.key}
+                    columnKey={`field:${field.key}` as PlayersSortKey}
+                    label={field.name}
+                  />
                 ))}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  報到
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('admin.registration.blackouts')}
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('admin.actions')}
-                </th>
+                <SortableTh columnKey="checked_in_at" label={t('admin.registration.checkInSort')} />
+                <SortableTh columnKey="blackout_count" label={t('admin.registration.blackouts')} />
+                <SortableTh columnKey="elimination" label={t('admin.actions')} align="right" />
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {                filteredPlayers.length === 0 ? (
+              {                sortedFilteredPlayers.length === 0 ? (
                 <tr>
                   <td colSpan={enabledFields.length + 4} className="px-6 py-12 text-center text-gray-500">
                     {players.length === 0 
@@ -1041,7 +1231,7 @@ export default function PlayersTable({
                   </td>
                 </tr>
               ) : (
-                filteredPlayers.map((player) => {
+                sortedFilteredPlayers.map((player) => {
                   const isTeam = player.type === 'team';
                   const members = teamMembers[player.id] || [];
                   const isExpanded =
@@ -1357,14 +1547,14 @@ export default function PlayersTable({
         {/* Mobile Card View */}
         {!showEmptyRosterCta && (
         <div className="md:hidden space-y-3">
-          {filteredPlayers.length === 0 ? (
+          {sortedFilteredPlayers.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               {players.length === 0 
                 ? t('admin.registration.noPlayersYet')
                 : t('admin.registration.noMatchSearch')}
             </div>
           ) : (
-            filteredPlayers.map((player) => {
+            sortedFilteredPlayers.map((player) => {
               const isTeam = player.type === 'team';
               const members = teamMembers[player.id] || [];
               const isExpanded =

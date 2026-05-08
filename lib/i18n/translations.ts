@@ -857,6 +857,10 @@ export const translations = {
         active: 'Active',
         eliminated: 'Eliminated',
         setBlackoutShort: '設定',
+        drawNumberShort: '編號',
+        sortBy: '排序：',
+        tapHeaderToSort: '點表格欄標題可切換遞增／遞減。',
+        checkInSort: '報到',
       },
       captainLink: {
         copy: '複製隊長連結',
@@ -1914,6 +1918,10 @@ export const translations = {
         active: 'Active',
         eliminated: 'Eliminated',
         setBlackoutShort: 'Set',
+        drawNumberShort: 'Draw #',
+        sortBy: 'Sort by:',
+        tapHeaderToSort: 'Click a column header to toggle ascending/descending.',
+        checkInSort: 'Check-in',
       },
       captainLink: {
         copy: 'Copy captain link',
