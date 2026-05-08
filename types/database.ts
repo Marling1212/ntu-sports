@@ -75,6 +75,9 @@ export interface Player {
   email?: string;
   email_opt_in?: boolean;
   type?: 'player' | 'team';
+  checked_in_at?: string | null;
+  checked_in_by?: string | null;
+  check_in_note?: string | null;
   custom_fields?: Record<string, unknown>; // JSON object for custom field values
   created_at: string;
   updated_at: string;

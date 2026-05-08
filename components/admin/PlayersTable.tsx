@@ -516,6 +516,32 @@ export default function PlayersTable({
     }
   };
 
+  const handleToggleCheckIn = async (player: Player) => {
+    const nextCheckedIn = !player.checked_in_at;
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const actorId = authData.user?.id ?? null;
+      const payload = nextCheckedIn
+        ? { checked_in_at: new Date().toISOString(), checked_in_by: actorId }
+        : { checked_in_at: null, checked_in_by: null };
+
+      const { data, error } = await supabase
+        .from("players")
+        .update(payload)
+        .eq("id", player.id)
+        .select("*")
+        .single();
+      if (error) throw error;
+
+      if (data) {
+        setPlayers((prev) => prev.map((p) => (p.id === player.id ? { ...p, ...data } : p)));
+      }
+      toast.success(nextCheckedIn ? "已報到" : "已取消報到");
+    } catch (e: any) {
+      toast.error(e?.message || "更新報到狀態失敗");
+    }
+  };
+
   const handleCaptainLink = async (player: Player) => {
     const cf = player.custom_fields ?? {};
     let token = typeof cf.captain_token === "string" ? cf.captain_token : null;
@@ -977,6 +1003,9 @@ export default function PlayersTable({
                   {t('admin.registration.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  報到
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('admin.registration.blackouts')}
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -987,7 +1016,7 @@ export default function PlayersTable({
             <tbody className="bg-white divide-y divide-gray-200">
               {                filteredPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan={enabledFields.length + 3} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={enabledFields.length + 4} className="px-6 py-12 text-center text-gray-500">
                     {players.length === 0 
                       ? t('admin.registration.noPlayersYet')
                       : t('admin.registration.noMatchSearch')}
@@ -1085,6 +1114,19 @@ export default function PlayersTable({
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             type="button"
+                            onClick={() => handleToggleCheckIn(player)}
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              player.checked_in_at
+                                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                          >
+                            {player.checked_in_at ? "已報到" : "未報到"}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            type="button"
                             onClick={() => setExpandedBlackout(expandedBlackout === player.id ? null : player.id)}
                             className="text-ntu-green hover:underline text-sm font-medium"
                           >
@@ -1115,7 +1157,7 @@ export default function PlayersTable({
                       </tr>
                       {expandedBlackout === player.id && (
                         <tr>
-                          <td colSpan={enabledFields.length + 3} className="px-6 py-4 bg-gray-50">
+                          <td colSpan={enabledFields.length + 4} className="px-6 py-4 bg-gray-50">
                             <div className="space-y-3">
                               <h4 className="font-semibold text-gray-800 text-sm">{t('admin.registration.weeklyBlackouts')}</h4>
                               <ul className="space-y-2">
@@ -1179,7 +1221,7 @@ export default function PlayersTable({
                       )}
                       {isTeam && isExpanded && (
                         <tr>
-                          <td colSpan={enabledFields.length + 3} className="px-6 py-4 bg-gray-50">
+                          <td colSpan={enabledFields.length + 4} className="px-6 py-4 bg-gray-50">
                             <div className="space-y-4">
                               <div className="flex justify-between items-center">
                                 <h3 className="font-semibold text-gray-700">{t('admin.registration.teamMembers')}</h3>
@@ -1360,6 +1402,17 @@ export default function PlayersTable({
                         ) : (
                           <span className="text-green-600 text-xs">{t('admin.registration.active')}</span>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCheckIn(player)}
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            player.checked_in_at
+                              ? "bg-green-100 text-green-700 hover:bg-green-200"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          {player.checked_in_at ? "已報到" : "未報到"}
+                        </button>
                         <div className="flex gap-2">
                           {isTeam && (
                             <button

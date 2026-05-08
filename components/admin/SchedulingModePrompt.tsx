@@ -42,7 +42,7 @@ export default function SchedulingModePrompt({ eventId }: SchedulingModePromptPr
             onClick={() => pickMode("fixed-scheduling-section")}
             className="rounded-xl border-2 border-ntu-green bg-ntu-green/5 p-4 text-left transition-colors hover:bg-ntu-green/10"
           >
-            <p className="mb-1 font-semibold text-ntu-green">固定時間排程（每場設定時間）</p>
+            <p className="mb-1 font-semibold text-ntu-green">固定時間排程（區塊一）</p>
             <p className="text-xs text-gray-600">適合一天場次較少、每場開賽時間可先決定。</p>
           </button>
           <button
