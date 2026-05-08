@@ -8,6 +8,7 @@ import SchedulingPageNav from "@/components/admin/SchedulingPageNav";
 import ShiftAllScheduleTimesPanel from "@/components/admin/ShiftAllScheduleTimesPanel";
 import ScheduleItemsManager from "@/components/admin/ScheduleItemsManager";
 import SchedulingModePrompt from "@/components/admin/SchedulingModePrompt";
+import { computeStandings } from "@/lib/standings";
 
 export default async function SchedulingPage({
   params,
@@ -87,6 +88,46 @@ export default async function SchedulingPage({
   }
   const { data: matches } = await matchesQuery;
 
+  const decidedStatuses = new Set(["completed", "forfeit", "walkover", "bye"]);
+  const regularMatches = (matches || []).filter((m: any) => Number(m.round) === 0);
+  const groupAllDecided = new Map<number, boolean>();
+  for (const m of regularMatches) {
+    const g = Number((m as any).group_number);
+    if (!Number.isFinite(g)) continue;
+    const isDecided = decidedStatuses.has(String((m as any).status || ""));
+    const prev = groupAllDecided.get(g);
+    groupAllDecided.set(g, prev === undefined ? isDecided : prev && isDecided);
+  }
+
+  const playersForStandings = (players || []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    seed: p.seed,
+    school: p.department,
+  }));
+  const regularForStandings = regularMatches.map((m: any) => ({
+    player1_id: m.player1_id,
+    player2_id: m.player2_id,
+    winner_id: m.winner_id,
+    score1: m.score1,
+    score2: m.score2,
+    status: m.status,
+    round: 0,
+    group_number: m.group_number,
+  }));
+  const standingsResult =
+    regularForStandings.length > 0
+      ? computeStandings(
+          regularForStandings as any,
+          playersForStandings as any,
+          (event as any)?.tiebreaker_config,
+          {}
+        )
+      : null;
+  const standingsByGroup: Record<number, any[]> = Array.isArray(standingsResult)
+    ? { 1: standingsResult as any[] }
+    : ((standingsResult as Record<number, any[]>) || {});
+
   const { data: blackoutTemplates } = await supabase
     .from("team_blackout_templates")
     .select("player_id, day_of_week, start_time, end_time")
@@ -108,7 +149,22 @@ export default async function SchedulingPage({
     court_id: s.court_id,
     court: s.court,
   }));
-  const matchesForGrid = (matches || []).map((m: any) => ({
+  const matchesForGrid = (matches || []).map((m: any) => {
+    const resolveSlotName = (
+      currentName: string | undefined,
+      seed: number | null | undefined,
+      group: number | null | undefined
+    ): string => {
+      if (currentName) return currentName;
+      if (seed == null || group == null) return "TBD";
+      const groupNum = Number(group);
+      if (!Number.isFinite(groupNum) || !groupAllDecided.get(groupNum)) return "TBD";
+      const rows = standingsByGroup[groupNum];
+      const idx = Number(seed) - 1;
+      const resolved = Array.isArray(rows) && idx >= 0 ? rows[idx]?.player?.name : null;
+      return resolved || "TBD";
+    };
+    return {
     id: m.id,
     player1_id: m.player1_id,
     player2_id: m.player2_id,
@@ -117,9 +173,10 @@ export default async function SchedulingPage({
     status: m.status,
     round: m.round,
     match_number: m.match_number,
-    player1: m.player1,
-    player2: m.player2,
-  }));
+    player1: { ...(m.player1 || {}), name: resolveSlotName(m.player1?.name, m.slot1_seed, m.slot1_group) },
+    player2: { ...(m.player2 || {}), name: resolveSlotName(m.player2?.name, m.slot2_seed, m.slot2_group) },
+    };
+  });
 
   return (
     <>
