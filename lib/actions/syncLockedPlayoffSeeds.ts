@@ -10,8 +10,9 @@ const DECIDED = new Set(["completed", "forfeit", "walkover", "bye"]);
 
 /**
  * Run lock detection and persist (seed, group) → playoff match slots.
- * Mid-season: only mathematically locked seeds get real names; others stay empty (UI shows Seed N Group G).
- * After every regular-season game is decided: fill all seed slots from final standings.
+ * Mid-season (some groups still playing): write player ids when a seed is mathematically locked, or when
+ * that group's entire round-robin is finished (final per-group standings for non-tied seed lines).
+ * After every regular-season game is decided: fill remaining seed slots from final standings.
  * True structural byes (one side has no seed slot) still auto-advance.
  */
 export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
@@ -94,24 +95,10 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   const allRegularComplete =
     regularForLock.length > 0 && regularForLock.every((m) => DECIDED.has(m.status));
 
-  // UX requirement:
-  // Until *all* group games are finalized, the playoff preview should remain "Seed N Group X"
-  // and must not show resolved team names.
-  //
-  // If earlier runs already populated player1_id/player2_id, clear them now so stale data
-  // doesn't keep showing team names in the bracket.
-  if (!allRegularComplete) {
-    await supabase
-      .from("matches")
-      .update({
-        player1_id: null,
-        player2_id: null,
-        winner_id: null,
-      })
-      .eq("event_id", eventId)
-      .gte("round", 1);
-    return;
-  }
+  const isGroupRegularComplete = (groupNum: number) => {
+    const ms = regularForLock.filter((m) => Number(m.group_number) === groupNum);
+    return ms.length > 0 && ms.every((m) => DECIDED.has(m.status));
+  };
 
   const playersForStandings = (dbPlayers || []).map((p: any) => ({
     id: p.id,
@@ -218,12 +205,18 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
   }
 
   const resolveSlot = (seed: number, group: number): string | null => {
-    // UX requirement:
-    // - Until all group games are finalized, keep playoff slots as "Seed N Group X"
-    //   (do not fill real team names into player1_id/player2_id).
-    if (!allRegularComplete) return null;
-    const k = `${seed},${group}`;
-    return seedGroupToPlayer.get(k) ?? null;
+    const g = Number(group);
+    const s = Number(seed);
+    const k = `${s},${g}`;
+    if (allRegularComplete) {
+      return seedGroupToPlayer.get(k) ?? null;
+    }
+    const lockedId = locked.get(k);
+    if (lockedId) return lockedId;
+    if (Number.isFinite(g) && isGroupRegularComplete(g)) {
+      return seedGroupToPlayer.get(k) ?? null;
+    }
+    return null;
   };
 
   const bothSeededSides = (m: any) =>
@@ -301,13 +294,10 @@ export async function syncLockedPlayoffSeeds(eventId: string): Promise<void> {
     const updates: { player1_id?: string | null; player2_id?: string | null; winner_id?: string | null; status?: string } =
       {};
     if (m.slot1_seed != null && m.slot1_group != null) {
-      const resolved = resolveSlot(m.slot1_seed, m.slot1_group);
-      // If admin already manually filled this slot, don't wipe it back to null.
-      if (resolved !== null || !m.player1_id) updates.player1_id = resolved;
+      updates.player1_id = resolveSlot(m.slot1_seed, m.slot1_group);
     }
     if (m.slot2_seed != null && m.slot2_group != null) {
-      const resolved = resolveSlot(m.slot2_seed, m.slot2_group);
-      if (resolved !== null || !m.player2_id) updates.player2_id = resolved;
+      updates.player2_id = resolveSlot(m.slot2_seed, m.slot2_group);
     }
     const sides = slotSidesDefined(m);
     const r = Number(m.round);
