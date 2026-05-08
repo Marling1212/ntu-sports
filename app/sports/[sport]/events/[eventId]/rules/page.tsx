@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import EventScheduleContent from "@/components/EventScheduleContent";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { getEventForPublicPage } from "@/lib/utils/getSportEvent";
+import { getEventForPublicPage, getFirstDivisionForEventAndSport } from "@/lib/utils/getSportEvent";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,6 +21,13 @@ export default async function SportEventRulesPage({
 
   const event = await getEventForPublicPage(eventId, sportParam, { preview });
   if (!event) notFound();
+
+  const division = await getFirstDivisionForEventAndSport(event.id, sportParam);
+  const tournamentType = (division?.tournament_type ?? (event as { tournament_type?: string }).tournament_type) as
+    | "single_elimination"
+    | "season_play"
+    | undefined;
+  const showTiebreakerRules = tournamentType === "season_play";
 
   const { data: rules } = await supabase
     .from("tournament_rules")
@@ -53,6 +60,7 @@ export default async function SportEventRulesPage({
           rules={rules || []}
           scheduleByDay={scheduleByDay}
           tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
+          showTiebreakerRules={showTiebreakerRules}
           sportSlug={sportParam}
           pageTitle={t("navigation.rules")}
           pageSubtitle={t("navigation.rulesDescription")}

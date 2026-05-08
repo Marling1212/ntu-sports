@@ -31,8 +31,10 @@ interface EventScheduleContentProps {
   pageTitle?: string;
   /** Override page subtitle */
   pageSubtitle?: string;
-  /** Season-play tiebreaker order shown in Rules page */
+  /** Season-play tiebreaker order (regular season / qualifiers). Omit on single elimination. */
   tiebreakerConfig?: TiebreakerConfig | null;
+  /** When false, hide the ranking-rules block (e.g. single elimination). */
+  showTiebreakerRules?: boolean;
 }
 
 /** Shared view: tournament rules + schedule_items by day. Used for Schedule (bracket) and Rules page. Data from admin Settings. */
@@ -44,6 +46,7 @@ export default async function EventScheduleContent({
   pageTitle,
   pageSubtitle,
   tiebreakerConfig,
+  showTiebreakerRules = false,
 }: EventScheduleContentProps) {
   const locale = await getLocale();
   const t = getT(locale);
@@ -84,7 +87,7 @@ export default async function EventScheduleContent({
         </div>
       )}
 
-      {tiebreakerRulesLines.length > 0 && (
+      {showTiebreakerRules && tiebreakerRulesLines.length > 0 && (
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-8">
           <h2 className="text-xl font-bold text-ntu-green mb-3">
             {locale === "zh" ? "排名規則（同分時依序比較）" : "Ranking rules (tiebreakers in order)"}
