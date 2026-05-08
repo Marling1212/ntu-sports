@@ -55,6 +55,19 @@ export default async function PlayersPage({
   const { data: playersRaw } = await playersQuery;
   const players = playersRaw ?? [];
 
+  let roundOneMatches: Array<{ player1_id: string | null; player2_id: string | null; match_number: number }> = [];
+  if (effectiveTournamentType === "single_elimination") {
+    let r1Query = supabase
+      .from("matches")
+      .select("player1_id, player2_id, match_number")
+      .eq("event_id", eventId)
+      .eq("round", 1)
+      .order("match_number", { ascending: true });
+    if (effectiveDefaultDivisionId) r1Query = r1Query.eq("division_id", effectiveDefaultDivisionId);
+    const { data: r1 } = await r1Query;
+    roundOneMatches = (r1 ?? []) as Array<{ player1_id: string | null; player2_id: string | null; match_number: number }>;
+  }
+
   // For season_play: get num groups from round-0 matches (for EditPlayoffDraw), optionally for selected division
   let playoffNumGroups = 1;
   if (effectiveTournamentType === "season_play") {
@@ -116,6 +129,8 @@ export default async function PlayersPage({
         <PlayersTable 
           eventId={eventId} 
           initialPlayers={players || []} 
+          tournamentType={effectiveTournamentType}
+          initialRoundOneMatches={roundOneMatches}
           registrationType={event?.registration_type as 'player' | 'team' | undefined}
           initialBlackoutLimit={event?.blackout_limit ?? null}
           initialCaptainBlackoutsOpen={(event as { captain_blackouts_open?: boolean } | null)?.captain_blackouts_open ?? false}

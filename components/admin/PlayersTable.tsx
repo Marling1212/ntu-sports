@@ -14,6 +14,8 @@ import { useI18n } from "@/lib/i18n/context";
 interface PlayersTableProps {
   eventId: string;
   initialPlayers: Player[];
+  tournamentType?: 'single_elimination' | 'season_play';
+  initialRoundOneMatches?: Array<{ player1_id: string | null; player2_id: string | null; match_number: number }>;
   registrationType?: 'player' | 'team';
   initialBlackoutLimit?: number | null;
   initialCaptainBlackoutsOpen?: boolean;
@@ -26,6 +28,8 @@ interface PlayersTableProps {
 export default function PlayersTable({
   eventId,
   initialPlayers,
+  tournamentType = 'single_elimination',
+  initialRoundOneMatches = [],
   registrationType = 'player',
   initialBlackoutLimit = null,
   initialCaptainBlackoutsOpen = false,
@@ -326,6 +330,20 @@ export default function PlayersTable({
       return true;
     });
   }, [players, searchQuery, filterSeed]);
+
+  const drawNumberByPlayerId = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (tournamentType !== "single_elimination") return map;
+    initialRoundOneMatches
+      .slice()
+      .sort((a, b) => a.match_number - b.match_number)
+      .forEach((m) => {
+        const base = (m.match_number - 1) * 2;
+        if (m.player1_id) map[m.player1_id] = base + 1;
+        if (m.player2_id) map[m.player2_id] = base + 2;
+      });
+    return map;
+  }, [initialRoundOneMatches, tournamentType]);
 
   const refreshPlayers = async () => {
     const { data } = await supabase
@@ -994,14 +1012,14 @@ export default function PlayersTable({
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  編號
+                </th>
                 {enabledFields.map((field) => (
                   <th key={field.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {field.name}
                   </th>
                 ))}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('admin.registration.status')}
-                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   報到
                 </th>
@@ -1034,6 +1052,9 @@ export default function PlayersTable({
                   return (
                     <>
                       <tr key={player.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-700 font-semibold">
+                          {drawNumberByPlayerId[player.id] ?? "—"}
+                        </td>
                         {enabledFields.length > 0 ? enabledFields.map((field) => {
                           if (field.key === 'name') {
                             return (
@@ -1102,15 +1123,6 @@ export default function PlayersTable({
                             {player.name || "—"}
                           </td>
                         )}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {player.eliminated_round ? (
-                            <span className="text-red-600 text-sm">
-                              Eliminated (R{player.eliminated_round})
-                            </span>
-                          ) : (
-                            <span className="text-green-600 text-sm">Active</span>
-                          )}
-                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             type="button"
@@ -1366,6 +1378,9 @@ export default function PlayersTable({
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                            #{drawNumberByPlayerId[player.id] ?? "—"}
+                          </span>
                           {isTeam && (
                             <button
                               type="button"
@@ -1396,9 +1411,7 @@ export default function PlayersTable({
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         {player.eliminated_round ? (
-                          <span className="text-red-600 text-xs">
-                            Eliminated (R{player.eliminated_round})
-                          </span>
+                          <span className="text-red-600 text-xs">Eliminated (R{player.eliminated_round})</span>
                         ) : (
                           <span className="text-green-600 text-xs">{t('admin.registration.active')}</span>
                         )}
