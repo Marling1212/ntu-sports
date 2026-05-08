@@ -102,6 +102,10 @@ export default async function MatchesPage({
   }
 
   const defaultDivisionId = effectiveDivisionId;
+  const effectiveTournamentType = (selectedDivision?.tournament_type ?? event?.tournament_type) as
+    | "single_elimination"
+    | "season_play"
+    | null;
 
   return (
     <>
@@ -138,14 +142,14 @@ export default async function MatchesPage({
           </div>
         ) : (
           <>
-            {/* Bracket Seeding Manager - show for single elimination or season play (use division type when in a division) */}
-            {((selectedDivision?.tournament_type ?? event?.tournament_type) === "single_elimination" || (selectedDivision?.tournament_type ?? event?.tournament_type) === "season_play") && (
+            {/* Bracket Seeding Manager - show only for single elimination */}
+            {effectiveTournamentType === "single_elimination" && (
               <div id="bracket-seeding" className="scroll-mt-24">
               <BracketSeedingManagerWrapper
                 eventId={eventId}
                 players={players || []}
                 matches={matches || []}
-                tournamentType={event?.tournament_type as "single_elimination" | "season_play" | null}
+                tournamentType={effectiveTournamentType}
               />
               </div>
             )}
