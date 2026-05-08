@@ -5,7 +5,6 @@ import { getEventDivisions } from "@/lib/utils/getSportEvent";
 import MatchesTable from "@/components/admin/MatchesTable";
 import PlayerStats from "@/components/admin/PlayerStats";
 import MatchHistory from "@/components/admin/MatchHistory";
-import BracketSeedingManagerWrapper from "@/components/admin/BracketSeedingManagerWrapper";
 import MatchesPageNav from "@/components/admin/MatchesPageNav";
 
 export default async function MatchesPage({
@@ -102,11 +101,6 @@ export default async function MatchesPage({
   }
 
   const defaultDivisionId = effectiveDivisionId;
-  const effectiveTournamentType = (selectedDivision?.tournament_type ?? event?.tournament_type) as
-    | "single_elimination"
-    | "season_play"
-    | null;
-
   return (
     <>
       <div className="flex">
@@ -142,18 +136,6 @@ export default async function MatchesPage({
           </div>
         ) : (
           <>
-            {/* Bracket Seeding Manager - show only for single elimination */}
-            {effectiveTournamentType === "single_elimination" && (
-              <div id="bracket-seeding" className="scroll-mt-24">
-              <BracketSeedingManagerWrapper
-                eventId={eventId}
-                players={players || []}
-                matches={matches || []}
-                tournamentType={effectiveTournamentType}
-              />
-              </div>
-            )}
-
             <div id="matches-table" className="scroll-mt-24">
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-900">
