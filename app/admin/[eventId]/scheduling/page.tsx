@@ -9,6 +9,7 @@ import ShiftAllScheduleTimesPanel from "@/components/admin/ShiftAllScheduleTimes
 import ScheduleItemsManager from "@/components/admin/ScheduleItemsManager";
 import SchedulingModePrompt from "@/components/admin/SchedulingModePrompt";
 import { computeStandings } from "@/lib/standings";
+import { buildPlayoffSlotPlayerResolver } from "@/lib/scheduling/playoffSlotPlayerResolver";
 
 export default async function SchedulingPage({
   params,
@@ -88,6 +89,21 @@ export default async function SchedulingPage({
   }
   const { data: matches } = await matchesQuery;
 
+  const matchIdsForStats = (matches || []).map((m: any) => m.id).filter(Boolean);
+  let matchPlayerStats: any[] = [];
+  if (matchIdsForStats.length > 0) {
+    const { data: stats } = await supabase.from("match_player_stats").select("*").in("match_id", matchIdsForStats);
+    matchPlayerStats = stats || [];
+  }
+  let teamMembersForStandings: any[] = [];
+  if ((event as any)?.registration_type === "team" && (players || []).length > 0) {
+    const teamIds = (players || []).filter((p: any) => p.type === "team").map((p: any) => p.id);
+    if (teamIds.length > 0) {
+      const { data: members } = await supabase.from("team_members").select("id, player_id").in("player_id", teamIds);
+      teamMembersForStandings = members || [];
+    }
+  }
+
   const decidedStatuses = new Set(["completed", "forfeit", "walkover", "bye"]);
   const regularMatches = (matches || []).filter((m: any) => Number(m.round) === 0);
   const groupAllDecided = new Map<number, boolean>();
@@ -115,13 +131,18 @@ export default async function SchedulingPage({
     round: 0,
     group_number: m.group_number,
   }));
+  const standingsOpts = {
+    matchPlayerStats,
+    teamMembers: teamMembersForStandings,
+    registrationType: (((event as any)?.registration_type as "player" | "team") || "player") as "player" | "team",
+  };
   const standingsResult =
     regularForStandings.length > 0
       ? computeStandings(
           regularForStandings as any,
           playersForStandings as any,
           (event as any)?.tiebreaker_config,
-          {}
+          standingsOpts
         )
       : null;
   const standingsByGroup: Record<number, any[]> = Array.isArray(standingsResult)
@@ -139,6 +160,29 @@ export default async function SchedulingPage({
     .eq("event_id", eventId)
     .order("day_number", { ascending: true })
     .order("order_number", { ascending: true });
+
+  const playoffMatchesForResolver = (matches || [])
+    .filter((m: any) => Number(m.round) >= 1)
+    .map((m: any) => ({
+      slot1_seed: m.slot1_seed,
+      slot1_group: m.slot1_group,
+      slot2_seed: m.slot2_seed,
+      slot2_group: m.slot2_group,
+    }));
+  const resolvePlayoffGridPlayerId =
+    (event as any)?.tournament_type === "season_play" && regularForStandings.length > 0
+      ? buildPlayoffSlotPlayerResolver({
+          regularRounds: regularForStandings as any,
+          playersForStandings: playersForStandings as any,
+          tiebreakerConfig: (event as any)?.tiebreaker_config,
+          playoffQualifiersPerGroup: (event as any)?.playoff_qualifiers_per_group ?? 8,
+          matchPlayerStats,
+          teamMembers: teamMembersForStandings,
+          registrationType: standingsOpts.registrationType,
+          sport: (event as any)?.sport,
+          playoffMatches: playoffMatchesForResolver,
+        })
+      : (dbId: string | null | undefined, _seed?: unknown, _group?: unknown) => (dbId ? String(dbId) : null);
 
   const slotsForGrid = (slots || []).map((s: any) => ({
     id: s.id,
@@ -164,10 +208,12 @@ export default async function SchedulingPage({
       const resolved = Array.isArray(rows) && idx >= 0 ? rows[idx]?.player?.name : null;
       return resolved || "TBD";
     };
+    const p1Resolved = resolvePlayoffGridPlayerId(m.player1_id, m.slot1_seed, m.slot1_group);
+    const p2Resolved = resolvePlayoffGridPlayerId(m.player2_id, m.slot2_seed, m.slot2_group);
     return {
     id: m.id,
-    player1_id: m.player1_id,
-    player2_id: m.player2_id,
+    player1_id: p1Resolved ?? m.player1_id,
+    player2_id: p2Resolved ?? m.player2_id,
     slot_id: m.slot_id,
     scheduled_time: m.scheduled_time,
     status: m.status,
