@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
 import {
   ADMIN_BACKUP_SCHEMA_VERSION,
   buildMetaAoA,
@@ -373,11 +372,7 @@ export default function EventDataBackupRestore({ eventId, eventName }: EventData
       </div>
 
       <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-        還原屬高風險操作：請確認檔案來源正確。若僅需重匯「籤表抽籤位置」而非整包戰績，請使用
-        <Link href={`/admin/${eventId}/players#import-bracket`} className="text-ntu-green font-semibold underline mx-1">
-          報名管理 → 籤表備份與匯入
-        </Link>
-        區塊。
+        還原屬高風險操作：請確認檔案來源正確。調整籤位請在「報名管理」使用產生籤表或手動編輯籤表；大範圍還原戰績與名單請使用本頁備份檔。
       </p>
     </div>
   );

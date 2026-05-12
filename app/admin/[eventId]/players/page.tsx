@@ -5,7 +5,6 @@ import PlayersTable from "@/components/admin/PlayersTable";
 import GenerateBracket from "@/components/admin/GenerateBracket";
 import GenerateSeasonPlay from "@/components/admin/GenerateSeasonPlay";
 import EditPlayoffDraw from "@/components/admin/EditPlayoffDraw";
-import ImportBracket from "@/components/admin/ImportBracket";
 import ImportSeasonPlay from "@/components/admin/ImportSeasonPlay";
 import ImportSeasonGroups from "@/components/admin/ImportSeasonGroups";
 import ManualBracketEditor from "@/components/admin/ManualBracketEditor";
@@ -195,25 +194,6 @@ export default async function PlayersPage({
                   eventId={eventId}
                   players={players || []}
                   defaultDivisionId={effectiveDefaultDivisionId}
-                />
-              </div>
-              <div id="import-bracket" className="scroll-mt-24">
-                <ImportBracket 
-                  eventId={eventId}
-                  players={players || []}
-                  defaultDivisionId={effectiveDefaultDivisionId}
-                  eventName={event?.name ?? null}
-                  eventDate={
-                    event?.start_date && event?.end_date
-                      ? `${event.start_date} ~ ${event.end_date}`
-                      : event?.start_date ?? null
-                  }
-                  eventVenue={event?.venue ?? null}
-                  divisionLabel={
-                    selectedDivision?.name
-                      ? `${selectedDivision.sport} – ${selectedDivision.name}`
-                      : selectedDivision?.sport ?? null
-                  }
                 />
               </div>
             </div>

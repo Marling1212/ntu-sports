@@ -20,7 +20,6 @@ function buildLinks(
           { href: "#players-table", label: "選手／隊伍表", barColor: "bg-blue-500", hoverBg: "hover:bg-blue-50" },
           { href: "#generate-bracket", label: "產生籤表", barColor: "bg-ntu-green", hoverBg: "hover:bg-green-50" },
           { href: "#manual-bracket", label: "手動編輯籤表", barColor: "bg-amber-500", hoverBg: "hover:bg-amber-50" },
-          { href: "#import-bracket", label: "匯入籤表", barColor: "bg-purple-500", hoverBg: "hover:bg-purple-50" },
         ];
   const requestsLink: AdminPageSideNavLink = {
     href: `/admin/${eventId}/players/requests`,
