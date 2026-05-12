@@ -476,6 +476,11 @@ export default function ImportBracket({
           <h2 className="text-2xl font-semibold text-ntu-green mb-2">📥 籤表備份與匯入</h2>
           <p className="text-sm text-gray-600 max-w-2xl mb-2">
             在此<strong>下載</strong>與<strong>上傳</strong>同一套 Excel 流程：先下載目前籤表（含各輪結果與賽程明細）做備份，修改後再用下方「選擇檔案 → 匯入籤表」覆寫系統內的比賽結構。
+            若要<strong>整場賽事</strong>（全部組別、全部戰績與球員統計）備份與還原，請至
+            <a href={`/admin/${eventId}/backup`} className="text-ntu-green font-semibold underline mx-0.5">
+              資料備份
+            </a>
+            頁面。
           </p>
           <div className="text-xs text-gray-500 space-y-1 mb-3">
             <p>• <strong>下載目前資料：</strong>產生「籤表」+「賽程與比分」兩個工作表；格式與匯入解析相容。</p>

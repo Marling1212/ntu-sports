@@ -92,6 +92,9 @@ export default function AdminNavbar({
                   {t("admin.checkIn")}
                 </Link>
               )}
+              <Link href={`/admin/${eventId}/backup${q}`} className="hover:opacity-80 transition-opacity">
+                {t("admin.dataBackup")}
+              </Link>
               <Link href={`/admin/${eventId}/matches${q}`} className="hover:opacity-80 transition-opacity">
                 {t("admin.matches")}
               </Link>

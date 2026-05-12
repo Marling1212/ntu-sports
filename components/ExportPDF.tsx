@@ -4,6 +4,7 @@ import { Player, Match } from "@/types/tournament";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import toast from "react-hot-toast";
+import { buildStaircaseBracketHtml } from "@/lib/utils/bracketStaircasePdfHtml";
 
 interface ExportPDFProps {
   matches: Match[];
@@ -41,13 +42,16 @@ export default function ExportPDF({
       const hasRegularSeason = matches.some(m => m.round === 0);
       const isSeasonPlay = tournamentType === "season_play" || hasRegularSeason;
 
+      const regularSeasonMatches = matches.filter(m => m.round === 0);
+      const playoffMatches = matches.filter(m => m.round >= 1);
+
       if (!isSeasonPlay) {
         const mr = Math.max(...matches.map((m) => m.round), 1);
         container.style.width = `${Math.max(1200, mr * 128 + 280)}px`;
+      } else if (playoffMatches.length > 0) {
+        const mr = Math.max(...playoffMatches.map((m) => m.round), 1);
+        container.style.width = `${Math.max(1200, mr * 128 + 280, 1200)}px`;
       }
-
-      const regularSeasonMatches = matches.filter(m => m.round === 0);
-      const playoffMatches = matches.filter(m => m.round >= 1);
 
       // Generate HTML content
       const htmlContent = isSeasonPlay 
@@ -137,20 +141,23 @@ export default function ExportPDF({
 
   const generateSeasonPlayHTML = (regularSeasonMatches: Match[], playoffMatches: Match[]) => {
     const standings = calculateStandings(regularSeasonMatches, players);
+    const esc = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     
     let html = `
       <div style="font-family: Arial, 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif;">
-        <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #00694E;">${eventName}</h1>
-        <div style="margin-bottom: 20px; font-size: 14px;">
-          <p><strong>比賽日期:</strong> ${eventDate}</p>
-          <p><strong>比賽地點:</strong> ${eventVenue}</p>
+        <h1 style="font-size: 26px; font-weight: bold; margin-bottom: 16px; color: #00694E;">${esc(eventName)}</h1>
+        <div style="margin-bottom: 22px; font-size: 14px; line-height:1.5;">
+          <p><strong>比賽日期:</strong> ${esc(eventDate)}</p>
+          <p><strong>比賽地點:</strong> ${esc(eventVenue)}</p>
+          <p style="margin-top:8px;color:#333;">賽季賽程與排名（PDF 列印版）</p>
         </div>
     `;
 
     // Regular Season Matches
     if (regularSeasonMatches.length > 0) {
-      html += `<h2 style="font-size: 18px; font-weight: bold; margin-top: 30px; margin-bottom: 15px;">Regular Season Matches</h2>`;
-      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">`;
+      html += `<h2 style="font-size: 19px; font-weight: bold; margin-top: 28px; margin-bottom: 12px; color:#00694E;">例行賽 / Regular Season</h2>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size:12px;">`;
       html += `<thead><tr style="background-color: #00694E; color: white; font-weight: bold;">`;
       html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Group</th>`;
       html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player 1</th>`;
@@ -207,10 +214,10 @@ export default function ExportPDF({
         
         html += `<tr style="background-color: ${bgColor};">`;
         html += `<td style="padding: 8px; border: 1px solid #ddd;">${matchData.group_number ? `Group ${matchData.group_number}` : ""}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd;">${match.player1?.name || "TBD"}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd;">${match.player2?.name || "TBD"}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${match.score || "-"}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; ${dateColor}">${formatGameDate(matchData.scheduled_time)}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd;">${esc(match.player1?.name || "TBD")}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd;">${esc(match.player2?.name || "TBD")}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${esc(match.score || "-")}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; ${dateColor}">${esc(formatGameDate(matchData.scheduled_time))}</td>`;
         html += `</tr>`;
       });
 
@@ -219,8 +226,8 @@ export default function ExportPDF({
 
     // Standings
     if (standings.length > 0) {
-      html += `<h2 style="font-size: 18px; font-weight: bold; margin-top: 30px; margin-bottom: 15px;">Standings</h2>`;
-      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">`;
+      html += `<h2 style="font-size: 19px; font-weight: bold; margin-top: 28px; margin-bottom: 12px; color:#00694E;">排名 / Standings</h2>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size:12px;">`;
       html += `<thead><tr style="background-color: #00694E; color: white; font-weight: bold;">`;
       html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Rank</th>`;
       html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player</th>`;
@@ -235,7 +242,7 @@ export default function ExportPDF({
         const bgColor = idx % 2 === 0 ? "#f9f9f9" : "white";
         html += `<tr style="background-color: ${bgColor};">`;
         html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${idx + 1}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd;">${standing.player.name}</td>`;
+        html += `<td style="padding: 8px; border: 1px solid #ddd;">${esc(standing.player.name)}</td>`;
         html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.wins}</td>`;
         html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.draws}</td>`;
         html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.losses}</td>`;
@@ -247,98 +254,29 @@ export default function ExportPDF({
       html += `</tbody></table>`;
     }
 
+    if (playoffMatches.length > 0) {
+      html += `<div style="margin-top:36px;padding-top:20px;border-top:3px solid #00694E;">`;
+      html += buildStaircaseBracketHtml(playoffMatches, {
+        eventName,
+        eventDate,
+        eventVenue,
+        subtitle: "季後賽籤表（階梯狀）",
+        compactHeader: true,
+      });
+      html += `</div>`;
+    }
+
     html += `</div>`;
     return html;
   };
 
-  const generateSingleEliminationStaircaseHTML = () => {
-    const maxRound = Math.max(...matches.map((m) => m.round), 1);
-    const bracketMatches = matches.filter((m) => !(m.round === maxRound && m.matchNumber === 2));
-
-    const esc = (s: string) =>
-      s
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-
-    const LEAF = 34;
-    const topPad = 28;
-    const totalH = Math.pow(2, maxRound) * LEAF + topPad + 60;
-    const colW = 120;
-
-    const yCenter = (round: number, matchIdx0: number) =>
-      topPad + (Math.pow(2, round) * matchIdx0 + Math.pow(2, round - 1)) * LEAF;
-    const boxH = (round: number) => Math.max(46, Math.pow(2, round) * LEAF - 10);
-
-    const playerLine = (m: Match, side: 1 | 2): string => {
-      const p = side === 1 ? m.player1 : m.player2;
-      if (p?.name) {
-        const seedTag = p.seed ? ` <span style="color:#00694E;font-weight:700">(${p.seed})</span>` : "";
-        return `${esc(p.name)}${seedTag}`;
-      }
-      if (m.status === "bye") {
-        return '<span style="color:#888;font-style:italic">BYE</span>';
-      }
-      return '<span style="color:#999">TBD</span>';
-    };
-
-    let columnsHtml = "";
-    for (let r = 1; r <= maxRound; r++) {
-      const rMatches = bracketMatches
-        .filter((m) => m.round === r)
-        .sort((a, b) => a.matchNumber - b.matchNumber);
-
-      let cells = "";
-      for (const m of rMatches) {
-        const top = yCenter(r, m.matchNumber - 1) - boxH(r) / 2;
-        const scoreLine =
-          m.status === "completed" && m.score
-            ? `<div style="margin-top:4px;font-size:10px;color:#00694E;font-weight:700">${esc(m.score)}</div>`
-            : "";
-        cells += `
-          <div style="position:absolute;left:5px;right:5px;top:${top}px;height:${boxH(r)}px;border:1px solid #333;border-radius:6px;background:#fff;padding:5px 4px;font-size:11px;line-height:1.25;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;">
-            <div style="font-weight:700;color:#00694E;font-size:10px;">M${m.matchNumber}</div>
-            <div style="margin-top:3px;color:#111;">${playerLine(m, 1)}</div>
-            <div style="margin-top:3px;color:#111;">${playerLine(m, 2)}</div>
-            ${scoreLine}
-          </div>`;
-      }
-      columnsHtml += `<div style="position:relative;width:${colW}px;height:${totalH}px;flex-shrink:0;border-left:1px solid #bbb;background:#fafafa;">${cells}</div>`;
-    }
-
-    const finalRoundMatches = matches.filter((m) => m.round === maxRound);
-    const has3rdPlace = finalRoundMatches.length > 1;
-    const thirdPlaceMatch = has3rdPlace ? finalRoundMatches.find((m) => m.matchNumber === 2) : null;
-
-    let thirdBlock = "";
-    if (thirdPlaceMatch) {
-      thirdBlock = `
-        <div style="margin-top:24px;padding-top:16px;border-top:2px solid #ccc;">
-          <div style="font-weight:bold;margin-bottom:8px;color:#00694E;">季軍賽</div>
-          <div style="font-size:12px;">${playerLine(thirdPlaceMatch, 1)} <span style="color:#999">vs</span> ${playerLine(thirdPlaceMatch, 2)}</div>
-          ${
-            thirdPlaceMatch.status === "completed" && thirdPlaceMatch.winner
-              ? `<div style="margin-top:6px;font-size:11px;font-weight:700;">第三名：${esc(thirdPlaceMatch.winner.name)}</div>`
-              : ""
-          }
-        </div>`;
-    }
-
-    return `
-      <div style="font-family: Arial, 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif;">
-        <h1 style="font-size: 22px; font-weight: bold; margin-bottom: 14px; color: #00694E;">${esc(eventName)}</h1>
-        <div style="margin-bottom: 14px; font-size: 13px;">
-          <p><strong>比賽日期:</strong> ${esc(eventDate)}</p>
-          <p><strong>比賽地點:</strong> ${esc(eventVenue)}</p>
-          <p style="margin-top:6px;color:#444;">單淘汰籤表（階梯狀）</p>
-        </div>
-        <div style="display:flex;flex-direction:row;align-items:flex-start;gap:0;border:1px solid #ccc;border-radius:8px;overflow:hidden;background:#fff;">
-          ${columnsHtml}
-        </div>
-        ${thirdBlock}
-      </div>`;
-  };
+  const generateSingleEliminationStaircaseHTML = () =>
+    buildStaircaseBracketHtml(matches, {
+      eventName,
+      eventDate,
+      eventVenue,
+      subtitle: "單淘汰籤表（階梯狀）",
+    });
 
   const calculateStandings = (regularSeasonMatches: Match[], players: Player[]) => {
     const standings: { [playerId: string]: { player: Player; wins: number; losses: number; draws: number; points: number; goalsFor: number; goalsAgainst: number; goalDiff: number } } = {};
