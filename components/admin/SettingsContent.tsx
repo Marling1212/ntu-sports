@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
 import TiebreakerConfigEditor from "./TiebreakerConfigEditor";
+import EventDataBackupRestore from "@/components/admin/EventDataBackupRestore";
 import { useI18n } from "@/lib/i18n/context";
 import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
 
@@ -1454,6 +1455,14 @@ export default function SettingsContent({
             </div>
           </div>
         )}
+
+        <div id="settings-data-backup" className="scroll-mt-24 max-w-5xl border-t border-gray-200 pt-10">
+          <h2 className="text-2xl font-bold text-ntu-green mb-2">資料備份與還原</h2>
+          <p className="text-gray-600 mb-6 text-sm">
+            匯出或還原本賽事相關資料（舊「資料備份」獨立頁已併入此區塊）。
+          </p>
+          <EventDataBackupRestore eventId={eventId} eventName={eventName || "Event"} />
+        </div>
 
         {/* 運動/遊戲管理 */}
         <div id="settings-games" className="scroll-mt-24 space-y-6">

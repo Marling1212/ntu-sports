@@ -38,7 +38,9 @@ function getDefaultBracketZoomForViewport(): number {
   return window.matchMedia("(max-width: 767px)").matches ? DEFAULT_ZOOM_MOBILE : DEFAULT_ZOOM_DESKTOP;
 }
 
-export default function TournamentBracket({
+/** Core bracket UI (draw page + PDF). `previewSuffix` is normally from `useSearchParams` in the wrapper. */
+export function TournamentBracketCore({
+  previewSuffix,
   matches,
   players,
   sportName = "Tennis",
@@ -47,10 +49,8 @@ export default function TournamentBracket({
   compactLayout = false,
   adminCheckIn,
   pdfCapture = false,
-}: TournamentBracketProps) {
+}: TournamentBracketProps & { previewSuffix: string }) {
   const { t } = useI18n();
-  const searchParams = useSearchParams();
-  const previewSuffix = searchParams?.get("preview") === "1" ? "?preview=1" : "";
   const hasMatches = Boolean(matches && matches.length > 0);
   const maxRound = Math.max(...matches.map(m => m.round), 1);
   const uniqueRounds = [...new Set(matches.map(m => m.round))].sort((a, b) => a - b);
@@ -497,10 +497,14 @@ export default function TournamentBracket({
               <div
                 ref={bracketContentRef}
                 className="inline-block min-w-max"
-                style={{
-                  transform: `scale(${bracketZoom})`,
-                  transformOrigin: "top left",
-                }}
+                style={
+                  pdfCapture
+                    ? undefined
+                    : {
+                        transform: `scale(${bracketZoom})`,
+                        transformOrigin: "top left",
+                      }
+                }
               >
           {/* Flex Column Headers */}
           <div className="flex bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full" style={{ gap: '48px' }}>
@@ -595,3 +599,11 @@ export default function TournamentBracket({
     </div>
   );
 }
+
+function TournamentBracketWithRouter(props: TournamentBracketProps) {
+  const searchParams = useSearchParams();
+  const previewSuffix = searchParams?.get("preview") === "1" ? "?preview=1" : "";
+  return <TournamentBracketCore {...props} previewSuffix={previewSuffix} />;
+}
+
+export default TournamentBracketWithRouter;

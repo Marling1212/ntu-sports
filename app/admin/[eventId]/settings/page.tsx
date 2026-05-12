@@ -4,7 +4,6 @@ import { getEventDivisions } from "@/lib/utils/getSportEvent";
 import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
 import SettingsContent from "@/components/admin/SettingsContent";
 import SettingsPageNav from "@/components/admin/SettingsPageNav";
-import EventDataBackupRestore from "@/components/admin/EventDataBackupRestore";
 
 export default async function SettingsPage({
   params,
@@ -101,14 +100,6 @@ export default async function SettingsPage({
           initialTiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
           tournamentType={event?.tournament_type ?? undefined}
         />
-
-        <div id="settings-data-backup" className="scroll-mt-24 mt-12 max-w-5xl border-t border-gray-200 pt-10">
-          <h2 className="text-2xl font-bold text-ntu-green mb-2">資料備份與還原</h2>
-          <p className="text-gray-600 mb-6 text-sm">
-            匯出或還原本賽事相關資料（舊「資料備份」獨立頁已併入此區塊）。
-          </p>
-          <EventDataBackupRestore eventId={eventId} eventName={event?.name || "Event"} />
-        </div>
           </div>
         </main>
       </div>

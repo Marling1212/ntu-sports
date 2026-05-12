@@ -5,7 +5,41 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import toast from "react-hot-toast";
 import { createRoot, type Root } from "react-dom/client";
-import TournamentBracket from "@/components/TournamentBracket";
+import { I18nProvider } from "@/lib/i18n/context";
+import { defaultLocale, type Locale } from "@/lib/i18n/translations";
+import { TournamentBracketCore } from "@/components/TournamentBracket";
+
+function getPdfExportLocale(): Locale {
+  if (typeof document === "undefined") return defaultLocale;
+  const m = document.cookie.match(/(?:^|;\s*)locale=(zh|en)(?:;|$)/);
+  if (m?.[1] === "zh" || m?.[1] === "en") return m[1];
+  const lang = document.documentElement.lang || "";
+  if (lang.toLowerCase().startsWith("zh")) return "zh";
+  if (lang.toLowerCase().startsWith("en")) return "en";
+  return defaultLocale;
+}
+
+function renderPdfBracketRoot(
+  host: HTMLElement,
+  bracketProps: {
+    matches: Match[];
+    players: Player[];
+    sportName: string;
+  },
+  roots: Root[]
+) {
+  const root = createRoot(host);
+  roots.push(root);
+  root.render(
+    <I18nProvider initialLocale={getPdfExportLocale()}>
+      <TournamentBracketCore
+        {...bracketProps}
+        pdfCapture
+        previewSuffix=""
+      />
+    </I18nProvider>
+  );
+}
 
 function escAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -27,7 +61,7 @@ function waitForBracketPaint(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        setTimeout(resolve, 550);
+        setTimeout(resolve, 900);
       });
     });
   });
@@ -243,14 +277,16 @@ export default function ExportPDF({
   const handleExportPDF = async () => {
     const roots: Root[] = [];
     const container = document.createElement("div");
-    container.style.position = "absolute";
-    container.style.left = "-9999px";
+    container.style.position = "fixed";
+    container.style.left = "-12000px";
     container.style.top = "0";
     container.style.width = "1200px";
-    container.style.backgroundColor = "white";
+    container.style.maxWidth = "100vw";
+    container.style.backgroundColor = "#ffffff";
     container.style.padding = "40px";
     container.style.fontFamily = "Arial, 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif";
     container.style.overflow = "visible";
+    container.style.zIndex = "-1";
 
     try {
       toast.loading("正在生成 PDF...", { id: "pdf-export" });
@@ -269,11 +305,7 @@ export default function ExportPDF({
         container.innerHTML = pdfPageHeaderHtml(eventName, eventDate, eventVenue, "單淘汰籤表（與 Draw 頁相同連線）");
         const host = document.createElement("div");
         container.appendChild(host);
-        const root = createRoot(host);
-        roots.push(root);
-        root.render(
-          <TournamentBracket matches={matches} players={players} sportName={sportName} pdfCapture />
-        );
+        renderPdfBracketRoot(host, { matches, players, sportName }, roots);
       } else {
         if (playoffMatches.length > 0) {
           const mr = Math.max(...playoffMatches.map((m) => m.round), 1);
@@ -296,11 +328,7 @@ export default function ExportPDF({
           const host = document.createElement("div");
           playoffWrap.appendChild(host);
           container.appendChild(playoffWrap);
-          const root = createRoot(host);
-          roots.push(root);
-          root.render(
-            <TournamentBracket matches={playoffMatches} players={players} sportName={sportName} pdfCapture />
-          );
+          renderPdfBracketRoot(host, { matches: playoffMatches, players, sportName }, roots);
         }
       }
 
