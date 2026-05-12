@@ -4,6 +4,8 @@ import PublicNavbar from "@/components/PublicNavbar";
 import MatchDetailView from "@/components/MatchDetailView";
 import { notFound } from "next/navigation";
 import { getMatchRefereesPublicDisplay } from "@/lib/utils/matchRefereesPublicDisplay";
+import { getEventForPublicPage, getDivisionIdsForEventAndSport } from "@/lib/utils/getSportEvent";
+import { resolvePublicSeasonPlayMatchOpponentIds } from "@/lib/scheduling/publicSeasonPlayMatchOpponents";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -22,7 +24,14 @@ export async function generateMetadata({
   const { data: match } = await supabase
     .from("matches")
     .select(`
-      *,
+      event_id,
+      round,
+      player1_id,
+      player2_id,
+      slot1_seed,
+      slot1_group,
+      slot2_seed,
+      slot2_group,
       player1:players!matches_player1_id_fkey(name),
       player2:players!matches_player2_id_fkey(name)
     `)
@@ -33,8 +42,31 @@ export async function generateMetadata({
     return { title: 'Match Not Found | NTU Sports' };
   }
 
-  const p1 = match.player1?.name || "TBD";
-  const p2 = match.player2?.name || "TBD";
+  const m = match as any;
+  let p1 = m.player1?.name || "TBD";
+  let p2 = m.player2?.name || "TBD";
+  if (p1 === "TBD" || p2 === "TBD") {
+    const { data: eventRow } = await supabase
+      .from("events")
+      .select("tournament_type, tiebreaker_config, playoff_qualifiers_per_group, registration_type, sport")
+      .eq("id", match.event_id)
+      .single();
+    if (eventRow && (eventRow as any).tournament_type === "season_play" && Number((match as any).round) >= 1) {
+      const resolved = await resolvePublicSeasonPlayMatchOpponentIds({
+        eventId: match.event_id,
+        sportSlug: sportParam,
+        match: match as any,
+        event: eventRow as any,
+      });
+      const ids = [resolved.player1_id, resolved.player2_id].filter(Boolean) as string[];
+      if (ids.length > 0) {
+        const { data: nameRows } = await supabase.from("players").select("id, name").in("id", ids);
+        const byId = Object.fromEntries((nameRows || []).map((r: { id: string; name: string }) => [r.id, r.name]));
+        if (p1 === "TBD" && resolved.player1_id) p1 = byId[resolved.player1_id] || "TBD";
+        if (p2 === "TBD" && resolved.player2_id) p2 = byId[resolved.player2_id] || "TBD";
+      }
+    }
+  }
   const title = `${p1} vs ${p2} | NTU ${sportName}`;
   const description = `View match stats, details, and results for ${p1} vs ${p2} in NTU ${sportName}.`;
 
@@ -87,7 +119,6 @@ export default async function MatchDetailPage(context: any) {
   }
 
   // Fetch the event with preview support for hidden events when organizer uses ?preview=1
-  const { getEventForPublicPage, getDivisionIdsForEventAndSport } = await import("@/lib/utils/getSportEvent");
   const event = await getEventForPublicPage(match.event_id, sportParam, { preview });
   if (!event) notFound();
 
@@ -98,13 +129,29 @@ export default async function MatchDetailPage(context: any) {
   }
   if (divisionIds.length === 0 && event.sport !== sportParam) notFound();
 
-  // Get all players for this match
-  const playerIds = [match.player1_id, match.player2_id].filter(Boolean) as string[];
-  
-  const { data: players } = await supabase
-    .from("players")
-    .select("*")
-    .in("id", playerIds);
+  const resolvedIds = await resolvePublicSeasonPlayMatchOpponentIds({
+    eventId: match.event_id,
+    sportSlug: sportParam,
+    match: match as any,
+    event: event as any,
+  });
+  const effectiveP1 = resolvedIds.player1_id;
+  const effectiveP2 = resolvedIds.player2_id;
+
+  const playerIds = [effectiveP1, effectiveP2].filter(Boolean) as string[];
+  let players: any[] = [];
+  if (playerIds.length > 0) {
+    const { data } = await supabase.from("players").select("*").in("id", playerIds);
+    players = data || [];
+  }
+
+  const matchForView = {
+    ...match,
+    player1_id: effectiveP1,
+    player2_id: effectiveP2,
+    player1: (match as any).player1 ?? players.find((p) => p.id === effectiveP1) ?? null,
+    player2: (match as any).player2 ?? players.find((p) => p.id === effectiveP2) ?? null,
+  };
 
   // Get team members if this is a team event
   let teamMembers: Record<string, any[]> = {};
@@ -151,7 +198,7 @@ export default async function MatchDetailPage(context: any) {
       <PublicNavbar eventName={event?.name} tournamentType={event?.tournament_type} eventId={event?.id} />
       <div className="container mx-auto px-3 sm:px-4 pt-6 pb-24 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+100px)]">
         <MatchDetailView
-          match={match}
+          match={matchForView}
           event={event}
           players={players || []}
           teamMembers={teamMembers}
