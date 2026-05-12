@@ -5,11 +5,23 @@ import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import { Player } from "@/types/database";
+import type { Match } from "@/types/tournament";
+import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
+import {
+  buildBracketGridAoAForImport,
+  buildFlatPlayoffMatchesAoA,
+} from "@/lib/utils/singleEliminationBracketBackupExcel";
 
 interface ImportBracketProps {
   eventId: string;
   players: Player[];
   defaultDivisionId?: string | null;
+  /** Shown in exported backup sheet header */
+  eventName?: string | null;
+  eventDate?: string | null;
+  eventVenue?: string | null;
+  /** Row「組別」欄位，例如網球男子單打 */
+  divisionLabel?: string | null;
 }
 
 interface ParsedPosition {
@@ -41,7 +53,15 @@ interface MatchInsertPayload {
   status: "upcoming" | "live" | "completed" | "bye";
 }
 
-export default function ImportBracket({ eventId, players, defaultDivisionId }: ImportBracketProps) {
+export default function ImportBracket({
+  eventId,
+  players,
+  defaultDivisionId,
+  eventName: eventNameProp,
+  eventDate: eventDateProp,
+  eventVenue: eventVenueProp,
+  divisionLabel: divisionLabelProp,
+}: ImportBracketProps) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -92,17 +112,23 @@ export default function ImportBracket({ eventId, players, defaultDivisionId }: I
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: "array" });
 
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      if (!worksheet) {
-        toast.error("找不到工作表，請確認檔案內容");
-        setLoading(false);
-        return;
+      let parsed: ParsedBracket | null = null;
+      for (const sheetName of workbook.SheetNames) {
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) continue;
+        try {
+          const candidate = parseWorksheet(worksheet);
+          if (candidate.positions.length > 0) {
+            parsed = candidate;
+            break;
+          }
+        } catch {
+          continue;
+        }
       }
 
-      const parsed = parseWorksheet(worksheet);
-      if (!parsed.positions.length) {
-        toast.error("無法解析參賽者資料，請確認檔案格式");
+      if (!parsed || !parsed.positions.length) {
+        toast.error("找不到可解析的「籤表」工作表（需含標題列「順序」）");
         setLoading(false);
         return;
       }
@@ -205,11 +231,12 @@ export default function ImportBracket({ eventId, players, defaultDivisionId }: I
         return;
       }
 
-      // Delete existing matches for this event
-      const { error: deleteError } = await supabase
-        .from("matches")
-        .delete()
-        .eq("event_id", eventId);
+      // Delete existing playoff matches for this scope (division when set, else whole event)
+      let deleteQuery = supabase.from("matches").delete().eq("event_id", eventId);
+      if (defaultDivisionId) {
+        deleteQuery = deleteQuery.eq("division_id", defaultDivisionId);
+      }
+      const { error: deleteError } = await deleteQuery;
 
       if (deleteError) {
         throw deleteError;
@@ -240,6 +267,124 @@ export default function ImportBracket({ eventId, players, defaultDivisionId }: I
     } catch (error: any) {
       console.error("Import error:", error);
       toast.error(`匯入失敗：${error?.message || "請稍後再試"}`);
+      setLoading(false);
+    }
+  };
+
+  /** Admin backup: same「籤表」sheet shape as import parser + flat「賽程與比分」for对照 */
+  const handleDownloadBracketBackup = async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from("matches")
+        .select(
+          `
+          id,
+          round,
+          match_number,
+          status,
+          score1,
+          score2,
+          scheduled_time,
+          player1:players!matches_player1_id_fkey(id, name, seed, department),
+          player2:players!matches_player2_id_fkey(id, name, seed, department),
+          winner:players!matches_winner_id_fkey(id, name, seed, department)
+        `
+        )
+        .eq("event_id", eventId)
+        .gte("round", 1)
+        .order("round", { ascending: true })
+        .order("match_number", { ascending: true });
+      if (defaultDivisionId) {
+        query = query.eq("division_id", defaultDivisionId);
+      }
+      const { data: rows, error } = await query;
+      if (error) throw error;
+      if (!rows?.length) {
+        toast.error("尚無單淘汰比賽可下載（請先產生籤表）");
+        return;
+      }
+
+      const matches: Match[] = (rows as any[]).map((m) => ({
+        id: m.id,
+        round: m.round,
+        matchNumber: m.match_number,
+        status: m.status,
+        score:
+          m.score1 != null && m.score2 != null ? `${m.score1}-${m.score2}` : undefined,
+        player1: m.player1?.id
+          ? {
+              id: m.player1.id,
+              name: m.player1.name,
+              seed: m.player1.seed ?? undefined,
+              school: m.player1.department ?? undefined,
+            }
+          : null,
+        player2: m.player2?.id
+          ? {
+              id: m.player2.id,
+              name: m.player2.name,
+              seed: m.player2.seed ?? undefined,
+              school: m.player2.department ?? undefined,
+            }
+          : null,
+        winner: m.winner?.id
+          ? {
+              id: m.winner.id,
+              name: m.winner.name,
+              seed: m.winner.seed ?? undefined,
+              school: m.winner.department ?? undefined,
+            }
+          : null,
+      }));
+
+      const scheduledByMatchId: Record<string, string> = {};
+      for (const m of rows as any[]) {
+        if (m.scheduled_time) {
+          const s = formatScheduledTimeAsStored(m.scheduled_time);
+          scheduledByMatchId[m.id] = s === "—" ? "" : s;
+        }
+      }
+
+      const maxRound = Math.max(...matches.map((m) => m.round), 1);
+      const gridAoA = buildBracketGridAoAForImport({
+        eventName: eventNameProp || "賽事",
+        eventDate: eventDateProp || "",
+        eventVenue: eventVenueProp || "",
+        divisionLabel: divisionLabelProp || "單淘汰",
+        matches,
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws1 = XLSX.utils.aoa_to_sheet(gridAoA);
+      const colWidths1 = [{ wch: 8 }, { wch: 8 }, { wch: 18 }, { wch: 20 }];
+      for (let i = 0; i < maxRound; i++) colWidths1.push({ wch: 20 });
+      ws1["!cols"] = colWidths1;
+      XLSX.utils.book_append_sheet(wb, ws1, "籤表");
+
+      const flatAoA = buildFlatPlayoffMatchesAoA(matches, scheduledByMatchId);
+      const ws2 = XLSX.utils.aoa_to_sheet(flatAoA);
+      ws2["!cols"] = [
+        { wch: 38 },
+        { wch: 6 },
+        { wch: 8 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 18 },
+        { wch: 22 },
+      ];
+      XLSX.utils.book_append_sheet(wb, ws2, "賽程與比分");
+
+      const ts = new Date().toISOString().slice(0, 10);
+      const safe = (eventNameProp || "bracket").replace(/\s+/g, "_");
+      XLSX.writeFile(wb, `${safe}_籤表備份_${ts}.xlsx`);
+      toast.success("📥 已下載籤表與賽程備份（含比分對照）");
+    } catch (e: unknown) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "下載失敗");
+    } finally {
       setLoading(false);
     }
   };
@@ -328,17 +473,26 @@ export default function ImportBracket({ eventId, players, defaultDivisionId }: I
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-2xl font-semibold text-ntu-green mb-2">📤 匯入既有籤表</h2>
+          <h2 className="text-2xl font-semibold text-ntu-green mb-2">📥 籤表備份與匯入</h2>
           <p className="text-sm text-gray-600 max-w-2xl mb-2">
-            若您已在抽籤儀式或其他平台完成抽籤，可以使用以下方式上傳已分好的組別：
+            在此<strong>下載</strong>與<strong>上傳</strong>同一套 Excel 流程：先下載目前籤表（含各輪結果與賽程明細）做備份，修改後再用下方「選擇檔案 → 匯入籤表」覆寫系統內的比賽結構。
           </p>
           <div className="text-xs text-gray-500 space-y-1 mb-3">
-            <p>• <strong>方式一：</strong>下載空白範本，填入已抽好的選手分配後匯入</p>
-            <p>• <strong>方式二：</strong>使用系統匯出的 Excel 檔案作為範本，修改後重新匯入</p>
-            <p>• <strong>方式三：</strong>使用「手動分配籤表」功能直接在網站上拖曳或選擇選手</p>
+            <p>• <strong>下載目前資料：</strong>產生「籤表」+「賽程與比分」兩個工作表；格式與匯入解析相容。</p>
+            <p>• <strong>下載空白範本：</strong>僅有籤位，適合從零填寫後匯入。</p>
+            <p>• <strong>手動編輯：</strong>也可使用「手動分配籤表」在網頁上調整。</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleDownloadBracketBackup}
+            disabled={loading}
+            className="bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            title="下載與匯入相同欄位結構的籤表，並附賽程明細"
+          >
+            {loading ? "處理中…" : "📥 下載目前籤表與比分"}
+          </button>
           <button
             type="button"
             onClick={handleDownloadTemplate}
@@ -346,13 +500,13 @@ export default function ImportBracket({ eventId, players, defaultDivisionId }: I
             className="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             title="下載空白範本，填入已抽好的選手分配"
           >
-            📥 下載空白範本
+            下載空白範本
           </button>
           <button
             type="button"
             onClick={handleFileButtonClick}
             disabled={loading}
-            className="bg-white border border-ntu-green text-ntu-green px-4 py-2 rounded-lg font-semibold hover:bg-ntu-green hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white border border-ntu-green text-ntu-green px-4 py-2 rounded-lg font-semibold hover:bg-ntu-green hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             {loading ? "解析中..." : "選擇 Excel 檔案"}
           </button>
@@ -360,7 +514,7 @@ export default function ImportBracket({ eventId, players, defaultDivisionId }: I
             type="button"
             onClick={handleConfirmImport}
             disabled={loading || !parsedBracket || positionsNeedingMapping.length > 0}
-            className="bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gray-800 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             {loading ? "匯入中..." : "匯入籤表"}
           </button>
@@ -392,7 +546,7 @@ export default function ImportBracket({ eventId, players, defaultDivisionId }: I
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              * 匯入後會覆蓋目前所有比賽資料。請先確認 Matches 頁面不需要保留既有資料。
+              * 匯入會刪除並重建<strong>本項目／本賽事</strong>的季後賽比賽列（依是否選擇組別而定）。請先確認 Matches 頁面不需保留既有比分與排程。
             </p>
           </div>
 
@@ -466,9 +620,12 @@ export default function ImportBracket({ eventId, players, defaultDivisionId }: I
             </table>
           </div>
 
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 space-y-1">
             <p>
-              ⚠️ 匯入目前僅覆蓋籤表結構與 BYE 設定。若 Excel 中包含比賽結果或比分，請在匯入後於 Matches 頁面手動更新。
+              ⚠️ 匯入時<strong>只讀取「籤表」工作表</strong>的抽籤位置與 BYE；各輪結果欄位僅供人眼對照，<strong>不會</strong>自動寫回比分。
+            </p>
+            <p>
+              「賽程與比分」工作表在下載檔案中一併提供，方便備份與對帳；還原比分請至 Matches 頁面編輯（日後若要支援從檔還原可再擴充）。
             </p>
           </div>
         </div>

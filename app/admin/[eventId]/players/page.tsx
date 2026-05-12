@@ -202,6 +202,18 @@ export default async function PlayersPage({
                   eventId={eventId}
                   players={players || []}
                   defaultDivisionId={effectiveDefaultDivisionId}
+                  eventName={event?.name ?? null}
+                  eventDate={
+                    event?.start_date && event?.end_date
+                      ? `${event.start_date} ~ ${event.end_date}`
+                      : event?.start_date ?? null
+                  }
+                  eventVenue={event?.venue ?? null}
+                  divisionLabel={
+                    selectedDivision?.name
+                      ? `${selectedDivision.sport} – ${selectedDivision.name}`
+                      : selectedDivision?.sport ?? null
+                  }
                 />
               </div>
             </div>
