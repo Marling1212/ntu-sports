@@ -87,6 +87,47 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
       // 3. 其餘非種子和BYE隨機分配
       // 4. 絕對不能出現 BYE vs BYE!
       
+      /** Fill / consume slots in quarter-interleaved order so play-ins and byes are not all clustered in bracket "section 1". */
+      const spreadSlotOrder = (size: number): number[] => {
+        if (size <= 0) return [];
+        if (size < 4) return Array.from({ length: size }, (_, i) => i);
+        const qSize = size / 4;
+        const out: number[] = [];
+        for (let offset = 0; offset < qSize; offset++) {
+          for (let q = 0; q < 4; q++) {
+            out.push(q * qSize + offset);
+          }
+        }
+        return out;
+      };
+
+      const r1MatchCount = bracketSize / 2;
+      const matchQuarter = (matchIdx0: number) => {
+        if (r1MatchCount < 4) return 0;
+        const per = r1MatchCount / 4;
+        return Math.min(3, Math.floor(matchIdx0 / per));
+      };
+
+      /** Round-robin seed slots across R1 quarters (keeps relative order within each quarter). */
+      const reorderSeedPositionsForQuarterSpread = (positionsArr: number[]): number[] => {
+        const buckets: number[][] = [[], [], [], []];
+        for (const sp of positionsArr) {
+          buckets[matchQuarter(Math.floor(sp / 2))].push(sp);
+        }
+        const out: number[] = [];
+        let progressed = true;
+        while (progressed) {
+          progressed = false;
+          for (let q = 0; q < 4; q++) {
+            if (buckets[q].length > 0) {
+              out.push(buckets[q].shift()!);
+              progressed = true;
+            }
+          }
+        }
+        return out;
+      };
+
       console.log(`\n=== 開始分配選手 ===`);
       console.log(`種子數: ${seeded.length}, 非種子數: ${shuffledUnseeded.length}`);
       console.log(`籤表大小: ${bracketSize}, 總 BYE 數: ${numByes}`);
@@ -130,11 +171,17 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
         const seedB = positions[b]?.seed || 999;
         return seedA - seedB;
       });
+
+      const sortedSeedSlotsByRank = [...seedPositions].sort(
+        (a, b) => (positions[a]?.seed || 999) - (positions[b]?.seed || 999)
+      );
+      const advantageSeedSlots = sortedSeedSlotsByRank.slice(0, seedsWithAdvantage);
+      const advantageOrder = reorderSeedPositionsForQuarterSpread(advantageSeedSlots);
       
-      console.log(`\n為前 ${seedsWithAdvantage} 個種子安排對手互打：`);
+      console.log(`\n為前 ${seedsWithAdvantage} 個種子安排對手互打（種子號最小者優先，分配順序依 1/4 區輪流）：`);
       
-      for (let i = 0; i < seedsWithAdvantage && unseededIndex + 1 < shuffledUnseeded.length; i++) {
-        const seedPos = seedPositions[i];
+      for (let i = 0; i < advantageOrder.length && unseededIndex + 1 < shuffledUnseeded.length; i++) {
+        const seedPos = advantageOrder[i];
         const round1MatchNum = Math.floor(seedPos / 2);
         const isEvenMatch = round1MatchNum % 2 === 0;
         const opponentMatchNum = isEvenMatch ? round1MatchNum + 1 : round1MatchNum - 1;
@@ -177,8 +224,15 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
       console.log(`剩餘 ${remainingUnseeded} 個非種子選手`);
       
       // 分類配對
-      const fullyEmptyPairs = emptyPairs.filter(([p1, p2]) => !positions[p1] && !positions[p2]);
+      let fullyEmptyPairs = emptyPairs.filter(([p1, p2]) => !positions[p1] && !positions[p2]);
       const partiallyEmptyPairs = emptyPairs.filter(([p1, p2]) => positions[p1] || positions[p2]);
+      const slotPri = new Map<number, number>();
+      spreadSlotOrder(bracketSize).forEach((pos, pri) => slotPri.set(pos, pri));
+      fullyEmptyPairs.sort(
+        (a, b) =>
+          Math.min(slotPri.get(a[0]) ?? 999, slotPri.get(a[1]) ?? 999) -
+          Math.min(slotPri.get(b[0]) ?? 999, slotPri.get(b[1]) ?? 999)
+      );
       
       console.log(`完全空配對: ${fullyEmptyPairs.length}, 部分空配對: ${partiallyEmptyPairs.length}`);
       
@@ -212,7 +266,7 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
       if (numByes === 0) {
         // 沒有 BYE：填充所有空位，確保所有選手都參賽
         console.log(`無 BYE 情況：填充所有空位（包括種子對手位置）`);
-        for (let i = 0; i < bracketSize; i++) {
+        for (const i of spreadSlotOrder(bracketSize)) {
           if (!positions[i] && unseededIndex < shuffledUnseeded.length) {
             positions[i] = shuffledUnseeded[unseededIndex++];
           }
@@ -253,8 +307,8 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
         
         console.log(`  總共為 ${seedOpponentPositionsForBye.size} 個種子保留 BYE，剩餘 ${remainingByes} 個 BYE 給非種子`);
         
-        // 填充所有空位，但跳過為種子保留的 BYE 位置
-        for (let i = 0; i < bracketSize; i++) {
+        // 填充所有空位，但跳過為種子保留的 BYE 位置（依四區輪流順位填，避免擠在同一區）
+        for (const i of spreadSlotOrder(bracketSize)) {
           if (!positions[i] && unseededIndex < shuffledUnseeded.length) {
             // 如果這個位置是為種子保留的 BYE 位置，則跳過
             if (seedOpponentPositionsForBye.has(i)) {

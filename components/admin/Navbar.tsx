@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import LogoutButton from "./LogoutButton";
 import AdminFontSizeControl from "@/components/admin/AdminFontSizeControl";
 import DivisionSwitcher from "./DivisionSwitcher";
@@ -25,14 +26,27 @@ interface AdminNavbarProps {
   divisions?: Division[];
   currentDivisionId?: string | null;
   isVisible?: boolean;
+  /** Show nav link to bracket-shaped check-in (single elimination) */
+  showBracketCheckIn?: boolean;
 }
 
-export default function AdminNavbar({ eventId, eventName, sport, divisions = [], currentDivisionId = null, isVisible }: AdminNavbarProps) {
-  const selectedDivision = currentDivisionId ? divisions.find((d) => d.id === currentDivisionId) : null;
+export default function AdminNavbar({
+  eventId,
+  eventName,
+  sport,
+  divisions = [],
+  currentDivisionId = null,
+  isVisible,
+  showBracketCheckIn = false,
+}: AdminNavbarProps) {
+  const searchParams = useSearchParams();
+  const divisionIdFromUrl = searchParams?.get("divisionId");
+  const effectiveDivisionId = currentDivisionId ?? divisionIdFromUrl ?? null;
+  const selectedDivision = effectiveDivisionId ? divisions.find((d) => d.id === effectiveDivisionId) : null;
   const viewerSport = selectedDivision?.sport ?? sport;
   const baseViewerUrl = eventId && viewerSport ? `/sports/${viewerSport}/events/${eventId}` : null;
   const viewerUrl = baseViewerUrl ? (isVisible === false ? `${baseViewerUrl}?preview=1` : baseViewerUrl) : null;
-  const q = currentDivisionId ? `?divisionId=${currentDivisionId}` : "";
+  const q = effectiveDivisionId ? `?divisionId=${effectiveDivisionId}` : "";
   const { t } = useI18n();
 
   return (
@@ -54,7 +68,7 @@ export default function AdminNavbar({ eventId, eventName, sport, divisions = [],
             )}
             {eventId && divisions.length > 1 && (
               <Suspense fallback={null}>
-                <DivisionSwitcher divisions={divisions} currentDivisionId={currentDivisionId} />
+                <DivisionSwitcher divisions={divisions} currentDivisionId={effectiveDivisionId} />
               </Suspense>
             )}
           </div>
@@ -73,6 +87,11 @@ export default function AdminNavbar({ eventId, eventName, sport, divisions = [],
               <Link href={`/admin/${eventId}/players${q}`} className="hover:opacity-80 transition-opacity">
                 {t("admin.players")}
               </Link>
+              {showBracketCheckIn && (
+                <Link href={`/admin/${eventId}/check-in${q}`} className="hover:opacity-80 transition-opacity">
+                  {t("admin.checkIn")}
+                </Link>
+              )}
               <Link href={`/admin/${eventId}/matches${q}`} className="hover:opacity-80 transition-opacity">
                 {t("admin.matches")}
               </Link>

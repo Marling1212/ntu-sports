@@ -41,13 +41,18 @@ export default function ExportPDF({
       const hasRegularSeason = matches.some(m => m.round === 0);
       const isSeasonPlay = tournamentType === "season_play" || hasRegularSeason;
 
+      if (!isSeasonPlay) {
+        const mr = Math.max(...matches.map((m) => m.round), 1);
+        container.style.width = `${Math.max(1200, mr * 128 + 280)}px`;
+      }
+
       const regularSeasonMatches = matches.filter(m => m.round === 0);
       const playoffMatches = matches.filter(m => m.round >= 1);
 
       // Generate HTML content
       const htmlContent = isSeasonPlay 
         ? generateSeasonPlayHTML(regularSeasonMatches, playoffMatches)
-        : generateSingleEliminationHTML();
+        : generateSingleEliminationStaircaseHTML();
 
       container.innerHTML = htmlContent;
 
@@ -246,122 +251,93 @@ export default function ExportPDF({
     return html;
   };
 
-  const generateSingleEliminationHTML = () => {
-    const maxRound = Math.max(...matches.map(m => m.round), 1);
-    
-    // Build bracket data
-    const round1Matches = matches
-      .filter(m => m.round === 1)
-      .sort((a, b) => a.matchNumber - b.matchNumber);
+  const generateSingleEliminationStaircaseHTML = () => {
+    const maxRound = Math.max(...matches.map((m) => m.round), 1);
+    const bracketMatches = matches.filter((m) => !(m.round === maxRound && m.matchNumber === 2));
 
-    const positions: (Player | null)[] = [];
-    round1Matches.forEach(match => {
-      positions.push(match.player1 || null);
-      positions.push(match.player2 || null);
-    });
+    const esc = (s: string) =>
+      s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
 
-    // Calculate results for each round
-    const positionRoundResults: Record<number, Record<number, string>> = {};
-    positions.forEach((_, index) => {
-      positionRoundResults[index] = {};
-    });
+    const LEAF = 34;
+    const topPad = 28;
+    const totalH = Math.pow(2, maxRound) * LEAF + topPad + 60;
+    const colW = 120;
 
-    const bracketMatches = matches.filter(m => !(m.round === maxRound && m.matchNumber === 2));
-    
-    for (let round = 1; round <= maxRound; round++) {
-      const roundMatches = bracketMatches
-        .filter(m => m.round === round)
+    const yCenter = (round: number, matchIdx0: number) =>
+      topPad + (Math.pow(2, round) * matchIdx0 + Math.pow(2, round - 1)) * LEAF;
+    const boxH = (round: number) => Math.max(46, Math.pow(2, round) * LEAF - 10);
+
+    const playerLine = (m: Match, side: 1 | 2): string => {
+      const p = side === 1 ? m.player1 : m.player2;
+      if (p?.name) {
+        const seedTag = p.seed ? ` <span style="color:#00694E;font-weight:700">(${p.seed})</span>` : "";
+        return `${esc(p.name)}${seedTag}`;
+      }
+      if (m.status === "bye") {
+        return '<span style="color:#888;font-style:italic">BYE</span>';
+      }
+      return '<span style="color:#999">TBD</span>';
+    };
+
+    let columnsHtml = "";
+    for (let r = 1; r <= maxRound; r++) {
+      const rMatches = bracketMatches
+        .filter((m) => m.round === r)
         .sort((a, b) => a.matchNumber - b.matchNumber);
 
-      roundMatches.forEach((match) => {
-        const playersPerMatch = Math.pow(2, round);
-        const startPos = (match.matchNumber - 1) * playersPerMatch;
-        const endPos = startPos + playersPerMatch - 1;
-        const lowestPosition = Math.max(...Array.from({ length: endPos - startPos + 1 }, (_, i) => startPos + i).filter(pos => pos < positions.length));
-
-        let displayText = "";
-        if (match.status === "bye" && match.winner) {
-          displayText = `${match.winner.name} (bye)`;
-        } else if (match.status === "completed" && match.winner) {
-          const score = match.score || "";
-          displayText = `${match.winner.name} (${score})`;
-        }
-
-        if (displayText) {
-          positionRoundResults[lowestPosition][round] = displayText;
-        }
-      });
-    }
-
-    // Create headers
-    const headers = ["順序", "種子", "姓名", "系級"];
-    for (let i = 1; i <= maxRound; i++) {
-      if (i === 1) headers.push("第一輪");
-      else if (i === 2) headers.push("第二輪");
-      else if (i === 3) headers.push("第三輪");
-      else if (i === 4) headers.push("第四輪");
-      else if (i === 5) headers.push("第五輪");
-      else if (i === 6) headers.push("第六輪");
-      else headers.push(`第${i}輪`);
-    }
-
-    let html = `
-      <div style="font-family: Arial, 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif;">
-        <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #00694E;">${eventName}</h1>
-        <div style="margin-bottom: 20px; font-size: 14px;">
-          <p><strong>比賽日期:</strong> ${eventDate}</p>
-          <p><strong>比賽地點:</strong> ${eventVenue}</p>
-        </div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-          <thead>
-            <tr style="background-color: #00694E; color: white; font-weight: bold;">
-    `;
-
-    headers.forEach(header => {
-      html += `<th style="padding: 8px; border: 1px solid #ddd; text-align: center;">${header}</th>`;
-    });
-
-    html += `</tr></thead><tbody>`;
-
-    positions.forEach((player, index) => {
-      const bgColor = index % 2 === 0 ? "#f9f9f9" : "white";
-      html += `<tr style="background-color: ${bgColor};">`;
-      html += `<td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${index + 1}</td>`;
-      html += `<td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${player?.seed ? `s${player.seed}` : ""}</td>`;
-      html += `<td style="padding: 6px; border: 1px solid #ddd;">${player?.name || "BYE"}</td>`;
-      html += `<td style="padding: 6px; border: 1px solid #ddd;">${player?.school || ""}</td>`;
-      
-      for (let round = 1; round <= maxRound; round++) {
-        html += `<td style="padding: 6px; border: 1px solid #ddd;">${positionRoundResults[index][round] || ""}</td>`;
+      let cells = "";
+      for (const m of rMatches) {
+        const top = yCenter(r, m.matchNumber - 1) - boxH(r) / 2;
+        const scoreLine =
+          m.status === "completed" && m.score
+            ? `<div style="margin-top:4px;font-size:10px;color:#00694E;font-weight:700">${esc(m.score)}</div>`
+            : "";
+        cells += `
+          <div style="position:absolute;left:5px;right:5px;top:${top}px;height:${boxH(r)}px;border:1px solid #333;border-radius:6px;background:#fff;padding:5px 4px;font-size:11px;line-height:1.25;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;">
+            <div style="font-weight:700;color:#00694E;font-size:10px;">M${m.matchNumber}</div>
+            <div style="margin-top:3px;color:#111;">${playerLine(m, 1)}</div>
+            <div style="margin-top:3px;color:#111;">${playerLine(m, 2)}</div>
+            ${scoreLine}
+          </div>`;
       }
-      
-      html += `</tr>`;
-    });
+      columnsHtml += `<div style="position:relative;width:${colW}px;height:${totalH}px;flex-shrink:0;border-left:1px solid #bbb;background:#fafafa;">${cells}</div>`;
+    }
 
-    // Add 3rd place match if exists
-    const finalRoundMatches = matches.filter(m => m.round === maxRound);
+    const finalRoundMatches = matches.filter((m) => m.round === maxRound);
     const has3rdPlace = finalRoundMatches.length > 1;
-    const thirdPlaceMatch = has3rdPlace ? finalRoundMatches.find(m => m.matchNumber === 2) : null;
+    const thirdPlaceMatch = has3rdPlace ? finalRoundMatches.find((m) => m.matchNumber === 2) : null;
 
-    if (has3rdPlace && thirdPlaceMatch) {
-      html += `<tr><td colspan="${headers.length}" style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f0f0f0;">季軍賽 (3rd Place Match)</td></tr>`;
-      html += `<tr><td colspan="2"></td><td style="padding: 6px; border: 1px solid #ddd;">${thirdPlaceMatch.player1?.name || "TBD"}</td><td style="padding: 6px; border: 1px solid #ddd;">${thirdPlaceMatch.player1?.school || ""}</td>`;
-      for (let i = 4; i < headers.length; i++) html += `<td></td>`;
-      html += `</tr>`;
-      html += `<tr><td colspan="2"></td><td style="padding: 6px; border: 1px solid #ddd;">${thirdPlaceMatch.player2?.name || "TBD"}</td><td style="padding: 6px; border: 1px solid #ddd;">${thirdPlaceMatch.player2?.school || ""}</td>`;
-      for (let i = 4; i < headers.length; i++) html += `<td></td>`;
-      html += `</tr>`;
-      
-      if (thirdPlaceMatch.status === "completed" && thirdPlaceMatch.winner) {
-        const score = thirdPlaceMatch.score || "";
-        html += `<tr><td colspan="2"></td><td colspan="2" style="padding: 6px; border: 1px solid #ddd; font-weight: bold;">第三名: ${thirdPlaceMatch.winner.name} (${score})</td>`;
-        for (let i = 4; i < headers.length; i++) html += `<td></td>`;
-        html += `</tr>`;
-      }
+    let thirdBlock = "";
+    if (thirdPlaceMatch) {
+      thirdBlock = `
+        <div style="margin-top:24px;padding-top:16px;border-top:2px solid #ccc;">
+          <div style="font-weight:bold;margin-bottom:8px;color:#00694E;">季軍賽</div>
+          <div style="font-size:12px;">${playerLine(thirdPlaceMatch, 1)} <span style="color:#999">vs</span> ${playerLine(thirdPlaceMatch, 2)}</div>
+          ${
+            thirdPlaceMatch.status === "completed" && thirdPlaceMatch.winner
+              ? `<div style="margin-top:6px;font-size:11px;font-weight:700;">第三名：${esc(thirdPlaceMatch.winner.name)}</div>`
+              : ""
+          }
+        </div>`;
     }
 
-    html += `</tbody></table></div>`;
-    return html;
+    return `
+      <div style="font-family: Arial, 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif;">
+        <h1 style="font-size: 22px; font-weight: bold; margin-bottom: 14px; color: #00694E;">${esc(eventName)}</h1>
+        <div style="margin-bottom: 14px; font-size: 13px;">
+          <p><strong>比賽日期:</strong> ${esc(eventDate)}</p>
+          <p><strong>比賽地點:</strong> ${esc(eventVenue)}</p>
+          <p style="margin-top:6px;color:#444;">單淘汰籤表（階梯狀）</p>
+        </div>
+        <div style="display:flex;flex-direction:row;align-items:flex-start;gap:0;border:1px solid #ccc;border-radius:8px;overflow:hidden;background:#fff;">
+          ${columnsHtml}
+        </div>
+        ${thirdBlock}
+      </div>`;
   };
 
   const calculateStandings = (regularSeasonMatches: Match[], players: Player[]) => {

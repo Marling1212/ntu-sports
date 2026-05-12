@@ -14,6 +14,12 @@ interface TournamentBracketProps {
   totalRounds?: number; // Total rounds in the entire tournament (not just this section)
   hideThirdPlace?: boolean; // Hide the 3rd place match display
   compactLayout?: boolean; // Not strictly used with the new tree architect, but keeping for prop compat
+  /** Admin-only: first-round cells show check-in toggle; match cards are not links to the public site. */
+  adminCheckIn?: {
+    checkedInByPlayerId: Record<string, boolean>;
+    onToggleCheckIn: (player: Player) => void;
+    busyPlayerId?: string | null;
+  };
 }
 
 // --- Configuration Constants ---
@@ -37,6 +43,7 @@ export default function TournamentBracket({
   totalRounds: propTotalRounds,
   hideThirdPlace = false,
   compactLayout = false,
+  adminCheckIn,
 }: TournamentBracketProps) {
   const { t } = useI18n();
   const searchParams = useSearchParams();
@@ -129,9 +136,10 @@ export default function TournamentBracket({
 
   // Player Block Sub-component
   const PlayerBlock = ({ 
-    player, slot, isWinner, isLoser, isThirdPlace = false, textPlaceholder, contextLabel 
+    player, slot, isWinner, isLoser, isThirdPlace = false, textPlaceholder, contextLabel, adminCheckInSlot,
   }: { 
-    player: Player | null; slot?: SlotPlaceholder | null; isWinner?: boolean; isLoser?: boolean; isThirdPlace?: boolean; textPlaceholder: string; contextLabel?: string 
+    player: Player | null; slot?: SlotPlaceholder | null; isWinner?: boolean; isLoser?: boolean; isThirdPlace?: boolean; textPlaceholder: string; contextLabel?: string;
+    adminCheckInSlot?: { checked: boolean; disabled: boolean; onToggle: () => void };
   }) => {
     const isBye = !player && !slot && textPlaceholder === t("bracket.bye");
     const displayText = player?.name || (slot ? `Seed ${slot.seed} Group ${slot.group}` : textPlaceholder);
@@ -147,7 +155,7 @@ export default function TournamentBracket({
               : isThirdPlace ? "border-amber-400 bg-amber-50" : "border-gray-300 bg-white"
         }`}
       >
-        <div className="flex items-center gap-1.5 md:gap-2 h-full">
+        <div className="flex items-center gap-1.5 md:gap-2 h-full w-full min-w-0">
           {player?.seed && (
             <span className="text-[10px] md:text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded flex-shrink-0">
               {player.seed}
@@ -168,6 +176,22 @@ export default function TournamentBracket({
               </div>
             )}
           </div>
+          {adminCheckInSlot && player?.id && !isBye && (
+            <button
+              type="button"
+              className={`shrink-0 text-[10px] md:text-xs px-1.5 py-1 rounded border font-semibold whitespace-nowrap ${
+                adminCheckInSlot.checked ? "bg-ntu-green text-white border-ntu-green" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+              disabled={adminCheckInSlot.disabled}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                adminCheckInSlot.onToggle();
+              }}
+            >
+              {adminCheckInSlot.checked ? "✓" : "報到"}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -207,18 +231,51 @@ export default function TournamentBracket({
 
     const courtLabel = getCourtDisplay(match);
 
-    return (
-      <Link
-        id={`match-${match.id}`}
-        href={`/sports/${sportName.toLowerCase()}/matches/${match.id}${previewSuffix}`}
-        className="block relative group hover:scale-[1.02] active:scale-95 transition-transform duration-300 z-10 scroll-mt-24 w-max"
-      >
+    const p1Check =
+      adminCheckIn && round === 1 && match.player1
+        ? {
+            checked: !!adminCheckIn.checkedInByPlayerId[match.player1.id],
+            disabled: adminCheckIn.busyPlayerId === match.player1.id,
+            onToggle: () => adminCheckIn.onToggleCheckIn(match.player1!),
+          }
+        : undefined;
+    const p2Check =
+      adminCheckIn && round === 1 && match.player2
+        ? {
+            checked: !!adminCheckIn.checkedInByPlayerId[match.player2.id],
+            disabled: adminCheckIn.busyPlayerId === match.player2.id,
+            onToggle: () => adminCheckIn.onToggleCheckIn(match.player2!),
+          }
+        : undefined;
+
+    const cardInner = (
+      <>
         <div className="relative flex flex-col gap-1 w-[150px] md:w-[200px]">
-          <PlayerBlock player={match.player1 || null} slot={match.slot1} isWinner={player1IsWinner} isLoser={player1IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} />
+          <PlayerBlock
+            player={match.player1 || null}
+            slot={match.slot1}
+            isWinner={player1IsWinner}
+            isLoser={player1IsLoser}
+            isThirdPlace={isThirdPlace}
+            textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")}
+            contextLabel={p1ContextLabel}
+            adminCheckInSlot={p1Check}
+          />
           <div className="h-1"></div>
-          <PlayerBlock player={match.player2 || null} slot={match.slot2} isWinner={player2IsWinner} isLoser={player2IsLoser} isThirdPlace={isThirdPlace} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} />
-          
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+          <PlayerBlock
+            player={match.player2 || null}
+            slot={match.slot2}
+            isWinner={player2IsWinner}
+            isLoser={player2IsLoser}
+            isThirdPlace={isThirdPlace}
+            textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")}
+            contextLabel={p2ContextLabel}
+            adminCheckInSlot={p2Check}
+          />
+
+          <div
+            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 ${adminCheckIn ? "pointer-events-none" : ""}`}
+          >
              {match.status === "completed" && match.score ? (
                 <div className={`bg-white border-2 rounded-lg px-2 py-1 shadow-md ${isThirdPlace ? 'border-amber-500 text-amber-600' : isActualFinalRound && !isThirdPlace ? 'border-yellow-500 text-yellow-600' : 'border-ntu-green text-ntu-green'}`}>
                    <div className="text-[10px] md:text-xs font-bold whitespace-nowrap">{match.score}</div>
@@ -235,6 +292,24 @@ export default function TournamentBracket({
             {courtLabel}
           </div>
         )}
+      </>
+    );
+
+    if (adminCheckIn) {
+      return (
+        <div id={`match-${match.id}`} className="block relative group z-10 scroll-mt-24 w-max">
+          {cardInner}
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        id={`match-${match.id}`}
+        href={`/sports/${sportName.toLowerCase()}/matches/${match.id}${previewSuffix}`}
+        className="block relative group hover:scale-[1.02] active:scale-95 transition-transform duration-300 z-10 scroll-mt-24 w-max"
+      >
+        {cardInner}
       </Link>
     );
   };
@@ -297,8 +372,14 @@ export default function TournamentBracket({
     <div className="bg-white rounded-xl shadow-md p-4 md:p-6 border border-gray-100 w-full min-w-0 overflow-hidden">
       <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-2">
         <div>
-          <h2 className="text-xl md:text-2xl font-semibold text-ntu-green mb-1 md:mb-2">{sportName} Tournament Bracket</h2>
-          <p className="text-xs md:text-sm text-gray-600">Single Elimination • {totalPlayers} Players • {bracketSize}-Draw • {numSeeds} Seeds • {maxRound} Rounds</p>
+          <h2 className="text-xl md:text-2xl font-semibold text-ntu-green mb-1 md:mb-2">
+            {adminCheckIn ? t("admin.checkInBracketTitle") : `${sportName} Tournament Bracket`}
+          </h2>
+          <p className="text-xs md:text-sm text-gray-600">
+            {adminCheckIn
+              ? t("admin.checkInBracketHint")
+              : `Single Elimination • ${totalPlayers} Players • ${bracketSize}-Draw • ${numSeeds} Seeds • ${maxRound} Rounds`}
+          </p>
         </div>
 
         {/* Mobile View Toggle */}
@@ -471,6 +552,7 @@ export default function TournamentBracket({
       </div>
 
       {/* Legend */}
+      {!adminCheckIn && (
       <div className="mt-8 pt-4 border-t border-gray-200">
         <h4 className="text-sm font-semibold text-gray-700 mb-3">Legend</h4>
         <div className="flex flex-wrap gap-4 md:gap-6 text-xs md:text-sm">
@@ -498,6 +580,7 @@ export default function TournamentBracket({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

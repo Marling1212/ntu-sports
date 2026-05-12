@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AdminNavbar from "@/components/admin/Navbar";
@@ -49,13 +50,19 @@ export default async function EventAdminLayout({
 
   return (
     <>
-      <AdminNavbar
-        eventId={eventId}
-        eventName={event?.name}
-        sport={event?.sport}
-        isVisible={event?.is_visible}
-        divisions={divisions}
-      />
+      <Suspense fallback={<div className="sticky top-0 z-50 h-16 bg-ntu-green shadow-lg" aria-hidden />}>
+        <AdminNavbar
+          eventId={eventId}
+          eventName={event?.name}
+          sport={event?.sport}
+          isVisible={event?.is_visible}
+          divisions={divisions}
+          showBracketCheckIn={
+            divisions.some((d) => d.tournament_type === "single_elimination") ||
+            (divisions.length === 0 && event?.tournament_type === "single_elimination")
+          }
+        />
+      </Suspense>
       {children}
     </>
   );
