@@ -143,6 +143,7 @@ export default async function SportEventDrawPage({
               eventDate={eventDate}
               eventVenue={eventVenue}
               tournamentType={tournamentType || "single_elimination"}
+              sportName={sportName}
             />
           </div>
         </div>

@@ -84,7 +84,7 @@ export default function BracketCheckInClient({
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
         <p className="font-medium mb-2">尚無季後賽／單淘汰比賽資料</p>
         <p className="text-sm mb-4">請先在「報名管理」產生或匯入籤表。</p>
-        <Link href={`/admin/${eventId}/players${divisionQuery}`} className="text-ntu-green font-semibold underline">
+        <Link href={`/admin/${eventId}/players${divisionQuery}#players-table`} className="text-ntu-green font-semibold underline">
           前往報名管理
         </Link>
       </div>
@@ -94,7 +94,7 @@ export default function BracketCheckInClient({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 text-sm">
-        <Link href={`/admin/${eventId}/players${divisionQuery}`} className="text-ntu-green font-medium hover:underline">
+        <Link href={`/admin/${eventId}/players${divisionQuery}#players-table`} className="text-ntu-green font-medium hover:underline">
           ← 報名管理
         </Link>
         <Link href={`/admin/${eventId}/matches${divisionQuery}`} className="text-ntu-green font-medium hover:underline">

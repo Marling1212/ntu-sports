@@ -9,6 +9,9 @@ import ImportSeasonPlay from "@/components/admin/ImportSeasonPlay";
 import ImportSeasonGroups from "@/components/admin/ImportSeasonGroups";
 import ManualBracketEditor from "@/components/admin/ManualBracketEditor";
 import PlayersPageNav from "@/components/admin/PlayersPageNav";
+import BracketCheckInClient from "@/components/admin/BracketCheckInClient";
+import type { Match } from "@/types/tournament";
+import type { Player as DbPlayer } from "@/types/database";
 
 export default async function PlayersPage({
   params,
@@ -98,6 +101,74 @@ export default async function PlayersPage({
     .select("*", { count: "exact", head: true })
     .eq("event_id", eventId)
     .eq("status", "pending");
+
+  let bracketCheckInMatches: Match[] = [];
+  let checkInSportLabel = "Tennis";
+  if (effectiveTournamentType === "single_elimination") {
+    let matchesQuery = supabase
+      .from("matches")
+      .select(
+        `
+      id,
+      round,
+      match_number,
+      status,
+      score1,
+      score2,
+      winner_id,
+      player1:players!matches_player1_id_fkey(id, name, seed, department),
+      player2:players!matches_player2_id_fkey(id, name, seed, department),
+      winner:players!matches_winner_id_fkey(id, name, seed, department)
+    `
+      )
+      .eq("event_id", eventId)
+      .gte("round", 1)
+      .order("round", { ascending: true })
+      .order("match_number", { ascending: true });
+    if (effectiveDefaultDivisionId) {
+      matchesQuery = matchesQuery.eq("division_id", effectiveDefaultDivisionId);
+    }
+    const { data: rawBracketMatches } = await matchesQuery;
+    bracketCheckInMatches = (rawBracketMatches ?? []).map((m: any) => ({
+      id: m.id,
+      round: m.round,
+      matchNumber: m.match_number,
+      player1: m.player1?.id
+        ? {
+            id: m.player1.id,
+            name: m.player1.name,
+            seed: m.player1.seed ?? undefined,
+            school: m.player1.department ?? undefined,
+          }
+        : null,
+      player2: m.player2?.id
+        ? {
+            id: m.player2.id,
+            name: m.player2.name,
+            seed: m.player2.seed ?? undefined,
+            school: m.player2.department ?? undefined,
+          }
+        : null,
+      winner: m.winner?.id
+        ? {
+            id: m.winner.id,
+            name: m.winner.name,
+            seed: m.winner.seed ?? undefined,
+            school: m.winner.department ?? undefined,
+          }
+        : null,
+      score: m.score1 != null && m.score2 != null ? `${m.score1}-${m.score2}` : undefined,
+      status: m.status,
+    }));
+    const sport = selectedDivision?.sport ?? event?.sport ?? "tennis";
+    checkInSportLabel = sport
+      ? sport.charAt(0).toUpperCase() + sport.slice(1).toLowerCase()
+      : "Tennis";
+  }
+
+  const divisionQueryForCheckIn = effectiveDefaultDivisionId
+    ? `?divisionId=${effectiveDefaultDivisionId}`
+    : "";
 
   return (
     <>
@@ -205,6 +276,22 @@ export default async function PlayersPage({
               Once you have added players or teams above, your bracket management tools will appear here.
             </p>
           </div>
+        )}
+
+        {effectiveTournamentType === "single_elimination" && (
+          <section id="bracket-check-in" className="scroll-mt-24 mt-10 border-t border-gray-200 pt-10">
+            <h2 className="text-2xl font-bold text-ntu-green mb-1">籤表報到</h2>
+            <p className="text-gray-600 mb-6 text-sm">
+              在籤表第一輪格位標記選手／隊伍報到（與上方名單中的報到狀態同步）。
+            </p>
+            <BracketCheckInClient
+              eventId={eventId}
+              divisionQuery={divisionQueryForCheckIn}
+              sportLabel={checkInSportLabel}
+              initialMatches={bracketCheckInMatches}
+              initialPlayers={(players || []) as DbPlayer[]}
+            />
+          </section>
         )}
           </div>
         </main>

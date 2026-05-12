@@ -26,8 +26,6 @@ interface AdminNavbarProps {
   divisions?: Division[];
   currentDivisionId?: string | null;
   isVisible?: boolean;
-  /** Show nav link to bracket-shaped check-in (single elimination) */
-  showBracketCheckIn?: boolean;
 }
 
 export default function AdminNavbar({
@@ -37,7 +35,6 @@ export default function AdminNavbar({
   divisions = [],
   currentDivisionId = null,
   isVisible,
-  showBracketCheckIn = false,
 }: AdminNavbarProps) {
   const searchParams = useSearchParams();
   const divisionIdFromUrl = searchParams?.get("divisionId");
@@ -86,14 +83,6 @@ export default function AdminNavbar({
               )}
               <Link href={`/admin/${eventId}/players${q}`} className="hover:opacity-80 transition-opacity">
                 {t("admin.players")}
-              </Link>
-              {showBracketCheckIn && (
-                <Link href={`/admin/${eventId}/check-in${q}`} className="hover:opacity-80 transition-opacity">
-                  {t("admin.checkIn")}
-                </Link>
-              )}
-              <Link href={`/admin/${eventId}/backup${q}`} className="hover:opacity-80 transition-opacity">
-                {t("admin.dataBackup")}
               </Link>
               <Link href={`/admin/${eventId}/matches${q}`} className="hover:opacity-80 transition-opacity">
                 {t("admin.matches")}

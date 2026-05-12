@@ -20,6 +20,8 @@ interface TournamentBracketProps {
     onToggleCheckIn: (player: Player) => void;
     busyPlayerId?: string | null;
   };
+  /** PDF / screenshot: no match links, no zoom UI, no mobile tab bar — matches draw-page tree + connectors. */
+  pdfCapture?: boolean;
 }
 
 // --- Configuration Constants ---
@@ -44,6 +46,7 @@ export default function TournamentBracket({
   hideThirdPlace = false,
   compactLayout = false,
   adminCheckIn,
+  pdfCapture = false,
 }: TournamentBracketProps) {
   const { t } = useI18n();
   const searchParams = useSearchParams();
@@ -103,8 +106,12 @@ export default function TournamentBracket({
   const resetZoom = () => setBracketZoom(getDefaultBracketZoomForViewport());
 
   useLayoutEffect(() => {
+    if (pdfCapture) {
+      setBracketZoom(1);
+      return;
+    }
     setBracketZoom(getDefaultBracketZoomForViewport());
-  }, []);
+  }, [pdfCapture]);
 
   /**
    * Zoom uses CSS transform, which doesn't change layout width. We wrap scaled content in a box
@@ -295,7 +302,7 @@ export default function TournamentBracket({
       </>
     );
 
-    if (adminCheckIn) {
+    if (adminCheckIn || pdfCapture) {
       return (
         <div id={`match-${match.id}`} className="block relative group z-10 scroll-mt-24 w-max">
           {cardInner}
@@ -369,7 +376,7 @@ export default function TournamentBracket({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 md:p-6 border border-gray-100 w-full min-w-0 overflow-hidden">
+    <div className={`bg-white rounded-xl shadow-md p-4 md:p-6 border border-gray-100 w-full min-w-0 ${pdfCapture ? "overflow-visible" : "overflow-hidden"}`}>
       <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-2">
         <div>
           <h2 className="text-xl md:text-2xl font-semibold text-ntu-green mb-1 md:mb-2">
@@ -383,6 +390,7 @@ export default function TournamentBracket({
         </div>
 
         {/* Mobile View Toggle */}
+        {!pdfCapture && (
         <div className="md:hidden flex bg-gray-100 p-1 rounded-lg w-full max-w-sm self-center mt-2">
           <button
             onClick={() => setMobileViewMode("full")}
@@ -401,10 +409,11 @@ export default function TournamentBracket({
             <span>🗂️</span> {t("bracket.roundView")}
           </button>
         </div>
+        )}
       </div>
 
       {/* Mobile Tabs */}
-      {mobileViewMode === "tabs" && (
+      {!pdfCapture && mobileViewMode === "tabs" && (
         <div className="md:hidden flex overflow-x-auto gap-2 mb-6 pb-2 border-b">
           {rounds.map(r => (
             <button 
@@ -419,7 +428,7 @@ export default function TournamentBracket({
       )}
 
       {/* Mobile View */}
-      {mobileViewMode === "tabs" && (
+      {!pdfCapture && mobileViewMode === "tabs" && (
         <div className="md:hidden flex flex-col gap-4">
           {gridMatches[activeTabRound]?.filter(m => m !== null).length === 0 ? (
              <p className="text-gray-400 text-center italic py-8 text-sm">No matches available in this round yet.</p>
@@ -443,7 +452,8 @@ export default function TournamentBracket({
 
       {/* Desktop & Full Mobile Flex View */}
       <div className={`${mobileViewMode === "full" ? "flex" : "hidden md:flex"} items-center justify-between gap-2 mb-2`}>
-        <p className="md:hidden text-xs text-gray-400">← {t("bracket.swipeHint")} →</p>
+        {!pdfCapture && <p className="md:hidden text-xs text-gray-400">← {t("bracket.swipeHint")} →</p>}
+        {!pdfCapture && (
         <div className="ml-auto flex items-center gap-1.5">
           <button
             type="button"
@@ -472,9 +482,10 @@ export default function TournamentBracket({
             +
           </button>
         </div>
+        )}
       </div>
       
-      <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full min-w-0 overflow-x-auto overflow-y-hidden pb-6 relative`}>
+      <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full min-w-0 ${pdfCapture ? "overflow-visible" : "overflow-x-auto overflow-y-hidden"} pb-6 relative`}>
         {(() => {
           // Generous single fallback (SSR-safe, no matchMedia) until ResizeObserver measures real width.
           const fallbackNatural =
@@ -552,7 +563,7 @@ export default function TournamentBracket({
       </div>
 
       {/* Legend */}
-      {!adminCheckIn && (
+      {!adminCheckIn && !pdfCapture && (
       <div className="mt-8 pt-4 border-t border-gray-200">
         <h4 className="text-sm font-semibold text-gray-700 mb-3">Legend</h4>
         <div className="flex flex-wrap gap-4 md:gap-6 text-xs md:text-sm">

@@ -20,6 +20,16 @@ function buildLinks(
           { href: "#players-table", label: "選手／隊伍表", barColor: "bg-blue-500", hoverBg: "hover:bg-blue-50" },
           { href: "#generate-bracket", label: "產生籤表", barColor: "bg-ntu-green", hoverBg: "hover:bg-green-50" },
           { href: "#manual-bracket", label: "手動編輯籤表", barColor: "bg-amber-500", hoverBg: "hover:bg-amber-50" },
+          ...(tournamentType === "single_elimination"
+            ? [
+                {
+                  href: "#bracket-check-in",
+                  label: "籤表報到",
+                  barColor: "bg-teal-600",
+                  hoverBg: "hover:bg-teal-50",
+                },
+              ]
+            : []),
         ];
   const requestsLink: AdminPageSideNavLink = {
     href: `/admin/${eventId}/players/requests`,

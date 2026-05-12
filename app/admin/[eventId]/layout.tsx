@@ -57,10 +57,6 @@ export default async function EventAdminLayout({
           sport={event?.sport}
           isVisible={event?.is_visible}
           divisions={divisions}
-          showBracketCheckIn={
-            divisions.some((d) => d.tournament_type === "single_elimination") ||
-            (divisions.length === 0 && event?.tournament_type === "single_elimination")
-          }
         />
       </Suspense>
       {children}
