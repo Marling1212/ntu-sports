@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useLayoutEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import LogoutButton from "./LogoutButton";
 import AdminFontSizeControl from "@/components/admin/AdminFontSizeControl";
@@ -36,6 +36,7 @@ export default function AdminNavbar({
   currentDivisionId = null,
   isVisible,
 }: AdminNavbarProps) {
+  const navRef = useRef<HTMLElement>(null);
   const searchParams = useSearchParams();
   const divisionIdFromUrl = searchParams?.get("divisionId");
   const effectiveDivisionId = currentDivisionId ?? divisionIdFromUrl ?? null;
@@ -46,8 +47,24 @@ export default function AdminNavbar({
   const q = effectiveDivisionId ? `?divisionId=${effectiveDivisionId}` : "";
   const { t } = useI18n();
 
+  useLayoutEffect(() => {
+    const el = navRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const sync = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--admin-nav-height", `${h}px`);
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--admin-nav-height");
+    };
+  }, []);
+
   return (
-    <nav className="sticky top-0 z-50 bg-ntu-green text-white shadow-lg">
+    <nav ref={navRef} className="sticky top-0 z-50 bg-ntu-green text-white shadow-lg">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-6 flex-wrap">

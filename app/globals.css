@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  /* Synced by AdminNavbar (ResizeObserver); fallback matches single-row nav */
+  --admin-nav-height: 6rem;
   /* Primary: NTU green, slightly softened for broader appeal */
   --color-primary: #00694E;
   --color-primary-hover: #005a40;

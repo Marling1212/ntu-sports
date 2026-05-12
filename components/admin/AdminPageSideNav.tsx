@@ -25,7 +25,11 @@ export default function AdminPageSideNav({ title, links }: AdminPageSideNavProps
       aria-label={`${title} (${hoverLabel})`}
     >
       <nav
-        className="fixed left-0 top-24 z-40 flex h-[calc(100vh-6rem)] w-12 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-sm transition-[width] duration-300 ease-out hover:w-56 group-hover:w-56"
+        className="fixed left-0 z-40 flex w-12 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-sm transition-[width] duration-300 ease-out hover:w-56 group-hover:w-56"
+        style={{
+          top: "var(--admin-nav-height, 6rem)",
+          height: "calc(100vh - var(--admin-nav-height, 6rem))",
+        }}
         aria-label={title}
       >
         <div className="flex min-h-[3rem] items-center border-b border-gray-100 px-2 py-3">
