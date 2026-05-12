@@ -320,36 +320,6 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     return Math.max(...resolvedPlayoffMatches.map((m) => Number(m.round) || 0));
   }, [resolvedPlayoffMatches]);
 
-  // Playoff matches for schedule list (Games page): exclude bye; sort by scheduled time when set,
-  // not by bracket order (round/match). No-time matches go last, then round + match.
-  const playoffMatchesForSchedule = useMemo(() => {
-    if (playoffsDisplayMode !== "schedule" || !hasPlayoffs) return [];
-    const noBye = resolvedPlayoffMatches.filter((m) => m.status !== "bye");
-    const roundNum = (x: { round: unknown }) => Number(x.round) || 0;
-    const matchNum = (x: { matchNumber?: number }) => Number((x as { matchNumber?: number }).matchNumber) ?? 0;
-    const timeKey = (m: { scheduled_time?: string | null }) => {
-      const t = (m as any).scheduled_time;
-      if (!t) return Number.POSITIVE_INFINITY;
-      const ms = new Date(t).getTime();
-      return Number.isNaN(ms) ? Number.POSITIVE_INFINITY : ms;
-    };
-    return [...noBye].sort((a, b) => {
-      const ta = timeKey(a as any);
-      const tb = timeKey(b as any);
-      if (ta !== tb) return ta - tb;
-      if (roundNum(a) !== roundNum(b)) return roundNum(a) - roundNum(b);
-      return matchNum(a) - matchNum(b);
-    });
-  }, [resolvedPlayoffMatches, playoffsDisplayMode, hasPlayoffs]);
-
-  /** Apply team/player filter to playoff schedule list */
-  const displayPlayoffScheduleMatches = useMemo(() => {
-    if (!filterByPlayerId) return playoffMatchesForSchedule;
-    return playoffMatchesForSchedule.filter(
-      (m) => m.player1?.id === filterByPlayerId || m.player2?.id === filterByPlayerId
-    );
-  }, [playoffMatchesForSchedule, filterByPlayerId]);
-
   // Calculate top scorers for team events
   const topScorers = useMemo(() => {
     if (registrationType !== 'team' || scopedMatchPlayerStats.length === 0) return [];
@@ -1205,12 +1175,42 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
   ]);
 
   const playoffMatchesForBracket = useMemo(() => {
-    if (!hasPlayoffs) return resolvedPlayoffMatches;
-    if (!isAdminDecide) return resolvedPlayoffMatches;
-    // When every group is done and there are no seed-line ties, bracket data already resolves from DB.
-    if (allGroupsFinalized && tieSeedLabels.size === 0) return resolvedPlayoffMatches;
+    const fillPlayoffSlotsFromLocks = (list: typeof resolvedPlayoffMatches) =>
+      list.map((m: any) => {
+        const next = { ...m };
+        (["slot1", "player1"] as const).forEach(([sk, pk]) => {
+          if (next[pk]) return;
+          const slot = next[sk];
+          if (!slot || typeof slot !== "object") return;
+          const expected = lockedPlayoffSeeds.get(`${slot.seed},${slot.group}`);
+          if (!expected) return;
+          const pl = players.find((p: any) => p.id === expected);
+          if (pl) next[pk] = { id: pl.id, name: pl.name, seed: pl.seed, school: pl.school };
+        });
+        (["slot2", "player2"] as const).forEach(([sk, pk]) => {
+          if (next[pk]) return;
+          const slot = next[sk];
+          if (!slot || typeof slot !== "object") return;
+          const expected = lockedPlayoffSeeds.get(`${slot.seed},${slot.group}`);
+          if (!expected) return;
+          const pl = players.find((p: any) => p.id === expected);
+          if (pl) next[pk] = { id: pl.id, name: pl.name, seed: pl.seed, school: pl.school };
+        });
+        return next;
+      });
 
-    return resolvedPlayoffMatches.map((m: any) => {
+    if (!hasPlayoffs) return resolvedPlayoffMatches;
+    if (!isAdminDecide) {
+      return fillPlayoffSlotsFromLocks(resolvedPlayoffMatches);
+    }
+    // When every group is done and there are no seed-line ties, bracket data mostly resolves from DB;
+    // still fill any remaining null slots from locks (e.g. sync lag).
+    if (allGroupsFinalized && tieSeedLabels.size === 0) {
+      return fillPlayoffSlotsFromLocks(resolvedPlayoffMatches);
+    }
+
+    return fillPlayoffSlotsFromLocks(
+      resolvedPlayoffMatches.map((m: any) => {
       const next = { ...m };
 
       if (tieSeedLabels.size > 0) {
@@ -1272,7 +1272,8 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
       }
 
       return next;
-    });
+      })
+    );
   }, [
     hasPlayoffs,
     isAdminDecide,
@@ -1282,6 +1283,38 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
     lockedPlayoffSeeds,
     players,
   ]);
+
+  // Playoff matches for schedule list (Games page): same name resolution as bracket
+  // (`playoffMatchesForBracket` applies locked seeds + admin_decide tie labels).
+  // Previously used `resolvedPlayoffMatches` only, so 比賽頁季後賽 tab showed all TBD while
+  // the draw bracket already showed locked teams.
+  const playoffMatchesForSchedule = useMemo(() => {
+    if (playoffsDisplayMode !== "schedule" || !hasPlayoffs) return [];
+    const noBye = playoffMatchesForBracket.filter((m) => m.status !== "bye");
+    const roundNum = (x: { round: unknown }) => Number(x.round) || 0;
+    const matchNum = (x: { matchNumber?: number }) => Number((x as { matchNumber?: number }).matchNumber) ?? 0;
+    const timeKey = (m: { scheduled_time?: string | null }) => {
+      const t = (m as any).scheduled_time;
+      if (!t) return Number.POSITIVE_INFINITY;
+      const ms = new Date(t).getTime();
+      return Number.isNaN(ms) ? Number.POSITIVE_INFINITY : ms;
+    };
+    return [...noBye].sort((a, b) => {
+      const ta = timeKey(a as any);
+      const tb = timeKey(b as any);
+      if (ta !== tb) return ta - tb;
+      if (roundNum(a) !== roundNum(b)) return roundNum(a) - roundNum(b);
+      return matchNum(a) - matchNum(b);
+    });
+  }, [playoffMatchesForBracket, playoffsDisplayMode, hasPlayoffs]);
+
+  /** Apply team/player filter to playoff schedule list */
+  const displayPlayoffScheduleMatches = useMemo(() => {
+    if (!filterByPlayerId) return playoffMatchesForSchedule;
+    return playoffMatchesForSchedule.filter(
+      (m) => m.player1?.id === filterByPlayerId || m.player2?.id === filterByPlayerId
+    );
+  }, [playoffMatchesForSchedule, filterByPlayerId]);
 
   /** Which playoff seed (1..X) this team is mathematically locked into for this group, if any. */
   const getLockedPlayoffSeed = (playerId: string, groupNum: number): number | null => {
@@ -2441,7 +2474,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
           </div>
 
           <BracketPlayerSearch
-            matches={resolvedPlayoffMatches}
+            matches={playoffMatchesForBracket}
             players={players}
             teamMembers={teamMembers?.reduce<Record<string, Array<{ name?: string }>>>((acc, m) => {
               const pid = m.player_id;
