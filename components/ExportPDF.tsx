@@ -297,7 +297,7 @@ export default function ExportPDF({
       const regularSeasonMatches = matches.filter((m) => m.round === 0);
       const playoffMatches = matches.filter((m) => m.round >= 1);
 
-      const bracketWidthPx = (rounds: number) => Math.max(1200, rounds * 300 + 520);
+      const bracketWidthPx = (rounds: number) => Math.max(960, Math.round(rounds * 220 + 400));
 
       if (!isSeasonPlay) {
         const mr = Math.max(...matches.map((m) => m.round), 1);
@@ -309,7 +309,7 @@ export default function ExportPDF({
       } else {
         if (playoffMatches.length > 0) {
           const mr = Math.max(...playoffMatches.map((m) => m.round), 1);
-          container.style.width = `${Math.max(1400, bracketWidthPx(mr))}px`;
+          container.style.width = `${Math.max(1100, bracketWidthPx(mr))}px`;
         } else {
           container.style.width = "1200px";
         }

@@ -94,6 +94,13 @@ export function TournamentBracketCore({
     return grid;
   }, [matches, maxRound, rounds]);
 
+  /** PDF: slightly smaller overall scale + wider cells + multi-line names (html2canvas capture). */
+  const PDF_BRACKET_ZOOM = 0.76;
+  const pdfCellClass = "w-[188px]";
+  const screenCellClass = "w-[150px] md:w-[200px]";
+  const cellWClass = pdfCapture ? pdfCellClass : screenCellClass;
+  const headerColGapPx = 48;
+
   const [activeTabRound, setActiveTabRound] = useState<number>(rounds[0]);
   const [mobileViewMode, setMobileViewMode] = useState<"full" | "tabs">("full");
   /** Desktop default 100%; mobile 70% — applied after mount (see useLayoutEffect below). */
@@ -107,7 +114,7 @@ export function TournamentBracketCore({
 
   useLayoutEffect(() => {
     if (pdfCapture) {
-      setBracketZoom(1);
+      setBracketZoom(PDF_BRACKET_ZOOM);
       return;
     }
     setBracketZoom(getDefaultBracketZoomForViewport());
@@ -153,7 +160,9 @@ export function TournamentBracketCore({
     
     return (
       <div
-        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 w-[150px] md:w-[200px] h-[60px] transition-all duration-300 relative ${!isBye && !isLoser ? "hover:scale-[1.02]" : ""} ${
+        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 ${cellWClass} ${
+          pdfCapture ? "min-h-[52px] h-auto py-2 md:py-2" : "h-[60px]"
+        } transition-all duration-300 relative ${!isBye && !isLoser ? "hover:scale-[1.02]" : ""} ${
           isBye ? "border-gray-200 bg-gray-50"
           : isWinner
             ? isThirdPlace ? "border-amber-500 bg-amber-50 z-10" : "border-ntu-green bg-ntu-green border-opacity-30 bg-opacity-10 z-10"
@@ -169,11 +178,21 @@ export function TournamentBracketCore({
             </span>
           )}
           <div className="flex-1 min-w-0">
-            <div className={`text-base md:text-lg font-medium truncate leading-tight ${isBye ? 'text-gray-400 italic' : ''}`}>
+            <div
+              className={`font-medium leading-tight ${
+                pdfCapture
+                  ? "text-xs md:text-sm break-words line-clamp-3"
+                  : "text-base md:text-lg truncate"
+              } ${isBye ? "text-gray-400 italic" : ""}`}
+            >
               {displayText}
             </div>
             {player?.school && (
-              <div className="text-[10px] text-gray-500 truncate mt-0.5 leading-tight">
+              <div
+                className={`text-[10px] text-gray-500 mt-0.5 leading-tight ${
+                  pdfCapture ? "break-words line-clamp-2" : "truncate"
+                }`}
+              >
                 {player.school}
               </div>
             )}
@@ -228,7 +247,7 @@ export function TournamentBracketCore({
 
     if (!match) {
       return (
-        <div className="flex flex-col gap-1 opacity-40 relative z-10 w-[150px] md:w-[200px]">
+        <div className={`flex flex-col gap-1 opacity-40 relative z-10 ${cellWClass}`}>
            <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} />
            <div className="h-1"></div>
            <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} />
@@ -257,7 +276,7 @@ export function TournamentBracketCore({
 
     const cardInner = (
       <>
-        <div className="relative flex flex-col gap-1 w-[150px] md:w-[200px]">
+        <div className={`relative flex flex-col gap-1 ${cellWClass}`}>
           <PlayerBlock
             player={match.player1 || null}
             slot={match.slot1}
@@ -295,7 +314,7 @@ export function TournamentBracketCore({
           </div>
         </div>
         {courtLabel !== "—" && (
-          <div className="mt-1 text-[9px] md:text-[10px] text-gray-500 text-center truncate max-w-[150px] md:max-w-[200px] px-0.5 leading-tight">
+          <div className={`mt-1 text-[9px] md:text-[10px] text-gray-500 text-center truncate px-0.5 leading-tight ${pdfCapture ? "max-w-[188px]" : "max-w-[150px] md:max-w-[200px]"}`}>
             {courtLabel}
           </div>
         )}
@@ -355,7 +374,7 @@ export function TournamentBracketCore({
         )}
 
         {/* The Card wrapper handles the vertical spacing between matchups natively using simple padding */}
-        <div className="py-3 md:py-4 relative z-20 shrink-0">
+        <div className={pdfCapture ? "py-2 relative z-20 shrink-0" : "py-3 md:py-4 relative z-20 shrink-0"}>
            <MatchCard match={match} round={round} index={index} isThirdPlace={isThirdPlace} forceMobile={false} />
         </div>
       </div>
@@ -376,13 +395,13 @@ export function TournamentBracketCore({
   }
 
   return (
-    <div className={`bg-white rounded-xl shadow-md p-4 md:p-6 border border-gray-100 w-full min-w-0 ${pdfCapture ? "overflow-visible" : "overflow-hidden"}`}>
+    <div className={`bg-white rounded-xl shadow-md border border-gray-100 w-full min-w-0 ${pdfCapture ? "overflow-visible p-3" : "overflow-hidden p-4 md:p-6"}`}>
       <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-2">
         <div>
-          <h2 className="text-xl md:text-2xl font-semibold text-ntu-green mb-1 md:mb-2">
+          <h2 className={pdfCapture ? "text-lg font-semibold text-ntu-green mb-1" : "text-xl md:text-2xl font-semibold text-ntu-green mb-1 md:mb-2"}>
             {adminCheckIn ? t("admin.checkInBracketTitle") : `${sportName} Tournament Bracket`}
           </h2>
-          <p className="text-xs md:text-sm text-gray-600">
+          <p className={pdfCapture ? "text-[11px] text-gray-600" : "text-xs md:text-sm text-gray-600"}>
             {adminCheckIn
               ? t("admin.checkInBracketHint")
               : `Single Elimination • ${totalPlayers} Players • ${bracketSize}-Draw • ${numSeeds} Seeds • ${maxRound} Rounds`}
@@ -488,8 +507,10 @@ export function TournamentBracketCore({
       <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full min-w-0 ${pdfCapture ? "overflow-visible" : "overflow-x-auto overflow-y-hidden"} pb-6 relative`}>
         {(() => {
           // Generous single fallback (SSR-safe, no matchMedia) until ResizeObserver measures real width.
+          const cellPx = pdfCapture ? 188 : 280;
+          const gapPx = pdfCapture ? 40 : 64;
           const fallbackNatural =
-            rounds.length * 280 + Math.max(0, rounds.length - 1) * 64 + Math.max(400, rounds.length * 80);
+            rounds.length * cellPx + Math.max(0, rounds.length - 1) * gapPx + Math.max(400, rounds.length * 80);
           const fallbackScaled = fallbackNatural * bracketZoom;
           const wrapW = scaledContainerWidth ?? fallbackScaled;
           return (
@@ -497,19 +518,18 @@ export function TournamentBracketCore({
               <div
                 ref={bracketContentRef}
                 className="inline-block min-w-max"
-                style={
-                  pdfCapture
-                    ? undefined
-                    : {
-                        transform: `scale(${bracketZoom})`,
-                        transformOrigin: "top left",
-                      }
-                }
+                style={{
+                  transform: `scale(${bracketZoom})`,
+                  transformOrigin: "top left",
+                }}
               >
           {/* Flex Column Headers */}
-          <div className="flex bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full" style={{ gap: '48px' }}>
+          <div
+            className="flex bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full"
+            style={{ gap: `${headerColGapPx}px` }}
+          >
             {rounds.map(round => (
-              <div key={`header-${round}`} className="w-[150px] md:w-[200px] shrink-0 text-center">
+              <div key={`header-${round}`} className={`${cellWClass} shrink-0 text-center`}>
                  <h3 className="text-sm md:text-base font-semibold text-ntu-green">{generateRoundName(round)}</h3>
                  <p className="text-[10px] md:text-xs text-gray-500 mt-1">{gridMatches[round]?.filter(m => m !== null).length || 0} matches</p>
               </div>
@@ -519,7 +539,7 @@ export function TournamentBracketCore({
           {/* The Recursive Bracket Tree */}
           {/* We start the recursion at the final round (the right-most column). The branches will build leftwards. */}
           <div className="flex">
-            <div className="flex flex-col justify-center gap-12 w-[150px] md:w-[200px]">
+            <div className={`flex flex-col justify-center gap-12 ${cellWClass}`}>
                {/*
                 * Only the championship (final round, match #1) is the tree root. Match #2 in the same
                 * round is the 3rd-place game — rendering it here builds empty feeder branches below the real bracket.
@@ -550,10 +570,21 @@ export function TournamentBracketCore({
           {/* 3rd Place Match Positioned Under the Final Column */}
           {rounds.includes(actualTotalRounds) && !hideThirdPlace && has3rdPlaceMatch && (
             <div className="flex mt-12 pt-8 border-t border-gray-200 relative w-full">
-               <div style={{ width: `calc((150px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="md:hidden shrink-0"></div>
-               <div style={{ width: `calc((200px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="hidden md:block shrink-0"></div>
+               {pdfCapture ? (
+                 <div
+                   style={{
+                     width: `calc((188px * ${rounds.length - 1}) + (${headerColGapPx}px * ${rounds.length - 1}))`,
+                   }}
+                   className="shrink-0"
+                 />
+               ) : (
+                 <>
+                   <div style={{ width: `calc((150px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="md:hidden shrink-0"></div>
+                   <div style={{ width: `calc((200px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="hidden md:block shrink-0"></div>
+                 </>
+               )}
                
-               <div className="w-[150px] md:w-[200px] shrink-0 flex flex-col items-center">
+               <div className={`${cellWClass} shrink-0 flex flex-col items-center`}>
                   <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4 whitespace-nowrap">3rd Place Match</h4>
                   <MatchCard match={getThirdPlaceMatch()} round={actualTotalRounds} index={1} isThirdPlace={true} />
                </div>
