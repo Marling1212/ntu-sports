@@ -48,11 +48,11 @@ function escAttr(s: string): string {
 function pdfPageHeaderHtml(eventName: string, eventDate: string, eventVenue: string, subtitle?: string): string {
   return (
     `<header style="margin-bottom: 22px;">` +
-    `<h1 style="font-size: 24px; font-weight: bold; margin: 0 0 12px 0; color: #00694E;">${escAttr(eventName)}</h1>` +
-    `<div style="font-size: 14px; line-height: 1.55; color: #111;">` +
-    `<p style="margin: 0 0 4px 0;"><strong>比賽日期:</strong> ${escAttr(eventDate)}</p>` +
-    `<p style="margin: 0 0 4px 0;"><strong>比賽地點:</strong> ${escAttr(eventVenue)}</p>` +
-    (subtitle ? `<p style="margin: 10px 0 0 0; color: #444;">${escAttr(subtitle)}</p>` : "") +
+    `<h1 style="font-size: 24px; font-weight: bold; margin: 0 0 12px 0; color: #00694E; line-height: 1.35; padding-bottom: 2px;">${escAttr(eventName)}</h1>` +
+    `<div style="font-size: 14px; line-height: 1.6; color: #111;">` +
+    `<p style="margin: 0 0 6px 0; padding-bottom: 1px;"><strong>比賽日期:</strong> ${escAttr(eventDate)}</p>` +
+    `<p style="margin: 0 0 6px 0; padding-bottom: 1px;"><strong>比賽地點:</strong> ${escAttr(eventVenue)}</p>` +
+    (subtitle ? `<p style="margin: 10px 0 0 0; color: #444; line-height: 1.55;">${escAttr(subtitle)}</p>` : "") +
     `</div></header>`
   );
 }
@@ -182,14 +182,14 @@ export default function ExportPDF({
     let html = "";
 
     if (regularSeasonMatches.length > 0) {
-      html += `<h2 style="font-size: 19px; font-weight: bold; margin-top: 8px; margin-bottom: 12px; color:#00694E;">例行賽 / Regular Season</h2>`;
-      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size:12px;">`;
+      html += `<h2 style="font-size: 19px; font-weight: bold; margin-top: 8px; margin-bottom: 12px; color:#00694E; line-height: 1.35;">例行賽 / Regular Season</h2>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size:12px; line-height: 1.5;">`;
       html += `<thead><tr style="background-color: #00694E; color: white; font-weight: bold;">`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Group</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player 1</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player 2</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Score</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Game Date</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: left; line-height: 1.45;">Group</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: left; line-height: 1.45;">Player 1</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: left; line-height: 1.45;">Player 2</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: center; line-height: 1.45;">Score</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: center; line-height: 1.45;">Game Date</th>`;
       html += `</tr></thead><tbody>`;
 
       const formatGameDate = (scheduledTime?: string | null): string => {
@@ -231,11 +231,11 @@ export default function ExportPDF({
         const dateColor = isDelayed ? "color: red; font-weight: bold;" : "";
 
         html += `<tr style="background-color: ${bgColor};">`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd;">${matchData.group_number ? `Group ${matchData.group_number}` : ""}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd;">${esc(match.player1?.name || "TBD")}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd;">${esc(match.player2?.name || "TBD")}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${esc(match.score || "-")}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; ${dateColor}">${esc(formatGameDate(matchData.scheduled_time))}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; line-height: 1.5;">${matchData.group_number ? `Group ${matchData.group_number}` : ""}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; line-height: 1.5;">${esc(match.player1?.name || "TBD")}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; line-height: 1.5;">${esc(match.player2?.name || "TBD")}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; line-height: 1.5;">${esc(match.score || "-")}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; line-height: 1.5; ${dateColor}">${esc(formatGameDate(matchData.scheduled_time))}</td>`;
         html += `</tr>`;
       });
 
@@ -243,28 +243,28 @@ export default function ExportPDF({
     }
 
     if (standings.length > 0) {
-      html += `<h2 style="font-size: 19px; font-weight: bold; margin-top: 28px; margin-bottom: 12px; color:#00694E;">排名 / Standings</h2>`;
-      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size:12px;">`;
+      html += `<h2 style="font-size: 19px; font-weight: bold; margin-top: 28px; margin-bottom: 12px; color:#00694E; line-height: 1.35;">排名 / Standings</h2>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size:12px; line-height: 1.5;">`;
       html += `<thead><tr style="background-color: #00694E; color: white; font-weight: bold;">`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Rank</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Player</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">W</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">D</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">L</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Points</th>`;
-      html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center;">GD</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: center; line-height: 1.45;">Rank</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: left; line-height: 1.45;">Player</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: center; line-height: 1.45;">W</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: center; line-height: 1.45;">D</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: center; line-height: 1.45;">L</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: center; line-height: 1.45;">Points</th>`;
+      html += `<th style="padding: 11px 10px; border: 1px solid #ddd; text-align: center; line-height: 1.45;">GD</th>`;
       html += `</tr></thead><tbody>`;
 
       standings.forEach((standing, idx) => {
         const bgColor = idx % 2 === 0 ? "#f9f9f9" : "white";
         html += `<tr style="background-color: ${bgColor};">`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${idx + 1}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd;">${esc(standing.player.name)}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.wins}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.draws}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.losses}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${standing.points}</td>`;
-        html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${standing.goalDiff}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; line-height: 1.5;">${idx + 1}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; line-height: 1.5;">${esc(standing.player.name)}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; line-height: 1.5;">${standing.wins}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; line-height: 1.5;">${standing.draws}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; line-height: 1.5;">${standing.losses}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; line-height: 1.5;">${standing.points}</td>`;
+        html += `<td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; line-height: 1.5;">${standing.goalDiff}</td>`;
         html += `</tr>`;
       });
 

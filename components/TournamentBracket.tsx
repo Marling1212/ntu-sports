@@ -94,8 +94,7 @@ export function TournamentBracketCore({
     return grid;
   }, [matches, maxRound, rounds]);
 
-  /** PDF: slightly smaller overall scale + wider cells + multi-line names (html2canvas capture). */
-  const PDF_BRACKET_ZOOM = 0.76;
+  /** PDF: wider cells + multi-line names. Do not use CSS transform scale — html2canvas clips glyph descenders. */
   const pdfCellClass = "w-[188px]";
   const screenCellClass = "w-[150px] md:w-[200px]";
   const cellWClass = pdfCapture ? pdfCellClass : screenCellClass;
@@ -114,7 +113,7 @@ export function TournamentBracketCore({
 
   useLayoutEffect(() => {
     if (pdfCapture) {
-      setBracketZoom(PDF_BRACKET_ZOOM);
+      setBracketZoom(1);
       return;
     }
     setBracketZoom(getDefaultBracketZoomForViewport());
@@ -133,8 +132,8 @@ export function TournamentBracketCore({
     const el = bracketContentRef.current;
     if (!el) return;
     const natural = el.scrollWidth;
-    if (natural > 0) setScaledContainerWidth(natural * bracketZoom);
-  }, [bracketZoom]);
+    if (natural > 0) setScaledContainerWidth(pdfCapture ? natural : natural * bracketZoom);
+  }, [bracketZoom, pdfCapture]);
 
   useLayoutEffect(() => {
     recomputeScaledWidth();
@@ -161,7 +160,7 @@ export function TournamentBracketCore({
     return (
       <div
         className={`rounded-lg border-2 shadow-sm p-2 md:p-3 ${cellWClass} ${
-          pdfCapture ? "min-h-[52px] h-auto py-2 md:py-2" : "h-[60px]"
+          pdfCapture ? "min-h-[56px] h-auto py-2.5 md:py-2.5 overflow-visible" : "h-[60px]"
         } transition-all duration-300 relative ${!isBye && !isLoser ? "hover:scale-[1.02]" : ""} ${
           isBye ? "border-gray-200 bg-gray-50"
           : isWinner
@@ -171,33 +170,39 @@ export function TournamentBracketCore({
               : isThirdPlace ? "border-amber-400 bg-amber-50" : "border-gray-300 bg-white"
         }`}
       >
-        <div className="flex items-center gap-1.5 md:gap-2 h-full w-full min-w-0">
+        <div
+          className={`flex gap-1.5 md:gap-2 w-full min-w-0 ${pdfCapture ? "items-start" : "items-center h-full"}`}
+        >
           {player?.seed && (
             <span className="text-[10px] md:text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded flex-shrink-0">
               {player.seed}
             </span>
           )}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 overflow-visible">
             <div
-              className={`font-medium leading-tight ${
+              className={`font-medium ${
                 pdfCapture
-                  ? "text-xs md:text-sm break-words line-clamp-3"
-                  : "text-base md:text-lg truncate"
+                  ? "text-xs md:text-sm break-words leading-[1.45] pb-0.5"
+                  : "text-base md:text-lg truncate leading-tight"
               } ${isBye ? "text-gray-400 italic" : ""}`}
             >
               {displayText}
             </div>
             {player?.school && (
               <div
-                className={`text-[10px] text-gray-500 mt-0.5 leading-tight ${
-                  pdfCapture ? "break-words line-clamp-2" : "truncate"
+                className={`text-[10px] text-gray-500 mt-0.5 ${
+                  pdfCapture ? "break-words leading-[1.4]" : "truncate leading-tight"
                 }`}
               >
                 {player.school}
               </div>
             )}
             {contextLabel && (
-              <div className="text-[9px] text-gray-400 truncate leading-tight">
+              <div
+                className={`text-[9px] text-gray-400 leading-snug ${
+                  pdfCapture ? "break-words mt-0.5" : "truncate leading-tight"
+                }`}
+              >
                 {contextLabel}
               </div>
             )}
@@ -304,17 +309,17 @@ export function TournamentBracketCore({
           >
              {match.status === "completed" && match.score ? (
                 <div className={`bg-white border-2 rounded-lg px-2 py-1 shadow-md ${isThirdPlace ? 'border-amber-500 text-amber-600' : isActualFinalRound && !isThirdPlace ? 'border-yellow-500 text-yellow-600' : 'border-ntu-green text-ntu-green'}`}>
-                   <div className="text-[10px] md:text-xs font-bold whitespace-nowrap">{match.score}</div>
+                   <div className={`font-bold whitespace-nowrap ${pdfCapture ? "text-[10px] md:text-xs leading-normal py-0.5" : "text-[10px] md:text-xs"}`}>{match.score}</div>
                 </div>
              ) : (
-                <div className={`rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center shadow-sm transition-all duration-300 ${isThirdPlace ? 'bg-amber-500 border-2 border-amber-600 text-white' : isActualFinalRound && !isThirdPlace ? 'bg-yellow-500 border-2 border-yellow-600 text-white' : match.status === 'live' ? 'bg-red-500 border-2 border-red-600 text-white animate-pulse' : match.status === 'delayed' ? 'bg-amber-100 border-2 border-amber-400 text-amber-700 animate-pulse' : 'bg-white border-2 border-gray-300 text-gray-500'}`}>
-                   <span className="text-[10px] md:text-xs font-bold">{isThirdPlace ? '🥉' : isActualFinalRound && !isThirdPlace ? '🏆' : 'VS'}</span>
+                <div className={`rounded-full flex items-center justify-center shadow-sm transition-all duration-300 ${pdfCapture ? "w-7 h-7 md:w-8 md:h-8" : "w-6 h-6 md:w-8 md:h-8"} ${isThirdPlace ? 'bg-amber-500 border-2 border-amber-600 text-white' : isActualFinalRound && !isThirdPlace ? 'bg-yellow-500 border-2 border-yellow-600 text-white' : match.status === 'live' ? 'bg-red-500 border-2 border-red-600 text-white animate-pulse' : match.status === 'delayed' ? 'bg-amber-100 border-2 border-amber-400 text-amber-700 animate-pulse' : 'bg-white border-2 border-gray-300 text-gray-500'}`}>
+                   <span className={`font-bold ${pdfCapture ? "text-[10px] md:text-xs leading-none" : "text-[10px] md:text-xs"}`}>{isThirdPlace ? '🥉' : isActualFinalRound && !isThirdPlace ? '🏆' : 'VS'}</span>
                 </div>
              )}
           </div>
         </div>
         {courtLabel !== "—" && (
-          <div className={`mt-1 text-[9px] md:text-[10px] text-gray-500 text-center truncate px-0.5 leading-tight ${pdfCapture ? "max-w-[188px]" : "max-w-[150px] md:max-w-[200px]"}`}>
+          <div className={`mt-1 text-[9px] md:text-[10px] text-gray-500 text-center px-0.5 ${pdfCapture ? "max-w-[188px] break-words leading-normal" : "max-w-[150px] md:max-w-[200px] truncate leading-tight"}`}>
             {courtLabel}
           </div>
         )}
@@ -511,17 +516,21 @@ export function TournamentBracketCore({
           const gapPx = pdfCapture ? 40 : 64;
           const fallbackNatural =
             rounds.length * cellPx + Math.max(0, rounds.length - 1) * gapPx + Math.max(400, rounds.length * 80);
-          const fallbackScaled = fallbackNatural * bracketZoom;
+          const fallbackScaled = pdfCapture ? fallbackNatural : fallbackNatural * bracketZoom;
           const wrapW = scaledContainerWidth ?? fallbackScaled;
           return (
             <div className="pt-2" style={{ width: wrapW, minWidth: wrapW }}>
               <div
                 ref={bracketContentRef}
                 className="inline-block min-w-max"
-                style={{
-                  transform: `scale(${bracketZoom})`,
-                  transformOrigin: "top left",
-                }}
+                style={
+                  pdfCapture
+                    ? undefined
+                    : {
+                        transform: `scale(${bracketZoom})`,
+                        transformOrigin: "top left",
+                      }
+                }
               >
           {/* Flex Column Headers */}
           <div
@@ -530,8 +539,8 @@ export function TournamentBracketCore({
           >
             {rounds.map(round => (
               <div key={`header-${round}`} className={`${cellWClass} shrink-0 text-center`}>
-                 <h3 className="text-sm md:text-base font-semibold text-ntu-green">{generateRoundName(round)}</h3>
-                 <p className="text-[10px] md:text-xs text-gray-500 mt-1">{gridMatches[round]?.filter(m => m !== null).length || 0} matches</p>
+                 <h3 className={`font-semibold text-ntu-green ${pdfCapture ? "text-sm leading-snug" : "text-sm md:text-base"}`}>{generateRoundName(round)}</h3>
+                 <p className={`text-gray-500 mt-1 ${pdfCapture ? "text-[10px] leading-normal" : "text-[10px] md:text-xs"}`}>{gridMatches[round]?.filter(m => m !== null).length || 0} matches</p>
               </div>
             ))}
           </div>
