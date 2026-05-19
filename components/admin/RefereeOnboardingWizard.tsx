@@ -463,7 +463,12 @@ export default function RefereeOnboardingWizard({
                 <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colAssigned")}</th>
                 <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colCompleted")}</th>
                 <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colTotal")}</th>
-                <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colAccess")}</th>
+                <th className="px-3 py-2 text-right font-medium align-top">
+                  <span className="block">{t("referee.admin.colAccess")}</span>
+                  <span className="mt-1 block text-[10px] font-normal leading-snug text-gray-400">
+                    {t("referee.admin.emailAssignmentsDevNotice")}
+                  </span>
+                </th>
                 <th className="px-3 py-2 text-right font-medium">{t("referee.admin.colRemove")}</th>
               </tr>
             </thead>
@@ -542,7 +547,8 @@ export default function RefereeOnboardingWizard({
                           type="button"
                           onClick={() => emailRefSchedule(row)}
                           disabled={!row.email?.trim() || emailingUserId === row.user_id}
-                          className="text-xs font-semibold text-emerald-800 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                          title={t("referee.admin.emailAssignmentsDevNotice")}
+                          className="text-xs font-normal text-gray-500 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {emailingUserId === row.user_id
                             ? t("referee.admin.emailAssignmentsSending")

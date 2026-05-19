@@ -296,6 +296,8 @@ export const translations = {
         emailAssignmentsOk: '已寄出 Email。',
         emailAssignmentsFail: '寄送失敗。',
         emailAssignmentsNoEmail: '請先儲存裁判 Email 後再寄送。',
+        emailAssignmentsDevNotice:
+          'Email 寄送研發中；請優先使用「複製新連結」。',
         matchFoundTitle: '在名單中找到可能為同一人之資料，是否為同一人？',
         teamsLine: '隊伍：{teams} · 使用者 {userShort}',
         notSamePerson: '不是同一人 — 建立新的裁判（外部）身分。',
@@ -1306,6 +1308,8 @@ export const translations = {
         emailAssignmentsOk: 'Email sent.',
         emailAssignmentsFail: 'Failed to send email.',
         emailAssignmentsNoEmail: 'Save a referee email first, then send.',
+        emailAssignmentsDevNotice:
+          'Email delivery is in development; use Copy new link for now.',
         matchFoundTitle: 'We found possible same-person matches in team rosters. Is this the same person?',
         teamsLine: 'Teams: {teams} · user {userShort}',
         notSamePerson: 'Not the same person — create new referee identity.',
