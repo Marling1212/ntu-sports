@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendResendEmail } from "@/lib/email/resend";
+import { publicRefereePortalUrl } from "@/lib/utils/publicSiteUrl";
 import {
   clampRefereeLinkTtlDays,
   createRefereeAccessToken,
@@ -161,18 +162,6 @@ export async function POST(
     return ta - tb;
   });
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL.replace(/^\/+/, "")}` : "") ||
-    (() => {
-      try {
-        const u = new URL(req.url);
-        return `${u.protocol}//${u.host}`;
-      } catch {
-        return "";
-      }
-    })();
-
   let token: string;
   try {
     token = createRefereeAccessToken(eventId, userId, ttlDays);
@@ -181,7 +170,7 @@ export async function POST(
     return json(500, { ok: false, message: "Could not create portal link." });
   }
 
-  const portalUrl = baseUrl ? `${baseUrl}/referee/${token}` : `/referee/${token}`;
+  const portalUrl = publicRefereePortalUrl(token, req);
   const refDisplay = (refRow?.display_name || "").trim() || "Referee";
 
   const tableRows = sorted

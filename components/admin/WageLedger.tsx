@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useI18n } from "@/lib/i18n/context";
+import { publicRefereePortalUrl } from "@/lib/utils/publicSiteUrl";
 import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
 
 const REFEREE_LINK_DAY_OPTIONS = [7, 14, 30, 60, 90, 180, 365] as const;
@@ -98,7 +99,7 @@ export default function WageLedger({
       toast.error(payload?.message || t("referee.admin.toastLinkGenFail"));
       return;
     }
-    const url = `${window.location.origin}/referee/${payload.token}`;
+    const url = publicRefereePortalUrl(payload.token);
     await navigator.clipboard.writeText(url);
     const days = clampRefereeLinkTtlDays(payload.validityDays ?? linkValidityDays);
     const expiresAt = typeof payload.expiresAt === "string" ? payload.expiresAt : null;
