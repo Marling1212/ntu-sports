@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import MatchDetailContent from "@/components/admin/MatchDetailContent";
 import { buildPlayoffSlotPlayerResolver } from "@/lib/scheduling/playoffSlotPlayerResolver";
+import { applyPlayoffFeederAdvancement } from "@/lib/scheduling/applyPlayoffFeederAdvancement";
 
 export default async function MatchDetailPage({ 
   params 
@@ -145,6 +146,7 @@ export default async function MatchDetailPage({
       slot1_seed, slot1_group, slot2_seed, slot2_group,
       player1:players!matches_player1_id_fkey(id, name, seed),
       player2:players!matches_player2_id_fkey(id, name, seed),
+      winner:players!matches_winner_id_fkey(id, name, seed),
       slot:event_slots(id, slot_date, start_time, end_time, code, court_id)
     `)
     .eq("event_id", eventId)
@@ -222,22 +224,37 @@ export default async function MatchDetailPage({
     .select("player_id, day_of_week, start_time, end_time")
     .eq("event_id", eventId);
 
-  const matchesForGrid = (scheduleMatches || []).map((m: any) => {
+  const postponePlayersById = new Map(
+    (allEventPlayers || []).map((p: any) => [p.id, { id: p.id, name: p.name, seed: p.seed }])
+  );
+  const matchesForGridBase = (scheduleMatches || []).map((m: any) => {
     const p1 = resolvePostponePlayoffPlayerId(m.player1_id, m.slot1_seed, m.slot1_group);
     const p2 = resolvePostponePlayoffPlayerId(m.player2_id, m.slot2_seed, m.slot2_group);
+    const p1Id = p1 ?? m.player1_id;
+    const p2Id = p2 ?? m.player2_id;
     return {
       id: m.id,
-      player1_id: p1 ?? m.player1_id,
-      player2_id: p2 ?? m.player2_id,
-      slot_id: m.slot_id,
-      scheduled_time: m.scheduled_time,
-      status: m.status,
       round: m.round,
       match_number: m.match_number,
-      player1: m.player1,
-      player2: m.player2,
+      status: m.status,
+      winner_id: m.winner_id,
+      slot1_seed: m.slot1_seed,
+      slot1_group: m.slot1_group,
+      slot2_seed: m.slot2_seed,
+      slot2_group: m.slot2_group,
+      player1_id: p1Id,
+      player2_id: p2Id,
+      slot_id: m.slot_id,
+      scheduled_time: m.scheduled_time,
+      winner: m.winner,
+      player1: p1Id ? { ...m.player1, id: p1Id, name: m.player1?.name ?? postponePlayersById.get(p1Id)?.name } : null,
+      player2: p2Id ? { ...m.player2, id: p2Id, name: m.player2?.name ?? postponePlayersById.get(p2Id)?.name } : null,
     };
   });
+  const matchesForGrid =
+    (event as any)?.tournament_type === "season_play"
+      ? applyPlayoffFeederAdvancement(matchesForGridBase, postponePlayersById)
+      : matchesForGridBase;
 
   return (
     <div className="container mx-auto px-4 py-12">

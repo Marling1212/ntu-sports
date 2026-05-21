@@ -408,6 +408,9 @@ export default function MatchDetailContent({
       if (match.round === 0) {
         const { syncLockedPlayoffSeeds } = await import("@/lib/actions/syncLockedPlayoffSeeds");
         syncLockedPlayoffSeeds(eventId).catch((err) => console.warn("syncLockedPlayoffSeeds:", err));
+      } else if (match.round >= 1) {
+        const { syncPlayoffBracketFromR1 } = await import("@/lib/actions/syncPlayoffBracketFromR1");
+        syncPlayoffBracketFromR1(eventId).catch((err) => console.warn("syncPlayoffBracketFromR1:", err));
       }
 
       toast.success("比賽資訊已保存！");

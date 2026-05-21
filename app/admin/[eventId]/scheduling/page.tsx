@@ -10,6 +10,7 @@ import ScheduleItemsManager from "@/components/admin/ScheduleItemsManager";
 import SchedulingModePrompt from "@/components/admin/SchedulingModePrompt";
 import { computeStandings } from "@/lib/standings";
 import { buildPlayoffSlotPlayerResolver } from "@/lib/scheduling/playoffSlotPlayerResolver";
+import { applyPlayoffFeederAdvancement } from "@/lib/scheduling/applyPlayoffFeederAdvancement";
 
 export default async function SchedulingPage({
   params,
@@ -70,6 +71,7 @@ export default async function SchedulingPage({
       *,
       player1:players!matches_player1_id_fkey(id, name, seed),
       player2:players!matches_player2_id_fkey(id, name, seed),
+      winner:players!matches_winner_id_fkey(id, name, seed),
       slot:event_slots(id, slot_date, start_time, end_time, code, court_id, event_courts!event_slots_court_id_fkey(name))
     `)
     .eq("event_id", eventId)
@@ -193,7 +195,11 @@ export default async function SchedulingPage({
     court_id: s.court_id,
     court: s.court,
   }));
-  const matchesForGrid = (matches || []).map((m: any) => {
+  const playersById = new Map(
+    (players || []).map((p: any) => [p.id, { id: p.id, name: p.name, seed: p.seed }])
+  );
+
+  const matchesForGridBase = (matches || []).map((m: any) => {
     const resolveSlotName = (
       currentName: string | undefined,
       seed: number | null | undefined,
@@ -210,19 +216,44 @@ export default async function SchedulingPage({
     };
     const p1Resolved = resolvePlayoffGridPlayerId(m.player1_id, m.slot1_seed, m.slot1_group);
     const p2Resolved = resolvePlayoffGridPlayerId(m.player2_id, m.slot2_seed, m.slot2_group);
+    const p1Id = p1Resolved ?? m.player1_id;
+    const p2Id = p2Resolved ?? m.player2_id;
     return {
-    id: m.id,
-    player1_id: p1Resolved ?? m.player1_id,
-    player2_id: p2Resolved ?? m.player2_id,
-    slot_id: m.slot_id,
-    scheduled_time: m.scheduled_time,
-    status: m.status,
-    round: m.round,
-    match_number: m.match_number,
-    player1: { ...(m.player1 || {}), name: resolveSlotName(m.player1?.name, m.slot1_seed, m.slot1_group) },
-    player2: { ...(m.player2 || {}), name: resolveSlotName(m.player2?.name, m.slot2_seed, m.slot2_group) },
+      id: m.id,
+      round: m.round,
+      match_number: m.match_number,
+      status: m.status,
+      winner_id: m.winner_id,
+      slot1_seed: m.slot1_seed,
+      slot1_group: m.slot1_group,
+      slot2_seed: m.slot2_seed,
+      slot2_group: m.slot2_group,
+      player1_id: p1Id,
+      player2_id: p2Id,
+      slot_id: m.slot_id,
+      scheduled_time: m.scheduled_time,
+      winner: m.winner,
+      player1: p1Id
+        ? {
+            id: p1Id,
+            name: resolveSlotName(m.player1?.name, m.slot1_seed, m.slot1_group),
+            seed: m.player1?.seed ?? null,
+          }
+        : null,
+      player2: p2Id
+        ? {
+            id: p2Id,
+            name: resolveSlotName(m.player2?.name, m.slot2_seed, m.slot2_group),
+            seed: m.player2?.seed ?? null,
+          }
+        : null,
     };
   });
+
+  const matchesForGrid =
+    (event as any)?.tournament_type === "season_play"
+      ? applyPlayoffFeederAdvancement(matchesForGridBase, playersById)
+      : matchesForGridBase;
 
   return (
     <>

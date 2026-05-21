@@ -7,22 +7,24 @@ type Row = {
   round: number;
   match_number: number;
   status: string | null;
+  winner_id: string | null;
   slot1_seed: number | null;
   slot1_group: number | null;
   slot2_seed: number | null;
   slot2_group: number | null;
 };
 
+const WINNER_STATUSES = new Set(["completed", "forfeit", "walkover", "bye"]);
+
 /**
- * Recompute R2+ slot1/slot2 from current R1 (and above) slot state.
- * Only advance when status is "bye" and exactly one slot is filled (true BYE). TBD (one slot empty, status not bye) does not advance.
+ * Recompute R2+ slot1/slot2 from BYE feeders, and push winner_id into next-round player slots.
  */
 export async function syncPlayoffBracketFromR1(eventId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
 
   const { data: rows, error: fetchErr } = await supabase
     .from("matches")
-    .select("id, round, match_number, status, slot1_seed, slot1_group, slot2_seed, slot2_group")
+    .select("id, round, match_number, status, winner_id, slot1_seed, slot1_group, slot2_seed, slot2_group")
     .eq("event_id", eventId)
     .gte("round", 1)
     .order("round", { ascending: true })
@@ -81,6 +83,25 @@ export async function syncPlayoffBracketFromR1(eventId: string): Promise<{ ok: b
       .eq("id", m.id);
 
     if (updateErr) return { ok: false, error: updateErr.message };
+  }
+
+  for (const m of matches) {
+    const winnerId = m.winner_id;
+    if (!winnerId || !WINNER_STATUSES.has(m.status || "")) continue;
+    const r = roundNum(m);
+    const nextRound = r + 1;
+    const nextMatchNum = Math.ceil(matchNum(m) / 2);
+    if (nextRound > maxRound) continue;
+    const next = findMatch(nextRound, nextMatchNum);
+    if (!next) continue;
+    if (nextRound === maxRound && nextMatchNum === 2) continue;
+
+    const fromPlayer1 = matchNum(m) % 2 === 1;
+    const { error: advErr } = await supabase
+      .from("matches")
+      .update(fromPlayer1 ? { player1_id: winnerId } : { player2_id: winnerId })
+      .eq("id", next.id);
+    if (advErr) return { ok: false, error: advErr.message };
   }
 
   return { ok: true };
