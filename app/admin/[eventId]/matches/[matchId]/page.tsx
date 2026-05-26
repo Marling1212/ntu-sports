@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import MatchDetailContent from "@/components/admin/MatchDetailContent";
-import { buildPlayoffSlotPlayerResolver } from "@/lib/scheduling/playoffSlotPlayerResolver";
-import { applyPlayoffFeederAdvancement } from "@/lib/scheduling/applyPlayoffFeederAdvancement";
+import { enrichSeasonPlayMatchesForAdmin } from "@/lib/scheduling/enrichSeasonPlayMatchesForAdmin";
 
 export default async function MatchDetailPage({ 
   params 
@@ -66,13 +65,60 @@ export default async function MatchDetailPage({
     );
   }
 
-  // Get all players for this match (including team members if it's a team event)
-  const playerIds = [match.player1_id, match.player2_id].filter(Boolean) as string[];
-  
-  const { data: players } = await supabase
+  const { data: allEventPlayers } = await supabase
     .from("players")
     .select("*")
-    .in("id", playerIds);
+    .eq("event_id", eventId)
+    .order("name", { ascending: true });
+
+  const { data: allEventMatchesRaw } = await supabase
+    .from("matches")
+    .select(`
+      *,
+      player1:players!matches_player1_id_fkey(id, name, seed, department, type),
+      player2:players!matches_player2_id_fkey(id, name, seed, department, type),
+      winner:players!matches_winner_id_fkey(id, name, seed)
+    `)
+    .eq("event_id", eventId)
+    .neq("status", "bye")
+    .order("round", { ascending: true })
+    .order("match_number", { ascending: true });
+
+  let matchPlayerStatsForEnrich: unknown[] = [];
+  if (event?.tournament_type === "season_play" && (allEventMatchesRaw?.length ?? 0) > 0) {
+    const { data: stats } = await supabase
+      .from("match_player_stats")
+      .select("*")
+      .in("match_id", (allEventMatchesRaw ?? []).map((m) => m.id));
+    matchPlayerStatsForEnrich = stats || [];
+  }
+
+  let teamMembersFlatForEnrich: unknown[] = [];
+  if (event?.registration_type === "team" && (allEventPlayers?.length ?? 0) > 0) {
+    const teamIds = (allEventPlayers ?? []).filter((p) => p.type === "team").map((p) => p.id);
+    if (teamIds.length > 0) {
+      const { data: members } = await supabase.from("team_members").select("id, player_id").in("player_id", teamIds);
+      teamMembersFlatForEnrich = members || [];
+    }
+  }
+
+  const enrichedEventMatches =
+    event?.tournament_type === "season_play" && (allEventMatchesRaw?.length ?? 0) > 0
+      ? enrichSeasonPlayMatchesForAdmin(allEventMatchesRaw as any[], allEventPlayers ?? [], event as any, {
+          matchPlayerStats: matchPlayerStatsForEnrich,
+          teamMembers: teamMembersFlatForEnrich,
+        })
+      : allEventMatchesRaw ?? [];
+
+  const enrichedMatch = enrichedEventMatches.find((m) => m.id === matchId);
+  const matchForView = enrichedMatch ? { ...match, ...enrichedMatch } : match;
+
+  const playerIds = [matchForView.player1_id, matchForView.player2_id].filter(Boolean) as string[];
+
+  const { data: players } =
+    playerIds.length > 0
+      ? await supabase.from("players").select("*").in("id", playerIds)
+      : { data: [] as any[] };
 
   // Get team members if this is a team event
   let teamMembers: Record<string, any[]> = {};
@@ -157,110 +203,32 @@ export default async function MatchDetailPage({
   if (matchDivisionId) scheduleMatchesQuery = scheduleMatchesQuery.eq("division_id", matchDivisionId);
   const { data: scheduleMatches } = await scheduleMatchesQuery;
 
-  const { data: allEventPlayers } = await supabase
-    .from("players")
-    .select("*")
-    .eq("event_id", eventId)
-    .order("name", { ascending: true });
-
-  const scheduleMatchIds = (scheduleMatches || []).map((m: { id: string }) => m.id).filter(Boolean);
-  let scheduleMatchPlayerStats: any[] = [];
-  if (scheduleMatchIds.length > 0) {
-    const { data: schedStats } = await supabase.from("match_player_stats").select("*").in("match_id", scheduleMatchIds);
-    scheduleMatchPlayerStats = schedStats || [];
-  }
-  let scheduleTeamMembersFlat: any[] = [];
-  if (event?.registration_type === "team" && (allEventPlayers || []).length > 0) {
-    const teamIds = (allEventPlayers || []).filter((p: any) => p.type === "team").map((p: any) => p.id);
-    if (teamIds.length > 0) {
-      const { data: schedMembers } = await supabase.from("team_members").select("id, player_id").in("player_id", teamIds);
-      scheduleTeamMembersFlat = schedMembers || [];
-    }
-  }
-
-  const regularForPostponeGrid = (scheduleMatches || [])
-    .filter((m: any) => Number(m.round) === 0)
-    .map((m: any) => ({
-      player1_id: m.player1_id,
-      player2_id: m.player2_id,
-      winner_id: m.winner_id,
-      score1: m.score1,
-      score2: m.score2,
-      status: m.status,
-      round: 0,
-      group_number: m.group_number,
-    }));
-  const playersForPostponeStandings = (allEventPlayers || []).map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    seed: p.seed,
-    school: p.department,
-  }));
-  const playoffRefsForPostpone = (scheduleMatches || [])
-    .filter((m: any) => Number(m.round) >= 1)
-    .map((m: any) => ({
-      slot1_seed: m.slot1_seed,
-      slot1_group: m.slot1_group,
-      slot2_seed: m.slot2_seed,
-      slot2_group: m.slot2_group,
-    }));
-  const resolvePostponePlayoffPlayerId =
-    (event as any)?.tournament_type === "season_play" && regularForPostponeGrid.length > 0
-      ? buildPlayoffSlotPlayerResolver({
-          regularRounds: regularForPostponeGrid as any,
-          playersForStandings: playersForPostponeStandings as any,
-          tiebreakerConfig: (event as any)?.tiebreaker_config,
-          playoffQualifiersPerGroup: (event as any)?.playoff_qualifiers_per_group ?? 8,
-          matchPlayerStats: scheduleMatchPlayerStats,
-          teamMembers: scheduleTeamMembersFlat,
-          registrationType: ((event as any)?.registration_type as "player" | "team") || "player",
-          sport: (event as any)?.sport,
-          playoffMatches: playoffRefsForPostpone,
-        })
-      : (dbId: string | null | undefined, _s?: unknown, _g?: unknown) => (dbId ? String(dbId) : null);
-
   const { data: blackoutTemplates } = await supabase
     .from("team_blackout_templates")
     .select("player_id, day_of_week, start_time, end_time")
     .eq("event_id", eventId);
 
-  const postponePlayersById = new Map(
-    (allEventPlayers || []).map((p: any) => [p.id, { id: p.id, name: p.name, seed: p.seed }])
-  );
-  const matchesForGridBase = (scheduleMatches || []).map((m: any) => {
-    const p1 = resolvePostponePlayoffPlayerId(m.player1_id, m.slot1_seed, m.slot1_group);
-    const p2 = resolvePostponePlayoffPlayerId(m.player2_id, m.slot2_seed, m.slot2_group);
-    const p1Id = p1 ?? m.player1_id;
-    const p2Id = p2 ?? m.player2_id;
-    return {
+  const scheduleIds = new Set((scheduleMatches || []).map((m: { id: string }) => m.id));
+  const matchesForGrid = enrichedEventMatches
+    .filter((m) => scheduleIds.has(m.id))
+    .map((m) => ({
       id: m.id,
+      player1_id: m.player1_id,
+      player2_id: m.player2_id,
+      slot_id: (m as any).slot_id,
+      scheduled_time: (m as any).scheduled_time,
+      status: m.status,
       round: m.round,
       match_number: m.match_number,
-      status: m.status,
-      winner_id: m.winner_id,
-      slot1_seed: m.slot1_seed,
-      slot1_group: m.slot1_group,
-      slot2_seed: m.slot2_seed,
-      slot2_group: m.slot2_group,
-      player1_id: p1Id,
-      player2_id: p2Id,
-      slot_id: m.slot_id,
-      scheduled_time: m.scheduled_time,
-      winner: m.winner,
-      player1: p1Id ? { ...m.player1, id: p1Id, name: m.player1?.name ?? postponePlayersById.get(p1Id)?.name } : null,
-      player2: p2Id ? { ...m.player2, id: p2Id, name: m.player2?.name ?? postponePlayersById.get(p2Id)?.name } : null,
-    };
-  });
-  const matchesForGrid =
-    (event as any)?.tournament_type === "season_play"
-      ? applyPlayoffFeederAdvancement(matchesForGridBase, postponePlayersById)
-      : matchesForGridBase;
+      player1: (m as any).player1,
+      player2: (m as any).player2,
+    }));
 
   return (
     <div className="container mx-auto px-4 py-12">
         <MatchDetailContent
           eventId={eventId}
-          match={match}
+          match={matchForView}
           event={event}
           players={players || []}
           teamMembers={teamMembers}

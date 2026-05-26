@@ -6,6 +6,7 @@ import MatchesTable from "@/components/admin/MatchesTable";
 import PlayerStats from "@/components/admin/PlayerStats";
 import MatchHistory from "@/components/admin/MatchHistory";
 import MatchesPageNav from "@/components/admin/MatchesPageNav";
+import { enrichSeasonPlayMatchesForAdmin } from "@/lib/scheduling/enrichSeasonPlayMatchesForAdmin";
 
 export default async function MatchesPage({
   params,
@@ -58,9 +59,15 @@ export default async function MatchesPage({
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });
   if (effectiveDivisionId) {
-    matchesQuery = matchesQuery.eq("division_id", effectiveDivisionId);
+    if (divisions.length === 1) {
+      matchesQuery = matchesQuery.or(
+        `division_id.eq.${effectiveDivisionId},division_id.is.null`
+      );
+    } else {
+      matchesQuery = matchesQuery.eq("division_id", effectiveDivisionId);
+    }
   }
-  const { data: matches } = await matchesQuery;
+  const { data: matchesRaw } = await matchesQuery;
 
   // Get all players for dropdown (filter by division when multi-division)
   let playersQuery = supabase.from("players").select("*").eq("event_id", eventId).order("name", { ascending: true });
@@ -87,7 +94,7 @@ export default async function MatchesPage({
   const { data: matchPlayerStats } = await supabase
     .from("match_player_stats")
     .select("*")
-    .in("match_id", (matches || []).map(m => m.id));
+    .in("match_id", (matchesRaw || []).map((m: { id: string }) => m.id));
 
   // Get team members if team event (use division's registration_type when in a division)
   const effectiveRegistrationType = selectedDivision?.registration_type ?? event?.registration_type;
@@ -99,6 +106,14 @@ export default async function MatchesPage({
       .in("player_id", (players || []).map(p => p.id));
     teamMembers = members || [];
   }
+
+  const matches =
+    event?.tournament_type === "season_play" && (matchesRaw?.length ?? 0) > 0
+      ? enrichSeasonPlayMatchesForAdmin(matchesRaw as any[], players || [], event as any, {
+          matchPlayerStats: matchPlayerStats || [],
+          teamMembers,
+        })
+      : matchesRaw || [];
 
   const defaultDivisionId = effectiveDivisionId;
   return (

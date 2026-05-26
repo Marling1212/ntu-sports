@@ -94,10 +94,23 @@ export function applyPlayoffFeederAdvancement<T extends MatchRowForFeederAdvance
       const adv1 = prev1 ? getPlayoffFeederAdvancing(working.get(prev1.id) ?? prev1, playersById) : null;
       const adv2 = prev2 ? getPlayoffFeederAdvancing(working.get(prev2.id) ?? prev2, playersById) : null;
 
+      const base = byKey.get(`${r}-${mn}`)!;
       if (prev1) {
         if (adv1) {
           w.player1_id = adv1.id;
           w.player1 = { id: adv1.id, name: adv1.name, seed: adv1.seed ?? null };
+        } else if (base.player1_id) {
+          // Feeder not decided in bracket sim yet — keep DB-synced id from match save / syncPlayoffBracketFromR1
+          w.player1_id = base.player1_id;
+          w.player1 = base.player1
+            ? { ...base.player1, id: base.player1_id, name: base.player1.name ?? base.player1_id }
+            : playersById?.get(base.player1_id)
+              ? {
+                  id: base.player1_id,
+                  name: playersById.get(base.player1_id)!.name,
+                  seed: playersById.get(base.player1_id)!.seed ?? null,
+                }
+              : { id: base.player1_id, name: base.player1_id, seed: null };
         } else {
           w.player1_id = null;
           w.player1 = null;
@@ -107,6 +120,17 @@ export function applyPlayoffFeederAdvancement<T extends MatchRowForFeederAdvance
         if (adv2) {
           w.player2_id = adv2.id;
           w.player2 = { id: adv2.id, name: adv2.name, seed: adv2.seed ?? null };
+        } else if (base.player2_id) {
+          w.player2_id = base.player2_id;
+          w.player2 = base.player2
+            ? { ...base.player2, id: base.player2_id, name: base.player2.name ?? base.player2_id }
+            : playersById?.get(base.player2_id)
+              ? {
+                  id: base.player2_id,
+                  name: playersById.get(base.player2_id)!.name,
+                  seed: playersById.get(base.player2_id)!.seed ?? null,
+                }
+              : { id: base.player2_id, name: base.player2_id, seed: null };
         } else {
           w.player2_id = null;
           w.player2 = null;

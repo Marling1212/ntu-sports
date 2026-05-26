@@ -6,6 +6,7 @@ import RefereeSchedulingManager from "@/components/admin/RefereeSchedulingManage
 import RefereeJobManager from "@/components/admin/RefereeJobManager";
 import RefereeDispatchBoard from "@/components/admin/RefereeDispatchBoard";
 import { clampRefereeLinkTtlDays } from "@/lib/utils/refereeAccessToken";
+import { enrichSeasonPlayMatchesForAdmin } from "@/lib/scheduling/enrichSeasonPlayMatchesForAdmin";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -37,7 +38,13 @@ export default async function DispatchPage({
     { data: slotTemplatesRaw },
     { data: refereeJobsRaw },
   ] = await Promise.all([
-    supabase.from("events").select("id, name, referee_link_ttl_days").eq("id", eventId).single(),
+    supabase
+      .from("events")
+      .select(
+        "id, name, referee_link_ttl_days, tournament_type, tiebreaker_config, playoff_qualifiers_per_group, registration_type, sport"
+      )
+      .eq("id", eventId)
+      .single(),
     supabase
       .from("event_referees")
       .select("id, event_id, user_id, display_name, email, linked_player_id, note")
@@ -54,7 +61,16 @@ export default async function DispatchPage({
       .order("name", { ascending: true }),
     supabase
       .from("matches")
-      .select("id, round, match_number, court, scheduled_time, player1_id, player2_id")
+      .select(
+        `
+        id, round, match_number, court, scheduled_time, status, winner_id,
+        player1_id, player2_id, slot1_seed, slot1_group, slot2_seed, slot2_group,
+        score1, score2, group_number,
+        player1:players!matches_player1_id_fkey(id, name, seed),
+        player2:players!matches_player2_id_fkey(id, name, seed),
+        winner:players!matches_winner_id_fkey(id, name, seed)
+      `
+      )
       .eq("event_id", eventId)
       .neq("status", "bye")
       .order("scheduled_time", { ascending: true, nullsFirst: false })
@@ -80,7 +96,36 @@ export default async function DispatchPage({
       .order("created_at", { ascending: true }),
   ]);
 
-  const matches = (matchesRaw ?? []).map((match) => ({
+  let dispatchMatchPlayerStats: unknown[] = [];
+  if (event?.tournament_type === "season_play" && (matchesRaw?.length ?? 0) > 0) {
+    const { data: stats } = await supabase
+      .from("match_player_stats")
+      .select("*")
+      .in(
+        "match_id",
+        (matchesRaw ?? []).map((m) => m.id)
+      );
+    dispatchMatchPlayerStats = stats || [];
+  }
+
+  let dispatchTeamMembers: unknown[] = [];
+  if (event?.registration_type === "team" && (eventPlayers?.length ?? 0) > 0) {
+    const teamIds = (eventPlayers ?? []).filter((p) => p.type === "team").map((p) => p.id);
+    if (teamIds.length > 0) {
+      const { data: members } = await supabase.from("team_members").select("id, player_id").in("player_id", teamIds);
+      dispatchTeamMembers = members || [];
+    }
+  }
+
+  const enrichedMatches =
+    event?.tournament_type === "season_play" && (matchesRaw?.length ?? 0) > 0
+      ? enrichSeasonPlayMatchesForAdmin(matchesRaw as any[], eventPlayers ?? [], event as any, {
+          matchPlayerStats: dispatchMatchPlayerStats,
+          teamMembers: dispatchTeamMembers,
+        })
+      : matchesRaw ?? [];
+
+  const matches = enrichedMatches.map((match) => ({
     ...match,
     court: match.court ?? null,
     player1_id: match.player1_id ?? null,
