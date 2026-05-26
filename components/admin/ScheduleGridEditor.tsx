@@ -178,7 +178,7 @@ export default function ScheduleGridEditor({
   const notInGrid = useMemo(
     () =>
       matches
-        .filter((m) => m.player1_id || m.player2_id || m.round >= 1)
+        .filter((m) => (m.player1_id || m.player2_id || m.round >= 1) && m.status !== "bye")
         .filter((m) => !assigned.has(m.id) || m.status === "delayed"),
     [matches, assigned]
   );

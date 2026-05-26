@@ -74,7 +74,6 @@ export default async function SchedulingPage({
       slot:event_slots(id, slot_date, start_time, end_time, code, court_id, event_courts!event_slots_court_id_fkey(name))
     `)
     .eq("event_id", eventId)
-    .neq("status", "bye")
     .order("scheduled_time", { ascending: true, nullsFirst: false })
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });
@@ -194,7 +193,7 @@ export default async function SchedulingPage({
         })
       : matches || [];
 
-  const matchesForGrid = enrichedMatches.map((m: any) => ({
+  const matchesForGrid = enrichedMatches.filter((m: any) => m.status !== "bye").map((m: any) => ({
     id: m.id,
     round: m.round,
     match_number: m.match_number,

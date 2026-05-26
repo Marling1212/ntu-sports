@@ -80,7 +80,6 @@ export default async function MatchDetailPage({
       winner:players!matches_winner_id_fkey(id, name, seed)
     `)
     .eq("event_id", eventId)
-    .neq("status", "bye")
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });
 
@@ -196,7 +195,6 @@ export default async function MatchDetailPage({
       slot:event_slots(id, slot_date, start_time, end_time, code, court_id)
     `)
     .eq("event_id", eventId)
-    .neq("status", "bye")
     .order("scheduled_time", { ascending: true, nullsFirst: false })
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });

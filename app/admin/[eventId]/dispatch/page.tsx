@@ -72,7 +72,6 @@ export default async function DispatchPage({
       `
       )
       .eq("event_id", eventId)
-      .neq("status", "bye")
       .order("scheduled_time", { ascending: true, nullsFirst: false })
       .order("round", { ascending: true })
       .order("match_number", { ascending: true }),
@@ -125,7 +124,7 @@ export default async function DispatchPage({
         })
       : matchesRaw ?? [];
 
-  const matches = enrichedMatches.map((match) => ({
+  const matches = enrichedMatches.filter((m: any) => m.status !== "bye").map((match) => ({
     ...match,
     court: match.court ?? null,
     player1_id: match.player1_id ?? null,

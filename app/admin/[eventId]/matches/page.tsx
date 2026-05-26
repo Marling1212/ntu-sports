@@ -54,7 +54,6 @@ export default async function MatchesPage({
       )
     `)
     .eq("event_id", eventId)
-    .neq("status", "bye")
     .order("scheduled_time", { ascending: true, nullsFirst: false })
     .order("round", { ascending: true })
     .order("match_number", { ascending: true });
@@ -114,6 +113,7 @@ export default async function MatchesPage({
           teamMembers,
         })
       : matchesRaw || [];
+  const matchesForTable = (matches as any[]).filter((m: any) => m.status !== "bye");
 
   const defaultDivisionId = effectiveDivisionId;
   return (
@@ -164,7 +164,7 @@ export default async function MatchesPage({
 
             <MatchesTable 
               eventId={eventId} 
-              initialMatches={matches || []} 
+              initialMatches={matchesForTable || []} 
               players={players || []}
               slots={slots || []}
               courts={courts || []}
@@ -180,7 +180,7 @@ export default async function MatchesPage({
             <div id="player-stats" className="mt-8 scroll-mt-24">
               <PlayerStats
                 players={players || []}
-                matches={matches || []}
+                matches={matchesForTable || []}
                 tournamentType={event?.tournament_type as "single_elimination" | "season_play" | undefined}
                 registrationType={event?.registration_type as 'player' | 'team' | undefined}
                 sport={event?.sport}
@@ -193,7 +193,7 @@ export default async function MatchesPage({
             <div id="match-history" className="mt-8 scroll-mt-24">
               <MatchHistory
                 players={players || []}
-                matches={matches || []}
+                matches={matchesForTable || []}
                 registrationType={event?.registration_type as 'player' | 'team' | undefined}
               />
             </div>
