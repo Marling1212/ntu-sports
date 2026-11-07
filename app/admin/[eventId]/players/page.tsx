@@ -2,12 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getEventDivisions } from "@/lib/utils/getSportEvent";
 import PlayersTable from "@/components/admin/PlayersTable";
-import GenerateBracket from "@/components/admin/GenerateBracket";
+import SingleEliminationBracketManager from "@/components/admin/SingleEliminationBracketManager";
 import GenerateSeasonPlay from "@/components/admin/GenerateSeasonPlay";
 import EditPlayoffDraw from "@/components/admin/EditPlayoffDraw";
 import ImportSeasonPlay from "@/components/admin/ImportSeasonPlay";
 import ImportSeasonGroups from "@/components/admin/ImportSeasonGroups";
-import ManualBracketEditor from "@/components/admin/ManualBracketEditor";
 import PlayersPageNav from "@/components/admin/PlayersPageNav";
 import BracketCheckInClient from "@/components/admin/BracketCheckInClient";
 import type { Match } from "@/types/tournament";
@@ -247,27 +246,11 @@ export default async function PlayersPage({
               </div>
             </div>
           ) : (
-            <div className="space-y-6 mt-8">
-              <div id="generate-bracket" className="scroll-mt-24">
-                <GenerateBracket
-                  eventId={eventId}
-                  players={players || []}
-                  defaultDivisionId={effectiveDefaultDivisionId}
-                />
-              </div>
-              <div id="manual-bracket" className="scroll-mt-24">
-                <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-900">
-                    你也可以使用手動模式調整籤位，完成後按「Finalize Bracket & Create Matches」建立所有比賽。
-                  </p>
-                </div>
-                <ManualBracketEditor 
-                  eventId={eventId}
-                  players={players || []}
-                  defaultDivisionId={effectiveDefaultDivisionId}
-                />
-              </div>
-            </div>
+            <SingleEliminationBracketManager
+              eventId={eventId}
+              players={players || []}
+              defaultDivisionId={effectiveDefaultDivisionId}
+            />
           )
         ) : (
           <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-xl text-center">

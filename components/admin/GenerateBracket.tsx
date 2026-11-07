@@ -4,6 +4,9 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Player } from "@/types/database";
+import { useI18n } from "@/lib/i18n/context";
+
+export type SeedingMode = "strict" | "grand_slam";
 
 interface GenerateBracketProps {
   eventId: string;
@@ -12,13 +15,15 @@ interface GenerateBracketProps {
 }
 
 export default function GenerateBracket({ eventId, players, defaultDivisionId }: GenerateBracketProps) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [hasThirdPlaceMatch, setHasThirdPlaceMatch] = useState(true); // 預設舉辦季軍賽
+  const [seedingMode, setSeedingMode] = useState<SeedingMode>("strict");
   const supabase = createClient();
 
   const generateBracket = async () => {
     if (players.length < 2) {
-      toast.error(`至少需要2位選手才能生成籤表！目前有 ${players.length} 位選手。`);
+      toast.error(t('admin.generateBracket.minPlayersToast', { n: players.length }));
       return;
     }
 
@@ -29,7 +34,40 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
     const totalMatches = bracketSize - 1;
 
     const seededCount = players.filter(p => p.seed).length;
-    const confirmText = `確定要生成籤表嗎？\n\n選手數: ${players.length}\n- 種子選手: ${seededCount}\n- 非種子選手: ${players.length - seededCount}\n\n籤表大小: ${bracketSize}\n輪數: ${numRounds}\n總比賽數: ${totalMatches}\n${numByes > 0 ? `輪空（Bye）: ${numByes} 個\n\n分配規則：\n✓ Seed 1-2: 固定位置\n✓ Seed 3-4, 5-8: 隨機\n✓ 種子優先獲得 BYE（輪空）\n✓ 非種子選手互相對打\n✓ 多出來的非種子才對種子` : '\n分配規則：\n✓ 所有選手都會參賽（無 BYE）\n✓ Seed 1-2: 固定位置\n✓ Seed 3-4, 5-8: 隨機\n✓ 非種子選手隨機配對'}`;
+    const modeName = seedingMode === 'grand_slam'
+      ? t('admin.generateBracket.grandSlamModeTitle')
+      : t('admin.generateBracket.strictModeTitle');
+
+    const rules: string[] = [];
+    if (seedingMode === 'grand_slam') {
+      rules.push(t('admin.generateBracket.ruleGrandSlamTitle'));
+      rules.push(t('admin.generateBracket.ruleGrandSlam1'));
+      rules.push(t('admin.generateBracket.ruleGrandSlam2'));
+      rules.push(t('admin.generateBracket.ruleGrandSlam3'));
+      rules.push(t('admin.generateBracket.ruleGrandSlam4'));
+    } else {
+      rules.push(t('admin.generateBracket.ruleStrictTitle'));
+      rules.push(t('admin.generateBracket.ruleStrict1'));
+    }
+
+    if (numByes > 0) {
+      rules.push(t('admin.generateBracket.ruleBye1'));
+      rules.push(t('admin.generateBracket.ruleBye2'));
+    } else {
+      rules.push(t('admin.generateBracket.ruleNoBye'));
+    }
+    rules.push(t('admin.generateBracket.ruleUnseeded'));
+
+    const confirmText = `${t('admin.generateBracket.confirmTitle')}\n\n` +
+      `${t('admin.generateBracket.currentPlayers', { n: players.length })}\n` +
+      `- 種子: ${seededCount}\n` +
+      `- 非種子: ${players.length - seededCount}\n\n` +
+      `${t('admin.generateBracket.bracketSize', { size: bracketSize, rounds: numRounds })}\n` +
+      `${t('admin.generateBracket.totalMatches', { matches: totalMatches })}\n` +
+      (numByes > 0 ? `${t('admin.generateBracket.byesCount', { byes: numByes })}\n\n` : '\n') +
+      `[ ${t('admin.generateBracket.seedingModeLabel')}: ${modeName} ]\n` +
+      `${rules.join('\n')}`;
+
     if (!confirm(confirmText)) return;
 
     setLoading(true);
@@ -59,17 +97,119 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
 
       const seedTemplate = buildSeedTemplate(bracketSize);
 
-      // Place ALL valid seed numbers (1..bracketSize) to their proper seeded slots.
-      seeded.forEach((player) => {
-        const seedNum = player.seed || 0;
-        if (seedNum < 1 || seedNum > bracketSize) return;
-        const slotIndex = seedTemplate.findIndex((s) => s === seedNum);
-        if (slotIndex < 0) return;
-        if (!positions[slotIndex]) {
-          positions[slotIndex] = player;
-          placedSeedIds.add(player.id);
+      if (seedingMode === "strict" || bracketSize < 4) {
+        // Strict Standard Template: place ALL valid seed numbers (1..bracketSize) to their proper seeded slots.
+        seeded.forEach((player) => {
+          const seedNum = player.seed || 0;
+          if (seedNum < 1 || seedNum > bracketSize) return;
+          const slotIndex = seedTemplate.findIndex((s) => s === seedNum);
+          if (slotIndex < 0) return;
+          if (!positions[slotIndex]) {
+            positions[slotIndex] = player;
+            placedSeedIds.add(player.id);
+          }
+        });
+      } else {
+        // Controlled Grand Slam Draw with QF constraints:
+        // 1. Seeds 1 & 2: Locked at opposite bracket extremes (Top vs Bottom half)
+        // 2. Seeds 3 & 4: Randomly drawn into opposite halves
+        // 3. Seeds 5 & 6: Constrained to quarters with Seed 3 & 4 (Projected QF matchups: 3v6, 4v5, 3v5, or 4v6)
+        // 4. Seeds 7 & 8: Constrained to quarters with Seed 1 & 2 (Projected QF matchups: 1v8, 2v7, 1v7, or 2v8)
+        // 5. Seeds > 8: Standard template position
+        const seedMap = new Map<number, Player>();
+        seeded.forEach((p) => {
+          if (p.seed && p.seed >= 1 && p.seed <= bracketSize) {
+            seedMap.set(p.seed, p);
+          }
+        });
+
+        const placeSeedInSlot = (seedNum: number, slotIdx: number) => {
+          const player = seedMap.get(seedNum);
+          if (player && slotIdx >= 0 && slotIdx < bracketSize && !positions[slotIdx]) {
+            positions[slotIdx] = player;
+            placedSeedIds.add(player.id);
+          }
+        };
+
+        if (bracketSize === 4) {
+          // Seeds 1 and 2
+          placeSeedInSlot(1, seedTemplate.indexOf(1));
+          placeSeedInSlot(2, seedTemplate.indexOf(2));
+
+          // Seeds 3 and 4 randomly placed in opposite halves (Slot 1 and Slot 3)
+          const s4Slot = seedTemplate.indexOf(4);
+          const s3Slot = seedTemplate.indexOf(3);
+          if (Math.random() < 0.5) {
+            placeSeedInSlot(3, s3Slot);
+            placeSeedInSlot(4, s4Slot);
+          } else {
+            placeSeedInSlot(3, s4Slot);
+            placeSeedInSlot(4, s3Slot);
+          }
+        } else {
+          // bracketSize >= 8
+          // 1. Seeds 1 and 2: Locked at opposite bracket extremes (Q1 primary & Q3 primary)
+          const slotQ1_prim = seedTemplate.indexOf(1);
+          const slotQ3_prim = seedTemplate.indexOf(2);
+          placeSeedInSlot(1, slotQ1_prim);
+          placeSeedInSlot(2, slotQ3_prim);
+
+          // 2. Seeds 3 and 4: Randomly drawn into opposite halves (Q2 primary vs Q4 primary)
+          const slotQ2_prim = seedTemplate.indexOf(4);
+          const slotQ4_prim = seedTemplate.indexOf(3);
+          const seed3ToQ2 = Math.random() < 0.5;
+
+          const slotForSeed3 = seed3ToQ2 ? slotQ2_prim : slotQ4_prim;
+          const slotForSeed4 = seed3ToQ2 ? slotQ4_prim : slotQ2_prim;
+          const quarterOfSeed3 = seed3ToQ2 ? 2 : 4;
+          const quarterOfSeed4 = seed3ToQ2 ? 4 : 2;
+
+          placeSeedInSlot(3, slotForSeed3);
+          placeSeedInSlot(4, slotForSeed4);
+
+          // 3. Seeds 5 and 6: Constrained to quarters containing Seed 3 and Seed 4
+          const slotQ2_sec = seedTemplate.indexOf(5);
+          const slotQ4_sec = seedTemplate.indexOf(6);
+          const slotSecForSeed3Quarter = quarterOfSeed3 === 2 ? slotQ2_sec : slotQ4_sec;
+          const slotSecForSeed4Quarter = quarterOfSeed4 === 2 ? slotQ2_sec : slotQ4_sec;
+
+          // 50% chance: Seed 5 meets 4, Seed 6 meets 3 (4v5, 3v6)
+          // 50% chance: Seed 5 meets 3, Seed 6 meets 4 (3v5, 4v6)
+          if (Math.random() < 0.5) {
+            placeSeedInSlot(5, slotSecForSeed4Quarter);
+            placeSeedInSlot(6, slotSecForSeed3Quarter);
+          } else {
+            placeSeedInSlot(5, slotSecForSeed3Quarter);
+            placeSeedInSlot(6, slotSecForSeed4Quarter);
+          }
+
+          // 4. Seeds 7 and 8: Constrained to quarters containing Seed 1 and Seed 2
+          const slotQ1_sec = seedTemplate.indexOf(8);
+          const slotQ3_sec = seedTemplate.indexOf(7);
+
+          // 50% chance: Seed 8 meets 1, Seed 7 meets 2 (1v8, 2v7)
+          // 50% chance: Seed 7 meets 1, Seed 8 meets 2 (1v7, 2v8)
+          if (Math.random() < 0.5) {
+            placeSeedInSlot(8, slotQ1_sec);
+            placeSeedInSlot(7, slotQ3_sec);
+          } else {
+            placeSeedInSlot(7, slotQ1_sec);
+            placeSeedInSlot(8, slotQ3_sec);
+          }
+
+          // 5. Any remaining seeds > 8 (if present)
+          seeded.forEach((player) => {
+            const seedNum = player.seed || 0;
+            if (seedNum > 8 && seedNum <= bracketSize) {
+              const slotIndex = seedTemplate.findIndex((s) => s === seedNum);
+              if (slotIndex >= 0 && !positions[slotIndex]) {
+                positions[slotIndex] = player;
+                placedSeedIds.add(player.id);
+              }
+            }
+          });
         }
-      });
+      }
 
       // Remaining players enter random draw pool.
       const drawPool = players.filter(p => !placedSeedIds.has(p.id));
@@ -595,12 +735,15 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
             action: 'generate',
             changes: {
               method: 'auto',
+              seeding_mode: seedingMode,
               matches_created: matches.length,
               bracket_size: bracketSize,
               rounds: numRounds,
               byes: numByes,
             },
-            reason: '自動生成籤表',
+            reason: seedingMode === 'grand_slam'
+              ? '自動生成籤表 (大滿貫對稱抽籤)'
+              : '自動生成籤表 (標準固定種子)',
           });
       }
 
@@ -704,24 +847,83 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 mb-6">
-      <h3 className="text-xl font-semibold text-ntu-green mb-4">生成比賽籤表</h3>
-      <div className="flex items-center justify-between">
+      <h3 className="text-xl font-semibold text-ntu-green mb-4">{t('admin.generateBracket.title')}</h3>
+      
+      {/* Seeding Mode Toggle */}
+      <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+        <label className="block text-sm font-semibold text-gray-800 mb-2">
+          {t('admin.generateBracket.seedingModeLabel')}
+        </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setSeedingMode("strict")}
+            className={`p-3 rounded-lg text-left border transition-all ${
+              seedingMode === "strict"
+                ? "border-ntu-green bg-green-50/60 shadow-sm ring-1 ring-ntu-green"
+                : "border-gray-200 bg-white hover:border-gray-300"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className={`font-semibold text-sm ${seedingMode === "strict" ? "text-ntu-green" : "text-gray-800"}`}>
+                🎯 {t('admin.generateBracket.strictModeTitle')}
+              </span>
+              <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                seedingMode === "strict" ? "border-ntu-green bg-ntu-green" : "border-gray-300"
+              }`}>
+                {seedingMode === "strict" && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600">
+              {t('admin.generateBracket.strictModeDesc')}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSeedingMode("grand_slam")}
+            className={`p-3 rounded-lg text-left border transition-all ${
+              seedingMode === "grand_slam"
+                ? "border-ntu-green bg-green-50/60 shadow-sm ring-1 ring-ntu-green"
+                : "border-gray-200 bg-white hover:border-gray-300"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className={`font-semibold text-sm ${seedingMode === "grand_slam" ? "text-ntu-green" : "text-gray-800"}`}>
+                🏆 {t('admin.generateBracket.grandSlamModeTitle')}
+              </span>
+              <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                seedingMode === "grand_slam" ? "border-ntu-green bg-ntu-green" : "border-gray-300"
+              }`}>
+                {seedingMode === "grand_slam" && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600">
+              {t('admin.generateBracket.grandSlamModeDesc')}
+            </p>
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <p className="text-gray-700 mb-2">
-            目前有 <strong className="text-ntu-green">{players.length}</strong> 位選手
+            {t('admin.generateBracket.currentPlayers', { n: players.length })}
             {players.filter(p => p.seed).length > 0 && (
-              <>，包含 <strong className="text-ntu-green">{players.filter(p => p.seed).length}</strong> 位種子選手</>
+              <span className="text-ntu-green font-medium">
+                {t('admin.generateBracket.includingSeeds', { n: players.filter(p => p.seed).length })}
+              </span>
             )}
           </p>
           {players.length >= 2 ? (
             <div className="text-sm text-gray-600 space-y-1">
-              <p>✓ 籤表大小: <strong>{bracketSize}</strong> 人（{numRounds} 輪）</p>
-              <p>✓ 總比賽數: <strong>{totalMatches}</strong> 場</p>
-              {numByes > 0 && <p>✓ 輪空（Bye）: <strong>{numByes}</strong> 個位置</p>}
+              <p>✓ {t('admin.generateBracket.bracketSize', { size: bracketSize, rounds: numRounds })}</p>
+              <p>✓ {t('admin.generateBracket.totalMatches', { matches: totalMatches })}</p>
+              {numByes > 0 && <p>✓ {t('admin.generateBracket.byesCount', { byes: numByes })}</p>}
             </div>
           ) : (
             <p className="text-sm text-red-600">
-              至少需要 2 位選手才能生成籤表
+              {t('admin.manualBracket.minTwoPlayers', { n: players.length })}
             </p>
           )}
           
@@ -736,7 +938,7 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
                 className="w-4 h-4 text-ntu-green border-gray-300 rounded focus:ring-ntu-green cursor-pointer"
               />
               <label htmlFor="thirdPlaceMatch" className="text-sm text-gray-700 cursor-pointer hover:text-ntu-green">
-                🥉 舉辦季軍賽（準決賽敗者爭奪第三名）
+                🥉 {t('admin.generateBracket.thirdPlaceMatch')}
               </label>
             </div>
           )}
@@ -744,9 +946,9 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
         <button
           onClick={handleGenerate}
           disabled={loading || players.length < 2}
-          className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="bg-ntu-green text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 self-start md:self-auto shrink-0"
         >
-          {loading ? "生成中..." : "🎾 生成籤表"}
+          {loading ? t('admin.generateBracket.generating') : `🎾 ${t('admin.generateBracket.generateButton')}`}
         </button>
       </div>
     </div>
