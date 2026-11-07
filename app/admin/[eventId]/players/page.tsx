@@ -12,6 +12,9 @@ import BracketCheckInClient from "@/components/admin/BracketCheckInClient";
 import type { Match } from "@/types/tournament";
 import type { Player as DbPlayer } from "@/types/database";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function PlayersPage({
   params,
   searchParams,

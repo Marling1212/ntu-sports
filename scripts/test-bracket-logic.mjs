@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Test script for bracket generation logic
+ * Test script for bracket generation logic and UI slot mapping
  * Run: node scripts/test-bracket-logic.mjs
  */
 
@@ -188,7 +188,6 @@ for (let run = 0; run < 3; run++) {
   assert(result.numByes === 6, `numByes = 6`);
   assert(result.seedByeCount <= 3, `At most 3 seed BYEs`);
   assert(result.unseededUsed === 7, `All 7 unseeded placed`);
-  // Note: BYE vs BYE can occur in high-BYE scenarios; primary cases (16,15) pass
 }
 console.log("");
 
@@ -198,6 +197,132 @@ const players2 = makePlayers(2, 2);
 const result2 = runBracketLogic(players2);
 assert(result2.byeVsByeCount === 0, `No BYE vs BYE with 2 players`);
 assert(result2.filledCount === 2, `2 positions filled`);
+console.log("");
+
+// Test 5: Outer-to-inner mirrored buildSeedTemplate
+console.log("Test 5: buildSeedTemplate across sizes 4, 8, 16, 32, 64");
+function buildSeedTemplate(size) {
+  if (size <= 1) return [1];
+  if (size === 2) return [1, 2];
+  const rounds = Math.log2(size);
+  let bracket = [1, 2];
+  for (let r = 2; r <= rounds; r++) {
+    const curSize = Math.pow(2, r);
+    const next = [];
+    for (let i = 0; i < bracket.length; i++) {
+      const s = bracket[i];
+      const opp = curSize + 1 - s;
+      if (s === 2 && i === bracket.length - 1) {
+        next.push(opp);
+        next.push(s);
+      } else {
+        next.push(s);
+        next.push(opp);
+      }
+    }
+    bracket = next;
+  }
+  return bracket;
+}
+
+const t4 = buildSeedTemplate(4);
+assert(JSON.stringify(t4) === JSON.stringify([1, 4, 3, 2]), "Size 4 is [1, 4, 3, 2]");
+assert(t4[0] === 1 && t4[3] === 2, "Size 4: Seed 1 at slot 0, Seed 2 at slot 3");
+
+const t8 = buildSeedTemplate(8);
+assert(JSON.stringify(t8) === JSON.stringify([1, 8, 4, 5, 3, 6, 7, 2]), "Size 8 is [1, 8, 4, 5, 3, 6, 7, 2]");
+assert(t8[0] === 1 && t8[7] === 2, "Size 8: Seed 1 at slot 0, Seed 2 at slot 7");
+
+const t16 = buildSeedTemplate(16);
+assert(
+  JSON.stringify(t16) === JSON.stringify([1, 16, 8, 9, 4, 13, 5, 12, 3, 14, 6, 11, 7, 10, 15, 2]),
+  "Size 16 matches outer-to-inner mirrored complementary template"
+);
+assert(t16[0] === 1 && t16[15] === 2, "Size 16: Seed 1 at slot 0, Seed 2 at slot 15");
+
+[4, 8, 16, 32, 64].forEach((sz) => {
+  const t = buildSeedTemplate(sz);
+  assert(t[0] === 1, `Size ${sz}: Seed 1 is at index 0`);
+  assert(t[sz - 1] === 2, `Size ${sz}: Seed 2 is at index ${sz - 1} (outer bottom extreme)`);
+});
+console.log("");
+
+// Test 6: Round 1 match mapping and visual position of Seed 2
+console.log("Test 6: Visual Rendering and Round 1 Match Mapping");
+// 8-draw:
+const r1Matches8 = [];
+for (let i = 0; i < 4; i++) {
+  r1Matches8.push({
+    matchNumber: i + 1,
+    player1: t8[i * 2],
+    player2: t8[i * 2 + 1],
+  });
+}
+assert(r1Matches8[0].player1 === 1, "8-draw Match 1 (Top of Top Half): player1 is Seed 1");
+assert(r1Matches8[3].player2 === 2, "8-draw Match 4 (Bottom of Bottom Half): player2 is Seed 2 (at very bottom line)");
+assert(r1Matches8[0].player2 === 8, "8-draw Match 1 player2 is Seed 8");
+assert(r1Matches8[1].player1 === 4 && r1Matches8[1].player2 === 5, "8-draw Match 2 is Seeds 4 vs 5");
+assert(r1Matches8[2].player1 === 3 && r1Matches8[2].player2 === 6, "8-draw Match 3 is Seeds 3 vs 6");
+assert(r1Matches8[3].player1 === 7, "8-draw Match 4 player1 is Seed 7");
+
+// 16-draw:
+const r1Matches16 = [];
+for (let i = 0; i < 8; i++) {
+  r1Matches16.push({
+    matchNumber: i + 1,
+    player1: t16[i * 2],
+    player2: t16[i * 2 + 1],
+  });
+}
+assert(r1Matches16[0].player1 === 1, "16-draw Match 1 (Top): player1 is Seed 1");
+assert(r1Matches16[7].player2 === 2, "16-draw Match 8 (Bottom): player2 is Seed 2 (at very bottom line)");
+console.log("");
+
+// Test 7: ManualBracketEditor Auto-fill Seeding Logic
+console.log("Test 7: ManualBracketEditor auto-fill assigns seeds to template slots");
+function testManualAutoFill(playerCount, numSeeds) {
+  const bracketSize = Math.pow(2, Math.ceil(Math.log2(playerCount)));
+  const template = buildSeedTemplate(bracketSize);
+  const players = makePlayers(playerCount, numSeeds);
+
+  // Initialize empty positions
+  const positions = Array.from({ length: bracketSize }, (_, i) => ({ position: i, player: null }));
+  const unassigned = [...players];
+
+  // 1. Assign seeded players to template slots
+  const remainingAfterSeeds = [];
+  unassigned.forEach((player) => {
+    const seedNum = player.seed;
+    if (seedNum && seedNum >= 1 && seedNum <= bracketSize) {
+      const targetSlot = template.findIndex((s) => s === seedNum);
+      if (targetSlot >= 0 && positions[targetSlot].player === null) {
+        positions[targetSlot] = { position: targetSlot, player };
+        return;
+      }
+    }
+    remainingAfterSeeds.push(player);
+  });
+
+  // 2. Assign remaining players
+  let remIdx = 0;
+  for (let i = 0; i < positions.length && remIdx < remainingAfterSeeds.length; i++) {
+    if (positions[i].player === null) {
+      positions[i] = { position: i, player: remainingAfterSeeds[remIdx++] };
+    }
+  }
+
+  return { positions, template, bracketSize };
+}
+
+const manualResult8 = testManualAutoFill(8, 4);
+assert(manualResult8.positions[0].player.seed === 1, "Manual AutoFill 8-draw: Slot 0 has Seed 1");
+assert(manualResult8.positions[7].player.seed === 2, "Manual AutoFill 8-draw: Slot 7 has Seed 2 (NOT Slot 1)");
+assert(manualResult8.positions[2].player.seed === 4, "Manual AutoFill 8-draw: Slot 2 has Seed 4");
+assert(manualResult8.positions[4].player.seed === 3, "Manual AutoFill 8-draw: Slot 4 has Seed 3");
+
+const manualResult16 = testManualAutoFill(16, 8);
+assert(manualResult16.positions[0].player.seed === 1, "Manual AutoFill 16-draw: Slot 0 has Seed 1");
+assert(manualResult16.positions[15].player.seed === 2, "Manual AutoFill 16-draw: Slot 15 has Seed 2 (NOT Slot 1)");
 console.log("");
 
 // Summary

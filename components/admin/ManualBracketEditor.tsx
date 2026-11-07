@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { useI18n } from "@/lib/i18n/context";
 import { Player, Event, BracketEditHistory } from "@/types/database";
+import { buildSeedTemplate } from "@/lib/utils/seedTemplate";
 
 interface ManualBracketEditorProps {
   eventId: string;
@@ -18,6 +20,7 @@ interface BracketPosition {
 }
 
 export default function ManualBracketEditor({ eventId, players, defaultDivisionId }: ManualBracketEditorProps) {
+  const router = useRouter();
   const supabase = createClient();
   const { t } = useI18n();
   const divisionPayload = defaultDivisionId ? { division_id: defaultDivisionId } : {};
@@ -49,6 +52,10 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
   const numByes = useMemo(() => {
     return bracketSize - players.length;
   }, [bracketSize, players.length]);
+
+  const seedTemplate = useMemo(() => {
+    return buildSeedTemplate(bracketSize);
+  }, [bracketSize]);
 
   // Initialize bracket positions
   const [bracketPositions, setBracketPositions] = useState<BracketPosition[]>(() => {
@@ -268,33 +275,54 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
     );
   };
 
-  // Auto-fill remaining positions with unassigned players
+  // Auto-fill positions using outer-to-inner mirrored seed template:
+  // 1. Unassigned seeded players are placed into their designated template slot (e.g. Seed 1 -> Slot 0, Seed 2 -> Slot N - 1)
+  // 2. Remaining players (unseeded or displaced) fill remaining empty slots
   const handleAutoFill = () => {
     if (isLocked) {
       toast.error(t('admin.manualBracket.locked'));
       return;
     }
-    const remaining = [...unassignedPlayers];
-    if (remaining.length === 0) {
+    const unassigned = [...unassignedPlayers];
+    if (unassigned.length === 0) {
       toast.success(t('admin.manualBracket.allAssigned'));
       return;
     }
 
     setBracketPositions((prev) => {
       const newPositions = [...prev];
-      let remainingIndex = 0;
-      for (let i = 0; i < newPositions.length && remainingIndex < remaining.length; i++) {
+
+      // 1. Assign unassigned seeded players to their corresponding seedTemplate slot
+      const remainingAfterSeeds: Player[] = [];
+      unassigned.forEach((player) => {
+        const seedNum = player.seed;
+        if (seedNum && seedNum >= 1 && seedNum <= bracketSize) {
+          const targetSlot = seedTemplate.findIndex((s) => s === seedNum);
+          if (targetSlot >= 0 && newPositions[targetSlot].player === null) {
+            newPositions[targetSlot] = {
+              position: targetSlot,
+              player,
+            };
+            return;
+          }
+        }
+        remainingAfterSeeds.push(player);
+      });
+
+      // 2. Assign remaining players into empty slots
+      let remIdx = 0;
+      for (let i = 0; i < newPositions.length && remIdx < remainingAfterSeeds.length; i++) {
         if (newPositions[i].player === null) {
           newPositions[i] = {
-            ...newPositions[i],
-            player: remaining[remainingIndex++],
+            position: i,
+            player: remainingAfterSeeds[remIdx++],
           };
         }
       }
       return newPositions;
     });
 
-    toast.success(t('admin.manualBracket.autoAssignedCount', { n: Math.min(remaining.length, bracketSize - players.length + remaining.length) }));
+    toast.success(t('admin.manualBracket.autoAssignedCount', { n: unassigned.length }));
   };
 
   // Handle unlock
@@ -472,6 +500,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
           .eq("id", eventId);
 
         toast.success("已透過手動編輯儲存清空籤表");
+        router.refresh();
         setTimeout(() => {
           if (typeof window !== "undefined") {
             window.location.reload();
@@ -659,6 +688,7 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
       toast.success(t('admin.manualBracket.saveSuccessWithCount', { n: matches.length }) + (hasThirdPlaceMatch ? ` (${t('admin.manualBracket.thirdPlace')})` : ''));
 
       // Refresh page after a short delay
+      router.refresh();
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -1018,6 +1048,11 @@ export default function ManualBracketEditor({ eventId, players, defaultDivisionI
                         <span className="text-xs text-gray-500 font-mono">
                           位置 #{index + 1}
                         </span>
+                        {seedTemplate[index] && (
+                          <span className="text-[10px] text-gray-500 font-mono bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                            Seed {seedTemplate[index]}
+                          </span>
+                        )}
                         {isEven && (
                           <span className="text-xs text-gray-400">
                             比賽 #{matchNumber}

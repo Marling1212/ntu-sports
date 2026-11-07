@@ -215,7 +215,6 @@ export async function getSportMatches(
       .from("matches")
       .select(selectClause)
       .eq("event_id", eventId)
-      .order("scheduled_time", { ascending: true, nullsFirst: false })
       .order("round", { ascending: true })
       .order("match_number", { ascending: true });
     return matches || [];
@@ -228,7 +227,6 @@ export async function getSportMatches(
       .select(selectClause)
       .eq("event_id", eventId)
       .in("division_id", divisionIds)
-      .order("scheduled_time", { ascending: true, nullsFirst: false })
       .order("round", { ascending: true })
       .order("match_number", { ascending: true }),
     supabase
@@ -236,14 +234,15 @@ export async function getSportMatches(
       .select(selectClause)
       .eq("event_id", eventId)
       .is("division_id", null)
-      .order("scheduled_time", { ascending: true, nullsFirst: false })
       .order("round", { ascending: true })
       .order("match_number", { ascending: true }),
   ]);
 
   const map = new Map<string, any>();
   [...(inDivision || []), ...(nullDivision || [])].forEach((m) => map.set(m.id, m));
-  return Array.from(map.values());
+  return Array.from(map.values()).sort(
+    (a, b) => ((a.round ?? 0) - (b.round ?? 0)) || ((a.match_number ?? 0) - (b.match_number ?? 0))
+  );
 }
 
 /** For overview "latest" only: most recent by created_at. Pinned does not affect this. */

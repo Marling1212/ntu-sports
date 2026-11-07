@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Player } from "@/types/database";
 import { useI18n } from "@/lib/i18n/context";
+import { buildSeedTemplate } from "@/lib/utils/seedTemplate";
 
 export type SeedingMode = "strict" | "grand_slam";
 
@@ -15,6 +17,7 @@ interface GenerateBracketProps {
 }
 
 export default function GenerateBracket({ eventId, players, defaultDivisionId }: GenerateBracketProps) {
+  const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [hasThirdPlaceMatch, setHasThirdPlaceMatch] = useState(true); // 預設舉辦季軍賽
@@ -77,36 +80,6 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
       const seeded = players.filter(p => p.seed).sort((a, b) => (a.seed || 0) - (b.seed || 0));
       const positions: (Player | null)[] = new Array(bracketSize).fill(null);
       const placedSeedIds = new Set<string>();
-
-      // Build seed-number template using standard outer-to-inner mirroring:
-      // - Size 2: [1, 2]
-      // - Size 4: [1, 4, 3, 2]  (Seed 1 at slot 0, Seed 2 at slot 3)
-      // - Size 8: [1, 8, 4, 5, 3, 6, 7, 2] (Seed 1 at slot 0, Seed 2 at slot 7)
-      // - Size 16: [1, 16, 8, 9, 4, 13, 5, 12, 3, 14, 6, 11, 7, 10, 15, 2] (Seed 1 at 0, Seed 2 at 15)
-      const buildSeedTemplate = (size: number): number[] => {
-        if (size <= 1) return [1];
-        if (size === 2) return [1, 2];
-        const rounds = Math.log2(size);
-        let bracket = [1, 2];
-        for (let r = 2; r <= rounds; r++) {
-          const curSize = Math.pow(2, r);
-          const next: number[] = [];
-          for (let i = 0; i < bracket.length; i++) {
-            const s = bracket[i];
-            const opp = curSize + 1 - s;
-            if (s === 2 && i === bracket.length - 1) {
-              // Outer extreme: complement first, Seed 2 anchored at the last slot (boundary - 1)
-              next.push(opp);
-              next.push(s);
-            } else {
-              next.push(s);
-              next.push(opp);
-            }
-          }
-          bracket = next;
-        }
-        return bracket;
-      };
 
       const seedTemplate = buildSeedTemplate(bracketSize);
 
@@ -799,6 +772,7 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
         : matches.length;
       
       toast.success(`成功生成 ${totalMatchesCreated} 場比賽！${hasThirdPlaceMatch ? '（含季軍賽）' : ''}（${numRounds} 輪）前往 Matches 頁面查看。`);
+      router.refresh();
       setTimeout(() => {
         if (typeof window !== "undefined") {
           window.location.reload();
@@ -812,11 +786,14 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
   };
 
   const hasExistingMatches = async () => {
-    const { count } = await supabase
+    let checkQuery = supabase
       .from("matches")
       .select("*", { count: 'exact', head: true })
       .eq("event_id", eventId);
-    
+    if (defaultDivisionId) {
+      checkQuery = checkQuery.eq("division_id", defaultDivisionId);
+    }
+    const { count } = await checkQuery;
     return (count || 0) > 0;
   };
 
@@ -824,17 +801,25 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
     const hasMatches = await hasExistingMatches();
     
     if (hasMatches) {
-      const confirm = window.confirm("已有比賽存在。是否要刪除現有比賽並重新生成？");
+      const confirm = window.confirm(t('admin.generateBracket.confirmDeleteMatches') || "已有比賽存在。是否要刪除現有比賽並重新生成？");
       if (!confirm) return;
       
       // Get current user for history tracking
       const { data: { user } } = await supabase.auth.getUser();
       
       // Delete existing matches
-      await supabase
+      let deleteQuery = supabase
         .from("matches")
         .delete()
         .eq("event_id", eventId);
+      if (defaultDivisionId) {
+        deleteQuery = deleteQuery.eq("division_id", defaultDivisionId);
+      }
+      const { error: deleteError } = await deleteQuery;
+      if (deleteError) {
+        toast.error(`刪除舊比賽失敗: ${deleteError.message}`);
+        return;
+      }
       
       // Record deletion in history
       if (user) {
