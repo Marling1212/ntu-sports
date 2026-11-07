@@ -78,21 +78,34 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
       const positions: (Player | null)[] = new Array(bracketSize).fill(null);
       const placedSeedIds = new Set<string>();
 
-      // Build seed-number template for all positions in this draw size.
-      // Example for 8: [1,8,4,5,2,7,3,6]
+      // Build seed-number template using standard outer-to-inner mirroring:
+      // - Size 2: [1, 2]
+      // - Size 4: [1, 4, 3, 2]  (Seed 1 at slot 0, Seed 2 at slot 3)
+      // - Size 8: [1, 8, 4, 5, 3, 6, 7, 2] (Seed 1 at slot 0, Seed 2 at slot 7)
+      // - Size 16: [1, 16, 8, 9, 4, 13, 5, 12, 3, 14, 6, 11, 7, 10, 15, 2] (Seed 1 at 0, Seed 2 at 15)
       const buildSeedTemplate = (size: number): number[] => {
         if (size <= 1) return [1];
-        let order = [1, 2];
-        while (order.length < size) {
-          const doubled = order.length * 2;
-          const mirrored = order.map((v) => doubled + 1 - v);
+        if (size === 2) return [1, 2];
+        const rounds = Math.log2(size);
+        let bracket = [1, 2];
+        for (let r = 2; r <= rounds; r++) {
+          const curSize = Math.pow(2, r);
           const next: number[] = [];
-          for (let i = 0; i < order.length; i++) {
-            next.push(order[i], mirrored[i]);
+          for (let i = 0; i < bracket.length; i++) {
+            const s = bracket[i];
+            const opp = curSize + 1 - s;
+            if (s === 2 && i === bracket.length - 1) {
+              // Outer extreme: complement first, Seed 2 anchored at the last slot (boundary - 1)
+              next.push(opp);
+              next.push(s);
+            } else {
+              next.push(s);
+              next.push(opp);
+            }
           }
-          order = next;
+          bracket = next;
         }
-        return order;
+        return bracket;
       };
 
       const seedTemplate = buildSeedTemplate(bracketSize);
@@ -111,7 +124,7 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
         });
       } else {
         // Controlled Grand Slam Draw with QF constraints:
-        // 1. Seeds 1 & 2: Locked at opposite bracket extremes (Top vs Bottom half)
+        // 1. Seeds 1 & 2: Locked at opposite bracket extremes (Slot 0 in Top Half vs Slot bracketSize - 1 in Bottom Half)
         // 2. Seeds 3 & 4: Randomly drawn into opposite halves
         // 3. Seeds 5 & 6: Constrained to quarters with Seed 3 & 4 (Projected QF matchups: 3v6, 4v5, 3v5, or 4v6)
         // 4. Seeds 7 & 8: Constrained to quarters with Seed 1 & 2 (Projected QF matchups: 1v8, 2v7, 1v7, or 2v8)
@@ -133,12 +146,12 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
 
         if (bracketSize === 4) {
           // Seeds 1 and 2
-          placeSeedInSlot(1, seedTemplate.indexOf(1));
-          placeSeedInSlot(2, seedTemplate.indexOf(2));
+          placeSeedInSlot(1, seedTemplate.indexOf(1)); // Slot 0
+          placeSeedInSlot(2, seedTemplate.indexOf(2)); // Slot 3
 
-          // Seeds 3 and 4 randomly placed in opposite halves (Slot 1 and Slot 3)
-          const s4Slot = seedTemplate.indexOf(4);
-          const s3Slot = seedTemplate.indexOf(3);
+          // Seeds 3 and 4 randomly placed in opposite halves (Slot 1 and Slot 2)
+          const s4Slot = seedTemplate.indexOf(4); // Slot 1
+          const s3Slot = seedTemplate.indexOf(3); // Slot 2
           if (Math.random() < 0.5) {
             placeSeedInSlot(3, s3Slot);
             placeSeedInSlot(4, s4Slot);
@@ -148,30 +161,30 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
           }
         } else {
           // bracketSize >= 8
-          // 1. Seeds 1 and 2: Locked at opposite bracket extremes (Q1 primary & Q3 primary)
+          // 1. Seeds 1 and 2: Locked at opposite bracket extremes (Q1 primary at 0 & Q4 primary at bracketSize - 1)
           const slotQ1_prim = seedTemplate.indexOf(1);
-          const slotQ3_prim = seedTemplate.indexOf(2);
+          const slotQ4_prim = seedTemplate.indexOf(2);
           placeSeedInSlot(1, slotQ1_prim);
-          placeSeedInSlot(2, slotQ3_prim);
+          placeSeedInSlot(2, slotQ4_prim);
 
-          // 2. Seeds 3 and 4: Randomly drawn into opposite halves (Q2 primary vs Q4 primary)
+          // 2. Seeds 3 and 4: Randomly drawn into opposite halves (Q2 primary vs Q3 primary)
           const slotQ2_prim = seedTemplate.indexOf(4);
-          const slotQ4_prim = seedTemplate.indexOf(3);
+          const slotQ3_prim = seedTemplate.indexOf(3);
           const seed3ToQ2 = Math.random() < 0.5;
 
-          const slotForSeed3 = seed3ToQ2 ? slotQ2_prim : slotQ4_prim;
-          const slotForSeed4 = seed3ToQ2 ? slotQ4_prim : slotQ2_prim;
-          const quarterOfSeed3 = seed3ToQ2 ? 2 : 4;
-          const quarterOfSeed4 = seed3ToQ2 ? 4 : 2;
+          const slotForSeed3 = seed3ToQ2 ? slotQ2_prim : slotQ3_prim;
+          const slotForSeed4 = seed3ToQ2 ? slotQ3_prim : slotQ2_prim;
+          const quarterOfSeed3 = seed3ToQ2 ? 2 : 3;
+          const quarterOfSeed4 = seed3ToQ2 ? 3 : 2;
 
           placeSeedInSlot(3, slotForSeed3);
           placeSeedInSlot(4, slotForSeed4);
 
-          // 3. Seeds 5 and 6: Constrained to quarters containing Seed 3 and Seed 4
+          // 3. Seeds 5 and 6: Constrained to quarters containing Seed 3 and Seed 4 (Q2 and Q3)
           const slotQ2_sec = seedTemplate.indexOf(5);
-          const slotQ4_sec = seedTemplate.indexOf(6);
-          const slotSecForSeed3Quarter = quarterOfSeed3 === 2 ? slotQ2_sec : slotQ4_sec;
-          const slotSecForSeed4Quarter = quarterOfSeed4 === 2 ? slotQ2_sec : slotQ4_sec;
+          const slotQ3_sec = seedTemplate.indexOf(6);
+          const slotSecForSeed3Quarter = quarterOfSeed3 === 2 ? slotQ2_sec : slotQ3_sec;
+          const slotSecForSeed4Quarter = quarterOfSeed4 === 2 ? slotQ2_sec : slotQ3_sec;
 
           // 50% chance: Seed 5 meets 4, Seed 6 meets 3 (4v5, 3v6)
           // 50% chance: Seed 5 meets 3, Seed 6 meets 4 (3v5, 4v6)
@@ -183,18 +196,18 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
             placeSeedInSlot(6, slotSecForSeed4Quarter);
           }
 
-          // 4. Seeds 7 and 8: Constrained to quarters containing Seed 1 and Seed 2
+          // 4. Seeds 7 and 8: Constrained to quarters containing Seed 1 and Seed 2 (Q1 and Q4)
           const slotQ1_sec = seedTemplate.indexOf(8);
-          const slotQ3_sec = seedTemplate.indexOf(7);
+          const slotQ4_sec = seedTemplate.indexOf(7);
 
           // 50% chance: Seed 8 meets 1, Seed 7 meets 2 (1v8, 2v7)
           // 50% chance: Seed 7 meets 1, Seed 8 meets 2 (1v7, 2v8)
           if (Math.random() < 0.5) {
             placeSeedInSlot(8, slotQ1_sec);
-            placeSeedInSlot(7, slotQ3_sec);
+            placeSeedInSlot(7, slotQ4_sec);
           } else {
             placeSeedInSlot(7, slotQ1_sec);
-            placeSeedInSlot(8, slotQ3_sec);
+            placeSeedInSlot(8, slotQ4_sec);
           }
 
           // 5. Any remaining seeds > 8 (if present)
