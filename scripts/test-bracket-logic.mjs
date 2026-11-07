@@ -199,30 +199,33 @@ assert(result2.byeVsByeCount === 0, `No BYE vs BYE with 2 players`);
 assert(result2.filledCount === 2, `2 positions filled`);
 console.log("");
 
-// Test 5: Outer-to-inner mirrored buildSeedTemplate
+// Test 5: Universal recursive outer-to-inner mirrored buildSeedTemplate
 console.log("Test 5: buildSeedTemplate across sizes 4, 8, 16, 32, 64");
 function buildSeedTemplate(size) {
   if (size <= 1) return [1];
   if (size === 2) return [1, 2];
+
   const rounds = Math.log2(size);
-  let bracket = [1, 2];
+  if (!Number.isInteger(rounds)) {
+    throw new Error(`Bracket size must be a power of 2, received: ${size}`);
+  }
+
+  let template = [1, 2];
   for (let r = 2; r <= rounds; r++) {
-    const curSize = Math.pow(2, r);
-    const next = [];
-    for (let i = 0; i < bracket.length; i++) {
-      const s = bracket[i];
-      const opp = curSize + 1 - s;
-      if (s === 2 && i === bracket.length - 1) {
-        next.push(opp);
-        next.push(s);
+    const currentSize = 2 ** r;
+    const nextTemplate = [];
+    for (let i = 0; i < template.length; i++) {
+      const seed = template[i];
+      const pairedSeed = currentSize + 1 - seed;
+      if (i % 2 === 0) {
+        nextTemplate.push(seed, pairedSeed);
       } else {
-        next.push(s);
-        next.push(opp);
+        nextTemplate.push(pairedSeed, seed);
       }
     }
-    bracket = next;
+    template = nextTemplate;
   }
-  return bracket;
+  return template;
 }
 
 const t4 = buildSeedTemplate(4);
@@ -230,24 +233,30 @@ assert(JSON.stringify(t4) === JSON.stringify([1, 4, 3, 2]), "Size 4 is [1, 4, 3,
 assert(t4[0] === 1 && t4[3] === 2, "Size 4: Seed 1 at slot 0, Seed 2 at slot 3");
 
 const t8 = buildSeedTemplate(8);
-assert(JSON.stringify(t8) === JSON.stringify([1, 8, 4, 5, 3, 6, 7, 2]), "Size 8 is [1, 8, 4, 5, 3, 6, 7, 2]");
+assert(JSON.stringify(t8) === JSON.stringify([1, 8, 5, 4, 3, 6, 7, 2]), "Size 8 is [1, 8, 5, 4, 3, 6, 7, 2]");
 assert(t8[0] === 1 && t8[7] === 2, "Size 8: Seed 1 at slot 0, Seed 2 at slot 7");
+assert(t8[3] === 4, "Size 8: Seed 4 anchors the bottom of the first half (slot 3)");
+assert(t8[4] === 3, "Size 8: Seed 3 anchors the top of the second half (slot 4)");
 
 const t16 = buildSeedTemplate(16);
 assert(
-  JSON.stringify(t16) === JSON.stringify([1, 16, 8, 9, 4, 13, 5, 12, 3, 14, 6, 11, 7, 10, 15, 2]),
-  "Size 16 matches outer-to-inner mirrored complementary template"
+  JSON.stringify(t16) === JSON.stringify([1, 16, 9, 8, 5, 12, 13, 4, 3, 14, 11, 6, 7, 10, 15, 2]),
+  "Size 16 matches recursive boundary-mirrored template"
 );
 assert(t16[0] === 1 && t16[15] === 2, "Size 16: Seed 1 at slot 0, Seed 2 at slot 15");
+assert(t16[7] === 4, "Size 16: Seed 4 anchors the bottom of the first half (slot 7)");
+assert(t16[8] === 3, "Size 16: Seed 3 anchors the top of the second half (slot 8)");
 
 [4, 8, 16, 32, 64].forEach((sz) => {
   const t = buildSeedTemplate(sz);
   assert(t[0] === 1, `Size ${sz}: Seed 1 is at index 0`);
   assert(t[sz - 1] === 2, `Size ${sz}: Seed 2 is at index ${sz - 1} (outer bottom extreme)`);
+  assert(t[sz / 2 - 1] === 4, `Size ${sz}: Seed 4 is at index ${sz / 2 - 1} (bottom extreme of first half)`);
+  assert(t[sz / 2] === 3, `Size ${sz}: Seed 3 is at index ${sz / 2} (top extreme of second half)`);
 });
 console.log("");
 
-// Test 6: Round 1 match mapping and visual position of Seed 2
+// Test 6: Round 1 match mapping and visual position of Seed 2 and Seed 4
 console.log("Test 6: Visual Rendering and Round 1 Match Mapping");
 // 8-draw:
 const r1Matches8 = [];
@@ -259,11 +268,10 @@ for (let i = 0; i < 4; i++) {
   });
 }
 assert(r1Matches8[0].player1 === 1, "8-draw Match 1 (Top of Top Half): player1 is Seed 1");
-assert(r1Matches8[3].player2 === 2, "8-draw Match 4 (Bottom of Bottom Half): player2 is Seed 2 (at very bottom line)");
 assert(r1Matches8[0].player2 === 8, "8-draw Match 1 player2 is Seed 8");
-assert(r1Matches8[1].player1 === 4 && r1Matches8[1].player2 === 5, "8-draw Match 2 is Seeds 4 vs 5");
-assert(r1Matches8[2].player1 === 3 && r1Matches8[2].player2 === 6, "8-draw Match 3 is Seeds 3 vs 6");
-assert(r1Matches8[3].player1 === 7, "8-draw Match 4 player1 is Seed 7");
+assert(r1Matches8[1].player1 === 5 && r1Matches8[1].player2 === 4, "8-draw Match 2 is Seeds 5 vs 4 (Seed 4 at bottom line of Match 2)");
+assert(r1Matches8[2].player1 === 3 && r1Matches8[2].player2 === 6, "8-draw Match 3 is Seeds 3 vs 6 (Seed 3 at top line of Match 3)");
+assert(r1Matches8[3].player1 === 7 && r1Matches8[3].player2 === 2, "8-draw Match 4 is Seeds 7 vs 2 (Seed 2 at bottom line of Match 4)");
 
 // 16-draw:
 const r1Matches16 = [];
@@ -275,6 +283,8 @@ for (let i = 0; i < 8; i++) {
   });
 }
 assert(r1Matches16[0].player1 === 1, "16-draw Match 1 (Top): player1 is Seed 1");
+assert(r1Matches16[3].player2 === 4, "16-draw Match 4 (Bottom of Top Half): player2 is Seed 4");
+assert(r1Matches16[4].player1 === 3, "16-draw Match 5 (Top of Bottom Half): player1 is Seed 3");
 assert(r1Matches16[7].player2 === 2, "16-draw Match 8 (Bottom): player2 is Seed 2 (at very bottom line)");
 console.log("");
 
@@ -316,13 +326,15 @@ function testManualAutoFill(playerCount, numSeeds) {
 
 const manualResult8 = testManualAutoFill(8, 4);
 assert(manualResult8.positions[0].player.seed === 1, "Manual AutoFill 8-draw: Slot 0 has Seed 1");
-assert(manualResult8.positions[7].player.seed === 2, "Manual AutoFill 8-draw: Slot 7 has Seed 2 (NOT Slot 1)");
-assert(manualResult8.positions[2].player.seed === 4, "Manual AutoFill 8-draw: Slot 2 has Seed 4");
-assert(manualResult8.positions[4].player.seed === 3, "Manual AutoFill 8-draw: Slot 4 has Seed 3");
+assert(manualResult8.positions[3].player.seed === 4, "Manual AutoFill 8-draw: Slot 3 has Seed 4 (bottom of top half)");
+assert(manualResult8.positions[4].player.seed === 3, "Manual AutoFill 8-draw: Slot 4 has Seed 3 (top of bottom half)");
+assert(manualResult8.positions[7].player.seed === 2, "Manual AutoFill 8-draw: Slot 7 has Seed 2 (bottom of bottom half)");
 
 const manualResult16 = testManualAutoFill(16, 8);
 assert(manualResult16.positions[0].player.seed === 1, "Manual AutoFill 16-draw: Slot 0 has Seed 1");
-assert(manualResult16.positions[15].player.seed === 2, "Manual AutoFill 16-draw: Slot 15 has Seed 2 (NOT Slot 1)");
+assert(manualResult16.positions[7].player.seed === 4, "Manual AutoFill 16-draw: Slot 7 has Seed 4");
+assert(manualResult16.positions[8].player.seed === 3, "Manual AutoFill 16-draw: Slot 8 has Seed 3");
+assert(manualResult16.positions[15].player.seed === 2, "Manual AutoFill 16-draw: Slot 15 has Seed 2");
 console.log("");
 
 // Summary
