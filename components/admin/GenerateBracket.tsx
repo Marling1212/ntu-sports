@@ -903,6 +903,31 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
             </p>
           </button>
         </div>
+
+        {/* Dynamic Mode Explanation Callout */}
+        {seedingMode === "grand_slam" ? (
+          <div className="mt-3.5 p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-lg text-xs space-y-1.5">
+            <p className="font-semibold text-emerald-950 flex items-center gap-1.5 text-sm">
+              <span>{t('admin.generateBracket.grandSlamSummaryTitle')}</span>
+            </p>
+            <ul className="space-y-1 pl-4 list-disc text-emerald-900 leading-relaxed">
+              <li>{t('admin.generateBracket.grandSlamSummary1')}</li>
+              <li>{t('admin.generateBracket.grandSlamSummary2')}</li>
+              <li>{t('admin.generateBracket.grandSlamSummary3')}</li>
+              <li>{t('admin.generateBracket.grandSlamSummary4')}</li>
+            </ul>
+          </div>
+        ) : (
+          <div className="mt-3.5 p-3.5 bg-white border border-gray-200 rounded-lg text-xs space-y-1.5">
+            <p className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
+              <span>{t('admin.generateBracket.strictSummaryTitle')}</span>
+            </p>
+            <ul className="space-y-1 pl-4 list-disc text-gray-700 leading-relaxed">
+              <li>{t('admin.generateBracket.strictSummary1')}</li>
+              <li>{t('admin.generateBracket.strictSummary2')}</li>
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
