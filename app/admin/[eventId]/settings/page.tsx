@@ -85,6 +85,7 @@ export default async function SettingsPage({
             venue: event?.venue || "",
             description: event?.description || "",
             tournamentType: event?.tournament_type || "single_elimination",
+            bracketSplitMode: (event as any)?.bracket_split_mode || "4_sections",
             refereeLinkTtlDays: clampRefereeLinkTtlDays(
               (event as { referee_link_ttl_days?: number } | null | undefined)?.referee_link_ttl_days
             ),

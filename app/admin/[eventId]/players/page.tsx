@@ -207,6 +207,7 @@ export default async function PlayersPage({
           initialBlackoutLimit={event?.blackout_limit ?? null}
           initialCaptainBlackoutsOpen={(event as { captain_blackouts_open?: boolean } | null)?.captain_blackouts_open ?? false}
           initialPublicCheckInEnabled={(event as { public_check_in_enabled?: boolean } | null)?.public_check_in_enabled ?? false}
+          initialBracketSplitMode={((selectedDivision as any)?.bracket_split_mode ?? (event as any)?.bracket_split_mode ?? '4_sections') as '4_sections' | '2_sections'}
           initialSlotTemplates={slotTemplates || []}
           initialBlackoutTemplates={blackoutTemplates || []}
           divisions={divisions}

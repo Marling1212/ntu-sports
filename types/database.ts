@@ -15,6 +15,7 @@ export interface Event {
   bracket_generated_at?: string | null;
   bracket_locked?: boolean;
   public_check_in_enabled?: boolean;
+  bracket_split_mode?: '4_sections' | '2_sections';
   tiebreaker_config?: TiebreakerConfig | null;
   created_at: string;
   updated_at: string;
@@ -62,6 +63,7 @@ export interface EventDivision {
   tournament_type?: 'single_elimination' | 'season_play';
   registration_type?: 'player' | 'team';
   public_check_in_enabled?: boolean;
+  bracket_split_mode?: '4_sections' | '2_sections';
   created_at: string;
   updated_at: string;
 }

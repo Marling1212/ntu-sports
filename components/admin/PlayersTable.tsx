@@ -28,6 +28,7 @@ interface PlayersTableProps {
   initialBlackoutLimit?: number | null;
   initialCaptainBlackoutsOpen?: boolean;
   initialPublicCheckInEnabled?: boolean;
+  initialBracketSplitMode?: '4_sections' | '2_sections';
   initialSlotTemplates?: EventSlotTemplate[];
   initialBlackoutTemplates?: TeamBlackoutTemplate[];
   divisions?: EventDivision[];
@@ -43,6 +44,7 @@ export default function PlayersTable({
   initialBlackoutLimit = null,
   initialCaptainBlackoutsOpen = false,
   initialPublicCheckInEnabled = false,
+  initialBracketSplitMode = '4_sections',
   initialSlotTemplates = [],
   initialBlackoutTemplates = [],
   divisions = [],
@@ -72,6 +74,8 @@ export default function PlayersTable({
   const [captainBlackoutsOpen, setCaptainBlackoutsOpen] = useState<boolean>(initialCaptainBlackoutsOpen);
   const [publicCheckInEnabled, setPublicCheckInEnabled] = useState<boolean>(initialPublicCheckInEnabled);
   const [savingPublicCheckIn, setSavingPublicCheckIn] = useState<boolean>(false);
+  const [bracketSplitMode, setBracketSplitMode] = useState<'4_sections' | '2_sections'>(initialBracketSplitMode || '4_sections');
+  const [savingBracketSplitMode, setSavingBracketSplitMode] = useState<boolean>(false);
   const [blackoutTemplates, setBlackoutTemplates] = useState<TeamBlackoutTemplate[]>(initialBlackoutTemplates);
   const [expandedBlackout, setExpandedBlackout] = useState<string | null>(null);
   const [savingBlackoutLimit, setSavingBlackoutLimit] = useState(false);
@@ -211,6 +215,33 @@ export default function PlayersTable({
       toast.error(e?.message || t("admin.registration.publicCheckInSaveError"));
     } finally {
       setSavingPublicCheckIn(false);
+    }
+  };
+
+  const handleBracketSplitModeChange = async (mode: '4_sections' | '2_sections') => {
+    setSavingBracketSplitMode(true);
+    const previousMode = bracketSplitMode;
+    setBracketSplitMode(mode);
+    try {
+      const { error: eventError } = await supabase
+        .from("events")
+        .update({ bracket_split_mode: mode })
+        .eq("id", eventId);
+      if (eventError) throw eventError;
+
+      if (defaultDivisionId) {
+        const { error: divError } = await supabase
+          .from("event_divisions")
+          .update({ bracket_split_mode: mode })
+          .eq("id", defaultDivisionId);
+        if (divError) throw divError;
+      }
+      toast.success(t("admin.registration.bracketSplitModeToast"));
+    } catch (e: any) {
+      setBracketSplitMode(previousMode);
+      toast.error(e?.message || t("admin.registration.bracketSplitModeSaveError"));
+    } finally {
+      setSavingBracketSplitMode(false);
     }
   };
 
@@ -985,6 +1016,48 @@ export default function PlayersTable({
             </p>
           </div>
         </div>
+
+        {/* 64 籤單淘汰公開分區模式 (Bracket Split Mode for 64-draw) */}
+        {tournamentType === 'single_elimination' && (
+          <div className="px-6 py-4 bg-sky-50/70 border-b border-sky-100">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-semibold text-gray-900">
+                  {t('admin.registration.bracketSplitModeLabel')}:
+                </span>
+                <div className="inline-flex rounded-lg p-0.5 bg-white border border-gray-300 shadow-xs">
+                  <button
+                    type="button"
+                    disabled={savingBracketSplitMode}
+                    onClick={() => handleBracketSplitModeChange('4_sections')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                      bracketSplitMode === '4_sections'
+                        ? 'bg-ntu-green text-white shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {t('admin.registration.bracketSplitMode4SectionsShort')}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingBracketSplitMode}
+                    onClick={() => handleBracketSplitModeChange('2_sections')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                      bracketSplitMode === '2_sections'
+                        ? 'bg-ntu-green text-white shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {t('admin.registration.bracketSplitMode2SectionsShort')}
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 leading-relaxed max-w-4xl">
+                {t('admin.registration.bracketSplitModeDescription')}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center mb-4">

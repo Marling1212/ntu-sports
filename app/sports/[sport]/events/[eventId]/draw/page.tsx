@@ -103,6 +103,9 @@ export default async function SportEventDrawPage({
   const showCheckInStatus = Boolean(
     (division as any)?.public_check_in_enabled ?? (event as any)?.public_check_in_enabled
   );
+  const bracketSplitMode = (
+    (division as any)?.bracket_split_mode ?? (event as any)?.bracket_split_mode ?? "4_sections"
+  ) as "4_sections" | "2_sections";
 
   const eventDate = event.start_date && event.end_date
     ? `${new Date(event.start_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")} - ${new Date(event.end_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")}`
@@ -177,6 +180,7 @@ export default async function SportEventDrawPage({
             players={players}
             sportName={sportName}
             showCheckInStatus={showCheckInStatus}
+            bracketSplitMode={bracketSplitMode}
           />
         )}
       </div>

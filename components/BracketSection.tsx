@@ -11,6 +11,7 @@ interface BracketSectionProps {
   players: Player[];
   sportName?: string;
   showCheckInStatus?: boolean;
+  bracketSplitMode?: "4_sections" | "2_sections";
 }
 
 export default function BracketSection({
@@ -18,6 +19,7 @@ export default function BracketSection({
   players,
   sportName = "Tennis",
   showCheckInStatus = false,
+  bracketSplitMode = "4_sections",
 }: BracketSectionProps) {
   const { t } = useI18n();
   const [currentSection, setCurrentSection] = useState(1);
@@ -42,22 +44,34 @@ export default function BracketSection({
         { name: t("bracket.finalsStage"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound - round16 }, (_, i) => round16 + i + 1) },
       );
     } else if (bracketSize > 32) {
-      // 64-draw: show 2 halves (1-32 / 33-64) + finals stage
-      // so admins can still see complete half-brackets instead of overly narrow quarters.
-      const half = bracketSize / 2;
-      const round32 = maxRound - 2;
-      out.push(
-        { name: t("bracket.sectionN").replace("{n}", "1").replace("{start}", "1").replace("{end}", String(half)), startPos: 1, endPos: half, rounds: Array.from({ length: round32 }, (_, i) => i + 1) },
-        { name: t("bracket.sectionN").replace("{n}", "2").replace("{start}", String(half + 1)).replace("{end}", String(bracketSize)), startPos: half + 1, endPos: bracketSize, rounds: Array.from({ length: round32 }, (_, i) => i + 1) },
-        { name: t("bracket.finalsStage"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound - round32 }, (_, i) => round32 + i + 1) },
-      );
+      if (bracketSplitMode === "2_sections") {
+        // 64-draw: show 2 halves (1-32 / 33-64) + finals stage (Semifinals + Finals)
+        const half = bracketSize / 2;
+        const round32 = maxRound - 2;
+        out.push(
+          { name: t("bracket.sectionN").replace("{n}", "1").replace("{start}", "1").replace("{end}", String(half)), startPos: 1, endPos: half, rounds: Array.from({ length: round32 }, (_, i) => i + 1) },
+          { name: t("bracket.sectionN").replace("{n}", "2").replace("{start}", String(half + 1)).replace("{end}", String(bracketSize)), startPos: half + 1, endPos: bracketSize, rounds: Array.from({ length: round32 }, (_, i) => i + 1) },
+          { name: t("bracket.finalsStage"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound - round32 }, (_, i) => round32 + i + 1) },
+        );
+      } else {
+        // Default 64-draw: show 4 quarters (1-16 / 17-32 / 33-48 / 49-64) + finals stage (Quarterfinals, Semifinals, Finals)
+        const quarter = bracketSize / 4;
+        const roundQuarter = maxRound - 3;
+        out.push(
+          { name: t("bracket.sectionN").replace("{n}", "1").replace("{start}", "1").replace("{end}", String(quarter)), startPos: 1, endPos: quarter, rounds: Array.from({ length: roundQuarter }, (_, i) => i + 1) },
+          { name: t("bracket.sectionN").replace("{n}", "2").replace("{start}", String(quarter + 1)).replace("{end}", String(quarter * 2)), startPos: quarter + 1, endPos: quarter * 2, rounds: Array.from({ length: roundQuarter }, (_, i) => i + 1) },
+          { name: t("bracket.sectionN").replace("{n}", "3").replace("{start}", String(quarter * 2 + 1)).replace("{end}", String(quarter * 3)), startPos: quarter * 2 + 1, endPos: quarter * 3, rounds: Array.from({ length: roundQuarter }, (_, i) => i + 1) },
+          { name: t("bracket.sectionN").replace("{n}", "4").replace("{start}", String(quarter * 3 + 1)).replace("{end}", String(bracketSize)), startPos: quarter * 3 + 1, endPos: quarter * 4, rounds: Array.from({ length: roundQuarter }, (_, i) => i + 1) },
+          { name: t("bracket.finalsStage"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound - roundQuarter }, (_, i) => roundQuarter + i + 1) },
+        );
+      }
     } else {
       out.push(
         { name: t("bracket.fullBracket"), startPos: 1, endPos: bracketSize, rounds: Array.from({ length: maxRound }, (_, i) => i + 1) },
       );
     }
     return out;
-  }, [bracketSize, maxRound, t]);
+  }, [bracketSize, maxRound, t, bracketSplitMode]);
 
   // Get matches for current section
   const currentSectionConfig = sections[currentSection - 1];
@@ -199,7 +213,7 @@ export default function BracketSection({
             <p className="text-xs sm:text-sm text-blue-800">
               {t("bracket.viewingSection")}<strong>{currentSectionConfig.name}</strong>
               {currentSection === sections.length
-                ? " - " + t("bracket.sectionIncludesFinals").replace("{thirdPlace}", has3rdPlaceMatch ? t("bracket.andThirdPlace") : "")
+                ? " - " + (currentSectionConfig.rounds.length >= 3 ? t("bracket.sectionIncludesFinals") : t("bracket.sectionIncludesFinalsSemis")).replace("{thirdPlace}", has3rdPlaceMatch ? t("bracket.andThirdPlace") : "")
                 : " - " + t("bracket.sectionMatchesCount").replace("{n}", String(sectionMatches.length))
               }
             </p>

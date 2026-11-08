@@ -38,6 +38,7 @@ interface EventData {
   tournamentType: string;
   /** Default referee portal link TTL (days), 1–365 */
   refereeLinkTtlDays: number;
+  bracketSplitMode?: '4_sections' | '2_sections';
 }
 
 interface Game {
@@ -579,6 +580,7 @@ export default function SettingsContent({
           registration_type: registrationType,
           is_visible: isVisible,
           referee_link_ttl_days: clampRefereeLinkTtlDays(eventData.refereeLinkTtlDays),
+          bracket_split_mode: eventData.bracketSplitMode || '4_sections',
         })
         .eq("id", eventId);
 
@@ -844,6 +846,35 @@ export default function SettingsContent({
                 <option value="season_play">{t('admin.settings.seasonPlay')}</option>
               </select>
             </div>
+
+            {/* 64 籤單淘汰公開分區模式 */}
+            {eventData.tournamentType === "single_elimination" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t("admin.registration.bracketSplitModeLabel")}
+                </label>
+                <select
+                  value={eventData.bracketSplitMode || "4_sections"}
+                  onChange={(e) =>
+                    setEventData({
+                      ...eventData,
+                      bracketSplitMode: e.target.value as "4_sections" | "2_sections",
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                >
+                  <option value="4_sections">
+                    {t("admin.registration.bracketSplitMode4Sections")}
+                  </option>
+                  <option value="2_sections">
+                    {t("admin.registration.bracketSplitMode2Sections")}
+                  </option>
+                </select>
+                <p className="mt-1.5 text-xs text-gray-500 leading-relaxed">
+                  {t("admin.registration.bracketSplitModeDescription")}
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="referee-link-ttl-settings">
