@@ -17,13 +17,16 @@ export const translations = {
     },
     // Homepage
     home: {
-      title: 'NTU Sports',
-      subtitle: '台大運動賽事管理平台 - 即時賽程、戰績、公告一手掌握',
+      statusBadge: '2026 賽事進行中',
+      title: '臺大運動賽事管理平台',
+      subtitle: '掌握全校最新籤表、即時比分與賽程公告。',
       description: '支援多種運動項目，提供完整的賽事資訊與即時更新',
       sports: '運動項目',
       sportsDescription: '點擊下方運動項目查看最新賽事資訊',
       viewDetails: '立即查看',
       viewDraw: '查看籤表、賽程、戰績與最新公告',
+      multiSportEvents: '綜合賽事',
+      multiSportEventsSubtitle: '同一賽事包含多種運動項目',
     },
     // Sports Page
     sports: {
@@ -1079,13 +1082,16 @@ export const translations = {
     },
     // Homepage
     home: {
-      title: 'NTU Sports',
-      subtitle: 'NTU Sports Management Platform - Real-time schedules, results, and announcements',
+      statusBadge: '2026 Tournaments in Progress',
+      title: 'NTU Sports Tournament Platform',
+      subtitle: 'View the latest tournament brackets, live scores, and match schedules.',
       description: 'Supporting multiple sports with complete event information and real-time updates',
       sports: 'Sports',
-      sportsDescription: 'Click on a sport below to view the latest event information',
-      viewDetails: 'View Now',
+      sportsDescription: 'Click on a sport below to view tournament information',
+      viewDetails: 'View Details',
       viewDraw: 'View draws, schedules, results, and latest announcements',
+      multiSportEvents: 'Multi-sport Events',
+      multiSportEventsSubtitle: 'Events featuring multiple sports disciplines',
     },
     // Sports Page
     sports: {
