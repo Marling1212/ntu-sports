@@ -17,15 +17,15 @@ export default function Navbar() {
   const adminLabel = t("nav.admin") || (locale === "zh" ? "後台管理" : "Admin");
 
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800">
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Left: Brand Anchor */}
         <Link
           href="/"
-          className="flex items-center gap-2 text-lg sm:text-xl font-bold text-ntu-green dark:text-emerald-400 hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 text-lg sm:text-xl font-bold text-ntu-green hover:opacity-90 transition-opacity"
         >
           <span className="text-xl sm:text-2xl leading-none">🏆</span>
-          <span className="tracking-tight">NTU Sports</span>
+          <span className="tracking-tight text-ntu-green font-extrabold">NTU Sports</span>
         </Link>
 
         {/* Right: Utility Group */}
@@ -34,20 +34,20 @@ export default function Navbar() {
           <nav className="hidden sm:flex items-center gap-1 sm:gap-2" aria-label="Quick sports">
             <Link
               href="/soccer"
-              className={`px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                 isSoccerActive
-                  ? "text-ntu-green dark:text-emerald-400 font-semibold bg-ntu-green/10 dark:bg-emerald-500/10"
-                  : "text-slate-600 dark:text-slate-300 hover:text-ntu-green dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "text-ntu-green bg-emerald-50 border border-emerald-200/80"
+                  : "text-gray-700 hover:text-ntu-green hover:bg-gray-100"
               }`}
             >
               {soccerLabel}
             </Link>
             <Link
               href="/tennis"
-              className={`px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                 isTennisActive
-                  ? "text-ntu-green dark:text-emerald-400 font-semibold bg-ntu-green/10 dark:bg-emerald-500/10"
-                  : "text-slate-600 dark:text-slate-300 hover:text-ntu-green dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "text-ntu-green bg-emerald-50 border border-emerald-200/80"
+                  : "text-gray-700 hover:text-ntu-green hover:bg-gray-100"
               }`}
             >
               {tennisLabel}
@@ -55,7 +55,7 @@ export default function Navbar() {
           </nav>
 
           {/* Subtle vertical divider */}
-          <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-slate-700" aria-hidden="true" />
+          <div className="hidden sm:block h-4 w-px bg-gray-200" aria-hidden="true" />
 
           {/* Language Selector */}
           <LanguageSwitcher />
@@ -63,7 +63,7 @@ export default function Navbar() {
           {/* Admin CTA */}
           <Link
             href="/admin"
-            className="inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border border-ntu-green/30 text-ntu-green hover:bg-ntu-green hover:text-white dark:border-emerald-500/30 dark:text-emerald-400 dark:hover:bg-emerald-600 dark:hover:text-white transition-all duration-200 shadow-sm"
+            className="inline-flex items-center justify-center px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-ntu-green text-ntu-green hover:bg-ntu-green hover:text-white transition-all duration-200 shadow-sm"
           >
             {adminLabel}
           </Link>
