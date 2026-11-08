@@ -11,6 +11,9 @@ export const translations = {
       share: '分享',
       qrCode: 'QR Code',
       menu: '選單',
+      soccer: '足球',
+      tennis: '網球',
+      admin: '後台管理',
     },
     // Homepage
     home: {
@@ -1070,6 +1073,9 @@ export const translations = {
       share: 'Share',
       qrCode: 'QR Code',
       menu: 'Menu',
+      soccer: 'Soccer',
+      tennis: 'Tennis',
+      admin: 'Admin',
     },
     // Homepage
     home: {

@@ -1298,7 +1298,7 @@ export default function PlayersTable({
                         key={player.id}
                         className={`transition-colors ${
                           player.checked_in_at
-                            ? "bg-emerald-50/80 hover:bg-emerald-100/80"
+                            ? "bg-emerald-100 hover:bg-emerald-100"
                             : "hover:bg-gray-50"
                         }`}
                       >
@@ -1627,7 +1627,7 @@ export default function PlayersTable({
                   <div
                     className={`rounded-lg p-4 border transition-colors ${
                       player.checked_in_at
-                        ? "bg-emerald-50/80 border-emerald-300 shadow-sm"
+                        ? "bg-emerald-100 border-emerald-300 shadow-sm"
                         : "bg-white border-gray-200"
                     }`}
                   >
