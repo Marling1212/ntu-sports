@@ -20,6 +20,16 @@ export const metadata: Metadata = {
   },
 };
 
+const themeScript = `
+  try {
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  } catch (_) {}
+`;
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -29,11 +39,14 @@ export default async function RootLayout({
   const htmlLang = locale === "zh" ? "zh-TW" : "en";
   return (
     <html lang={htmlLang} suppressHydrationWarning>
-      <body suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased" suppressHydrationWarning>
         <I18nProvider initialLocale={locale}>
           <LoadingProvider>
             <Navbar />
-            <main className="min-h-screen bg-ntu-gray">
+            <main className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
               {children}
             </main>
             <Footer />
@@ -46,4 +59,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
