@@ -11,6 +11,11 @@ interface SportCardStyle {
   actionClass: string;
   hoverBorder: string;
   hoverShadow: string;
+  statusBadgeClass: string;
+  statusDotClass: string;
+  statusKey: string;
+  descKey: string;
+  actionKey: string;
 }
 
 const sportCardStyles: Record<string, SportCardStyle> = {
@@ -18,65 +23,105 @@ const sportCardStyles: Record<string, SportCardStyle> = {
     icon: "⚽",
     topBorder: "bg-gradient-to-r from-emerald-500 to-teal-400",
     iconBg: "bg-emerald-50 ring-1 ring-emerald-200/60 text-2xl",
-    actionClass: "text-emerald-600 font-medium group-hover:text-emerald-700 group-hover:translate-x-1 transition-all",
+    actionClass: "text-emerald-600 font-semibold group-hover:text-emerald-700 group-hover:translate-x-1 transition-all",
     hoverBorder: "hover:border-emerald-300",
     hoverShadow: "hover:shadow-lg hover:shadow-emerald-500/5",
+    statusBadgeClass: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    statusDotClass: "bg-emerald-500 animate-pulse",
+    statusKey: "home.soccerStatus",
+    descKey: "home.soccerDesc",
+    actionKey: "home.soccerAction",
   },
   Tennis: {
     icon: "🎾",
     topBorder: "bg-gradient-to-r from-amber-500 to-orange-400",
     iconBg: "bg-amber-50 ring-1 ring-amber-200/60 text-2xl",
-    actionClass: "text-amber-600 font-medium group-hover:text-amber-700 group-hover:translate-x-1 transition-all",
+    actionClass: "text-amber-600 font-semibold group-hover:text-amber-700 group-hover:translate-x-1 transition-all",
     hoverBorder: "hover:border-amber-300",
     hoverShadow: "hover:shadow-lg hover:shadow-amber-500/5",
+    statusBadgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+    statusDotClass: "bg-slate-400",
+    statusKey: "home.tennisStatus",
+    descKey: "home.tennisDesc",
+    actionKey: "home.tennisAction",
   },
   Basketball: {
     icon: "🏀",
     topBorder: "bg-gradient-to-r from-orange-500 to-amber-400",
     iconBg: "bg-orange-50 ring-1 ring-orange-200/60 text-2xl",
-    actionClass: "text-orange-600 font-medium group-hover:text-orange-700 group-hover:translate-x-1 transition-all",
+    actionClass: "text-orange-600 font-semibold group-hover:text-orange-700 group-hover:translate-x-1 transition-all",
     hoverBorder: "hover:border-orange-300",
     hoverShadow: "hover:shadow-lg hover:shadow-orange-500/5",
+    statusBadgeClass: "bg-orange-50 text-orange-700 border border-orange-200",
+    statusDotClass: "bg-orange-500 animate-pulse",
+    statusKey: "home.statusLive",
+    descKey: "home.viewDraw",
+    actionKey: "home.viewDrawAction",
   },
   Volleyball: {
     icon: "🏐",
     topBorder: "bg-gradient-to-r from-blue-500 to-cyan-400",
     iconBg: "bg-blue-50 ring-1 ring-blue-200/60 text-2xl",
-    actionClass: "text-blue-600 font-medium group-hover:text-blue-700 group-hover:translate-x-1 transition-all",
+    actionClass: "text-blue-600 font-semibold group-hover:text-blue-700 group-hover:translate-x-1 transition-all",
     hoverBorder: "hover:border-blue-300",
     hoverShadow: "hover:shadow-lg hover:shadow-blue-500/5",
+    statusBadgeClass: "bg-blue-50 text-blue-700 border border-blue-200",
+    statusDotClass: "bg-blue-500 animate-pulse",
+    statusKey: "home.statusLive",
+    descKey: "home.viewDraw",
+    actionKey: "home.viewDrawAction",
   },
   Badminton: {
     icon: "🏸",
     topBorder: "bg-gradient-to-r from-yellow-500 to-amber-400",
     iconBg: "bg-amber-50 ring-1 ring-amber-200/60 text-2xl",
-    actionClass: "text-amber-600 font-medium group-hover:text-amber-700 group-hover:translate-x-1 transition-all",
+    actionClass: "text-amber-600 font-semibold group-hover:text-amber-700 group-hover:translate-x-1 transition-all",
     hoverBorder: "hover:border-amber-300",
     hoverShadow: "hover:shadow-lg hover:shadow-amber-500/5",
+    statusBadgeClass: "bg-amber-50 text-amber-700 border border-amber-200",
+    statusDotClass: "bg-amber-500 animate-pulse",
+    statusKey: "home.statusLive",
+    descKey: "home.viewDraw",
+    actionKey: "home.viewDrawAction",
   },
   TableTennis: {
     icon: "🏓",
     topBorder: "bg-gradient-to-r from-rose-500 to-red-400",
     iconBg: "bg-rose-50 ring-1 ring-rose-200/60 text-2xl",
-    actionClass: "text-rose-600 font-medium group-hover:text-rose-700 group-hover:translate-x-1 transition-all",
+    actionClass: "text-rose-600 font-semibold group-hover:text-rose-700 group-hover:translate-x-1 transition-all",
     hoverBorder: "hover:border-rose-300",
     hoverShadow: "hover:shadow-lg hover:shadow-rose-500/5",
+    statusBadgeClass: "bg-rose-50 text-rose-700 border border-rose-200",
+    statusDotClass: "bg-rose-500 animate-pulse",
+    statusKey: "home.statusLive",
+    descKey: "home.viewDraw",
+    actionKey: "home.viewDrawAction",
   },
   Baseball: {
     icon: "⚾",
     topBorder: "bg-gradient-to-r from-indigo-500 to-blue-400",
     iconBg: "bg-indigo-50 ring-1 ring-indigo-200/60 text-2xl",
-    actionClass: "text-indigo-600 font-medium group-hover:text-indigo-700 group-hover:translate-x-1 transition-all",
+    actionClass: "text-indigo-600 font-semibold group-hover:text-indigo-700 group-hover:translate-x-1 transition-all",
     hoverBorder: "hover:border-indigo-300",
     hoverShadow: "hover:shadow-lg hover:shadow-indigo-500/5",
+    statusBadgeClass: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+    statusDotClass: "bg-indigo-500 animate-pulse",
+    statusKey: "home.statusLive",
+    descKey: "home.viewDraw",
+    actionKey: "home.viewDrawAction",
   },
   Softball: {
     icon: "🥎",
     topBorder: "bg-gradient-to-r from-pink-500 to-rose-400",
     iconBg: "bg-pink-50 ring-1 ring-pink-200/60 text-2xl",
-    actionClass: "text-pink-600 font-medium group-hover:text-pink-700 group-hover:translate-x-1 transition-all",
+    actionClass: "text-pink-600 font-semibold group-hover:text-pink-700 group-hover:translate-x-1 transition-all",
     hoverBorder: "hover:border-pink-300",
     hoverShadow: "hover:shadow-lg hover:shadow-pink-500/5",
+    statusBadgeClass: "bg-pink-50 text-pink-700 border border-pink-200",
+    statusDotClass: "bg-pink-500 animate-pulse",
+    statusKey: "home.statusLive",
+    descKey: "home.viewDraw",
+    actionKey: "home.viewDrawAction",
   },
 };
 
@@ -84,9 +129,14 @@ const defaultSportStyle: SportCardStyle = {
   icon: "🏆",
   topBorder: "bg-gradient-to-r from-emerald-600 to-teal-500",
   iconBg: "bg-slate-50 ring-1 ring-slate-200/60 text-2xl",
-  actionClass: "text-emerald-600 font-medium group-hover:text-emerald-700 group-hover:translate-x-1 transition-all",
+  actionClass: "text-emerald-600 font-semibold group-hover:text-emerald-700 group-hover:translate-x-1 transition-all",
   hoverBorder: "hover:border-emerald-300",
   hoverShadow: "hover:shadow-lg hover:shadow-emerald-500/5",
+  statusBadgeClass: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  statusDotClass: "bg-emerald-500 animate-pulse",
+  statusKey: "home.statusLive",
+  descKey: "home.viewDraw",
+  actionKey: "home.viewDrawAction",
 };
 
 export interface MultiSportEvent {
@@ -116,35 +166,35 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
         <div className="h-[280px] w-[580px] max-w-full -translate-y-12 bg-gradient-to-tr from-blue-400/20 via-teal-300/15 to-emerald-400/15 blur-3xl rounded-full" />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 sm:pt-12 sm:pb-16 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
         {/* Compact SaaS Hero Section */}
-        <div className="text-center pt-2 pb-6 sm:pt-4 sm:pb-8 animate-fadeIn">
+        <div className="text-center pt-6 pb-4 sm:pt-10 sm:pb-6 animate-fadeIn">
           {/* Status Pill / Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold px-3.5 py-1 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold px-3 py-1 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
             <span>{t("home.statusBadge")}</span>
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mt-3 sm:mt-4">
             {t("home.title")}
           </h1>
 
           {/* Subheadline */}
-          <p className="text-base sm:text-lg text-slate-600 mt-3 max-w-xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-base text-slate-600 mt-2 sm:mt-3 max-w-xl mx-auto leading-relaxed">
             {t("home.subtitle")}
           </p>
         </div>
 
-        {/* Sports section: one card per sport */}
-        <div className="mb-8 sm:mb-12 animate-fadeIn" style={{ animationDelay: "0.15s" }}>
-          <h2 className="text-lg sm:text-2xl font-bold text-slate-900 mb-1 text-center">
-            {t("home.sports")}
-          </h2>
-          <p className="text-center text-xs sm:text-sm text-slate-500 mb-6 px-2 sm:px-4 hidden sm:block">
-            {t("home.sportsDescription")}
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6">
+        {/* Sports cards grid */}
+        <div className="mt-2 mb-10 sm:mb-12 animate-fadeIn max-w-4xl mx-auto" style={{ animationDelay: "0.15s" }}>
+          <div
+            className={`grid gap-3.5 sm:gap-6 ${
+              sportsToShow.length === 1
+                ? "grid-cols-1 max-w-md mx-auto"
+                : "grid-cols-1 sm:grid-cols-2"
+            }`}
+          >
             {sportsToShow.map((sport, index) => {
               const sportLower = sport.toLowerCase();
               const style = sportCardStyles[sport] || defaultSportStyle;
@@ -152,38 +202,81 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
                 <LoadingLink
                   key={sport}
                   href={`/sports/${sportLower.replace(/\s+/g, "")}`}
-                  className={`relative overflow-hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 ${style.hoverBorder} ${style.hoverShadow} transition-all duration-200 hover:-translate-y-0.5 group p-5 sm:p-6 animate-scaleIn active:scale-[0.99] flex flex-col justify-between`}
+                  className={`relative overflow-hidden bg-white rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm ${style.hoverBorder} ${style.hoverShadow} transition-all duration-200 hover:-translate-y-0.5 group active:scale-[0.98] block p-4 sm:p-6`}
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   {/* Top border accent line */}
-                  <div className={`absolute top-0 inset-x-0 h-[3px] ${style.topBorder}`} />
+                  <div className={`absolute top-0 inset-x-0 h-[2.5px] sm:h-[3px] ${style.topBorder}`} />
 
-                  {/* Top row: Icon badge + Status pill */}
-                  <div>
-                    <div className="flex items-start justify-between mb-3.5">
-                      <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${style.iconBg} shadow-sm group-hover:scale-105 transition-transform duration-200`}>
+                  {/* Mobile Layout: Sleek, wide horizontal banner */}
+                  <div className="flex sm:hidden items-center justify-between w-full">
+                    {/* Left section: Sport icon badge + Sport Title */}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${style.iconBg} text-xl shadow-xs group-hover:scale-105 transition-transform duration-200 shrink-0`}
+                      >
                         <span>{style.icon}</span>
                       </div>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70 shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-                        <span>{t("home.statusLive")}</span>
-                      </span>
+                      <h3 className="text-base font-bold text-slate-900 group-hover:text-slate-950 transition-colors">
+                        {sport}
+                      </h3>
                     </div>
 
-                    {/* Sport Title */}
-                    <h3 className="text-base sm:text-xl font-bold text-slate-900 group-hover:text-slate-950 transition-colors mb-1">
-                      {sport}
-                    </h3>
-
-                    {/* Description */}
-                    <p className="text-slate-500 text-xs sm:text-sm leading-relaxed mb-1 hidden sm:block">
-                      {t("home.viewDraw")}
-                    </p>
+                    {/* Right section: Sport Status Badge + CTA Arrow */}
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${style.statusBadgeClass}`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${style.statusDotClass}`}
+                          aria-hidden="true"
+                        />
+                        <span>{t(style.statusKey)}</span>
+                      </span>
+                      <span className="text-sm font-semibold text-slate-400 group-hover:text-slate-700 transition-transform group-hover:translate-x-0.5">
+                        →
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Action Link */}
-                  <div className={`mt-3 sm:mt-4 text-xs sm:text-sm inline-flex items-center gap-1 ${style.actionClass}`}>
-                    <span>{t("home.viewDrawAction")}</span>
+                  {/* Tablet/Desktop Layout: Structured vertical card */}
+                  <div className="hidden sm:flex sm:flex-col sm:justify-between h-full">
+                    <div>
+                      {/* Top row: Icon badge + Status pill */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div
+                          className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${style.iconBg} shadow-sm group-hover:scale-105 transition-transform duration-200`}
+                        >
+                          <span>{style.icon}</span>
+                        </div>
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${style.statusBadgeClass} shadow-xs`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${style.statusDotClass}`}
+                            aria-hidden="true"
+                          />
+                          <span>{t(style.statusKey)}</span>
+                        </span>
+                      </div>
+
+                      {/* Sport Title */}
+                      <h3 className="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-slate-950 transition-colors mb-2">
+                        {sport}
+                      </h3>
+
+                      {/* Differentiated Subtext */}
+                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">
+                        {t(style.descKey)}
+                      </p>
+                    </div>
+
+                    {/* Differentiated Action Button / Link */}
+                    <div
+                      className={`pt-3 border-t border-slate-100 text-xs sm:text-sm inline-flex items-center gap-1 ${style.actionClass}`}
+                    >
+                      <span>{t(style.actionKey)}</span>
+                    </div>
                   </div>
                 </LoadingLink>
               );

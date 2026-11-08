@@ -10,9 +10,9 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto bg-white/90 border-t border-slate-200/60 transition-colors">
-      {/* Pinned 2px top gradient accent line echoing the header */}
-      <div className="h-[2px] w-full bg-gradient-to-r from-blue-600/40 via-teal-400/40 to-emerald-500/40" />
+    <footer className="mt-auto bg-white/90 border-t border-slate-200/80 transition-colors">
+      {/* Subtle, elegant low-opacity divider line */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
 
       <div className="max-w-6xl mx-auto px-4 py-12 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10">
