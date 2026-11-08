@@ -18,7 +18,7 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
 
   return (
     <div
-      className={`inline-flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-medium ${className}`}
+      className={`inline-flex items-center p-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-xs font-medium ${className}`}
       role="group"
       aria-label="Language selector"
     >
@@ -31,8 +31,8 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
             onClick={() => handleSetLocale(loc)}
             className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200 ${
               isActive
-                ? "bg-white dark:bg-slate-700 text-emerald-800 dark:text-emerald-300 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
             }`}
             aria-pressed={isActive}
             aria-label={LOCALE_LABELS[loc]}

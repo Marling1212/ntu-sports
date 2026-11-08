@@ -13,50 +13,50 @@ interface SportStyle {
 const sportStyles: Record<string, SportStyle> = {
   Soccer: {
     icon: "⚽",
-    iconBg: "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20",
-    hoverBorder: "hover:border-emerald-400 dark:hover:border-emerald-500",
+    iconBg: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20",
+    hoverBorder: "hover:border-emerald-400",
   },
   Tennis: {
     icon: "🎾",
-    iconBg: "bg-lime-50 dark:bg-lime-950/50 text-lime-700 dark:text-lime-300 ring-1 ring-lime-500/20",
-    hoverBorder: "hover:border-lime-400 dark:hover:border-lime-500",
+    iconBg: "bg-lime-50 text-lime-800 ring-1 ring-lime-500/20",
+    hoverBorder: "hover:border-lime-400",
   },
   Basketball: {
     icon: "🏀",
-    iconBg: "bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 ring-1 ring-orange-500/20",
-    hoverBorder: "hover:border-orange-400 dark:hover:border-orange-500",
+    iconBg: "bg-orange-50 text-orange-700 ring-1 ring-orange-500/20",
+    hoverBorder: "hover:border-orange-400",
   },
   Volleyball: {
     icon: "🏐",
-    iconBg: "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/20",
-    hoverBorder: "hover:border-blue-400 dark:hover:border-blue-500",
+    iconBg: "bg-blue-50 text-blue-700 ring-1 ring-blue-500/20",
+    hoverBorder: "hover:border-blue-400",
   },
   Badminton: {
     icon: "🏸",
-    iconBg: "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20",
-    hoverBorder: "hover:border-amber-400 dark:hover:border-amber-500",
+    iconBg: "bg-amber-50 text-amber-700 ring-1 ring-amber-500/20",
+    hoverBorder: "hover:border-amber-400",
   },
   TableTennis: {
     icon: "🏓",
-    iconBg: "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500/20",
-    hoverBorder: "hover:border-rose-400 dark:hover:border-rose-500",
+    iconBg: "bg-rose-50 text-rose-700 ring-1 ring-rose-500/20",
+    hoverBorder: "hover:border-rose-400",
   },
   Baseball: {
     icon: "⚾",
-    iconBg: "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/20",
-    hoverBorder: "hover:border-indigo-400 dark:hover:border-indigo-500",
+    iconBg: "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500/20",
+    hoverBorder: "hover:border-indigo-400",
   },
   Softball: {
     icon: "🥎",
-    iconBg: "bg-pink-50 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 ring-1 ring-pink-500/20",
-    hoverBorder: "hover:border-pink-400 dark:hover:border-pink-500",
+    iconBg: "bg-pink-50 text-pink-700 ring-1 ring-pink-500/20",
+    hoverBorder: "hover:border-pink-400",
   },
 };
 
 const defaultSportStyle: SportStyle = {
   icon: "🏆",
-  iconBg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 ring-1 ring-slate-300/30",
-  hoverBorder: "hover:border-slate-400 dark:hover:border-slate-500",
+  iconBg: "bg-slate-100 text-slate-700 ring-1 ring-slate-300/30",
+  hoverBorder: "hover:border-slate-400",
 };
 
 export interface MultiSportEvent {
@@ -83,35 +83,35 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 flex justify-center overflow-hidden"
         aria-hidden="true"
       >
-        <div className="h-[360px] sm:h-[440px] w-[700px] sm:w-[1000px] max-w-full -translate-y-16 bg-gradient-to-b from-emerald-100/40 via-blue-50/25 to-transparent dark:from-emerald-950/25 dark:via-slate-900/20 dark:to-transparent blur-3xl opacity-80" />
+        <div className="h-[360px] sm:h-[440px] w-[700px] sm:w-[1000px] max-w-full -translate-y-16 bg-gradient-to-b from-emerald-100/40 via-blue-50/25 to-transparent blur-3xl opacity-80" />
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 sm:pt-12 sm:pb-16 max-w-7xl">
         {/* Compact SaaS Hero Section */}
         <div className="text-center pt-2 pb-6 sm:pt-4 sm:pb-8 animate-fadeIn">
           {/* Status Pill / Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 text-xs font-semibold px-3.5 py-1 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold px-3.5 py-1 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
             <span>{t("home.statusBadge")}</span>
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 mt-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">
             {t("home.title")}
           </h1>
 
           {/* Subheadline */}
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-3 max-w-xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg text-slate-600 mt-3 max-w-xl mx-auto leading-relaxed">
             {t("home.subtitle")}
           </p>
         </div>
 
         {/* Sports section: one card per sport */}
         <div className="mb-8 sm:mb-12 animate-fadeIn" style={{ animationDelay: "0.15s" }}>
-          <h2 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1 text-center">
+          <h2 className="text-lg sm:text-2xl font-bold text-slate-900 mb-1 text-center">
             {t("home.sports")}
           </h2>
-          <p className="text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 px-2 sm:px-4 hidden sm:block">
+          <p className="text-center text-xs sm:text-sm text-slate-500 mb-6 px-2 sm:px-4 hidden sm:block">
             {t("home.sportsDescription")}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6">
@@ -122,7 +122,7 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
                 <LoadingLink
                   key={sport}
                   href={`/sports/${sportLower.replace(/\s+/g, "")}`}
-                  className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 border border-slate-200/80 dark:border-slate-800 ${style.hoverBorder} group p-5 sm:p-7 animate-scaleIn active:scale-[0.99]`}
+                  className={`bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 border border-slate-200/80 ${style.hoverBorder} group p-5 sm:p-7 animate-scaleIn active:scale-[0.99]`}
                   style={{ animationDelay: `${index * 0.06}s` }}
                 >
                   <div className="text-center">
@@ -131,13 +131,13 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
                     >
                       <span className="text-2xl sm:text-4xl">{style.icon}</span>
                     </div>
-                    <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-ntu-green dark:group-hover:text-emerald-400 transition-colors mb-1">
+                    <h3 className="text-base sm:text-xl font-bold text-slate-900 group-hover:text-ntu-green transition-colors mb-1">
                       {sport}
                     </h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm leading-relaxed mb-3 hidden sm:block">
+                    <p className="text-slate-500 text-xs sm:text-sm leading-relaxed mb-3 hidden sm:block">
                       {t("home.viewDraw")}
                     </p>
-                    <div className="text-ntu-green dark:text-emerald-400 font-semibold text-xs sm:text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                    <div className="text-ntu-green font-semibold text-xs sm:text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
                       <span className="hidden sm:inline">{t("home.viewDetails")}</span>{" "}
                       <span>→</span>
                     </div>
@@ -151,10 +151,10 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
         {/* Multi-sport events: only events with more than one distinct sport */}
         {multiSportEvents.length > 0 && (
           <div className="mb-8 sm:mb-12 animate-fadeIn" style={{ animationDelay: "0.25s" }}>
-            <h2 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1 text-center">
+            <h2 className="text-lg sm:text-2xl font-bold text-slate-900 mb-1 text-center">
               {t("home.multiSportEvents")}
             </h2>
-            <p className="text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 px-2 sm:px-4">
+            <p className="text-center text-xs sm:text-sm text-slate-500 mb-6 px-2 sm:px-4">
               {t("home.multiSportEventsSubtitle")}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -162,10 +162,10 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
                 <LoadingLink
                   key={evt.id}
                   href={`/sports/${evt.linkSport}/events/${evt.id}`}
-                  className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 group p-5 animate-scaleIn active:scale-[0.99] text-left"
+                  className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 border border-slate-200/80 hover:border-emerald-400 p-5 group animate-scaleIn active:scale-[0.99] text-left"
                   style={{ animationDelay: `${index * 0.06}s` }}
                 >
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-ntu-green dark:group-hover:text-emerald-400 transition-colors">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 group-hover:text-ntu-green transition-colors">
                     {evt.name}
                   </h3>
                   <div className="flex flex-wrap gap-1.5 mb-2">
@@ -174,7 +174,7 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
                       return (
                         <span
                           key={s}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-semibold"
                         >
                           <span>{style.icon}</span>
                           {s}
@@ -183,11 +183,11 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
                     })}
                   </div>
                   {evt.venue && (
-                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 truncate" title={evt.venue}>
+                    <p className="text-slate-500 text-xs mt-1 truncate" title={evt.venue}>
                       📍 {evt.venue}
                     </p>
                   )}
-                  <div className="text-ntu-green dark:text-emerald-400 font-semibold text-xs sm:text-sm mt-3 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                  <div className="text-ntu-green font-semibold text-xs sm:text-sm mt-3 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
                     {t("home.viewDetails")} <span>→</span>
                   </div>
                 </LoadingLink>
