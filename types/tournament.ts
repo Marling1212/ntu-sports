@@ -3,6 +3,7 @@ export interface Player {
   name: string;
   seed?: number;
   school?: string;
+  checked_in_at?: string | null;
 }
 
 /** Playoff bracket slot: seed (1-based) and group number when match uses seed placeholders. */

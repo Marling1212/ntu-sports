@@ -196,9 +196,9 @@ export async function getSportMatches(
   const supabase = await createClient();
   const selectClause = `
       *,
-      player1:players!matches_player1_id_fkey(id, name, seed, department),
-      player2:players!matches_player2_id_fkey(id, name, seed, department),
-      winner:players!matches_winner_id_fkey(id, name, seed, department),
+      player1:players!matches_player1_id_fkey(id, name, seed, department, checked_in_at),
+      player2:players!matches_player2_id_fkey(id, name, seed, department, checked_in_at),
+      winner:players!matches_winner_id_fkey(id, name, seed, department, checked_in_at),
       slot:event_slots(
         id, 
         code, 

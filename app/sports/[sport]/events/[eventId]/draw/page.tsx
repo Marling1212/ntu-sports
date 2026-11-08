@@ -77,8 +77,8 @@ export default async function SportEventDrawPage({
     round: m.round,
     matchNumber: m.match_number,
     group_number: m.group_number,
-    player1: m.player1?.id ? { id: m.player1.id, name: m.player1.name, seed: m.player1.seed, school: m.player1.department } : null,
-    player2: m.player2?.id ? { id: m.player2.id, name: m.player2.name, seed: m.player2.seed, school: m.player2.department } : null,
+    player1: m.player1?.id ? { id: m.player1.id, name: m.player1.name, seed: m.player1.seed, school: m.player1.department, checked_in_at: m.player1.checked_in_at } : null,
+    player2: m.player2?.id ? { id: m.player2.id, name: m.player2.name, seed: m.player2.seed, school: m.player2.department, checked_in_at: m.player2.checked_in_at } : null,
     slot1: m.slot1_seed != null && m.slot1_group != null ? { seed: m.slot1_seed, group: m.slot1_group } : undefined,
     slot2: m.slot2_seed != null && m.slot2_group != null ? { seed: m.slot2_seed, group: m.slot2_group } : undefined,
     winner: m.winner?.id ? { id: m.winner.id, name: m.winner.name, seed: m.winner.seed, school: m.winner.department } : null,
@@ -97,7 +97,12 @@ export default async function SportEventDrawPage({
     name: p.name,
     seed: p.seed,
     school: p.department,
+    checked_in_at: p.checked_in_at,
   }));
+
+  const showCheckInStatus = Boolean(
+    (division as any)?.public_check_in_enabled ?? (event as any)?.public_check_in_enabled
+  );
 
   const eventDate = event.start_date && event.end_date
     ? `${new Date(event.start_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")} - ${new Date(event.end_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")}`
@@ -164,12 +169,14 @@ export default async function SportEventDrawPage({
             matchPlayerStats={matchPlayerStats}
             teamMembers={teamMembers}
             tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
+            showCheckInStatus={showCheckInStatus}
           />
         ) : (
           <BracketSection
             matches={matches}
             players={players}
             sportName={sportName}
+            showCheckInStatus={showCheckInStatus}
           />
         )}
       </div>

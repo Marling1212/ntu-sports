@@ -27,6 +27,7 @@ interface PlayersTableProps {
   registrationType?: 'player' | 'team';
   initialBlackoutLimit?: number | null;
   initialCaptainBlackoutsOpen?: boolean;
+  initialPublicCheckInEnabled?: boolean;
   initialSlotTemplates?: EventSlotTemplate[];
   initialBlackoutTemplates?: TeamBlackoutTemplate[];
   divisions?: EventDivision[];
@@ -41,6 +42,7 @@ export default function PlayersTable({
   registrationType = 'player',
   initialBlackoutLimit = null,
   initialCaptainBlackoutsOpen = false,
+  initialPublicCheckInEnabled = false,
   initialSlotTemplates = [],
   initialBlackoutTemplates = [],
   divisions = [],
@@ -68,6 +70,8 @@ export default function PlayersTable({
     initialBlackoutLimit != null ? String(initialBlackoutLimit) : ""
   );
   const [captainBlackoutsOpen, setCaptainBlackoutsOpen] = useState<boolean>(initialCaptainBlackoutsOpen);
+  const [publicCheckInEnabled, setPublicCheckInEnabled] = useState<boolean>(initialPublicCheckInEnabled);
+  const [savingPublicCheckIn, setSavingPublicCheckIn] = useState<boolean>(false);
   const [blackoutTemplates, setBlackoutTemplates] = useState<TeamBlackoutTemplate[]>(initialBlackoutTemplates);
   const [expandedBlackout, setExpandedBlackout] = useState<string | null>(null);
   const [savingBlackoutLimit, setSavingBlackoutLimit] = useState(false);
@@ -124,7 +128,8 @@ export default function PlayersTable({
     setBlackoutLimit(initialBlackoutLimit != null ? String(initialBlackoutLimit) : "");
     setBlackoutTemplates(initialBlackoutTemplates);
     setCaptainBlackoutsOpen(initialCaptainBlackoutsOpen);
-  }, [initialBlackoutLimit, initialBlackoutTemplates, initialCaptainBlackoutsOpen]);
+    setPublicCheckInEnabled(initialPublicCheckInEnabled);
+  }, [initialBlackoutLimit, initialBlackoutTemplates, initialCaptainBlackoutsOpen, initialPublicCheckInEnabled]);
 
   useEffect(() => {
     const id = (defaultDivisionId || divisions[0]?.id) ?? "";
@@ -184,6 +189,28 @@ export default function PlayersTable({
       toast.error(e?.message || "儲存失敗");
     } finally {
       setSavingBlackoutLimit(false);
+    }
+  };
+
+  const handlePublicCheckInToggle = async (checked: boolean) => {
+    setSavingPublicCheckIn(true);
+    setPublicCheckInEnabled(checked);
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ public_check_in_enabled: checked })
+        .eq("id", eventId);
+      if (error) throw error;
+      toast.success(
+        checked
+          ? t("admin.registration.publicCheckInToastOn")
+          : t("admin.registration.publicCheckInToastOff")
+      );
+    } catch (e: any) {
+      setPublicCheckInEnabled(!checked);
+      toast.error(e?.message || t("admin.registration.publicCheckInSaveError"));
+    } finally {
+      setSavingPublicCheckIn(false);
     }
   };
 
@@ -933,6 +960,32 @@ export default function PlayersTable({
           <a href={`/admin/${eventId}/scheduling#auto-schedule`} className="text-ntu-green hover:underline">{t('admin.scheduling.autoSchedule')}</a>
         </div>
 
+        {/* 公開籤表報到狀態設定 (Public Check-in Status Display) */}
+        <div className="px-6 py-4 bg-emerald-50/70 border-b border-emerald-100">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={publicCheckInEnabled}
+                  disabled={savingPublicCheckIn}
+                  onChange={(e) => handlePublicCheckInToggle(e.target.checked)}
+                  className="w-4 h-4 text-ntu-green border-gray-300 rounded focus:ring-ntu-green disabled:opacity-50"
+                />
+                <span className="text-sm font-semibold text-gray-900">
+                  {t('admin.registration.publicCheckInToggle')}
+                </span>
+              </label>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${publicCheckInEnabled ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
+                {publicCheckInEnabled ? t('admin.registration.publicCheckInOn') : t('admin.registration.publicCheckInOff')}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed max-w-4xl">
+              {t('admin.registration.publicCheckInDescription')}
+            </p>
+          </div>
+        </div>
+
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold text-ntu-green">
@@ -1241,7 +1294,14 @@ export default function PlayersTable({
                   
                   return (
                     <>
-                      <tr key={player.id} className="hover:bg-gray-50">
+                      <tr
+                        key={player.id}
+                        className={`transition-colors ${
+                          player.checked_in_at
+                            ? "bg-emerald-50/80 hover:bg-emerald-100/80"
+                            : "hover:bg-gray-50"
+                        }`}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-gray-700 font-semibold">
                           {drawNumberByPlayerId[player.id] ?? "—"}
                         </td>
@@ -1317,9 +1377,9 @@ export default function PlayersTable({
                           <button
                             type="button"
                             onClick={() => handleToggleCheckIn(player)}
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
                               player.checked_in_at
-                                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
                                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                             }`}
                           >
@@ -1564,7 +1624,13 @@ export default function PlayersTable({
               
               return (
                 <div key={player.id}>
-                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div
+                    className={`rounded-lg p-4 border transition-colors ${
+                      player.checked_in_at
+                        ? "bg-emerald-50/80 border-emerald-300 shadow-sm"
+                        : "bg-white border-gray-200"
+                    }`}
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -1608,9 +1674,9 @@ export default function PlayersTable({
                         <button
                           type="button"
                           onClick={() => handleToggleCheckIn(player)}
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
                             player.checked_in_at
-                              ? "bg-green-100 text-green-700 hover:bg-green-200"
+                              ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         >

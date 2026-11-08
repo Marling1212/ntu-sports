@@ -14,6 +14,7 @@ interface TournamentBracketProps {
   totalRounds?: number; // Total rounds in the entire tournament (not just this section)
   hideThirdPlace?: boolean; // Hide the 3rd place match display
   compactLayout?: boolean; // Not strictly used with the new tree architect, but keeping for prop compat
+  showCheckInStatus?: boolean;
   /** Admin-only: first-round cells show check-in toggle; match cards are not links to the public site. */
   adminCheckIn?: {
     checkedInByPlayerId: Record<string, boolean>;
@@ -47,6 +48,7 @@ export function TournamentBracketCore({
   totalRounds: propTotalRounds,
   hideThirdPlace = false,
   compactLayout = false,
+  showCheckInStatus = false,
   adminCheckIn,
   pdfCapture = false,
 }: TournamentBracketProps & { previewSuffix: string }) {
@@ -61,6 +63,18 @@ export function TournamentBracketCore({
   const bracketSize = Math.max(2, Math.pow(2, Math.ceil(Math.log2(firstRoundMatches * 2))));
   const totalPlayers = players.length;
   const numSeeds = players.filter(p => p.seed).length;
+
+  const playersCheckInMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const p of players) {
+      if (p.id) {
+        map.set(p.id, Boolean(p.checked_in_at));
+      }
+    }
+    return map;
+  }, [players]);
+
+  const effectiveShowCheckIn = Boolean(showCheckInStatus || adminCheckIn);
 
   const actualTotalRounds = propTotalRounds || maxRound;
   const has3rdPlaceMatch = matches.some(m => m.round === actualTotalRounds && m.matchNumber === 2);
@@ -156,25 +170,36 @@ export function TournamentBracketCore({
   }) => {
     const isBye = !player && !slot && textPlaceholder === t("bracket.bye");
     const displayText = player?.name || (slot ? `Seed ${slot.seed} Group ${slot.group}` : textPlaceholder);
+    const isRealParticipant = Boolean(player?.id && !isBye);
+    const isCheckedIn = Boolean(
+      adminCheckInSlot?.checked ??
+      (adminCheckIn?.checkedInByPlayerId && player?.id ? adminCheckIn.checkedInByPlayerId[player.id] : undefined) ??
+      player?.checked_in_at ??
+      (player?.id ? playersCheckInMap.get(player.id) : false)
+    );
+    const isUnchecked = effectiveShowCheckIn && isRealParticipant && !isCheckedIn;
     
     return (
       <div
         className={`rounded-lg border-2 shadow-sm p-2 md:p-3 ${cellWClass} ${
           pdfCapture ? "min-h-[56px] h-auto py-2.5 md:py-2.5 overflow-visible" : "h-[60px]"
         } transition-all duration-300 relative ${!isBye && !isLoser ? "hover:scale-[1.02]" : ""} ${
-          isBye ? "border-gray-200 bg-gray-50"
-          : isWinner
-            ? isThirdPlace ? "border-amber-500 bg-amber-50 z-10" : "border-ntu-green bg-ntu-green border-opacity-30 bg-opacity-10 z-10"
-            : isLoser
-              ? "border-gray-300 bg-gray-100 opacity-50"
-              : isThirdPlace ? "border-amber-400 bg-amber-50" : "border-gray-300 bg-white"
+          isBye
+            ? "border-gray-200 bg-gray-50"
+            : isUnchecked
+              ? "border-red-300 bg-red-100 text-red-950"
+              : isWinner
+                ? isThirdPlace ? "border-amber-500 bg-amber-50 z-10" : "border-ntu-green bg-ntu-green border-opacity-30 bg-opacity-10 z-10"
+                : isLoser
+                  ? "border-gray-300 bg-gray-100 opacity-50"
+                  : isThirdPlace ? "border-amber-400 bg-amber-50" : "border-gray-300 bg-white"
         }`}
       >
         <div
           className={`flex gap-1.5 md:gap-2 w-full min-w-0 ${pdfCapture ? "items-start" : "items-center h-full"}`}
         >
           {player?.seed && (
-            <span className="text-[10px] md:text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded flex-shrink-0">
+            <span className={`text-[10px] md:text-xs font-bold text-white px-1.5 py-0.5 rounded flex-shrink-0 ${isUnchecked ? "bg-red-600" : "bg-ntu-green"}`}>
               {player.seed}
             </span>
           )}
@@ -190,7 +215,9 @@ export function TournamentBracketCore({
             </div>
             {player?.school && (
               <div
-                className={`text-[10px] text-gray-500 mt-0.5 ${
+                className={`text-[10px] mt-0.5 ${
+                  isUnchecked ? "text-red-700/80" : "text-gray-500"
+                } ${
                   pdfCapture ? "break-words leading-[1.4]" : "truncate leading-tight"
                 }`}
               >
@@ -199,14 +226,21 @@ export function TournamentBracketCore({
             )}
             {contextLabel && (
               <div
-                className={`text-[9px] text-gray-400 leading-snug ${
-                  pdfCapture ? "break-words mt-0.5" : "truncate leading-tight"
+                className={`text-[9px] mt-0.5 leading-snug ${
+                  isUnchecked ? "text-red-600/70" : "text-gray-400"
+                } ${
+                  pdfCapture ? "break-words" : "truncate leading-tight"
                 }`}
               >
                 {contextLabel}
               </div>
             )}
           </div>
+          {isUnchecked && !adminCheckInSlot && (
+            <span className="shrink-0 text-[10px] md:text-xs font-semibold px-1.5 py-0.5 rounded border border-red-300 bg-red-200/80 text-red-800 whitespace-nowrap">
+              {t("bracket.notCheckedIn")}
+            </span>
+          )}
           {adminCheckInSlot && player?.id && !isBye && (
             <button
               type="button"
@@ -611,6 +645,12 @@ export function TournamentBracketCore({
       <div className="mt-8 pt-4 border-t border-gray-200">
         <h4 className="text-sm font-semibold text-gray-700 mb-3">Legend</h4>
         <div className="flex flex-wrap gap-4 md:gap-6 text-xs md:text-sm">
+          {effectiveShowCheckIn && (
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-red-300 rounded bg-red-100"></div>
+              <span className="text-gray-600 font-medium">{t("bracket.legendNotCheckedIn")}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-ntu-green rounded bg-ntu-green bg-opacity-10"></div>
             <span className="text-gray-600">Winner</span>

@@ -53,6 +53,7 @@ interface SeasonPlayDisplayProps {
   tiebreakerConfig?: TiebreakerConfig | null;
   /** When "schedule", playoffs view shows a match list (like regular season) instead of the bracket. Use on Games page. */
   playoffsDisplayMode?: "bracket" | "schedule";
+  showCheckInStatus?: boolean;
 }
 
 const TAIPEI_TZ = "Asia/Taipei";
@@ -88,7 +89,7 @@ function getDateRangeInTaipei(filter: DateFilter): { start: Date; end: Date } | 
   return { start, end };
 }
 
-export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant, tiebreakerConfig, playoffsDisplayMode = "bracket" }: SeasonPlayDisplayProps) {
+export default function SeasonPlayDisplay({ matches, players, sportName = "Tennis", visibleTabs, defaultView, qualifiersPerGroup: qualifiersFromProps, registrationType = 'player', matchPlayerStats = [], teamMembers = [], designVariant, tiebreakerConfig, playoffsDisplayMode = "bracket", showCheckInStatus = false }: SeasonPlayDisplayProps) {
   const { t, locale } = useI18n();
   const searchParams = useSearchParams();
   const previewSuffix = searchParams?.get("preview") === "1" ? "?preview=1" : "";
@@ -2491,6 +2492,7 @@ export default function SeasonPlayDisplay({ matches, players, sportName = "Tenni
             matches={playoffMatchesForBracket}
             players={players}
             sportName={sportName}
+            showCheckInStatus={showCheckInStatus}
           />
           {renderSoccerStatsSection()}
         </div>

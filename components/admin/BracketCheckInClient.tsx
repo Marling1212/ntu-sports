@@ -40,6 +40,7 @@ export default function BracketCheckInClient({
         name: p.name,
         seed: p.seed ?? undefined,
         school: p.department ?? undefined,
+        checked_in_at: p.checked_in_at ?? undefined,
       })),
     [initialPlayers]
   );

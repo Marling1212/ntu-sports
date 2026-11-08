@@ -10,12 +10,14 @@ interface BracketSectionProps {
   matches: Match[];
   players: Player[];
   sportName?: string;
+  showCheckInStatus?: boolean;
 }
 
 export default function BracketSection({
   matches,
   players,
   sportName = "Tennis",
+  showCheckInStatus = false,
 }: BracketSectionProps) {
   const { t } = useI18n();
   const [currentSection, setCurrentSection] = useState(1);
@@ -213,6 +215,7 @@ export default function BracketSection({
           sportName={sportName}
           totalRounds={maxRound}
           compactLayout={true}
+          showCheckInStatus={showCheckInStatus}
         />
       ) : (
         <SectionBracket
@@ -221,6 +224,7 @@ export default function BracketSection({
           sportName={sportName}
           sectionNumber={currentSection}
           totalRounds={maxRound}
+          showCheckInStatus={showCheckInStatus}
         />
       )}
     </div>
@@ -233,13 +237,15 @@ function SectionBracket({
   players, 
   sportName,
   sectionNumber,
-  totalRounds 
+  totalRounds,
+  showCheckInStatus = false,
 }: { 
   matches: Match[]; 
   players: Player[]; 
   sportName: string;
   sectionNumber: number;
   totalRounds: number;
+  showCheckInStatus?: boolean;
 }) {
   // Re-map match numbers for ALL rounds to start from 1
   const remappedMatches = matches.map((match) => {
@@ -263,6 +269,7 @@ function SectionBracket({
       sportName={sportName}
       totalRounds={totalRounds}
       hideThirdPlace={true}
+      showCheckInStatus={showCheckInStatus}
     />
   );
 }
@@ -273,13 +280,15 @@ function FinalsStage({
   players, 
   sportName,
   totalRounds,
-  compactLayout = false
+  compactLayout = false,
+  showCheckInStatus = false,
 }: { 
   matches: Match[]; 
   players: Player[]; 
   sportName: string;
   totalRounds: number;
   compactLayout?: boolean;
+  showCheckInStatus?: boolean;
 }) {
   // Re-number matches to start from 1 for each round (keep 3rd place match in main bracket)
   const remappedMatches = matches.map(match => {
@@ -296,6 +305,7 @@ function FinalsStage({
       totalRounds={totalRounds}
       compactLayout={compactLayout}
       hideThirdPlace={false}
+      showCheckInStatus={showCheckInStatus}
     />
   );
 }
