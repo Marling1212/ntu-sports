@@ -17,15 +17,25 @@ export default function Navbar() {
   const adminLabel = t("nav.admin") || (locale === "zh" ? "後台管理" : "Admin");
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-colors">
+    <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-colors">
+      {/* Top Accent Gradient Line */}
+      <div className="h-[2.5px] w-full bg-gradient-to-r from-blue-600 via-teal-400 to-emerald-500" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Left: Brand Anchor */}
         <Link
           href="/"
-          className="flex items-center gap-2 text-lg sm:text-xl font-bold text-ntu-green hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2.5 text-lg sm:text-xl font-bold hover:opacity-90 transition-opacity"
         >
-          <span className="text-xl sm:text-2xl leading-none">🏆</span>
-          <span className="tracking-tight font-extrabold text-slate-900">NTU Sports</span>
+          <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-base ring-1 ring-blue-200/50">
+            <span className="leading-none">🏆</span>
+          </div>
+          <span className="tracking-tight font-extrabold text-slate-900">
+            NTU{" "}
+            <span className="bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+              Sports
+            </span>
+          </span>
         </Link>
 
         {/* Right: Utility Group */}
@@ -37,7 +47,7 @@ export default function Navbar() {
               className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                 isSoccerActive
                   ? "text-emerald-800 bg-emerald-50 border border-emerald-200/80"
-                  : "text-slate-600 hover:text-emerald-800 hover:bg-slate-100"
+                  : "text-slate-600 hover:text-emerald-700 hover:bg-emerald-50"
               }`}
             >
               {soccerLabel}
@@ -46,8 +56,8 @@ export default function Navbar() {
               href="/tennis"
               className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                 isTennisActive
-                  ? "text-lime-800 bg-lime-50 border border-lime-200/80"
-                  : "text-slate-600 hover:text-lime-800 hover:bg-slate-100"
+                  ? "text-amber-800 bg-amber-50 border border-amber-200/80"
+                  : "text-slate-600 hover:text-amber-700 hover:bg-amber-50"
               }`}
             >
               {tennisLabel}
@@ -63,7 +73,7 @@ export default function Navbar() {
           {/* Admin CTA */}
           <Link
             href="/admin"
-            className="inline-flex items-center justify-center px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 shadow-sm"
+            className="inline-flex items-center justify-center bg-blue-50/70 hover:bg-blue-100/90 text-blue-700 border border-blue-200/70 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-colors"
           >
             {adminLabel}
           </Link>

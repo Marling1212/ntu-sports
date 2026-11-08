@@ -12,7 +12,12 @@ const CATEGORIES: { value: FeedbackCategory; labelKey: string }[] = [
   { value: "design", labelKey: "feedback.categoryDesign" },
 ];
 
-export default function FeedbackButton() {
+interface FeedbackButtonProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+export default function FeedbackButton({ className, children }: FeedbackButtonProps = {}) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -52,10 +57,10 @@ export default function FeedbackButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-green-100 hover:text-white transition-colors text-xs sm:text-sm underline"
+        className={className || "text-green-100 hover:text-white transition-colors text-xs sm:text-sm underline"}
         aria-label={t("footer.feedback")}
       >
-        {t("footer.feedback")}
+        {children || t("footer.feedback")}
       </button>
       {open && (
         <div
