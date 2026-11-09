@@ -9,7 +9,6 @@ import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { getMatchTimeDisplay } from "@/lib/utils/formatScheduledTime";
 import { processMatchesForDisplay } from "@/lib/utils/matchFilters";
 import { getLocale, getT } from "@/lib/i18n/server";
-import EventSponsorBanner from "@/components/EventSponsorBanner";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -151,22 +150,14 @@ export default async function SportEventPage({
         </div>
       )}
       {/* Header Section */}
-      <div className="text-center mb-6 sm:mb-10">
+      <div className="text-center mb-4 sm:mb-6">
         <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-2 sm:mb-3">
           {sportIcon} {event.name || t("sports.ntuSportTournament").replace("{sport}", sportName)}
         </h1>
       </div>
 
-      {/* Sponsors - moved to top for maximum visibility */}
-      {sponsors.length > 0 && (
-        <EventSponsorBanner
-          sponsors={sponsors.map((s) => ({ id: s.id, name: s.name, logo_url: s.logo_url, website_url: s.website_url }))}
-          label="Supported by"
-        />
-      )}
-
       {/* Tournament Overview: Compact Pill Cluster */}
-      <div className="flex flex-wrap items-center justify-center gap-2 mb-6 sm:mb-8 text-xs text-slate-600">
+      <div className="flex flex-wrap items-center justify-center gap-2 mb-3 text-xs text-slate-600">
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-slate-700 font-medium border border-slate-200/80 shadow-2xs">
           <span>🏆</span>
           <span>
@@ -188,8 +179,51 @@ export default async function SportEventPage({
       </div>
 
       {event.description && (
-        <div className="max-w-2xl mx-auto -mt-3 mb-6 text-center text-xs text-slate-500 line-clamp-2 px-2">
+        <div className="max-w-2xl mx-auto mb-3 text-center text-xs text-slate-500 line-clamp-2 px-2">
           {event.description}
+        </div>
+      )}
+
+      {/* Refined Low-profile Sponsor Section */}
+      {sponsors.length > 0 && (
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-6 sm:mb-8 text-xs text-slate-400">
+          <span>Supported by</span>
+          {sponsors.map((s) => {
+            const content = (
+              <div
+                key={s.id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200/60 hover:bg-slate-100 transition-colors shadow-2xs"
+              >
+                {s.logo_url ? (
+                  <img
+                    src={s.logo_url}
+                    alt={s.name}
+                    className="w-5 h-5 rounded-full object-contain"
+                  />
+                ) : (
+                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">
+                    {s.name.charAt(0)}
+                  </span>
+                )}
+                <span className="text-xs font-medium text-slate-700">{s.name}</span>
+              </div>
+            );
+
+            if (s.website_url) {
+              return (
+                <a
+                  key={s.id}
+                  href={s.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-opacity hover:opacity-80"
+                >
+                  {content}
+                </a>
+              );
+            }
+            return content;
+          })}
         </div>
       )}
 
@@ -299,8 +333,12 @@ export default async function SportEventPage({
       )}
 
       {matchesToShow.length === 0 && (
-        <div className="bg-white border border-slate-200/80 p-6 mb-6 sm:mb-8 rounded-xl shadow-xs flex items-center justify-center min-h-[100px]">
-          <p className="text-slate-500 font-medium text-center text-sm">{emptyMessage}</p>
+        <div className="rounded-2xl border border-slate-200/70 bg-slate-50/50 p-6 text-center my-4 mb-6 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-400 mb-2 text-lg">
+            {sportIcon}
+          </div>
+          <p className="text-sm font-semibold text-slate-700">{emptyMessage}</p>
+          <p className="text-xs text-slate-400 mt-1">{t("sports.checkDrawHint")}</p>
         </div>
       )}
 
