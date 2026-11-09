@@ -44,12 +44,14 @@ export default function LoadingLink({
     }
   };
 
+  const hasDisplayClass = /(^|\s)(block|flex|grid|inline-block)($|\s)/.test(className);
+
   return (
     <Link
       href={href}
       onClick={handleClick}
       prefetch={prefetch}
-      className={`relative inline-flex items-center ${className} ${isNavigating ? "opacity-70 cursor-wait" : ""} transition-opacity`}
+      className={`relative ${hasDisplayClass ? "" : "inline-flex items-center "}${className} ${isNavigating ? "opacity-70 cursor-wait" : ""} transition-opacity`}
       style={style}
     >
       {isNavigating && (

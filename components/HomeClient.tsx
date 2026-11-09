@@ -279,7 +279,7 @@ export default function HomeClient({
                 <LoadingLink
                   key={sport}
                   href={`/sports/${sportLower.replace(/\s+/g, "")}`}
-                  className={`relative overflow-hidden bg-white rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm ${style.hoverBorder} ${style.hoverShadow} transition-all duration-200 hover:-translate-y-0.5 group active:scale-[0.98] block p-4 sm:p-5`}
+                  className={`relative overflow-hidden bg-white rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm ${style.hoverBorder} ${style.hoverShadow} transition-all duration-200 hover:-translate-y-0.5 group active:scale-[0.98] block w-full p-4 sm:p-5`}
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   {/* Top border accent line */}
@@ -324,17 +324,17 @@ export default function HomeClient({
                   </div>
 
                   {/* Tablet/Desktop Layout: Structured vertical card */}
-                  <div className="hidden sm:flex sm:flex-col sm:justify-between h-full">
-                    <div>
+                  <div className="hidden sm:flex sm:flex-col sm:justify-between h-full w-full">
+                    <div className="w-full">
                       {/* Top row: Icon badge + Status pill */}
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center justify-between w-full mb-4">
                         <div
-                          className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${style.iconBg} shadow-sm group-hover:scale-105 transition-transform duration-200`}
+                          className={`w-12 h-12 rounded-xl flex items-center justify-center ${style.iconBg} shadow-sm group-hover:scale-105 transition-transform duration-200 shrink-0`}
                         >
                           <span>{style.icon}</span>
                         </div>
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusInfo.badgeClass} shadow-xs`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.badgeClass} shadow-xs shrink-0`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${statusInfo.dotClass}`}
