@@ -48,13 +48,10 @@ function formatDateTime(dateStr: string) {
 
 export async function GET(req: Request) {
   try {
-    // Optional: require cron secret when set (does not break existing cron without secret)
+    // Require cron secret to prevent unauthorized public triggers
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const authHeader = req.headers.get("authorization");
-      if (authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-      }
+    if (!cronSecret || req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = await createClient();
