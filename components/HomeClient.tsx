@@ -149,6 +149,43 @@ const defaultSportStyle: SportCardStyle = {
   subtitleKey: "home.defaultSportSubtitle",
 };
 
+export type TournamentLifecycleStatus = 'in_progress' | 'upcoming' | 'off_season';
+
+export interface SportCardItem {
+  sport: string;
+  status: TournamentLifecycleStatus;
+  tournamentName?: string;
+}
+
+export const statusConfig: Record<
+  TournamentLifecycleStatus,
+  {
+    badgeClass: string;
+    dotClass: string;
+    labelKey: string;
+    subtextColor: string;
+  }
+> = {
+  in_progress: {
+    badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    dotClass: "bg-emerald-500 animate-pulse",
+    labelKey: "home.statusInProgress",
+    subtextColor: "text-emerald-700 font-medium",
+  },
+  upcoming: {
+    badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+    dotClass: "bg-amber-500",
+    labelKey: "home.statusUpcoming",
+    subtextColor: "text-amber-700 font-medium",
+  },
+  off_season: {
+    badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+    dotClass: "bg-slate-400",
+    labelKey: "home.statusOffSeason",
+    subtextColor: "text-slate-400",
+  },
+};
+
 export interface MultiSportEvent {
   id: string;
   name: string;
@@ -158,13 +195,33 @@ export interface MultiSportEvent {
 }
 
 interface HomeClientProps {
-  sportsToShow: string[];
+  sportsToShow?: string[];
+  sportsData?: SportCardItem[];
   multiSportEvents: MultiSportEvent[];
   globalSponsors?: GlobalSponsorItem[];
 }
 
-export default function HomeClient({ sportsToShow, multiSportEvents, globalSponsors = [] }: HomeClientProps) {
+export default function HomeClient({
+  sportsToShow,
+  sportsData,
+  multiSportEvents,
+  globalSponsors = [],
+}: HomeClientProps) {
   const { t } = useI18n();
+
+  // Normalize items to SportCardItem[]
+  const items: SportCardItem[] =
+    sportsData && sportsData.length > 0
+      ? sportsData
+      : (sportsToShow || ["Soccer", "Tennis"]).map((sport) => {
+          if (sport.toLowerCase() === "soccer") {
+            return { sport, status: "in_progress", tournamentName: "台大盃" };
+          }
+          if (sport.toLowerCase() === "tennis") {
+            return { sport, status: "off_season" };
+          }
+          return { sport, status: "off_season" };
+        });
 
   return (
     <div className="relative overflow-hidden pb-8 sm:pb-12">
@@ -200,14 +257,24 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
         <div className="mt-2 mb-10 sm:mb-12 animate-fadeIn max-w-4xl mx-auto" style={{ animationDelay: "0.15s" }}>
           <div
             className={`grid gap-3.5 sm:gap-6 ${
-              sportsToShow.length === 1
+              items.length === 1
                 ? "grid-cols-1 max-w-md mx-auto"
                 : "grid-cols-1 sm:grid-cols-2"
             }`}
           >
-            {sportsToShow.map((sport, index) => {
+            {items.map((item, index) => {
+              const { sport, status, tournamentName } = item;
               const sportLower = sport.toLowerCase();
               const style = sportCardStyles[sport] || defaultSportStyle;
+              const statusInfo = statusConfig[status] || statusConfig.off_season;
+
+              // Subtitle text: if active or upcoming tournament name exists, show it; if off-season show clean muted fallback
+              const subtitleContent = tournamentName
+                ? tournamentName
+                : status === "off_season"
+                ? t("home.noActiveTournament")
+                : undefined;
+
               return (
                 <LoadingLink
                   key={sport}
@@ -227,26 +294,28 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
                       <span>{style.icon}</span>
                     </div>
 
-                    {/* Middle section: Sport Title + Subtitle Column */}
+                    {/* Middle section: Sport Title + Dynamic Subtitle Column */}
                     <div className="flex flex-col min-w-0 flex-1 text-left">
                       <h3 className="text-base font-bold text-slate-900 group-hover:text-slate-950 transition-colors leading-snug">
                         {sport}
                       </h3>
-                      <p className="text-xs text-slate-500 mt-0.5 truncate">
-                        {t(style.subtitleKey)}
-                      </p>
+                      {subtitleContent && (
+                        <p className={`text-xs mt-0.5 truncate ${statusInfo.subtextColor}`}>
+                          {subtitleContent}
+                        </p>
+                      )}
                     </div>
 
                     {/* Right section: Sport Status Badge + CTA Arrow */}
                     <div className="flex items-center gap-2 shrink-0">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${style.statusBadgeClass}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusInfo.badgeClass}`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${style.statusDotClass}`}
+                          className={`w-1.5 h-1.5 rounded-full ${statusInfo.dotClass}`}
                           aria-hidden="true"
                         />
-                        <span>{t(style.statusKey)}</span>
+                        <span>{t(statusInfo.labelKey)}</span>
                       </span>
                       <span className="text-sm font-semibold text-slate-400 group-hover:text-slate-700 transition-transform group-hover:translate-x-0.5">
                         →
@@ -265,25 +334,27 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
                           <span>{style.icon}</span>
                         </div>
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${style.statusBadgeClass} shadow-xs`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusInfo.badgeClass} shadow-xs`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${style.statusDotClass}`}
+                            className={`w-1.5 h-1.5 rounded-full ${statusInfo.dotClass}`}
                             aria-hidden="true"
                           />
-                          <span>{t(style.statusKey)}</span>
+                          <span>{t(statusInfo.labelKey)}</span>
                         </span>
                       </div>
 
                       {/* Sport Title */}
-                      <h3 className="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-slate-950 transition-colors mb-2">
+                      <h3 className="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-slate-950 transition-colors mb-1">
                         {sport}
                       </h3>
 
-                      {/* Differentiated Subtext */}
-                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">
-                        {t(style.descKey)}
-                      </p>
+                      {/* Dynamic Tournament Subtitle */}
+                      {subtitleContent && (
+                        <p className={`text-xs sm:text-sm mt-0.5 mb-3 truncate ${statusInfo.subtextColor}`}>
+                          {subtitleContent}
+                        </p>
+                      )}
                     </div>
 
                     {/* Differentiated Action Button / Link */}
