@@ -399,7 +399,7 @@ export default function ExportPDF({
   return (
     <button
       onClick={handleExportPDF}
-      className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-md flex items-center gap-2 ml-2"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs transition-all active:scale-[0.98]"
     >
       <span>📄</span>
       <span>Download PDF</span>

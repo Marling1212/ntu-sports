@@ -8,10 +8,20 @@ import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "react-hot-toast";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
-import EventSponsorBanner from "@/components/EventSponsorBanner";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const sportIcons: Record<string, string> = {
+  tennis: "🎾",
+  soccer: "⚽",
+  basketball: "🏀",
+  volleyball: "🏐",
+  badminton: "🏸",
+  tabletennis: "🏓",
+  baseball: "⚾",
+  softball: "🥎",
+};
 
 export default async function SportEventDrawPage({
   params,
@@ -24,6 +34,7 @@ export default async function SportEventDrawPage({
   const { preview } = await searchParams;
   const sportParam = sport.toLowerCase();
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
+  const sportIcon = sportIcons[sportParam] || "🏆";
   const supabase = await createClient();
   const locale = await getLocale();
   const t = getT(locale);
@@ -120,19 +131,38 @@ export default async function SportEventDrawPage({
   return (
     <>
       <Toaster position="top-right" />
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
-        <div className="mb-6 md:mb-8 flex flex-row justify-between items-start gap-4">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl md:text-4xl font-bold text-ntu-green mb-2 md:mb-4 break-words">
-              {event.name || t("draw.pageTitleWithSport").replace("{sport}", sportName)}
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 break-words">
+              {sportIcon} {event.name || t("draw.pageTitleWithSport").replace("{sport}", sportName)}
             </h1>
-            <p className="text-base md:text-lg text-gray-600">
-              {tournamentType === "season_play"
-                ? t("draw.pageSubtitleSeason")
-                : t("draw.pageSubtitleBracket")}
-            </p>
+            {sponsors && sponsors.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-slate-500">
+                <span>Supported by</span>
+                {sponsors.map((s: any) => (
+                  <div
+                    key={s.id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-50 border border-slate-200"
+                  >
+                    {s.logo_url ? (
+                      <img
+                        src={s.logo_url}
+                        alt={s.name}
+                        className="w-4 h-4 rounded-full object-contain"
+                      />
+                    ) : (
+                      <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[9px] font-bold">
+                        {s.name.charAt(0)}
+                      </span>
+                    )}
+                    <span className="font-medium text-slate-700">{s.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="flex flex-col md:flex-row gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <ExportBracket
               matches={matches}
               players={players}
@@ -155,10 +185,6 @@ export default async function SportEventDrawPage({
             />
           </div>
         </div>
-
-        {sponsors && sponsors.length > 0 && (
-          <EventSponsorBanner sponsors={sponsors} label="Supported by" />
-        )}
 
         {tournamentType === "season_play" ? (
           <SeasonPlayDisplay

@@ -4,10 +4,20 @@ import SeasonPlayDisplay from "@/components/SeasonPlayDisplay";
 import { getEventForPublicPage, getDivisionIdsForEventAndSport, getSportMatches, getSportPlayers } from "@/lib/utils/getSportEvent";
 import { notFound } from "next/navigation";
 import { getLocale, getT } from "@/lib/i18n/server";
-import EventSponsorBanner from "@/components/EventSponsorBanner";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const sportIcons: Record<string, string> = {
+  tennis: "🎾",
+  soccer: "⚽",
+  basketball: "🏀",
+  volleyball: "🏐",
+  badminton: "🏸",
+  tabletennis: "🏓",
+  baseball: "⚾",
+  softball: "🥎",
+};
 
 export default async function SportEventSchedulePage({
   params,
@@ -90,48 +100,66 @@ export default async function SportEventSchedulePage({
     const allRegularComplete = regularSeasonMatches.length === 0 || regularSeasonMatches.every((m: { status: string }) => m.status === "completed" || m.status === "bye" || m.status === "forfeit" || m.status === "walkover");
     const defaultGamesView = hasPlayoffs && allRegularComplete ? "playoffs" : "regular";
 
+    const sportIcon = sportIcons[sportParam] || "🏆";
+
     return (
-      <>
-        <div className="container mx-auto px-4 py-12 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-ntu-green mb-4">
-              {event.name || t("schedule.pageTitleWithSport").replace("{sport}", sportName)}
-            </h1>
-            <p className="text-lg text-gray-600">{t("schedule.pageSubtitleSeason")}</p>
-          </div>
-          {sponsors?.length ? <EventSponsorBanner sponsors={sponsors} label="Supported by" /> : null}
-          <SeasonPlayDisplay
-            matches={matches}
-            players={players}
-            sportName={sportName}
-            qualifiersPerGroup={(event as any)?.playoff_qualifiers_per_group ?? undefined}
-            visibleTabs={{ regular: true, standings: false, playoffs: hasPlayoffs }}
-            defaultView={defaultGamesView}
-            playoffsDisplayMode="schedule"
-            registrationType={(event as any)?.registration_type ?? "player"}
-            matchPlayerStats={matchPlayerStats}
-            teamMembers={teamMembers}
-            tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
-          />
+      <div className="container mx-auto px-4 py-6 sm:py-10 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 mb-1 sm:mb-2">
+            {sportIcon} {event.name || t("schedule.pageTitleWithSport").replace("{sport}", sportName)}
+          </h1>
+          {sponsors && sponsors.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-slate-500">
+              <span>Supported by</span>
+              {sponsors.map((s: any) => (
+                <div
+                  key={s.id}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-50 border border-slate-200"
+                >
+                  {s.logo_url ? (
+                    <img
+                      src={s.logo_url}
+                      alt={s.name}
+                      className="w-4 h-4 rounded-full object-contain"
+                    />
+                  ) : (
+                    <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[9px] font-bold">
+                      {s.name.charAt(0)}
+                    </span>
+                  )}
+                  <span className="font-medium text-slate-700">{s.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </>
+        <SeasonPlayDisplay
+          matches={matches}
+          players={players}
+          sportName={sportName}
+          qualifiersPerGroup={(event as any)?.playoff_qualifiers_per_group ?? undefined}
+          visibleTabs={{ regular: true, standings: false, playoffs: hasPlayoffs }}
+          defaultView={defaultGamesView}
+          playoffsDisplayMode="schedule"
+          registrationType={(event as any)?.registration_type ?? "player"}
+          matchPlayerStats={matchPlayerStats}
+          teamMembers={teamMembers}
+          tiebreakerConfig={(event as any)?.tiebreaker_config ?? undefined}
+        />
+      </div>
     );
   }
 
   const dbMatches = await getSportMatches(event.id, divisionFilter);
 
   return (
-    <>
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-12 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
-        {sponsors && sponsors.length > 0 && (
-          <EventSponsorBanner sponsors={sponsors} label="Supported by" />
-        )}
-        <BracketMatchSchedule
-          matches={dbMatches || []}
-          sportSlug={sportParam}
-          eventName={event.name}
-        />
-      </div>
-    </>
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-[max(2rem,env(safe-area-inset-bottom)+140px)]">
+      <BracketMatchSchedule
+        matches={dbMatches || []}
+        sportSlug={sportParam}
+        eventName={event.name}
+        sponsors={sponsors}
+      />
+    </div>
   );
 }
