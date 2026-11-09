@@ -86,6 +86,7 @@ const deriveIsoFromSlot = (slot?: SlotOption | null): string | null => {
 interface Match {
   id: string;
   event_id: string;
+  division_id?: string | null;
   round: number;
   match_number: number;
   player1_id?: string;
@@ -521,9 +522,37 @@ export default function MatchesTable({
       // Odd match numbers (1, 3, 5...) feed into player1; even (2, 4, 6...) into player2
       const isPlayer1Slot = currentMatch.match_number % 2 === 1;
 
-      const nextMatch = matches.find(
-        m => m.round === nextRound && m.match_number === nextMatchNumber
+      let nextMatch = matches.find(
+        m =>
+          m.round === nextRound &&
+          m.match_number === nextMatchNumber &&
+          (currentMatch.division_id ? m.division_id === currentMatch.division_id : !m.division_id)
       );
+
+      if (!nextMatch) {
+        let nextMatchQuery = supabase
+          .from("matches")
+          .select(`
+            *,
+            player1:players!matches_player1_id_fkey(id, name, seed),
+            player2:players!matches_player2_id_fkey(id, name, seed),
+            winner:players!matches_winner_id_fkey(id, name, seed)
+          `)
+          .eq("event_id", eventId)
+          .eq("round", nextRound)
+          .eq("match_number", nextMatchNumber);
+
+        if (currentMatch.division_id) {
+          nextMatchQuery = nextMatchQuery.eq("division_id", currentMatch.division_id);
+        } else {
+          nextMatchQuery = nextMatchQuery.is("division_id", null);
+        }
+
+        const { data: dbNextMatch } = await nextMatchQuery.maybeSingle();
+        if (dbNextMatch) {
+          nextMatch = dbNextMatch as Match;
+        }
+      }
 
       if (nextMatch) {
         const slotKey = isPlayer1Slot ? "player1_id" : "player2_id";
@@ -565,7 +594,10 @@ export default function MatchesTable({
               if (loserId) {
                 // Find 3rd place match (match_number = 2 in final round)
                 const thirdPlaceMatch = matches.find(
-                  m => m.round === maxRound && m.match_number === 2
+                  m =>
+                    m.round === maxRound &&
+                    m.match_number === 2 &&
+                    (currentMatch.division_id ? m.division_id === currentMatch.division_id : !m.division_id)
                 );
 
                 if (thirdPlaceMatch) {
