@@ -84,6 +84,9 @@ function formatDateRange(
   const e = extractParts(endDateStr);
 
   if ("year" in s && "year" in e) {
+    if (s.year === e.year) {
+      return `${s.year}/${s.month}/${s.day} – ${e.month}/${e.day}`;
+    }
     return `${s.year}/${s.month}/${s.day} – ${e.year}/${e.month}/${e.day}`;
   }
 
@@ -162,74 +165,60 @@ export default async function SportEventPage({
         />
       )}
 
-      {/* Compact Tournament Overview Card */}
-      <div className="bg-white rounded-xl shadow-xs sm:shadow-md p-4 sm:p-6 mb-6 sm:mb-8 border border-slate-200/80">
-        <h2 className="text-base sm:text-xl font-semibold text-slate-900 mb-3 sm:mb-4">
-          {t("sports.tournamentOverview")}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
-          {/* Type */}
-          <div className="bg-slate-50/80 rounded-lg p-3 border border-slate-100 flex flex-col justify-center">
-            <span className="text-xs text-slate-400 font-medium mb-1">
-              {t("sports.typeLabel")}
-            </span>
-            <span className="text-sm font-semibold text-slate-800">
-              {event.tournament_type === "season_play"
-                ? t("sports.tournamentTypeSeason")
-                : t("sports.tournamentTypeBracket")}
-            </span>
-          </div>
-
-          {/* Dates */}
-          <div className="bg-slate-50/80 rounded-lg p-3 border border-slate-100 flex flex-col justify-center">
-            <span className="text-xs text-slate-400 font-medium mb-1">
-              {t("sports.dateLabel")}
-            </span>
-            <span className="text-sm font-semibold text-slate-800">
-              {formatDateRange(event.start_date, event.end_date, locale)}
-            </span>
-          </div>
-
-          {/* Venue */}
-          <div className="bg-slate-50/80 rounded-lg p-3 border border-slate-100 flex flex-col justify-center">
-            <span className="text-xs text-slate-400 font-medium mb-1">
-              {t("sports.venueLabel")}
-            </span>
-            <span className="text-sm font-semibold text-slate-800 truncate" title={event.venue}>
-              {event.venue || "—"}
-            </span>
-          </div>
-        </div>
-
-        {event.description && (
-          <div className="mt-3 pt-3 border-t border-slate-100 text-xs sm:text-sm text-slate-600 leading-relaxed">
-            {event.description}
-          </div>
+      {/* Tournament Overview: Compact Pill Cluster */}
+      <div className="flex flex-wrap items-center justify-center gap-2 mb-6 sm:mb-8 text-xs text-slate-600">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-slate-700 font-medium border border-slate-200/80 shadow-2xs">
+          <span>🏆</span>
+          <span>
+            {event.tournament_type === "season_play"
+              ? t("sports.tournamentTypeSeason")
+              : t("sports.tournamentTypeBracket")}
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-slate-700 font-medium border border-slate-200/80 shadow-2xs">
+          <span>📅</span>
+          <span>{formatDateRange(event.start_date, event.end_date, locale)}</span>
+        </span>
+        {event.venue && event.venue.trim() !== "" && event.venue !== "—" && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-slate-700 font-medium border border-slate-200/80 shadow-2xs truncate max-w-[260px]">
+            <span>📍</span>
+            <span className="truncate">{event.venue}</span>
+          </span>
         )}
       </div>
 
+      {event.description && (
+        <div className="max-w-2xl mx-auto -mt-3 mb-6 text-center text-xs text-slate-500 line-clamp-2 px-2">
+          {event.description}
+        </div>
+      )}
+
       {/* Today's or Tomorrow's Matches: Matchday Spotlight Card */}
       {matchesToShow.length > 0 && (
-        <div className="rounded-2xl border-2 border-emerald-300/80 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 p-5 sm:p-6 shadow-sm shadow-emerald-500/5 mb-6 sm:mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <span className="relative flex h-3 w-3 shrink-0">
+        <div className="rounded-2xl border-2 border-emerald-300/80 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 p-4 sm:p-6 shadow-sm shadow-emerald-500/5 mb-6 sm:mb-8">
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-emerald-500"></span>
               </span>
-              <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                {title} ‧ Matchday Live
+              <h2 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight truncate">
+                <span className="sm:hidden">{locale === "zh" ? "今日賽程" : "Today's Matches"}</span>
+                <span className="hidden sm:inline">{title} ‧ Matchday Live</span>
               </h2>
             </div>
             <span className="text-xs font-semibold text-emerald-700 bg-emerald-100/90 border border-emerald-200/80 px-2.5 py-0.5 rounded-full shrink-0">
-              {matchesToShow.length} {locale === "zh" ? "場賽事" : "Matches"}
+              {matchesToShow.length} {locale === "zh" ? "場賽事" : matchesToShow.length === 1 ? "Match" : "Matches"}
             </span>
           </div>
 
           <div className="space-y-3.5">
             {matchesToShow.map((m: any) => {
               const timeStr = getMatchTimeDisplay(m);
-              const court = getCourtDisplay(m);
+              const rawCourt = getCourtDisplay(m);
+              const courtVenue = (rawCourt && rawCourt !== "—" && rawCourt.trim() !== "")
+                ? rawCourt.trim()
+                : (event.venue && event.venue !== "—" && event.venue.trim() !== "" ? event.venue.trim() : null);
               const p1 = m.player1?.name || "TBD";
               const p2 = m.player2?.name || "TBD";
 
@@ -288,10 +277,10 @@ export default async function SportEventPage({
                   {/* Bottom row: Venue + CTA link */}
                   <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                     <div className="flex items-center gap-1 truncate text-slate-500 font-medium">
-                      {court ? (
+                      {courtVenue ? (
                         <>
                           <span>📍</span>
-                          <span className="truncate">{court}</span>
+                          <span className="truncate">{courtVenue}</span>
                         </>
                       ) : (
                         <span>&nbsp;</span>
