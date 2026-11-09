@@ -413,6 +413,13 @@ export default function PlayersTable({
     return map;
   }, [initialRoundOneMatches, tournamentType]);
 
+  const is64BracketGenerated = useMemo(() => {
+    if (tournamentType !== "single_elimination") return false;
+    const round1Count = initialRoundOneMatches?.length || 0;
+    const generatedBracketSize = round1Count * 2;
+    return generatedBracketSize > 32 && generatedBracketSize <= 64;
+  }, [tournamentType, initialRoundOneMatches]);
+
   const handleSortColumn = (key: PlayersSortKey) => {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -1017,8 +1024,8 @@ export default function PlayersTable({
           </div>
         </div>
 
-        {/* 64 籤單淘汰公開分區模式 (Bracket Split Mode for 64-draw) */}
-        {tournamentType === 'single_elimination' && (
+        {/* 64 籤單淘汰公開分區模式 (Bracket Split Mode for 64-draw) - 僅在確定生成 64 籤後顯示 */}
+        {is64BracketGenerated && (
           <div className="px-6 py-4 bg-sky-50/70 border-b border-sky-100">
             <div className="flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-3">
