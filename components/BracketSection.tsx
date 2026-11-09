@@ -73,12 +73,14 @@ export default function BracketSection({
     return out;
   }, [bracketSize, maxRound, t, bracketSplitMode]);
 
-  // Get matches for current section
-  const currentSectionConfig = sections[currentSection - 1];
+  // Active section clamped to valid bounds (1 to sections.length)
+  const activeSection = Math.min(Math.max(1, currentSection), Math.max(1, sections.length));
+  const currentSectionConfig = sections[activeSection - 1] ?? sections[0];
   
   const getMatchesForSection = (): Match[] => {
+    if (!currentSectionConfig) return matches;
     const { startPos, endPos, rounds } = currentSectionConfig;
-    const isFinalsSection = currentSection === sections.length;
+    const isFinalsSection = activeSection === sections.length;
     
     return matches.filter(match => {
       // FIRST: Check if this is the 3rd place match (matchNumber === 2 in final round)
@@ -154,7 +156,7 @@ export default function BracketSection({
   const getSectionPlayers = (): Player[] => {
     if (sections.length === 1) return players;
     
-    if (currentSection === sections.length) {
+    if (activeSection === sections.length) {
       // Finals: return all players (they might be referenced)
       return players;
     }
@@ -191,7 +193,7 @@ export default function BracketSection({
                 key={idx + 1}
                 onClick={() => setCurrentSection(idx + 1)}
                 className={`flex-1 min-w-[7rem] sm:min-w-[8.75rem] px-3 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-semibold transition-colors border-b-4 ${
-                  currentSection === idx + 1
+                  activeSection === idx + 1
                     ? "bg-ntu-green text-white border-ntu-green"
                     : "bg-white text-gray-700 hover:bg-gray-50 border-transparent"
                 }`}
@@ -212,7 +214,7 @@ export default function BracketSection({
             </svg>
             <p className="text-xs sm:text-sm text-blue-800">
               {t("bracket.viewingSection")}<strong>{currentSectionConfig.name}</strong>
-              {currentSection === sections.length
+              {activeSection === sections.length
                 ? " - " + (currentSectionConfig.rounds.length >= 3 ? t("bracket.sectionIncludesFinals") : t("bracket.sectionIncludesFinalsSemis")).replace("{thirdPlace}", has3rdPlaceMatch ? t("bracket.andThirdPlace") : "")
                 : " - " + t("bracket.sectionMatchesCount").replace("{n}", String(sectionMatches.length))
               }
@@ -222,7 +224,7 @@ export default function BracketSection({
       )}
 
       {/* Bracket Display */}
-      {currentSection === sections.length ? (
+      {activeSection === sections.length ? (
         <FinalsStage 
           matches={sectionMatches}
           players={players}
@@ -236,7 +238,7 @@ export default function BracketSection({
           matches={sectionMatches}
           players={sectionPlayers}
           sportName={sportName}
-          sectionNumber={currentSection}
+          sectionNumber={activeSection}
           totalRounds={maxRound}
           showCheckInStatus={showCheckInStatus}
         />

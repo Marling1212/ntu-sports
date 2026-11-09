@@ -140,7 +140,7 @@ export function generateMatchICS(options: ICSMatchOptions): string {
   } else {
     dtEnd = dtStart;
   }
-  const now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "") + "Z";
+  const now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",

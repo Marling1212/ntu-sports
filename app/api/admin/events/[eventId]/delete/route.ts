@@ -8,8 +8,14 @@ function json(status: number, body: any) {
   });
 }
 
-export async function POST(req: Request, context: any) {
-  const { eventId } = (context?.params || {}) as { eventId: string };
+export async function POST(
+  req: Request,
+  context: { params: Promise<{ eventId: string }> }
+) {
+  const { eventId } = await context.params;
+  if (!eventId) {
+    return json(400, { ok: false, message: "Missing eventId" });
+  }
   const supabase = await createClient();
 
   // AuthN

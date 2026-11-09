@@ -195,30 +195,32 @@ export function runAutoSchedule(
       const u = slotUsage.get(slot.id)!;
       if (u.count >= cap) continue;
       const blackout = blackoutForSlot(slot, blackoutTemplates);
-      if (blackout.has(p1) || blackout.has(p2)) continue;
-      if (u.playerIds.has(p1) || u.playerIds.has(p2)) continue;
+      if ((p1 && blackout.has(p1)) || (p2 && blackout.has(p2))) continue;
+      if ((p1 && u.playerIds.has(p1)) || (p2 && u.playerIds.has(p2))) continue;
       const timeBlockIdx = slotToTimeBlockIndex.get(slot.id) ?? -1;
       // Rest by time block: same team at least minSlotsBetweenSameTeam *time blocks* between (works for 1 or many venues)
-      const lastTb1 = lastTimeBlockIndexByPlayer.get(p1) ?? -1;
-      const lastTb2 = lastTimeBlockIndexByPlayer.get(p2) ?? -1;
-      if (timeBlockIdx <= lastTb1 + minSlotsBetweenSameTeam || timeBlockIdx <= lastTb2 + minSlotsBetweenSameTeam) continue;
+      const lastTb1 = p1 ? (lastTimeBlockIndexByPlayer.get(p1) ?? -1) : -1;
+      const lastTb2 = p2 ? (lastTimeBlockIndexByPlayer.get(p2) ?? -1) : -1;
+      if ((p1 && timeBlockIdx <= lastTb1 + minSlotsBetweenSameTeam) || (p2 && timeBlockIdx <= lastTb2 + minSlotsBetweenSameTeam)) continue;
       // Calendar-day rest: same team not on consecutive days when minDaysBetweenSameTeam >= 1
       if (minDaysBetweenSameTeam > 0) {
-        const lastDate1 = lastSlotDateByPlayer.get(p1);
-        const lastDate2 = lastSlotDateByPlayer.get(p2);
+        const lastDate1 = p1 ? lastSlotDateByPlayer.get(p1) : undefined;
+        const lastDate2 = p2 ? lastSlotDateByPlayer.get(p2) : undefined;
         const needDays = minDaysBetweenSameTeam + 1; // e.g. 1 rest day => next game >= 2 days later
         if (lastDate1 && daysBetween(lastDate1, slot.slot_date) < needDays) continue;
         if (lastDate2 && daysBetween(lastDate2, slot.slot_date) < needDays) continue;
       }
       u.count += 1;
-      u.playerIds.add(p1);
-      u.playerIds.add(p2);
-      if (timeBlockIdx >= 0) {
-        lastTimeBlockIndexByPlayer.set(p1, timeBlockIdx);
-        lastTimeBlockIndexByPlayer.set(p2, timeBlockIdx);
+      if (p1) {
+        u.playerIds.add(p1);
+        if (timeBlockIdx >= 0) lastTimeBlockIndexByPlayer.set(p1, timeBlockIdx);
+        lastSlotDateByPlayer.set(p1, slot.slot_date);
       }
-      lastSlotDateByPlayer.set(p1, slot.slot_date);
-      lastSlotDateByPlayer.set(p2, slot.slot_date);
+      if (p2) {
+        u.playerIds.add(p2);
+        if (timeBlockIdx >= 0) lastTimeBlockIndexByPlayer.set(p2, timeBlockIdx);
+        lastSlotDateByPlayer.set(p2, slot.slot_date);
+      }
       assignments.push({
         matchId: match.id,
         slotId: slot.id,
