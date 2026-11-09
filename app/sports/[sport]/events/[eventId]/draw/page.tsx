@@ -108,7 +108,7 @@ export default async function SportEventDrawPage({
   ) as "4_sections" | "2_sections";
 
   const eventDate = event.start_date && event.end_date
-    ? `${new Date(event.start_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")} - ${new Date(event.end_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")}`
+    ? `${event.start_date.replace(/-/g, "/")} - ${event.end_date.replace(/-/g, "/")}`
     : (locale === "zh" ? "2025/11/8 - 11/9" : "11/8/2025 - 11/9/2025");
   const eventVenue = event.venue || t("common.defaultVenue");
 

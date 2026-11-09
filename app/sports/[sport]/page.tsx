@@ -118,7 +118,7 @@ export default async function SportPage(context: any) {
               <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-700">
                 <p>
                   <span className="font-semibold">{t("sports.dateLabel")}：</span>
-                  {new Date(event.start_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")} - {new Date(event.end_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")}
+                  {event.start_date ? event.start_date.replace(/-/g, '/') : ''} - {event.end_date ? event.end_date.replace(/-/g, '/') : ''}
                 </p>
                 <p>
                   <span className="font-semibold">{t("sports.venueLabel")}：</span>
@@ -179,7 +179,7 @@ export default async function SportPage(context: any) {
             <div className="flex items-start gap-2">
               <span className="text-gray-400 sm:text-gray-800 text-xs sm:text-base shrink-0 w-14 sm:min-w-[100px]">{t("sports.dates")}</span>
               <span className="text-gray-800 font-medium">
-                {new Date(singleEvent.start_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")} – {new Date(singleEvent.end_date).toLocaleDateString(locale === "zh" ? "zh-TW" : "en-US")}
+                {singleEvent.start_date ? singleEvent.start_date.replace(/-/g, '/') : ''} – {singleEvent.end_date ? singleEvent.end_date.replace(/-/g, '/') : ''}
               </span>
             </div>
             <div className="flex items-start gap-2">

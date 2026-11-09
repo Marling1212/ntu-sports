@@ -51,7 +51,7 @@ export default function EventsListClient({ events, sport = "tennis" }: EventsLis
             <div className="space-y-2 text-xs sm:text-sm text-gray-700 mb-4">
               <p>
                 <span className="font-semibold">{t('sports.dates')}：</span>
-                {new Date(event.start_date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')} - {new Date(event.end_date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
+                {event.start_date ? event.start_date.replace(/-/g, '/') : ''} - {event.end_date ? event.end_date.replace(/-/g, '/') : ''}
               </p>
               <p>
                 <span className="font-semibold">{t('sports.venue')}：</span>

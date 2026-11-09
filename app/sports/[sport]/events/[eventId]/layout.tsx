@@ -1,6 +1,5 @@
 import { getEventByIdAndSport, getDivisionIdsForEventAndSport, getSportMatches, getEventDivisions } from "@/lib/utils/getSportEvent";
 import { EventNavProvider } from "@/lib/context/EventNavContext";
-import BackToTop from "@/components/BackToTop";
 import EventSportSwitcher from "@/components/EventSportSwitcher";
 import PublicNavbar from "@/components/PublicNavbar";
 
@@ -64,8 +63,7 @@ export default async function SportEventLayout({
     >
       <PublicNavbar eventName={event?.name || undefined} tournamentType={event?.tournament_type ?? undefined} />
       {showSwitcher && <EventSportSwitcher sports={distinctSports} />}
-      <div className="pb-20 md:pb-0">{children}</div>
-      <BackToTop />
+      <div className="pb-24 md:pb-0">{children}</div>
     </EventNavProvider>
   );
 }

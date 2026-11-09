@@ -3,7 +3,7 @@ import { getEventForPublicPage, getDivisionIdsForEventAndSport, getSportMatches,
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getT } from "@/lib/i18n/server";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,7 +20,8 @@ export default async function SportEventPlayoffsPage({
   const sportParam = sport.toLowerCase();
   const sportName = sportParam ? sportParam.charAt(0).toUpperCase() + sportParam.slice(1) : "";
   const supabase = await createClient();
-  const t = getT("zh");
+  const locale = await getLocale();
+  const t = getT(locale);
 
   const event = await getEventForPublicPage(eventId, sportParam, { preview });
   if (!event) notFound();

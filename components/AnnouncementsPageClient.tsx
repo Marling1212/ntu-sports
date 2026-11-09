@@ -40,7 +40,7 @@ export default function AnnouncementsPageClient({ announcements }: Announcements
               <div className="text-gray-700 mb-4 leading-relaxed text-sm sm:text-base">
                 <MarkdownText content={announcement.content} />
               </div>
-              <p className="text-xs sm:text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500" suppressHydrationWarning>
                 {t('announcements.posted')}: {new Date(announcement.created_at).toLocaleString(locale === 'zh' ? 'zh-TW' : 'en-US')}
               </p>
             </div>
