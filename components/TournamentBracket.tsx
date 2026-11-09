@@ -163,10 +163,11 @@ export function TournamentBracketCore({
 
   // Player Block Sub-component
   const PlayerBlock = ({ 
-    player, slot, isWinner, isLoser, isThirdPlace = false, textPlaceholder, contextLabel, adminCheckInSlot,
+    player, slot, isWinner, isLoser, isThirdPlace = false, textPlaceholder, contextLabel, adminCheckInSlot, round = 1,
   }: { 
     player: Player | null; slot?: SlotPlaceholder | null; isWinner?: boolean; isLoser?: boolean; isThirdPlace?: boolean; textPlaceholder: string; contextLabel?: string;
     adminCheckInSlot?: { checked: boolean; disabled: boolean; onToggle: () => void };
+    round?: number;
   }) => {
     const isBye = !player && !slot && textPlaceholder === t("bracket.bye");
     const displayText = player?.name || (slot ? `Seed ${slot.seed} Group ${slot.group}` : textPlaceholder);
@@ -177,7 +178,12 @@ export function TournamentBracketCore({
       player?.checked_in_at ??
       (player?.id ? playersCheckInMap.get(player.id) : false)
     );
-    const isUnchecked = effectiveShowCheckIn && isRealParticipant && !isCheckedIn && !isWinner && !isLoser;
+    // Focus check-in status exclusively on Round 1:
+    // In Round 1, any player who has not checked in is shown in RED (even if paired with a BYE).
+    // Once checked in: if paired with a BYE, they immediately show as GREEN (winner); otherwise normal white.
+    // Later rounds (Round 2+) do not show check-in badges, keeping upcoming match trees clean.
+    const isFirstRound = round === 1;
+    const isUnchecked = effectiveShowCheckIn && isFirstRound && isRealParticipant && !isCheckedIn;
     
     return (
       <div
@@ -287,9 +293,9 @@ export function TournamentBracketCore({
     if (!match) {
       return (
         <div className={`flex flex-col gap-1 opacity-40 relative z-10 ${cellWClass}`}>
-           <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} />
+           <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} round={round} />
            <div className="h-1"></div>
-           <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} />
+           <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} round={round} />
         </div>
       );
     }
@@ -325,6 +331,7 @@ export function TournamentBracketCore({
             textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")}
             contextLabel={p1ContextLabel}
             adminCheckInSlot={p1Check}
+            round={round}
           />
           <div className="h-1"></div>
           <PlayerBlock
@@ -336,6 +343,7 @@ export function TournamentBracketCore({
             textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")}
             contextLabel={p2ContextLabel}
             adminCheckInSlot={p2Check}
+            round={round}
           />
 
           <div
