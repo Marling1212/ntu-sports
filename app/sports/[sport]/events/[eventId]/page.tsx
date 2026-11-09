@@ -57,27 +57,39 @@ const sportIcons: { [key: string]: string } = {
 function formatDateRange(
   startDateStr: string | null | undefined,
   endDateStr: string | null | undefined,
-  locale: string
+  _locale?: string
 ): string {
   if (!startDateStr || !endDateStr) return "—";
-  const start = new Date(startDateStr.replace(/-/g, "/"));
-  const end = new Date(endDateStr.replace(/-/g, "/"));
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-    return `${startDateStr} – ${endDateStr}`;
+
+  const extractParts = (str: string) => {
+    // 1. Regex match for YYYY-MM-DD or YYYY/MM/DD (strips any T... timestamp / timezone)
+    const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+    if (match) {
+      return { year: match[1], month: match[2], day: match[3] };
+    }
+    // 2. Fallback to Date object
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const year = String(d.getFullYear());
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return { year, month, day };
+    }
+    // 3. Fallback: split by T and clean
+    const cleaned = str.split("T")[0].replace(/-/g, "/");
+    return { raw: cleaned };
+  };
+
+  const s = extractParts(startDateStr);
+  const e = extractParts(endDateStr);
+
+  if ("year" in s && "year" in e) {
+    return `${s.year}/${s.month}/${s.day} – ${e.year}/${e.month}/${e.day}`;
   }
-  const isZh = locale === "zh";
-  const startFormatted = start.toLocaleDateString(isZh ? "zh-TW" : "en-US", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const sameYear = start.getFullYear() === end.getFullYear();
-  const endFormatted = end.toLocaleDateString(isZh ? "zh-TW" : "en-US", {
-    ...(sameYear ? {} : { year: "numeric" as const }),
-    month: "2-digit",
-    day: "2-digit",
-  });
-  return `${startFormatted} – ${endFormatted}`;
+
+  const sStr = "raw" in s ? s.raw : `${s.year}/${s.month}/${s.day}`;
+  const eStr = "raw" in e ? e.raw : `${e.year}/${e.month}/${e.day}`;
+  return `${sStr} – ${eStr}`;
 }
 
 export default async function SportEventPage({
@@ -196,106 +208,103 @@ export default async function SportEventPage({
         )}
       </div>
 
-      {/* Today's or Tomorrow's Matches */}
+      {/* Today's or Tomorrow's Matches: Matchday Spotlight Card */}
       {matchesToShow.length > 0 && (
-        <div className="bg-white rounded-xl shadow-xs sm:shadow-md p-4 sm:p-6 mb-6 sm:mb-8 border border-slate-200/80">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h2 className="text-base sm:text-xl font-semibold text-slate-900">{title}</h2>
+        <div className="rounded-2xl border-2 border-emerald-300/80 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 p-5 sm:p-6 shadow-sm shadow-emerald-500/5 mb-6 sm:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-3 w-3 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                {title} ‧ Matchday Live
+              </h2>
+            </div>
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-100/90 border border-emerald-200/80 px-2.5 py-0.5 rounded-full shrink-0">
+              {matchesToShow.length} {locale === "zh" ? "場賽事" : "Matches"}
+            </span>
           </div>
 
-          {/* Mobile Layout: Touch-friendly Match Cards */}
-          <div className="space-y-3 sm:hidden">
+          <div className="space-y-3.5">
             {matchesToShow.map((m: any) => {
               const timeStr = getMatchTimeDisplay(m);
               const court = getCourtDisplay(m);
               const p1 = m.player1?.name || "TBD";
               const p2 = m.player2?.name || "TBD";
+
               return (
                 <Link
                   key={m.id}
                   href={`/sports/${sportParam}/matches/${m.id}${previewSuffix}`}
-                  className="block bg-white rounded-xl border border-slate-200/80 p-3.5 shadow-xs hover:border-slate-300 transition-colors"
+                  className="block bg-white rounded-xl border border-emerald-200/80 hover:border-emerald-400 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 group"
                 >
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                    <span>🕒 {timeStr}</span>
+                  {/* Top row: Match Time + Status pill */}
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100/70 px-2.5 py-1 rounded-md">
+                      <span>🕒</span>
+                      <span>{timeStr}</span>
+                    </span>
                     {m.status === "completed" ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {t("sports.completed")}
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>{t("sports.completed")}</span>
                       </span>
                     ) : m.status === "live" ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
-                        {t("sports.live")}
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                        <span>{t("sports.live")}</span>
                       </span>
                     ) : m.status === "delayed" ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                        {t("sports.delayed")}
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <span>{t("sports.delayed")}</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                        {t("sports.upcoming")}
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span>{t("sports.upcoming")}</span>
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center justify-between font-bold text-slate-900 text-sm">
-                    <span className="truncate flex-1">{p1}</span>
-                    <span className="text-xs font-semibold text-slate-400 px-2 shrink-0">{t("sports.vs")}</span>
-                    <span className="truncate flex-1 text-right">{p2}</span>
+
+                  {/* Middle row: Showdown Matchup */}
+                  <div className="flex items-center justify-between gap-3 py-1 sm:py-2">
+                    <div className="flex-1 text-left min-w-0">
+                      <span className="text-base sm:text-lg font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors truncate block">
+                        {p1}
+                      </span>
+                    </div>
+                    <div className="shrink-0 px-2.5 py-1 rounded text-xs font-black bg-slate-100 text-slate-400 border border-slate-200/60">
+                      VS
+                    </div>
+                    <div className="flex-1 text-right min-w-0">
+                      <span className="text-base sm:text-lg font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors truncate block">
+                        {p2}
+                      </span>
+                    </div>
                   </div>
-                  {court && (
-                    <div className="text-[11px] text-slate-400 mt-2 truncate">📍 {court}</div>
-                  )}
+
+                  {/* Bottom row: Venue + CTA link */}
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center gap-1 truncate text-slate-500 font-medium">
+                      {court ? (
+                        <>
+                          <span>📍</span>
+                          <span className="truncate">{court}</span>
+                        </>
+                      ) : (
+                        <span>&nbsp;</span>
+                      )}
+                    </div>
+                    <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 group-hover:text-emerald-700 shrink-0">
+                      <span>{locale === "zh" ? "查看即時戰報 / 進入對戰" : "View Live Match"}</span>
+                      <span className="group-hover:translate-x-0.5 transition-transform duration-150">→</span>
+                    </span>
+                  </div>
                 </Link>
               );
             })}
-          </div>
-
-          {/* Tablet/Desktop Layout: Clean Data Table */}
-          <div className="hidden sm:block overflow-x-auto -mx-2 sm:mx-0">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead>
-                <tr className="bg-slate-50/80">
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t("sports.time")}</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t("sports.court")}</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t("sports.matchup")}</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">{t("sports.status")}</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-100">
-                {matchesToShow.map((m: any) => {
-                  const timeStr = getMatchTimeDisplay(m);
-                  const court = getCourtDisplay(m);
-                  const p1 = m.player1?.name || "TBD";
-                  const p2 = m.player2?.name || "TBD";
-                  return (
-                    <tr key={m.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{timeStr}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{court}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-800">
-                        <Link 
-                          href={`/sports/${sportParam}/matches/${m.id}${previewSuffix}`}
-                          className="hover:text-ntu-green hover:underline"
-                        >
-                          <span className="font-semibold">{p1}</span>
-                          <span className="mx-2 text-slate-400">{t("sports.vs")}</span>
-                          <span className="font-semibold">{p2}</span>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                        {m.status === "completed" ? (
-                          <span className="inline-block px-2.5 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full">{t("sports.completed")}</span>
-                        ) : m.status === "live" ? (
-                          <span className="inline-block px-2.5 py-0.5 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-full animate-pulse">{t("sports.live")}</span>
-                        ) : m.status === "delayed" ? (
-                          <span className="inline-block px-2.5 py-0.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full">{t("sports.delayed")}</span>
-                        ) : (
-                          <span className="inline-block px-2.5 py-0.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full">{t("sports.upcoming")}</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         </div>
       )}
