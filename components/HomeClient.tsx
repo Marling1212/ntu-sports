@@ -16,6 +16,7 @@ interface SportCardStyle {
   statusKey: string;
   descKey: string;
   actionKey: string;
+  subtitleKey: string;
 }
 
 const sportCardStyles: Record<string, SportCardStyle> = {
@@ -31,6 +32,7 @@ const sportCardStyles: Record<string, SportCardStyle> = {
     statusKey: "home.soccerStatus",
     descKey: "home.soccerDesc",
     actionKey: "home.soccerAction",
+    subtitleKey: "home.soccerSubtitle",
   },
   Tennis: {
     icon: "🎾",
@@ -44,6 +46,7 @@ const sportCardStyles: Record<string, SportCardStyle> = {
     statusKey: "home.tennisStatus",
     descKey: "home.tennisDesc",
     actionKey: "home.tennisAction",
+    subtitleKey: "home.tennisSubtitle",
   },
   Basketball: {
     icon: "🏀",
@@ -57,6 +60,7 @@ const sportCardStyles: Record<string, SportCardStyle> = {
     statusKey: "home.statusLive",
     descKey: "home.viewDraw",
     actionKey: "home.viewDrawAction",
+    subtitleKey: "home.defaultSportSubtitle",
   },
   Volleyball: {
     icon: "🏐",
@@ -70,6 +74,7 @@ const sportCardStyles: Record<string, SportCardStyle> = {
     statusKey: "home.statusLive",
     descKey: "home.viewDraw",
     actionKey: "home.viewDrawAction",
+    subtitleKey: "home.defaultSportSubtitle",
   },
   Badminton: {
     icon: "🏸",
@@ -83,6 +88,7 @@ const sportCardStyles: Record<string, SportCardStyle> = {
     statusKey: "home.statusLive",
     descKey: "home.viewDraw",
     actionKey: "home.viewDrawAction",
+    subtitleKey: "home.defaultSportSubtitle",
   },
   TableTennis: {
     icon: "🏓",
@@ -96,6 +102,7 @@ const sportCardStyles: Record<string, SportCardStyle> = {
     statusKey: "home.statusLive",
     descKey: "home.viewDraw",
     actionKey: "home.viewDrawAction",
+    subtitleKey: "home.defaultSportSubtitle",
   },
   Baseball: {
     icon: "⚾",
@@ -109,6 +116,7 @@ const sportCardStyles: Record<string, SportCardStyle> = {
     statusKey: "home.statusLive",
     descKey: "home.viewDraw",
     actionKey: "home.viewDrawAction",
+    subtitleKey: "home.defaultSportSubtitle",
   },
   Softball: {
     icon: "🥎",
@@ -122,6 +130,7 @@ const sportCardStyles: Record<string, SportCardStyle> = {
     statusKey: "home.statusLive",
     descKey: "home.viewDraw",
     actionKey: "home.viewDrawAction",
+    subtitleKey: "home.defaultSportSubtitle",
   },
 };
 
@@ -137,6 +146,7 @@ const defaultSportStyle: SportCardStyle = {
   statusKey: "home.statusLive",
   descKey: "home.viewDraw",
   actionKey: "home.viewDrawAction",
+  subtitleKey: "home.defaultSportSubtitle",
 };
 
 export interface MultiSportEvent {
@@ -157,7 +167,7 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
   const { t } = useI18n();
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="relative overflow-hidden pb-8 sm:pb-12">
       {/* Subtle ambient mesh gradient glow behind hero */}
       <div
         className="pointer-events-none -z-10 absolute top-0 inset-x-0 flex justify-center overflow-hidden"
@@ -202,30 +212,35 @@ export default function HomeClient({ sportsToShow, multiSportEvents, globalSpons
                 <LoadingLink
                   key={sport}
                   href={`/sports/${sportLower.replace(/\s+/g, "")}`}
-                  className={`relative overflow-hidden bg-white rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm ${style.hoverBorder} ${style.hoverShadow} transition-all duration-200 hover:-translate-y-0.5 group active:scale-[0.98] block p-4 sm:p-6`}
+                  className={`relative overflow-hidden bg-white rounded-2xl border border-slate-200/80 shadow-xs sm:shadow-sm ${style.hoverBorder} ${style.hoverShadow} transition-all duration-200 hover:-translate-y-0.5 group active:scale-[0.98] block p-4 sm:p-5`}
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   {/* Top border accent line */}
                   <div className={`absolute top-0 inset-x-0 h-[2.5px] sm:h-[3px] ${style.topBorder}`} />
 
-                  {/* Mobile Layout: Sleek, wide horizontal banner */}
-                  <div className="flex sm:hidden items-center justify-between w-full">
-                    {/* Left section: Sport icon badge + Sport Title */}
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${style.iconBg} text-xl shadow-xs group-hover:scale-105 transition-transform duration-200 shrink-0`}
-                      >
-                        <span>{style.icon}</span>
-                      </div>
-                      <h3 className="text-base font-bold text-slate-900 group-hover:text-slate-950 transition-colors">
+                  {/* Mobile Layout: Balanced, tactile horizontal card */}
+                  <div className="flex sm:hidden items-center justify-between w-full gap-3">
+                    {/* Left section: Sport icon badge */}
+                    <div
+                      className={`inline-flex items-center justify-center w-11 h-11 rounded-xl ${style.iconBg} text-xl shadow-xs group-hover:scale-105 transition-transform duration-200 shrink-0`}
+                    >
+                      <span>{style.icon}</span>
+                    </div>
+
+                    {/* Middle section: Sport Title + Subtitle Column */}
+                    <div className="flex flex-col min-w-0 flex-1 text-left">
+                      <h3 className="text-base font-bold text-slate-900 group-hover:text-slate-950 transition-colors leading-snug">
                         {sport}
                       </h3>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">
+                        {t(style.subtitleKey)}
+                      </p>
                     </div>
 
                     {/* Right section: Sport Status Badge + CTA Arrow */}
-                    <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${style.statusBadgeClass}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${style.statusBadgeClass}`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${style.statusDotClass}`}

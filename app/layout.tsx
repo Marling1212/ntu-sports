@@ -29,11 +29,11 @@ export default async function RootLayout({
   const htmlLang = locale === "zh" ? "zh-TW" : "en";
   return (
     <html lang={htmlLang} className="bg-slate-50 text-slate-900" suppressHydrationWarning>
-      <body className="bg-slate-50 text-slate-900 antialiased" suppressHydrationWarning>
+      <body className="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col" suppressHydrationWarning>
         <I18nProvider initialLocale={locale}>
           <LoadingProvider>
             <Navbar />
-            <main className="min-h-screen bg-slate-50 text-slate-900">
+            <main className="flex-1 flex flex-col bg-slate-50 text-slate-900">
               {children}
             </main>
             <Footer />
