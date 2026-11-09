@@ -177,7 +177,7 @@ export function TournamentBracketCore({
       player?.checked_in_at ??
       (player?.id ? playersCheckInMap.get(player.id) : false)
     );
-    const isUnchecked = effectiveShowCheckIn && isRealParticipant && !isCheckedIn;
+    const isUnchecked = effectiveShowCheckIn && isRealParticipant && !isCheckedIn && !isWinner && !isLoser;
     
     return (
       <div
