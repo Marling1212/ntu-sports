@@ -216,14 +216,7 @@ export default function MatchesTable({
     return Array.from(set);
   }, [courts, matches]);
 
-  const quickCourtChips = useMemo(() => {
-    const defaultPresets = [
-      "1號場", "2號場", "3號場", "4號場",
-      "5號場", "6號場", "7號場", "8號場",
-      "Court 1", "Court 2", "Court 3", "Court 4",
-    ];
-    return Array.from(new Set([...availableCourts, ...defaultPresets])).slice(0, 12);
-  }, [availableCourts]);
+  const quickCourtChips = availableCourts;
 
   // Check if match has individual player stats entered (for team events)
   // Changed: Now checks if ANY player-level stat exists with actual values, not just empty records
@@ -2160,7 +2153,7 @@ export default function MatchesTable({
                             type="text"
                             value={editForm.court || ""}
                             onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
-                            placeholder="輸入或點選下方場地 (如: 5號場, Court 1)"
+                            placeholder={t('admin.matches.courtPlaceholder')}
                             className="w-full min-h-[44px] pl-3 pr-8 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green focus:outline-none"
                           />
                           {editForm.court && (
@@ -2174,26 +2167,28 @@ export default function MatchesTable({
                           )}
                         </div>
 
-                        {/* 1-Tap Quick Court Chips (works with both event_courts & Match Day ad-hoc courts) */}
-                        <div className="flex items-center gap-1.5 overflow-x-auto mt-2 pb-1 scrollbar-hide">
-                          {quickCourtChips.map((c) => (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => {
-                                if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
-                                setEditForm((f: any) => ({ ...f, court: f.court === c ? "" : c }));
-                              }}
-                              className={`min-h-[36px] px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all active:scale-95 ${
-                                editForm.court === c
-                                  ? "bg-ntu-green text-white border-ntu-green shadow-xs"
-                                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                              }`}
-                            >
-                              {c}
-                            </button>
-                          ))}
-                        </div>
+                        {/* 1-Tap Quick Court Chips (dynamically learned from event courts and assigned matches) */}
+                        {quickCourtChips.length > 0 && (
+                          <div className="flex items-center gap-1.5 overflow-x-auto mt-2 pb-1 scrollbar-hide">
+                            {quickCourtChips.map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => {
+                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                  setEditForm((f: any) => ({ ...f, court: f.court === c ? "" : c }));
+                                }}
+                                className={`min-h-[36px] px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all active:scale-95 ${
+                                  editForm.court === c
+                                    ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                                }`}
+                              >
+                                {c}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* 4. Large Save and Cancel Action Buttons with Haptic Feedback */}
