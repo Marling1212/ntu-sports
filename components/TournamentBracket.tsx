@@ -243,16 +243,30 @@ export function TournamentBracketCore({
           {adminCheckInSlot && player?.id && !isBye && (
             <button
               type="button"
-              className={`shrink-0 text-[10px] md:text-xs px-1.5 py-1 rounded border font-semibold whitespace-nowrap ${adminCheckInSlot.checked ? "bg-ntu-green text-white border-ntu-green" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                }`}
               disabled={adminCheckInSlot.disabled}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                if (typeof window !== "undefined" && "vibrate" in navigator) {
+                  navigator.vibrate(30);
+                }
                 adminCheckInSlot.onToggle();
               }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+              }}
+              className="relative shrink-0 flex items-center justify-center p-2 -m-2 min-h-[44px] min-w-[44px] touch-manipulation focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed select-none"
+              title={adminCheckInSlot.checked ? "點擊取消報到" : "點擊確認報到"}
             >
-              {adminCheckInSlot.checked ? "✓" : "報到"}
+              <span
+                className={`inline-flex items-center justify-center text-[10px] md:text-xs px-2 py-1 rounded transition-all active:scale-95 whitespace-nowrap ${
+                  adminCheckInSlot.checked
+                    ? "bg-emerald-600 text-white font-bold ring-2 ring-emerald-300 shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 font-medium shadow-2xs"
+                }`}
+              >
+                {adminCheckInSlot.checked ? "✓" : "報到"}
+              </span>
             </button>
           )}
         </div>
