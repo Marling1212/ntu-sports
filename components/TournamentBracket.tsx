@@ -110,7 +110,7 @@ export function TournamentBracketCore({
 
   /** PDF: wider cells + multi-line names. Do not use CSS transform scale — html2canvas clips glyph descenders. */
   const pdfCellClass = "w-[188px]";
-  const screenCellClass = "w-[150px] md:w-[200px]";
+  const screenCellClass = adminCheckIn ? "w-[185px] md:w-[220px]" : "w-[150px] md:w-[200px]";
   const cellWClass = pdfCapture ? pdfCellClass : screenCellClass;
   const headerColGapPx = 48;
 
@@ -187,7 +187,7 @@ export function TournamentBracketCore({
 
     return (
       <div
-        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 ${cellWClass} ${pdfCapture ? "min-h-[56px] h-auto py-2.5 md:py-2.5 overflow-visible" : "h-[60px]"
+        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 ${cellWClass} ${pdfCapture ? "min-h-[56px] h-auto py-2.5 md:py-2.5 overflow-visible" : adminCheckInSlot ? "min-h-[64px] h-auto py-2 px-2.5 md:px-3" : "h-[60px]"
           } transition-all duration-300 relative ${!isBye && !isLoser ? "hover:scale-[1.02]" : ""} ${isBye
             ? "border-gray-200 bg-gray-50"
             : isUnchecked
@@ -210,8 +210,8 @@ export function TournamentBracketCore({
           <div className="flex-1 min-w-0 overflow-visible">
             <div
               className={`font-medium ${pdfCapture
-                  ? "text-xs md:text-sm break-words leading-[1.45] pb-0.5"
-                  : "text-base md:text-lg truncate leading-tight"
+                ? "text-xs md:text-sm break-words leading-[1.45] pb-0.5"
+                : "text-base md:text-lg truncate leading-tight"
                 } ${isBye ? "text-gray-400 italic" : ""}`}
             >
               {displayText}
@@ -255,18 +255,14 @@ export function TournamentBracketCore({
               onTouchEnd={(e) => {
                 e.stopPropagation();
               }}
-              className="relative shrink-0 flex items-center justify-center p-2 -m-2 min-h-[44px] min-w-[44px] touch-manipulation focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed select-none"
+              className={`min-h-[38px] px-3.5 py-1.5 text-xs font-bold rounded-lg shadow-sm flex items-center justify-center shrink-0 transition-all select-none touch-manipulation focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 ${
+                adminCheckInSlot.checked
+                  ? "bg-emerald-600 text-white border-2 border-emerald-600 font-bold active:bg-emerald-700 shadow-xs"
+                  : "bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-300 active:bg-slate-100"
+              }`}
               title={adminCheckInSlot.checked ? "點擊取消報到" : "點擊確認報到"}
             >
-              <span
-                className={`inline-flex items-center justify-center text-[10px] md:text-xs px-2 py-1 rounded transition-all active:scale-95 whitespace-nowrap ${
-                  adminCheckInSlot.checked
-                    ? "bg-emerald-600 text-white font-bold ring-2 ring-emerald-300 shadow-xs"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 font-medium shadow-2xs"
-                }`}
-              >
-                {adminCheckInSlot.checked ? "✓" : "報到"}
-              </span>
+              {adminCheckInSlot.checked ? "✓ 報到" : "未報到"}
             </button>
           )}
         </div>
