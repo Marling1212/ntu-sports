@@ -152,6 +152,11 @@ export default function MatchesTable({
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const [initialEditForm, setInitialEditForm] = useState<any>(null);
+  const [pendingNavigation, setPendingNavigation] = useState<{
+    type: "link" | "switch_match" | "cancel";
+    url?: string;
+    targetMatch?: Match;
+  } | null>(null);
   const supabase = createClient();
 
   // Determine if the current match edit form has unsaved modifications
@@ -191,16 +196,10 @@ export default function MatchesTable({
       // Ignore links opened in a new tab
       if (target.target === "_blank" || e.ctrlKey || e.metaKey || e.shiftKey) return;
 
-      const confirmLeave = window.confirm(
-        locale === "zh"
-          ? "⚠️ 您有尚未儲存的賽程或比分變更！\n\n如果直接離開，剛才輸入的內容將會遺失。\n確定要放棄並離開此頁嗎？"
-          : "⚠️ You have unsaved match changes!\n\nIf you leave now, your changes will be lost.\nAre you sure you want to discard them and leave?"
-      );
-
-      if (!confirmLeave) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+      // Intercept navigation and open clear custom confirmation dialog
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingNavigation({ type: "link", url: target.href });
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -364,17 +363,7 @@ export default function MatchesTable({
     });
   }, [matches, searchQuery, statusFilter, courtFilter, dateFilter, roundFilter, players]);
 
-  const handleEdit = (match: Match) => {
-    // If user is editing another match with unsaved modifications, confirm before switching
-    if (editingMatch && editingMatch !== match.id && isDirty) {
-      const confirmSwitch = window.confirm(
-        locale === "zh"
-          ? "您正在編輯另一場比賽且尚未儲存，切換將會放棄該場變更，確定要繼續嗎？"
-          : "You have unsaved changes on another match. Switching will discard them. Continue?"
-      );
-      if (!confirmSwitch) return;
-    }
-
+  const doStartEdit = (match: Match) => {
     const slotCandidate = match.slot_id ? slotMap.get(match.slot_id) || match.slot || null : match.slot || null;
     const scheduledSource = match.scheduled_time || deriveIsoFromSlot(slotCandidate);
     setEditingMatch(match.id);
@@ -394,6 +383,33 @@ export default function MatchesTable({
     };
     setEditForm(formValues);
     setInitialEditForm(formValues);
+  };
+
+  const handleEdit = (match: Match) => {
+    if (editingMatch && editingMatch !== match.id && isDirty) {
+      setPendingNavigation({ type: "switch_match", targetMatch: match });
+      return;
+    }
+    doStartEdit(match);
+  };
+
+  const handleConfirmLeave = () => {
+    if (!pendingNavigation) return;
+    const nav = pendingNavigation;
+    setEditingMatch(null);
+    setEditForm({});
+    setInitialEditForm(null);
+    setPendingNavigation(null);
+
+    if (nav.type === "link" && nav.url) {
+      if (nav.url.startsWith(window.location.origin) || nav.url.startsWith("/")) {
+        router.push(nav.url);
+      } else {
+        window.location.href = nav.url;
+      }
+    } else if (nav.type === "switch_match" && nav.targetMatch) {
+      doStartEdit(nav.targetMatch);
+    }
   };
 
   const handleSave = async (matchId: string) => {
@@ -763,12 +779,8 @@ export default function MatchesTable({
 
   const handleCancel = () => {
     if (isDirty) {
-      const confirmDiscard = window.confirm(
-        locale === "zh"
-          ? "確定要取消編輯嗎？剛才輸入的變更將會放棄。"
-          : "Discard unsaved changes?"
-      );
-      if (!confirmDiscard) return;
+      setPendingNavigation({ type: "cancel" });
+      return;
     }
     setEditingMatch(null);
     setEditForm({});
@@ -1704,13 +1716,7 @@ export default function MatchesTable({
                               </select>
                             </td>
                             <td className="px-3 py-4 text-right text-sm font-medium">
-                              <div className="flex flex-col gap-1.5 items-end">
-                                {isDirty && (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md animate-pulse">
-                                    <span>⚠️</span>
-                                    <span>{locale === "zh" ? "未儲存" : "Unsaved"}</span>
-                                  </span>
-                                )}
+                              <div className="flex flex-col gap-2 items-end">
                                 <button
                                   onClick={() => handleSave(match.id)}
                                   className="bg-ntu-green text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs whitespace-nowrap"
@@ -2029,16 +2035,6 @@ export default function MatchesTable({
 
                     {editingMatch === match.id && (
                       <div className="mt-3 space-y-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                        {isDirty && (
-                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 animate-pulse">
-                            <span>⚠️</span>
-                            <span>
-                              {locale === "zh"
-                                ? "有未儲存的變更，離開前請記得點擊下方「儲存」"
-                                : "Unsaved changes! Please remember to save before leaving."}
-                            </span>
-                          </div>
-                        )}
                         {/* 1. Score Steppers */}
                         <div>
                           <span className="block text-xs font-semibold text-gray-700 mb-2">比分輸入 (Scores)</span>
@@ -2335,6 +2331,56 @@ export default function MatchesTable({
           scheduleInputTimeZone={scheduleInputTz}
           onScheduleInputTimezoneChange={handleScheduleInputTzChange}
         />
+      )}
+
+      {/* Unsaved Changes Confirmation Modal with explicit, unambiguous action buttons */}
+      {pendingNavigation && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xl shrink-0">
+                ⚠️
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  {locale === "zh" ? "尚未儲存變更" : "Unsaved Changes"}
+                </h3>
+                <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                  {locale === "zh"
+                    ? pendingNavigation.type === "cancel"
+                      ? "您剛才修改的內容尚未儲存。如果放棄修改，剛才輸入的所有變更將會遺失。"
+                      : pendingNavigation.type === "switch_match"
+                      ? "您剛才編輯的比賽尚未儲存。如果切換到其他場次，未儲存的變更將會遺失。"
+                      : "您剛才修改的賽程或比分尚未儲存。如果離開此頁，未儲存的變更將會遺失。"
+                    : "You have unsaved match changes. If you leave now, your modifications will be lost."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleConfirmLeave}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 active:scale-[0.98] transition-all text-center"
+              >
+                {locale === "zh"
+                  ? pendingNavigation.type === "cancel"
+                    ? "放棄修改"
+                    : pendingNavigation.type === "switch_match"
+                    ? "放棄並切換場次"
+                    : "放棄修改並離開"
+                  : "Discard Changes & Leave"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingNavigation(null)}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-ntu-green hover:opacity-90 active:scale-[0.98] transition-all shadow-xs text-center"
+              >
+                {locale === "zh" ? "留在本頁繼續編輯" : "Stay & Keep Editing"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
