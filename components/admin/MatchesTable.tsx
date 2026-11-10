@@ -203,6 +203,28 @@ export default function MatchesTable({
     return map;
   }, [slots]);
 
+  const availableCourts = useMemo(() => {
+    const set = new Set<string>();
+    // 1. Configured event courts from event_courts table
+    courts.forEach((c) => {
+      if (c.name?.trim()) set.add(c.name.trim());
+    });
+    // 2. Any courts already assigned to matches in this tournament (e.g. from Match Day ad-hoc entries)
+    matches.forEach((m) => {
+      if (m.court?.trim()) set.add(m.court.trim());
+    });
+    return Array.from(set);
+  }, [courts, matches]);
+
+  const quickCourtChips = useMemo(() => {
+    const defaultPresets = [
+      "1號場", "2號場", "3號場", "4號場",
+      "5號場", "6號場", "7號場", "8號場",
+      "Court 1", "Court 2", "Court 3", "Court 4",
+    ];
+    return Array.from(new Set([...availableCourts, ...defaultPresets])).slice(0, 12);
+  }, [availableCourts]);
+
   // Check if match has individual player stats entered (for team events)
   // Changed: Now checks if ANY player-level stat exists with actual values, not just empty records
   const hasIndividualStats = useMemo(() => {
@@ -1067,10 +1089,7 @@ export default function MatchesTable({
               >
                 <option value="all">所有場地</option>
                 <option value="none">未分配</option>
-                {courts.map((court) => (
-                  <option key={court.id} value={court.name}>{court.name}</option>
-                ))}
-                {Array.from(new Set(matches.map(m => m.court).filter(Boolean))).filter(c => !courts.some(ec => ec.name === c)).map((court) => (
+                {availableCourts.map((court) => (
                   <option key={court} value={court}>{court}</option>
                 ))}
               </select>
@@ -1182,12 +1201,7 @@ export default function MatchesTable({
               >
                 <option value="all">所有場地</option>
                 <option value="none">未分配</option>
-                {courts.map((court) => (
-                  <option key={court.id} value={court.name}>
-                    {court.name}
-                  </option>
-                ))}
-                {Array.from(new Set(matches.map(m => m.court).filter(Boolean))).filter(c => !courts.some(ec => ec.name === c)).map((court) => (
+                {availableCourts.map((court) => (
                   <option key={court} value={court}>
                     {court}
                   </option>
@@ -2108,53 +2122,77 @@ export default function MatchesTable({
                         </div>
                       </div>
 
-                      {/* 3. Restored Court Assignment & Status Dropdowns */}
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">場地 (Court)</label>
-                          <select
-                            value={
-                              editForm.court && courts.find((c: any) => c.name === editForm.court)
-                                ? courts.find((c: any) => c.name === editForm.court)!.id
-                                : editForm.court === "" ? "" : "OTHER"
-                            }
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === "") {
-                                setEditForm({ ...editForm, court: "" });
-                              } else if (val === "OTHER") {
-                                if (!editForm.court) setEditForm({ ...editForm, court: "" });
-                              } else {
-                                const selected = courts.find((c: any) => c.id === val);
-                                setEditForm({ ...editForm, court: selected?.name || "" });
-                              }
-                            }}
-                            className="w-full min-h-[44px] px-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green"
-                          >
-                            <option value="">未指定場地</option>
-                            {courts.map((court) => (
-                              <option key={court.id} value={court.id}>{court.name}</option>
-                            ))}
-                            {Array.from(new Set(matches.map(m => m.court).filter(Boolean))).filter(c => !courts.some(ec => ec.name === c)).map((court) => (
-                              <option key={court} value={court}>{court}</option>
-                            ))}
-                          </select>
+                      {/* 3. Status Dropdown */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">賽事狀態 (Status)</label>
+                        <select
+                          value={editForm.status}
+                          onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                          className="w-full min-h-[44px] px-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green font-medium"
+                        >
+                          <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+                          <option value="live">🎾 {t("admin.matchStatus.live")}</option>
+                          <option value="completed">✓ {t("admin.matchStatus.completed")}</option>
+                          <option value="delayed">⏳ {t("admin.matchStatus.delayed")}</option>
+                          <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+                          <option value="walkover">{t("admin.matchStatus.walkover")}</option>
+                        </select>
+                      </div>
+
+                      {/* 4. Smart Court Assignment with Text Input & Quick Chips (Match Day Friendly) */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="text-xs font-semibold text-gray-700">場地 (Court)</label>
+                          {editForm.court && (
+                            <button
+                              type="button"
+                              onClick={() => setEditForm((f: any) => ({ ...f, court: "" }))}
+                              className="text-xs text-gray-500 hover:text-gray-700 underline"
+                            >
+                              清除場地
+                            </button>
+                          )}
                         </div>
 
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">狀態 (Status)</label>
-                          <select
-                            value={editForm.status}
-                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                            className="w-full min-h-[44px] px-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green"
-                          >
-                            <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
-                            <option value="live">🎾 {t("admin.matchStatus.live")}</option>
-                            <option value="completed">✓ {t("admin.matchStatus.completed")}</option>
-                            <option value="delayed">⏳ {t("admin.matchStatus.delayed")}</option>
-                            <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
-                            <option value="walkover">{t("admin.matchStatus.walkover")}</option>
-                          </select>
+                        {/* Direct Court Text Input */}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={editForm.court || ""}
+                            onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
+                            placeholder="輸入或點選下方場地 (如: 5號場, Court 1)"
+                            className="w-full min-h-[44px] pl-3 pr-8 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green focus:outline-none"
+                          />
+                          {editForm.court && (
+                            <button
+                              type="button"
+                              onClick={() => setEditForm((f: any) => ({ ...f, court: "" }))}
+                              className="absolute right-2.5 top-2.5 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full text-xs"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+
+                        {/* 1-Tap Quick Court Chips (works with both event_courts & Match Day ad-hoc courts) */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto mt-2 pb-1 scrollbar-hide">
+                          {quickCourtChips.map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => {
+                                if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                setEditForm((f: any) => ({ ...f, court: f.court === c ? "" : c }));
+                              }}
+                              className={`min-h-[36px] px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all active:scale-95 ${
+                                editForm.court === c
+                                  ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                              }`}
+                            >
+                              {c}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
