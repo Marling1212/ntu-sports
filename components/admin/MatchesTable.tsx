@@ -152,11 +152,6 @@ export default function MatchesTable({
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const [initialEditForm, setInitialEditForm] = useState<any>(null);
-  const [pendingNavigation, setPendingNavigation] = useState<{
-    type: "link" | "switch_match" | "cancel";
-    url?: string;
-    targetMatch?: Match;
-  } | null>(null);
   const supabase = createClient();
 
   // Determine if the current match edit form has unsaved modifications
@@ -196,10 +191,16 @@ export default function MatchesTable({
       // Ignore links opened in a new tab
       if (target.target === "_blank" || e.ctrlKey || e.metaKey || e.shiftKey) return;
 
-      // Intercept navigation and open clear custom confirmation dialog
-      e.preventDefault();
-      e.stopPropagation();
-      setPendingNavigation({ type: "link", url: target.href });
+      const confirmLeave = window.confirm(
+        locale === "zh"
+          ? "⚠️ 您有尚未儲存的賽程或比分變更！\n\n如果直接離開，剛才輸入的內容將會遺失。\n確定要放棄並離開此頁嗎？"
+          : "⚠️ You have unsaved match changes!\n\nIf you leave now, your changes will be lost.\nAre you sure you want to discard them and leave?"
+      );
+
+      if (!confirmLeave) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -414,7 +415,17 @@ export default function MatchesTable({
     });
   }, [matches, searchQuery, statusFilter, courtFilter, dateFilter, roundFilter, players]);
 
-  const doStartEdit = (match: Match) => {
+  const handleEdit = (match: Match) => {
+    // If user is editing another match with unsaved modifications, confirm before switching
+    if (editingMatch && editingMatch !== match.id && isDirty) {
+      const confirmSwitch = window.confirm(
+        locale === "zh"
+          ? "您正在編輯另一場比賽且尚未儲存，切換將會放棄該場變更，確定要繼續嗎？"
+          : "You have unsaved changes on another match. Switching will discard them. Continue?"
+      );
+      if (!confirmSwitch) return;
+    }
+
     const slotCandidate = match.slot_id ? slotMap.get(match.slot_id) || match.slot || null : match.slot || null;
     const scheduledSource = match.scheduled_time || deriveIsoFromSlot(slotCandidate);
     setEditingMatch(match.id);
@@ -434,33 +445,6 @@ export default function MatchesTable({
     };
     setEditForm(formValues);
     setInitialEditForm(formValues);
-  };
-
-  const handleEdit = (match: Match) => {
-    if (editingMatch && editingMatch !== match.id && isDirty) {
-      setPendingNavigation({ type: "switch_match", targetMatch: match });
-      return;
-    }
-    doStartEdit(match);
-  };
-
-  const handleConfirmLeave = () => {
-    if (!pendingNavigation) return;
-    const nav = pendingNavigation;
-    setEditingMatch(null);
-    setEditForm({});
-    setInitialEditForm(null);
-    setPendingNavigation(null);
-
-    if (nav.type === "link" && nav.url) {
-      if (nav.url.startsWith(window.location.origin) || nav.url.startsWith("/")) {
-        router.push(nav.url);
-      } else {
-        window.location.href = nav.url;
-      }
-    } else if (nav.type === "switch_match" && nav.targetMatch) {
-      doStartEdit(nav.targetMatch);
-    }
   };
 
   const handleSave = async (matchId: string) => {
@@ -849,8 +833,12 @@ export default function MatchesTable({
 
   const handleCancel = () => {
     if (isDirty) {
-      setPendingNavigation({ type: "cancel" });
-      return;
+      const confirmDiscard = window.confirm(
+        locale === "zh"
+          ? "確定要取消編輯嗎？剛才輸入的變更將會放棄。"
+          : "Discard unsaved changes?"
+      );
+      if (!confirmDiscard) return;
     }
     setEditingMatch(null);
     setEditForm({});
@@ -1227,8 +1215,8 @@ export default function MatchesTable({
               type="button"
               onClick={() => setShowMobileExtraFilters(!showMobileExtraFilters)}
               className={`h-11 px-3 border rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors ${showMobileExtraFilters || courtFilter !== "all" || dateFilter || roundFilter !== "all"
-                  ? "bg-ntu-green/10 border-ntu-green text-ntu-green"
-                  : "bg-gray-50 border-gray-300 text-gray-700"
+                ? "bg-ntu-green/10 border-ntu-green text-ntu-green"
+                : "bg-gray-50 border-gray-300 text-gray-700"
                 }`}
               title="更多篩選"
             >
@@ -1441,8 +1429,8 @@ export default function MatchesTable({
                 }
               }}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${batchMode
-                  ? "bg-red-100 text-red-700 hover:bg-red-200"
-                  : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                ? "bg-red-100 text-red-700 hover:bg-red-200"
+                : "bg-blue-100 text-blue-700 hover:bg-blue-200"
                 }`}
             >
               {batchMode ? "✕ 取消批量操作" : "📋 批量操作"}
@@ -1902,16 +1890,16 @@ export default function MatchesTable({
                             <td className="px-3 py-4 whitespace-nowrap">
                               <span
                                 className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${match.status === 'completed'
-                                    ? 'bg-green-100 text-green-800'
-                                    : match.status === 'live'
-                                      ? 'bg-red-100 text-red-800'
-                                      : match.status === 'delayed'
-                                        ? 'bg-amber-100 text-amber-800'
-                                        : match.status === 'forfeit'
-                                          ? 'bg-orange-100 text-orange-800'
-                                          : match.status === 'walkover'
-                                            ? 'bg-purple-100 text-purple-800'
-                                            : 'bg-gray-100 text-gray-800'
+                                  ? 'bg-green-100 text-green-800'
+                                  : match.status === 'live'
+                                    ? 'bg-red-100 text-red-800'
+                                    : match.status === 'delayed'
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : match.status === 'forfeit'
+                                        ? 'bg-orange-100 text-orange-800'
+                                        : match.status === 'walkover'
+                                          ? 'bg-purple-100 text-purple-800'
+                                          : 'bg-gray-100 text-gray-800'
                                   }`}
                               >
                                 {getStatusLabel(match.status)}
@@ -1962,8 +1950,8 @@ export default function MatchesTable({
                   key={match.id}
                   id={`match-card-${match.id}`}
                   className={`scroll-mt-28 bg-white border rounded-lg p-4 ${selectedMatches.has(match.id) ? 'border-blue-500 bg-blue-50' :
-                      hasStats ? 'border-green-500 bg-green-50 border-l-4' :
-                        'border-gray-200'
+                    hasStats ? 'border-green-500 bg-green-50 border-l-4' :
+                      'border-gray-200'
                     }`}
                 >
                   {batchMode && (
@@ -1992,16 +1980,16 @@ export default function MatchesTable({
                       </div>
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${match.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
-                            : match.status === 'live'
-                              ? 'bg-red-100 text-red-800'
-                              : match.status === 'delayed'
-                                ? 'bg-amber-100 text-amber-800'
-                                : match.status === 'forfeit'
-                                  ? 'bg-orange-100 text-orange-800'
-                                  : match.status === 'walkover'
-                                    ? 'bg-purple-100 text-purple-800'
-                                    : 'bg-gray-100 text-gray-800'
+                          ? 'bg-green-100 text-green-800'
+                          : match.status === 'live'
+                            ? 'bg-red-100 text-red-800'
+                            : match.status === 'delayed'
+                              ? 'bg-amber-100 text-amber-800'
+                              : match.status === 'forfeit'
+                                ? 'bg-orange-100 text-orange-800'
+                                : match.status === 'walkover'
+                                  ? 'bg-purple-100 text-purple-800'
+                                  : 'bg-gray-100 text-gray-800'
                           }`}
                       >
                         {getStatusLabel(match.status)}
@@ -2229,8 +2217,8 @@ export default function MatchesTable({
                                 }));
                               }}
                               className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate border transition-all active:scale-95 ${editForm.winner_id === match.player1_id
-                                  ? "bg-ntu-green text-white border-ntu-green shadow-xs"
-                                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                                ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                                 }`}
                             >
                               {match.player1?.name || "Player 1"} 勝
@@ -2246,8 +2234,8 @@ export default function MatchesTable({
                                 }));
                               }}
                               className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${editForm.winner_id === DRAW_WINNER_ID
-                                  ? "bg-amber-600 text-white border-amber-600 shadow-xs"
-                                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                                ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                                 }`}
                             >
                               平局 (Draw)
@@ -2263,8 +2251,8 @@ export default function MatchesTable({
                                 }));
                               }}
                               className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate border transition-all active:scale-95 ${editForm.winner_id === match.player2_id
-                                  ? "bg-ntu-green text-white border-ntu-green shadow-xs"
-                                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                                ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                                 }`}
                             >
                               {match.player2?.name || "Player 2"} 勝
@@ -2336,8 +2324,8 @@ export default function MatchesTable({
                                     setEditForm((f: any) => ({ ...f, court: f.court === c ? "" : c }));
                                   }}
                                   className={`min-h-[36px] px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all active:scale-95 ${editForm.court === c
-                                      ? "bg-ntu-green text-white border-ntu-green shadow-xs"
-                                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                                    ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                                     }`}
                                 >
                                   {c}
@@ -2403,56 +2391,6 @@ export default function MatchesTable({
           scheduleInputTimeZone={scheduleInputTz}
           onScheduleInputTimezoneChange={handleScheduleInputTzChange}
         />
-      )}
-
-      {/* Unsaved Changes Confirmation Modal with explicit, unambiguous action buttons */}
-      {pendingNavigation && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
-            <div className="flex items-start gap-3.5 mb-4">
-              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xl shrink-0">
-                ⚠️
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-base font-bold text-slate-900">
-                  {locale === "zh" ? "尚未儲存變更" : "Unsaved Changes"}
-                </h3>
-                <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-                  {locale === "zh"
-                    ? pendingNavigation.type === "cancel"
-                      ? "您剛才修改的內容尚未儲存。如果放棄修改，剛才輸入的所有變更將會遺失。"
-                      : pendingNavigation.type === "switch_match"
-                      ? "您剛才編輯的比賽尚未儲存。如果切換到其他場次，未儲存的變更將會遺失。"
-                      : "您剛才修改的賽程或比分尚未儲存。如果離開此頁，未儲存的變更將會遺失。"
-                    : "You have unsaved match changes. If you leave now, your modifications will be lost."}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={handleConfirmLeave}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 active:scale-[0.98] transition-all text-center"
-              >
-                {locale === "zh"
-                  ? pendingNavigation.type === "cancel"
-                    ? "放棄修改"
-                    : pendingNavigation.type === "switch_match"
-                    ? "放棄並切換場次"
-                    : "放棄修改並離開"
-                  : "Discard Changes & Leave"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setPendingNavigation(null)}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-ntu-green hover:opacity-90 active:scale-[0.98] transition-all shadow-xs text-center"
-              >
-                {locale === "zh" ? "留在本頁繼續編輯" : "Stay & Keep Editing"}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* 10-Second Quick Re-Edit Floating Bar */}

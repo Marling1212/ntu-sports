@@ -14,3 +14,6 @@ export function createServiceClient() {
   }
   return createClient(url, key);
 }
+
+/** Alias for createServiceClient when admin/service role access is needed */
+export const createAdminClient = createServiceClient;
