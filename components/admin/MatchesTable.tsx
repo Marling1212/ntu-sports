@@ -2135,14 +2135,14 @@ export default function MatchesTable({
                       {/* 4. Smart Court Assignment with Text Input & Quick Chips (Match Day Friendly) */}
                       <div>
                         <div className="flex justify-between items-center mb-1.5">
-                          <label className="text-xs font-semibold text-gray-700">場地 (Court)</label>
+                          <label className="text-xs font-semibold text-gray-700">{t('admin.matchesTable.court')}</label>
                           {editForm.court && (
                             <button
                               type="button"
                               onClick={() => setEditForm((f: any) => ({ ...f, court: "" }))}
                               className="text-xs text-gray-500 hover:text-gray-700 underline"
                             >
-                              清除場地
+                              {t('admin.matchesTable.clearCourt')}
                             </button>
                           )}
                         </div>
@@ -2153,7 +2153,7 @@ export default function MatchesTable({
                             type="text"
                             value={editForm.court || ""}
                             onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
-                            placeholder={t('admin.matches.courtPlaceholder')}
+                            placeholder={t('admin.matchesTable.courtPlaceholder')}
                             className="w-full min-h-[44px] pl-3 pr-8 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green focus:outline-none"
                           />
                           {editForm.court && (

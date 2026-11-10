@@ -821,6 +821,11 @@ export const translations = {
         forfeit: '棄權',
         walkover: '不戰而勝',
       },
+      matchesTable: {
+        court: '場地',
+        courtPlaceholder: '輸入場地名稱 (如: 1號場, 體育館A)',
+        clearCourt: '清除場地',
+      },
       postpone: {
         title: '延後並改期',
         description: '在下方格子里將此比賽拖曳至新時段（會檢查不可出賽與雙重預訂），選好後可改場地、勾選是否發公告，再按「延後並改期」。觀眾將看到「即將開始」與新時間。',
@@ -1901,6 +1906,11 @@ export const translations = {
         bye: 'Bye',
         forfeit: 'Forfeit',
         walkover: 'Walkover',
+      },
+      matchesTable: {
+        court: 'Court',
+        courtPlaceholder: 'Enter court name (e.g. Court 1, Gym A)',
+        clearCourt: 'Clear court',
       },
       postpone: {
         title: 'Postpone & reschedule',
