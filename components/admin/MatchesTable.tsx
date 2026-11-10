@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
@@ -236,6 +236,57 @@ export default function MatchesTable({
 
   // Create match modal state
   const [showCreateMatch, setShowCreateMatch] = useState(false);
+
+  // Recently saved match state for 10-second quick re-edit floating bar
+  const [recentlySavedMatch, setRecentlySavedMatch] = useState<{
+    id: string;
+    p1: string;
+    p2: string;
+    round: number;
+    matchNumber: number;
+    score?: string | null;
+  } | null>(null);
+  const recentTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (recentTimerRef.current) {
+        clearTimeout(recentTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleReEditRecent = () => {
+    if (!recentlySavedMatch) return;
+    const targetId = recentlySavedMatch.id;
+    const targetMatch = matches.find(m => m.id === targetId);
+    if (targetMatch) {
+      if (statusFilter !== "all" && statusFilter !== targetMatch.status) {
+        setStatusFilter("all");
+      }
+      handleEdit(targetMatch);
+      if (recentTimerRef.current) {
+        clearTimeout(recentTimerRef.current);
+      }
+      setRecentlySavedMatch(null);
+      setTimeout(() => {
+        const el = document.getElementById(`match-card-${targetId}`) || document.getElementById(`match-row-${targetId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+      if (typeof window !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(40);
+      }
+    }
+  };
+
+  const handleDismissRecent = () => {
+    if (recentTimerRef.current) {
+      clearTimeout(recentTimerRef.current);
+    }
+    setRecentlySavedMatch(null);
+  };
 
   const [scheduleInputTz, setScheduleInputTz] = useState(DEFAULT_SCHEDULE_INPUT_TIMEZONE);
   useEffect(() => {
@@ -775,6 +826,25 @@ export default function MatchesTable({
     }
 
     toast.success("Match updated successfully!");
+
+    // Trigger 10-second quick re-edit floating bar
+    if (recentTimerRef.current) {
+      clearTimeout(recentTimerRef.current);
+    }
+    const p1Name = data.player1?.name || "Player 1";
+    const p2Name = data.player2?.name || "Player 2";
+    const scoreStr = score1Val != null && score2Val != null ? `${score1Val}-${score2Val}` : null;
+    setRecentlySavedMatch({
+      id: matchId,
+      p1: p1Name,
+      p2: p2Name,
+      round: currentMatch.round,
+      matchNumber: currentMatch.match_number,
+      score: scoreStr,
+    });
+    recentTimerRef.current = setTimeout(() => {
+      setRecentlySavedMatch(null);
+    }, 10000);
   };
 
   const handleCancel = () => {
@@ -1514,7 +1584,8 @@ export default function MatchesTable({
                     return (
                       <tr
                         key={match.id}
-                        className={`hover:bg-gray-50 ${selectedMatches.has(match.id) ? 'bg-blue-50' : ''} ${hasStats ? 'bg-green-50 border-l-4 border-green-500' : ''
+                        id={`match-row-${match.id}`}
+                        className={`scroll-mt-28 hover:bg-gray-50 ${selectedMatches.has(match.id) ? 'bg-blue-50' : ''} ${hasStats ? 'bg-green-50 border-l-4 border-green-500' : ''
                           }`}
                       >
                         {batchMode && (
@@ -1889,7 +1960,8 @@ export default function MatchesTable({
               return (
                 <div
                   key={match.id}
-                  className={`bg-white border rounded-lg p-4 ${selectedMatches.has(match.id) ? 'border-blue-500 bg-blue-50' :
+                  id={`match-card-${match.id}`}
+                  className={`scroll-mt-28 bg-white border rounded-lg p-4 ${selectedMatches.has(match.id) ? 'border-blue-500 bg-blue-50' :
                       hasStats ? 'border-green-500 bg-green-50 border-l-4' :
                         'border-gray-200'
                     }`}
@@ -2377,6 +2449,45 @@ export default function MatchesTable({
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-ntu-green hover:opacity-90 active:scale-[0.98] transition-all shadow-xs text-center"
               >
                 {locale === "zh" ? "留在本頁繼續編輯" : "Stay & Keep Editing"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 10-Second Quick Re-Edit Floating Bar */}
+      {recentlySavedMatch && (
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-auto z-50 animate-bounce-once">
+          <div className="bg-gray-900/95 text-white backdrop-blur-md px-4 py-3 rounded-2xl shadow-2xl border border-gray-700/60 flex items-center justify-between gap-3 min-w-[300px] max-w-md mx-auto">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-emerald-400 text-lg shrink-0">✓</span>
+              <div className="min-w-0 text-xs">
+                <div className="font-semibold text-white truncate">
+                  已儲存: {recentlySavedMatch.p1} vs {recentlySavedMatch.p2}
+                  {recentlySavedMatch.score ? ` (${recentlySavedMatch.score})` : ""}
+                </div>
+                <div className="text-gray-400 text-[10px]">
+                  {getRoundName(recentlySavedMatch.round)} M{recentlySavedMatch.matchNumber} · 10秒後自動關閉
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleReEditRecent}
+                className="bg-ntu-green hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-1"
+              >
+                <span>✏️</span>
+                <span>再次修改</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDismissRecent}
+                className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white rounded-full text-xs"
+                title="關閉"
+              >
+                ✕
               </button>
             </div>
           </div>
