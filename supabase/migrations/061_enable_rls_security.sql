@@ -1,7 +1,7 @@
 -- 061_enable_rls_security.sql
--- Fix Supabase Critical Security Alert: Table publicly accessible (rls_disabled_in_public)
--- Re-enables RLS on public.organizers with strict, subquery-free policies to prevent circular recursion.
--- Performs a safety sweep to ensure all public schema tables have Row Level Security enabled.
+-- Restore Option 1: Keep organizers RLS disabled for admin dashboard and live scoring compatibility.
+-- Drops legacy recursive policies and guarantees zero cross-table recursion for tournament operations.
+-- Safety sweep ensures all other public tables have Row Level Security enabled.
 
 -- ============================================================================
 -- 1. Helper Function: Check Organizer / Admin Status without RLS Recursion
@@ -26,7 +26,7 @@ $$;
 COMMENT ON FUNCTION public.is_organizer IS 'Helper to safely check organizer/admin privileges without RLS policy recursion.';
 
 -- ============================================================================
--- 2. Drop Legacy / Recursive Policies on public.organizers
+-- 2. Drop Legacy / Conflicting Policies on public.organizers
 -- ============================================================================
 DROP POLICY IF EXISTS "Event owners can add organizers" ON public.organizers;
 DROP POLICY IF EXISTS "Users can add organizers to their events" ON public.organizers;
@@ -41,48 +41,16 @@ DROP POLICY IF EXISTS "Users can delete organizer records" ON public.organizers;
 DROP POLICY IF EXISTS "Users can update their own organizer records" ON public.organizers;
 
 -- ============================================================================
--- 3. Enable RLS on public.organizers
+-- 3. Explicitly Disable RLS on public.organizers (Option 1)
 -- ============================================================================
-ALTER TABLE public.organizers ENABLE ROW LEVEL SECURITY;
-
--- ============================================================================
--- 4. Create Pure, Non-Recursive Policies for public.organizers
--- ============================================================================
--- NOTE: Never use subqueries referencing `events` or `organizers` inside these policies.
--- Cross-table subqueries (matches -> organizers -> events -> organizers) cause PostgreSQL
--- policy recursion errors which result in HTTP 500 / "TypeError: Failed to fetch" in PostgREST.
-
--- Policy 1 (SELECT): Authenticated users can view their own organizer records
-CREATE POLICY "Users can view their own organizer records"
-  ON public.organizers FOR SELECT
-  TO authenticated
-  USING (user_id = auth.uid());
-
--- Policy 2 (INSERT): Authenticated users can insert their own organizer records
-CREATE POLICY "Users can add organizers to their events"
-  ON public.organizers FOR INSERT
-  TO authenticated
-  WITH CHECK (user_id = auth.uid());
-
--- Policy 3 (UPDATE): Authenticated users can update their own organizer records
-CREATE POLICY "Users can update their own organizer records"
-  ON public.organizers FOR UPDATE
-  TO authenticated
-  USING (user_id = auth.uid());
-
--- Policy 4 (DELETE): Authenticated users can delete their own organizer records
-CREATE POLICY "Users can delete organizer records"
-  ON public.organizers FOR DELETE
-  TO authenticated
-  USING (user_id = auth.uid());
+-- Matches project conventions and previous migrations (006, 034, 039).
+-- Eliminates all cross-table policy recursion when updating matches or event data.
+ALTER TABLE public.organizers DISABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
--- 5. Comprehensive RLS Safety Sweep for All Public Tables
+-- 4. Safety Sweep: Ensure RLS is Enabled on All Other Public Tables
 -- ============================================================================
--- Ensures all public schema tables have Row Level Security enabled
--- to resolve any lingering rls_disabled_in_public Supabase linter notices.
 ALTER TABLE IF EXISTS public.events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.organizers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.announcements ENABLE ROW LEVEL SECURITY;
