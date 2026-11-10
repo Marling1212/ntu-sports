@@ -57,7 +57,7 @@ export function TournamentBracketCore({
   const maxRound = Math.max(...matches.map(m => m.round), 1);
   const uniqueRounds = [...new Set(matches.map(m => m.round))].sort((a, b) => a - b);
   const rounds = uniqueRounds.length > 0 ? uniqueRounds : Array.from({ length: maxRound }, (_, i) => i + 1);
-  
+
   const firstRoundMatches = matches.filter(m => m.round === Math.min(...rounds)).length;
   // Estimate draw size using power of 2
   const bracketSize = Math.max(2, Math.pow(2, Math.ceil(Math.log2(firstRoundMatches * 2))));
@@ -96,11 +96,11 @@ export function TournamentBracketCore({
       // BracketSection dynamically re-numbers the matchNumbers 1..N for the current view.
       const roundMatches = matches.filter(m => m.round === round);
       const maxMatchNum = roundMatches.length > 0 ? Math.max(...roundMatches.map(m => m.matchNumber)) : 0;
-      
+
       // If we have matches, grid size matches the largest matchNumber present.
       // If empty, generate a fallback binary tree size based on depth from the current section's highest round.
       const matchCountInRound = maxMatchNum > 0 ? maxMatchNum : Math.pow(2, maxRound - round);
-      
+
       grid[round] = Array.from({ length: matchCountInRound }).map((_, i) => {
         return matches.find(m => m.round === round && m.matchNumber === i + 1) || null;
       });
@@ -162,9 +162,9 @@ export function TournamentBracketCore({
   }, [recomputeScaledWidth]);
 
   // Player Block Sub-component
-  const PlayerBlock = ({ 
+  const PlayerBlock = ({
     player, slot, isWinner, isLoser, isThirdPlace = false, textPlaceholder, contextLabel, adminCheckInSlot, round = 1,
-  }: { 
+  }: {
     player: Player | null; slot?: SlotPlaceholder | null; isWinner?: boolean; isLoser?: boolean; isThirdPlace?: boolean; textPlaceholder: string; contextLabel?: string;
     adminCheckInSlot?: { checked: boolean; disabled: boolean; onToggle: () => void };
     round?: number;
@@ -184,13 +184,11 @@ export function TournamentBracketCore({
     // Later rounds (Round 2+) do not show check-in badges, keeping upcoming match trees clean.
     const isFirstRound = round === 1;
     const isUnchecked = effectiveShowCheckIn && isFirstRound && isRealParticipant && !isCheckedIn;
-    
+
     return (
       <div
-        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 ${cellWClass} ${
-          pdfCapture ? "min-h-[56px] h-auto py-2.5 md:py-2.5 overflow-visible" : "h-[60px]"
-        } transition-all duration-300 relative ${!isBye && !isLoser ? "hover:scale-[1.02]" : ""} ${
-          isBye
+        className={`rounded-lg border-2 shadow-sm p-2 md:p-3 ${cellWClass} ${pdfCapture ? "min-h-[56px] h-auto py-2.5 md:py-2.5 overflow-visible" : "h-[60px]"
+          } transition-all duration-300 relative ${!isBye && !isLoser ? "hover:scale-[1.02]" : ""} ${isBye
             ? "border-gray-200 bg-gray-50"
             : isUnchecked
               ? "border-red-300 bg-red-100 text-red-950"
@@ -199,7 +197,7 @@ export function TournamentBracketCore({
                 : isLoser
                   ? "border-gray-300 bg-gray-100 opacity-50"
                   : isThirdPlace ? "border-amber-400 bg-amber-50" : "border-gray-300 bg-white"
-        }`}
+          }`}
       >
         <div
           className={`flex gap-1.5 md:gap-2 w-full min-w-0 ${pdfCapture ? "items-start" : "items-center h-full"}`}
@@ -211,32 +209,27 @@ export function TournamentBracketCore({
           )}
           <div className="flex-1 min-w-0 overflow-visible">
             <div
-              className={`font-medium ${
-                pdfCapture
+              className={`font-medium ${pdfCapture
                   ? "text-xs md:text-sm break-words leading-[1.45] pb-0.5"
                   : "text-base md:text-lg truncate leading-tight"
-              } ${isBye ? "text-gray-400 italic" : ""}`}
+                } ${isBye ? "text-gray-400 italic" : ""}`}
             >
               {displayText}
             </div>
             {player?.school && (
               <div
-                className={`text-[10px] mt-0.5 ${
-                  isUnchecked ? "text-red-700/80" : "text-gray-500"
-                } ${
-                  pdfCapture ? "break-words leading-[1.4]" : "truncate leading-tight"
-                }`}
+                className={`text-[10px] mt-0.5 ${isUnchecked ? "text-red-700/80" : "text-gray-500"
+                  } ${pdfCapture ? "break-words leading-[1.4]" : "truncate leading-tight"
+                  }`}
               >
                 {player.school}
               </div>
             )}
             {contextLabel && (
               <div
-                className={`text-[9px] mt-0.5 leading-snug ${
-                  isUnchecked ? "text-red-600/70" : "text-gray-400"
-                } ${
-                  pdfCapture ? "break-words" : "truncate leading-tight"
-                }`}
+                className={`text-[9px] mt-0.5 leading-snug ${isUnchecked ? "text-red-600/70" : "text-gray-400"
+                  } ${pdfCapture ? "break-words" : "truncate leading-tight"
+                  }`}
               >
                 {contextLabel}
               </div>
@@ -250,9 +243,8 @@ export function TournamentBracketCore({
           {adminCheckInSlot && player?.id && !isBye && (
             <button
               type="button"
-              className={`shrink-0 text-[10px] md:text-xs px-1.5 py-1 rounded border font-semibold whitespace-nowrap ${
-                adminCheckInSlot.checked ? "bg-ntu-green text-white border-ntu-green" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-              }`}
+              className={`shrink-0 text-[10px] md:text-xs px-1.5 py-1 rounded border font-semibold whitespace-nowrap ${adminCheckInSlot.checked ? "bg-ntu-green text-white border-ntu-green" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
               disabled={adminCheckInSlot.disabled}
               onClick={(e) => {
                 e.preventDefault();
@@ -278,7 +270,7 @@ export function TournamentBracketCore({
     const player1IsLoser = match && match.winner && match.winner.id !== match.player1?.id;
     const player2IsWinner = match && match.winner && match.winner.id === match.player2?.id;
     const player2IsLoser = match && match.winner && match.winner.id !== match.player2?.id;
-    
+
     const isActualFinalRound = round === actualTotalRounds;
 
     const getContextStr = (prevContextMatch: Match | null | undefined) => {
@@ -293,9 +285,9 @@ export function TournamentBracketCore({
     if (!match) {
       return (
         <div className={`flex flex-col gap-1 opacity-40 relative z-10 ${cellWClass}`}>
-           <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} round={round} />
-           <div className="h-1"></div>
-           <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} round={round} />
+          <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p1ContextLabel} round={round} />
+          <div className="h-1"></div>
+          <PlayerBlock player={null} textPlaceholder={round === 1 ? t("bracket.bye") : t("bracket.tbd")} contextLabel={p2ContextLabel} round={round} />
         </div>
       );
     }
@@ -305,18 +297,18 @@ export function TournamentBracketCore({
     const p1Check =
       adminCheckIn && round === 1 && match.player1
         ? {
-            checked: !!adminCheckIn.checkedInByPlayerId[match.player1.id],
-            disabled: adminCheckIn.busyPlayerId === match.player1.id,
-            onToggle: () => adminCheckIn.onToggleCheckIn(match.player1!),
-          }
+          checked: !!adminCheckIn.checkedInByPlayerId[match.player1.id],
+          disabled: adminCheckIn.busyPlayerId === match.player1.id,
+          onToggle: () => adminCheckIn.onToggleCheckIn(match.player1!),
+        }
         : undefined;
     const p2Check =
       adminCheckIn && round === 1 && match.player2
         ? {
-            checked: !!adminCheckIn.checkedInByPlayerId[match.player2.id],
-            disabled: adminCheckIn.busyPlayerId === match.player2.id,
-            onToggle: () => adminCheckIn.onToggleCheckIn(match.player2!),
-          }
+          checked: !!adminCheckIn.checkedInByPlayerId[match.player2.id],
+          disabled: adminCheckIn.busyPlayerId === match.player2.id,
+          onToggle: () => adminCheckIn.onToggleCheckIn(match.player2!),
+        }
         : undefined;
 
     const cardInner = (
@@ -349,15 +341,15 @@ export function TournamentBracketCore({
           <div
             className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 ${adminCheckIn ? "pointer-events-none" : ""}`}
           >
-             {match.status === "completed" && match.score ? (
-                <div className={`bg-white border-2 rounded-lg px-2 py-1 shadow-md ${isThirdPlace ? 'border-amber-500 text-amber-600' : isActualFinalRound && !isThirdPlace ? 'border-yellow-500 text-yellow-600' : 'border-ntu-green text-ntu-green'}`}>
-                   <div className={`font-bold whitespace-nowrap ${pdfCapture ? "text-[10px] md:text-xs leading-normal py-0.5" : "text-[10px] md:text-xs"}`}>{match.score}</div>
-                </div>
-             ) : (
-                <div className={`rounded-full flex items-center justify-center shadow-sm transition-all duration-300 ${pdfCapture ? "w-7 h-7 md:w-8 md:h-8" : "w-6 h-6 md:w-8 md:h-8"} ${isThirdPlace ? 'bg-amber-500 border-2 border-amber-600 text-white' : isActualFinalRound && !isThirdPlace ? 'bg-yellow-500 border-2 border-yellow-600 text-white' : match.status === 'live' ? 'bg-red-500 border-2 border-red-600 text-white animate-pulse' : match.status === 'delayed' ? 'bg-amber-100 border-2 border-amber-400 text-amber-700 animate-pulse' : 'bg-white border-2 border-gray-300 text-gray-500'}`}>
-                   <span className={`font-bold ${pdfCapture ? "text-[10px] md:text-xs leading-none" : "text-[10px] md:text-xs"}`}>{isThirdPlace ? '🥉' : isActualFinalRound && !isThirdPlace ? '🏆' : 'VS'}</span>
-                </div>
-             )}
+            {match.status === "completed" && match.score ? (
+              <div className={`bg-white border-2 rounded-lg px-2 py-1 shadow-md ${isThirdPlace ? 'border-amber-500 text-amber-600' : isActualFinalRound && !isThirdPlace ? 'border-yellow-500 text-yellow-600' : 'border-ntu-green text-ntu-green'}`}>
+                <div className={`font-bold whitespace-nowrap ${pdfCapture ? "text-[10px] md:text-xs leading-normal py-0.5" : "text-[10px] md:text-xs"}`}>{match.score}</div>
+              </div>
+            ) : (
+              <div className={`rounded-full flex items-center justify-center shadow-sm transition-all duration-300 ${pdfCapture ? "w-7 h-7 md:w-8 md:h-8" : "w-6 h-6 md:w-8 md:h-8"} ${isThirdPlace ? 'bg-amber-500 border-2 border-amber-600 text-white' : isActualFinalRound && !isThirdPlace ? 'bg-yellow-500 border-2 border-yellow-600 text-white' : match.status === 'live' ? 'bg-red-500 border-2 border-red-600 text-white animate-pulse' : match.status === 'delayed' ? 'bg-amber-100 border-2 border-amber-400 text-amber-700 animate-pulse' : 'bg-white border-2 border-gray-300 text-gray-500'}`}>
+                <span className={`font-bold ${pdfCapture ? "text-[10px] md:text-xs leading-none" : "text-[10px] md:text-xs"}`}>{isThirdPlace ? '🥉' : isActualFinalRound && !isThirdPlace ? '🏆' : 'VS'}</span>
+              </div>
+            )}
           </div>
         </div>
         {courtLabel !== "—" && (
@@ -403,18 +395,18 @@ export function TournamentBracketCore({
         {hasFeeders && !isThirdPlace && (
           <>
             <div className="flex flex-col justify-center relative">
-               <div className="relative flex items-center">
-                  <RecursiveMatchTree match={prevMatch1} round={round - 1} index={index * 2} />
-                  {/* Top Feeder Curve Connector */}
-                  <div className={`absolute right-[-24px] top-1/2 bottom-0 w-[24px] border-r-2 border-t-2 rounded-tr-[12px] opacity-70 ${isWinner1 ? 'border-ntu-green opacity-100 z-10' : 'border-gray-300'} pointer-events-none`}></div>
-               </div>
-               <div className="relative flex items-center">
-                  <RecursiveMatchTree match={prevMatch2} round={round - 1} index={index * 2 + 1} />
-                  {/* Bottom Feeder Curve Connector */}
-                  <div className={`absolute right-[-24px] top-0 bottom-1/2 w-[24px] border-r-2 border-b-2 rounded-br-[12px] opacity-70 ${isWinner2 ? 'border-ntu-green opacity-100 z-10' : 'border-gray-300'} pointer-events-none`}></div>
-               </div>
+              <div className="relative flex items-center">
+                <RecursiveMatchTree match={prevMatch1} round={round - 1} index={index * 2} />
+                {/* Top Feeder Curve Connector */}
+                <div className={`absolute right-[-24px] top-1/2 bottom-0 w-[24px] border-r-2 border-t-2 rounded-tr-[12px] opacity-70 ${isWinner1 ? 'border-ntu-green opacity-100 z-10' : 'border-gray-300'} pointer-events-none`}></div>
+              </div>
+              <div className="relative flex items-center">
+                <RecursiveMatchTree match={prevMatch2} round={round - 1} index={index * 2 + 1} />
+                {/* Bottom Feeder Curve Connector */}
+                <div className={`absolute right-[-24px] top-0 bottom-1/2 w-[24px] border-r-2 border-b-2 rounded-br-[12px] opacity-70 ${isWinner2 ? 'border-ntu-green opacity-100 z-10' : 'border-gray-300'} pointer-events-none`}></div>
+              </div>
             </div>
-            
+
             {/* Horizontal Tie Line linking the joined curves to the parent node */}
             <div className={`w-[24px] shrink-0 border-t-2 opacity-70 ${tieLineLit ? 'border-ntu-green opacity-100 z-10' : 'border-gray-300'} pointer-events-none ml-[24px]`}></div>
           </>
@@ -422,7 +414,7 @@ export function TournamentBracketCore({
 
         {/* The Card wrapper handles the vertical spacing between matchups natively using simple padding */}
         <div className={pdfCapture ? "py-2 relative z-20 shrink-0" : "py-3 md:py-4 relative z-20 shrink-0"}>
-           <MatchCard match={match} round={round} index={index} isThirdPlace={isThirdPlace} forceMobile={false} />
+          <MatchCard match={match} round={round} index={index} isThirdPlace={isThirdPlace} forceMobile={false} />
         </div>
       </div>
     );
@@ -457,24 +449,22 @@ export function TournamentBracketCore({
 
         {/* Mobile View Toggle */}
         {!pdfCapture && (
-        <div className="md:hidden flex bg-gray-100 p-1 rounded-lg w-full max-w-sm self-center mt-2">
-          <button
-            onClick={() => setMobileViewMode("full")}
-            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
-              mobileViewMode === "full" ? "bg-white shadow-sm text-ntu-green" : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <span>🌳</span> {t("bracket.fullBracket")}
-          </button>
-          <button
-            onClick={() => setMobileViewMode("tabs")}
-            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
-              mobileViewMode === "tabs" ? "bg-white shadow-sm text-ntu-green" : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <span>🗂️</span> {t("bracket.roundView")}
-          </button>
-        </div>
+          <div className="md:hidden flex bg-gray-100 p-1 rounded-lg w-full max-w-sm self-center mt-2">
+            <button
+              onClick={() => setMobileViewMode("full")}
+              className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${mobileViewMode === "full" ? "bg-white shadow-sm text-ntu-green" : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              <span>🌳</span> {t("bracket.fullBracket")}
+            </button>
+            <button
+              onClick={() => setMobileViewMode("tabs")}
+              className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${mobileViewMode === "tabs" ? "bg-white shadow-sm text-ntu-green" : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              <span>🗂️</span> {t("bracket.roundView")}
+            </button>
+          </div>
         )}
       </div>
 
@@ -482,7 +472,7 @@ export function TournamentBracketCore({
       {!pdfCapture && mobileViewMode === "tabs" && (
         <div className="md:hidden flex overflow-x-auto gap-2 mb-6 pb-2 border-b">
           {rounds.map(r => (
-            <button 
+            <button
               key={`tab-${r}`}
               onClick={() => setActiveTabRound(r)}
               className={`px-4 py-2 whitespace-nowrap text-sm font-semibold border-b-2 transition-colors ${activeTabRound === r ? 'border-ntu-green text-ntu-green' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
@@ -497,20 +487,20 @@ export function TournamentBracketCore({
       {!pdfCapture && mobileViewMode === "tabs" && (
         <div className="md:hidden flex flex-col gap-4">
           {gridMatches[activeTabRound]?.filter(m => m !== null).length === 0 ? (
-             <p className="text-gray-400 text-center italic py-8 text-sm">No matches available in this round yet.</p>
+            <p className="text-gray-400 text-center italic py-8 text-sm">No matches available in this round yet.</p>
           ) : (
             gridMatches[activeTabRound]?.filter(m => m !== null).map((match, i) => (
               <div key={`mobile-${match?.id || i}`} className="w-full max-w-sm mx-auto flex justify-center">
-                 <MatchCard match={match} round={activeTabRound} index={i} forceMobile={true} />
+                <MatchCard match={match} round={activeTabRound} index={i} forceMobile={true} />
               </div>
             ))
           )}
-          
+
           {/* Mobile 3rd Place Match */}
           {activeTabRound === actualTotalRounds && !hideThirdPlace && has3rdPlaceMatch && (
             <div className="w-full max-w-sm mx-auto mt-6 pt-6 border-t border-gray-200 flex justify-center flex-col items-center">
-               <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4">3rd Place Match</h4>
-               <MatchCard match={getThirdPlaceMatch()} round={activeTabRound} index={1} forceMobile={true} isThirdPlace={true} />
+              <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4">3rd Place Match</h4>
+              <MatchCard match={getThirdPlaceMatch()} round={activeTabRound} index={1} forceMobile={true} isThirdPlace={true} />
             </div>
           )}
         </div>
@@ -520,37 +510,37 @@ export function TournamentBracketCore({
       <div className={`${mobileViewMode === "full" ? "flex" : "hidden md:flex"} items-center justify-between gap-2 mb-2`}>
         {!pdfCapture && <p className="md:hidden text-xs text-gray-400">← {t("bracket.swipeHint")} →</p>}
         {!pdfCapture && (
-        <div className="ml-auto flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={zoomOut}
-            disabled={bracketZoom <= MIN_ZOOM}
-            className="px-2 py-1 rounded border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Zoom out bracket"
-          >
-            -
-          </button>
-          <button
-            type="button"
-            onClick={resetZoom}
-            className="px-2 py-1 rounded border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50"
-            aria-label="Reset bracket zoom"
-          >
-            {Math.round(bracketZoom * 100)}%
-          </button>
-          <button
-            type="button"
-            onClick={zoomIn}
-            disabled={bracketZoom >= MAX_ZOOM}
-            className="px-2 py-1 rounded border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Zoom in bracket"
-          >
-            +
-          </button>
-        </div>
+          <div className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={zoomOut}
+              disabled={bracketZoom <= MIN_ZOOM}
+              className="px-2 py-1 rounded border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Zoom out bracket"
+            >
+              -
+            </button>
+            <button
+              type="button"
+              onClick={resetZoom}
+              className="px-2 py-1 rounded border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50"
+              aria-label="Reset bracket zoom"
+            >
+              {Math.round(bracketZoom * 100)}%
+            </button>
+            <button
+              type="button"
+              onClick={zoomIn}
+              disabled={bracketZoom >= MAX_ZOOM}
+              className="px-2 py-1 rounded border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Zoom in bracket"
+            >
+              +
+            </button>
+          </div>
         )}
       </div>
-      
+
       <div className={`${mobileViewMode === "full" ? "block" : "hidden md:block"} w-full min-w-0 ${pdfCapture ? "overflow-visible" : "overflow-x-auto overflow-y-hidden"} pb-6 relative`}>
         {(() => {
           // Generous single fallback (SSR-safe, no matchMedia) until ResizeObserver measures real width.
@@ -569,79 +559,79 @@ export function TournamentBracketCore({
                   pdfCapture
                     ? undefined
                     : {
-                        transform: `scale(${bracketZoom})`,
-                        transformOrigin: "top left",
-                      }
+                      transform: `scale(${bracketZoom})`,
+                      transformOrigin: "top left",
+                    }
                 }
               >
-          {/* Flex Column Headers */}
-          <div
-            className="flex bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full"
-            style={{ gap: `${headerColGapPx}px` }}
-          >
-            {rounds.map(round => (
-              <div key={`header-${round}`} className={`${cellWClass} shrink-0 text-center`}>
-                 <h3 className={`font-semibold text-ntu-green ${pdfCapture ? "text-sm leading-snug" : "text-sm md:text-base"}`}>{generateRoundName(round)}</h3>
-                 <p className={`text-gray-500 mt-1 ${pdfCapture ? "text-[10px] leading-normal" : "text-[10px] md:text-xs"}`}>{gridMatches[round]?.filter(m => m !== null).length || 0} matches</p>
-              </div>
-            ))}
-          </div>
+                {/* Flex Column Headers */}
+                <div
+                  className="flex bg-white z-30 pb-2 mb-4 border-b border-gray-200 w-full"
+                  style={{ gap: `${headerColGapPx}px` }}
+                >
+                  {rounds.map(round => (
+                    <div key={`header-${round}`} className={`${cellWClass} shrink-0 text-center`}>
+                      <h3 className={`font-semibold text-ntu-green ${pdfCapture ? "text-sm leading-snug" : "text-sm md:text-base"}`}>{generateRoundName(round)}</h3>
+                      <p className={`text-gray-500 mt-1 ${pdfCapture ? "text-[10px] leading-normal" : "text-[10px] md:text-xs"}`}>{gridMatches[round]?.filter(m => m !== null).length || 0} matches</p>
+                    </div>
+                  ))}
+                </div>
 
-          {/* The Recursive Bracket Tree */}
-          {/* We start the recursion at the final round (the right-most column). The branches will build leftwards. */}
-          <div className="flex">
-            <div className={`flex flex-col justify-center gap-12 ${cellWClass}`}>
-               {/*
+                {/* The Recursive Bracket Tree */}
+                {/* We start the recursion at the final round (the right-most column). The branches will build leftwards. */}
+                <div className="flex">
+                  <div className={`flex flex-col justify-center gap-12 ${cellWClass}`}>
+                    {/*
                 * Only the championship (final round, match #1) is the tree root. Match #2 in the same
                 * round is the 3rd-place game — rendering it here builds empty feeder branches below the real bracket.
                 */}
-               {gridMatches[rounds[rounds.length - 1]]
-                 ?.filter((match) => {
-                   if (!match) return false;
-                   // Only exclude the dedicated 3rd-place row when we are rendering
-                   // the tournament's actual final round. For section views (earlier rounds),
-                   // all roots in the highest visible round must be rendered.
-                   const isThirdPlaceInFinalRound =
-                     rounds[rounds.length - 1] === actualTotalRounds &&
-                     has3rdPlaceMatch &&
-                     match.matchNumber === 2;
-                   return !isThirdPlaceInFinalRound;
-                 })
-                 .map((match, i) => (
-                   <RecursiveMatchTree
-                     key={`root-${match?.id ?? i}`}
-                     match={match}
-                     round={rounds[rounds.length - 1]}
-                     index={i}
-                   />
-                 ))}
-            </div>
-          </div>
-          
-          {/* 3rd Place Match Positioned Under the Final Column */}
-          {rounds.includes(actualTotalRounds) && !hideThirdPlace && has3rdPlaceMatch && (
-            <div className="flex mt-12 pt-8 border-t border-gray-200 relative w-full">
-               {pdfCapture ? (
-                 <div
-                   style={{
-                     width: `calc((188px * ${rounds.length - 1}) + (${headerColGapPx}px * ${rounds.length - 1}))`,
-                   }}
-                   className="shrink-0"
-                 />
-               ) : (
-                 <>
-                   <div style={{ width: `calc((150px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="md:hidden shrink-0"></div>
-                   <div style={{ width: `calc((200px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="hidden md:block shrink-0"></div>
-                 </>
-               )}
-               
-               <div className={`${cellWClass} shrink-0 flex flex-col items-center`}>
-                  <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4 whitespace-nowrap">3rd Place Match</h4>
-                  <MatchCard match={getThirdPlaceMatch()} round={actualTotalRounds} index={1} isThirdPlace={true} />
-               </div>
-            </div>
-          )}
-          
+                    {gridMatches[rounds[rounds.length - 1]]
+                      ?.filter((match) => {
+                        if (!match) return false;
+                        // Only exclude the dedicated 3rd-place row when we are rendering
+                        // the tournament's actual final round. For section views (earlier rounds),
+                        // all roots in the highest visible round must be rendered.
+                        const isThirdPlaceInFinalRound =
+                          rounds[rounds.length - 1] === actualTotalRounds &&
+                          has3rdPlaceMatch &&
+                          match.matchNumber === 2;
+                        return !isThirdPlaceInFinalRound;
+                      })
+                      .map((match, i) => (
+                        <RecursiveMatchTree
+                          key={`root-${match?.id ?? i}`}
+                          match={match}
+                          round={rounds[rounds.length - 1]}
+                          index={i}
+                        />
+                      ))}
+                  </div>
+                </div>
+
+                {/* 3rd Place Match Positioned Under the Final Column */}
+                {rounds.includes(actualTotalRounds) && !hideThirdPlace && has3rdPlaceMatch && (
+                  <div className="flex mt-12 pt-8 border-t border-gray-200 relative w-full">
+                    {pdfCapture ? (
+                      <div
+                        style={{
+                          width: `calc((188px * ${rounds.length - 1}) + (${headerColGapPx}px * ${rounds.length - 1}))`,
+                        }}
+                        className="shrink-0"
+                      />
+                    ) : (
+                      <>
+                        <div style={{ width: `calc((150px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="md:hidden shrink-0"></div>
+                        <div style={{ width: `calc((200px * ${rounds.length - 1}) + (48px * ${rounds.length - 1}))` }} className="hidden md:block shrink-0"></div>
+                      </>
+                    )}
+
+                    <div className={`${cellWClass} shrink-0 flex flex-col items-center`}>
+                      <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4 whitespace-nowrap">3rd Place Match</h4>
+                      <MatchCard match={getThirdPlaceMatch()} round={actualTotalRounds} index={1} isThirdPlace={true} />
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
           );
@@ -650,39 +640,39 @@ export function TournamentBracketCore({
 
       {/* Legend */}
       {!adminCheckIn && !pdfCapture && (
-      <div className="mt-8 pt-4 border-t border-gray-200">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">Legend</h4>
-        <div className="flex flex-wrap gap-4 md:gap-6 text-xs md:text-sm">
-          {effectiveShowCheckIn && (
+        <div className="mt-8 pt-4 border-t border-gray-200">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Legend</h4>
+          <div className="flex flex-wrap gap-4 md:gap-6 text-xs md:text-sm">
+            {effectiveShowCheckIn && (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-red-300 rounded bg-red-100"></div>
+                <span className="text-gray-600 font-medium">{t("bracket.legendNotCheckedIn")}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-red-300 rounded bg-red-100"></div>
-              <span className="text-gray-600 font-medium">{t("bracket.legendNotCheckedIn")}</span>
+              <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-ntu-green rounded bg-ntu-green bg-opacity-10"></div>
+              <span className="text-gray-600">Winner</span>
             </div>
-          )}
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-ntu-green rounded bg-ntu-green bg-opacity-10"></div>
-            <span className="text-gray-600">Winner</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-gray-300 rounded bg-gray-100 opacity-50"></div>
-            <span className="text-gray-600">Eliminated</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 md:w-8 md:h-8 bg-amber-100 border-2 border-amber-400 rounded-full"></div>
-            <span className="text-gray-600">Delayed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] md:text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded">1</span>
-            <span className="text-gray-600">Seed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="border-2 border-ntu-green rounded px-2 py-0.5 md:py-1 bg-white">
-              <span className="text-ntu-green text-[10px] font-bold">6-4, 6-2</span>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 md:w-4 md:h-4 border-2 border-gray-300 rounded bg-gray-100 opacity-50"></div>
+              <span className="text-gray-600">Eliminated</span>
             </div>
-            <span className="text-gray-600">Score</span>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 md:w-8 md:h-8 bg-amber-100 border-2 border-amber-400 rounded-full"></div>
+              <span className="text-gray-600">Delayed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] md:text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded">1</span>
+              <span className="text-gray-600">Seed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="border-2 border-ntu-green rounded px-2 py-0.5 md:py-1 bg-white">
+                <span className="text-ntu-green text-[10px] font-bold">6-4, 6-2</span>
+              </div>
+              <span className="text-gray-600">Score</span>
+            </div>
           </div>
         </div>
-      </div>
       )}
     </div>
   );

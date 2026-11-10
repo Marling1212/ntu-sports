@@ -103,9 +103,9 @@ export default function PlayersTable({
       }
       setEnabledFields(fields);
     };
-    
+
     updateFields();
-    
+
     // Listen for storage changes (when bulk import updates config in another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key?.startsWith('player_field_config_') && e.key.includes(eventId)) {
@@ -113,14 +113,14 @@ export default function PlayersTable({
       }
     };
     window.addEventListener('storage', handleStorageChange);
-    
+
     // Listen for custom event (when bulk import updates config in same tab)
     const handleConfigUpdate = () => updateFields();
     window.addEventListener('fieldConfigUpdated', handleConfigUpdate);
-    
+
     // Also check periodically as fallback
     const interval = setInterval(updateFields, 1000);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('fieldConfigUpdated', handleConfigUpdate);
@@ -553,15 +553,13 @@ export default function PlayersTable({
         <button
           type="button"
           onClick={() => handleSortColumn(columnKey)}
-          className={`group inline-flex w-full max-w-full items-center gap-1 text-xs font-medium uppercase tracking-wider text-gray-600 hover:text-ntu-green ${
-            align === "right" ? "justify-end" : "justify-start"
-          }`}
+          className={`group inline-flex w-full max-w-full items-center gap-1 text-xs font-medium uppercase tracking-wider text-gray-600 hover:text-ntu-green ${align === "right" ? "justify-end" : "justify-start"
+            }`}
         >
           <span className={align === "right" ? "text-right" : "text-left"}>{label}</span>
           <span
-            className={`shrink-0 tabular-nums ${
-              active ? "text-ntu-green font-semibold" : "text-gray-300 opacity-0 group-hover:opacity-100"
-            }`}
+            className={`shrink-0 tabular-nums ${active ? "text-ntu-green font-semibold" : "text-gray-300 opacity-0 group-hover:opacity-100"
+              }`}
             aria-hidden
           >
             {active ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
@@ -578,7 +576,7 @@ export default function PlayersTable({
       .eq("event_id", eventId)
       .order("seed", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true });
-    
+
     if (data) {
       // Ensure custom_fields is always an object (not null)
       const normalizedData = data.map(player => ({
@@ -639,7 +637,7 @@ export default function PlayersTable({
         }
       }
     });
-    
+
     const { data, error } = await supabase
       .from("players")
       .insert(playerData)
@@ -929,11 +927,11 @@ export default function PlayersTable({
           </div>
         </div>
       )}
-      
+
       {showBulkImport && (
         <div className="mb-6">
-          <BulkPlayerImport 
-            eventId={eventId} 
+          <BulkPlayerImport
+            eventId={eventId}
             registrationType={registrationType}
             divisionId={divisions.length > 1 ? selectedDivisionId : (defaultDivisionId ?? divisions[0]?.id) ?? null}
             onImportComplete={() => {
@@ -945,7 +943,7 @@ export default function PlayersTable({
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-visible md:overflow-hidden">
         {/* 不可出賽時段上限 + 開放隊長填寫 */}
         <div className="px-6 py-4 bg-amber-50 border-b border-amber-100">
           <div className="flex flex-wrap items-center gap-3 mb-3">
@@ -1037,11 +1035,10 @@ export default function PlayersTable({
                     type="button"
                     disabled={savingBracketSplitMode}
                     onClick={() => handleBracketSplitModeChange('4_sections')}
-                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
-                      bracketSplitMode === '4_sections'
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${bracketSplitMode === '4_sections'
                         ? 'bg-ntu-green text-white shadow-xs'
                         : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                      }`}
                   >
                     {t('admin.registration.bracketSplitMode4SectionsShort')}
                   </button>
@@ -1049,11 +1046,10 @@ export default function PlayersTable({
                     type="button"
                     disabled={savingBracketSplitMode}
                     onClick={() => handleBracketSplitModeChange('2_sections')}
-                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
-                      bracketSplitMode === '2_sections'
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${bracketSplitMode === '2_sections'
                         ? 'bg-ntu-green text-white shadow-xs'
                         : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                      }`}
                   >
                     {t('admin.registration.bracketSplitMode2SectionsShort')}
                   </button>
@@ -1334,567 +1330,657 @@ export default function PlayersTable({
 
         {/* Desktop Table View */}
         {!showEmptyRosterCta && (
-        <div className="hidden md:block overflow-x-auto">
-          <p className="border-b border-gray-100 px-6 py-2 text-xs text-gray-500">
-            {t('admin.registration.tapHeaderToSort')}
-          </p>
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <SortableTh columnKey="draw_no" label={t('admin.registration.drawNumberShort')} />
-                {enabledFields.map((field) => (
-                  <SortableTh
-                    key={field.key}
-                    columnKey={`field:${field.key}` as PlayersSortKey}
-                    label={field.name}
-                  />
-                ))}
-                <SortableTh columnKey="checked_in_at" label={t('admin.registration.checkInSort')} />
-                <SortableTh columnKey="blackout_count" label={t('admin.registration.blackouts')} />
-                <SortableTh columnKey="elimination" label={t('admin.actions')} align="right" />
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {                sortedFilteredPlayers.length === 0 ? (
+          <div className="hidden md:block overflow-x-auto">
+            <p className="border-b border-gray-100 px-6 py-2 text-xs text-gray-500">
+              {t('admin.registration.tapHeaderToSort')}
+            </p>
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <td colSpan={enabledFields.length + 4} className="px-6 py-12 text-center text-gray-500">
-                    {players.length === 0 
-                      ? t('admin.registration.noPlayersYet')
-                      : t('admin.registration.noMatchSearch')}
-                  </td>
+                  <SortableTh columnKey="draw_no" label={t('admin.registration.drawNumberShort')} />
+                  {enabledFields.map((field) => (
+                    <SortableTh
+                      key={field.key}
+                      columnKey={`field:${field.key}` as PlayersSortKey}
+                      label={field.name}
+                    />
+                  ))}
+                  <SortableTh columnKey="checked_in_at" label={t('admin.registration.checkInSort')} />
+                  <SortableTh columnKey="blackout_count" label={t('admin.registration.blackouts')} />
+                  <SortableTh columnKey="elimination" label={t('admin.actions')} align="right" />
                 </tr>
-              ) : (
-                sortedFilteredPlayers.map((player) => {
-                  const isTeam = player.type === 'team';
-                  const members = teamMembers[player.id] || [];
-                  const isExpanded =
-                    isTeam &&
-                    teamMembersReady &&
-                    (expandedTeams[player.id] ?? members.length === 0);
-                  
-                  return (
-                    <>
-                      <tr
-                        key={player.id}
-                        className={`transition-colors ${
-                          player.checked_in_at
-                            ? "bg-emerald-100 hover:bg-emerald-100"
-                            : "hover:bg-gray-50"
-                        }`}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-700 font-semibold">
-                          {drawNumberByPlayerId[player.id] ?? "—"}
-                        </td>
-                        {enabledFields.length > 0 ? enabledFields.map((field) => {
-                          if (field.key === 'name') {
-                            return (
-                              <td key={field.key} className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                                <div className="flex items-center gap-2">
-                                  {isTeam && (
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleTeamExpanded(player.id)}
-                                      className="text-ntu-green hover:text-ntu-green-dark"
-                                    >
-                                      {isExpanded ? '▼' : '▶'}
-                                    </button>
-                                  )}
-                                  {player.name || "—"}
-                                  {isTeam && (
-                                    <span className="text-xs text-gray-500">
-                                      ({members.length} 位球員)
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            );
-                          } else if (field.key === 'department') {
-                            const deptValue = player.department?.trim();
-                            return (
-                              <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
-                                {deptValue ? deptValue : "—"}
-                              </td>
-                            );
-                          } else if (field.key === 'email') {
-                            const emailValue = player.email?.trim();
-                            return (
-                              <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
-                                {emailValue ? emailValue : "—"}
-                              </td>
-                            );
-                          } else if (field.key === 'seed') {
-                            const seedValue = player.seed;
-                            return (
-                              <td key={field.key} className="px-6 py-4 whitespace-nowrap">
-                                {seedValue !== null && seedValue !== undefined ? (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
-                                    {seedValue}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">—</span>
-                                )}
-                              </td>
-                            );
-                          } else {
-                            // Custom field - read from custom_fields JSON object
-                            const customValue = player.custom_fields?.[field.key];
-                            const displayValue = customValue !== null && customValue !== undefined && customValue !== '' 
-                              ? String(customValue) 
-                              : null;
-                            return (
-                              <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
-                                {displayValue ? displayValue : "—"}
-                              </td>
-                            );
-                          }
-                        }) : (
-                          // Fallback: show at least name if no fields configured
-                          <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                            {player.name || "—"}
-                          </td>
-                        )}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleCheckIn(player)}
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
-                              player.checked_in_at
-                                ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedFilteredPlayers.length === 0 ? (
+                  <tr>
+                    <td colSpan={enabledFields.length + 4} className="px-6 py-12 text-center text-gray-500">
+                      {players.length === 0
+                        ? t('admin.registration.noPlayersYet')
+                        : t('admin.registration.noMatchSearch')}
+                    </td>
+                  </tr>
+                ) : (
+                  sortedFilteredPlayers.map((player) => {
+                    const isTeam = player.type === 'team';
+                    const members = teamMembers[player.id] || [];
+                    const isExpanded =
+                      isTeam &&
+                      teamMembersReady &&
+                      (expandedTeams[player.id] ?? members.length === 0);
+
+                    return (
+                      <>
+                        <tr
+                          key={player.id}
+                          className={`transition-colors ${player.checked_in_at
+                              ? "bg-emerald-100 hover:bg-emerald-100"
+                              : "hover:bg-gray-50"
                             }`}
-                          >
-                            {player.checked_in_at ? "已報到" : "未報到"}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedBlackout(expandedBlackout === player.id ? null : player.id)}
-                            className="text-ntu-green hover:underline text-sm font-medium"
-                          >
-                            {t('admin.registration.setBlackoutShort')} ({(blackoutsByPlayer[player.id] || []).length})
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end gap-2">
-                            {isTeam && (
-                              <button
-                                type="button"
-                                onClick={() => handleCaptainLink(player)}
-                                className="text-ntu-green hover:text-ntu-green-dark hover:underline"
-                              >
-                                {(player.custom_fields as Record<string, unknown>)?.captain_token
-                                  ? t("admin.captainLink.copy")
-                                  : t("admin.captainLink.generate")}
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeletePlayer(player.id)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              {t('admin.delete')}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      {expandedBlackout === player.id && (
-                        <tr>
-                          <td colSpan={enabledFields.length + 4} className="px-6 py-4 bg-gray-50">
-                            <div className="space-y-3">
-                              <h4 className="font-semibold text-gray-800 text-sm">{t('admin.registration.weeklyBlackouts')}</h4>
-                              <ul className="space-y-2">
-                                {(blackoutsByPlayer[player.id] || []).map((bt) => (
-                                  <li key={bt.id} className="flex items-center justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
-                                    <span className="text-sm text-gray-700">
-                                      {WEEKDAY_LABELS[bt.day_of_week]} {bt.start_time.slice(0, 5)}–{bt.end_time.slice(0, 5)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-700 font-semibold">
+                            {drawNumberByPlayerId[player.id] ?? "—"}
+                          </td>
+                          {enabledFields.length > 0 ? enabledFields.map((field) => {
+                            if (field.key === 'name') {
+                              return (
+                                <td key={field.key} className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                  <div className="flex items-center gap-2">
+                                    {isTeam && (
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleTeamExpanded(player.id)}
+                                        className="text-ntu-green hover:text-ntu-green-dark"
+                                      >
+                                        {isExpanded ? '▼' : '▶'}
+                                      </button>
+                                    )}
+                                    {player.name || "—"}
+                                    {isTeam && (
+                                      <span className="text-xs text-gray-500">
+                                        ({members.length} 位球員)
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                            } else if (field.key === 'department') {
+                              const deptValue = player.department?.trim();
+                              return (
+                                <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
+                                  {deptValue ? deptValue : "—"}
+                                </td>
+                              );
+                            } else if (field.key === 'email') {
+                              const emailValue = player.email?.trim();
+                              return (
+                                <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
+                                  {emailValue ? emailValue : "—"}
+                                </td>
+                              );
+                            } else if (field.key === 'seed') {
+                              const seedValue = player.seed;
+                              return (
+                                <td key={field.key} className="px-6 py-4 whitespace-nowrap">
+                                  {seedValue !== null && seedValue !== undefined ? (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
+                                      {seedValue}
                                     </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteBlackoutTemplate(bt.id)}
-                                      className="text-red-600 hover:text-red-800 text-sm"
-                                    >
-                                      {t('admin.delete')}
-                                    </button>
-                                  </li>
-                                ))}
-                              </ul>
-                              {initialSlotTemplates.length > 0 ? (
-                                <div className="flex flex-wrap items-center gap-2 pt-2">
-                                  <select
-                                    id={`blackout-slot-${player.id}`}
-                                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                                  >
-                                    <option value="">{t('admin.registration.selectSlot')}</option>
-                                    {uniqueSlotTemplatesForBlackout.map((st) => (
-                                      <option key={st.id} value={st.id}>
-                                        {WEEKDAY_LABELS[st.day_of_week]} {st.start_time.slice(0, 5)}–{st.end_time.slice(0, 5)}
-                                        {st.code ? ` (${st.code})` : ""}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <span className="text-xs text-gray-500">同一時段選一次即涵蓋所有場地</span>
-                                  <button
-                                    type="button"
-                                    disabled={addingBlackoutForPlayer === player.id}
-                                    onClick={() => {
-                                      const sel = document.getElementById(`blackout-slot-${player.id}`) as HTMLSelectElement;
-                                      const v = sel?.value;
-                                      if (v) {
-                                        handleAddBlackoutTemplate(player.id, v);
-                                        sel.value = "";
-                                      } else {
-                                        toast.error("請選擇時段");
-                                      }
-                                    }}
-                                    className="bg-ntu-green text-white px-3 py-1.5 rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
-                                  >
-                                    {addingBlackoutForPlayer === player.id ? t('admin.registration.addButtonLoading') : t('admin.add')}
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="text-xs text-gray-500 space-y-1">
-                                  <p>{t('admin.registration.createTemplatesFirst')}</p>
-                                  <a href={`/admin/${eventId}/scheduling#slot-templates`} className="text-ntu-green hover:underline block mt-1">前往排程頁建立時段模板 →</a>
-                                </div>
+                                  ) : (
+                                    <span className="text-gray-400">—</span>
+                                  )}
+                                </td>
+                              );
+                            } else {
+                              // Custom field - read from custom_fields JSON object
+                              const customValue = player.custom_fields?.[field.key];
+                              const displayValue = customValue !== null && customValue !== undefined && customValue !== ''
+                                ? String(customValue)
+                                : null;
+                              return (
+                                <td key={field.key} className="px-6 py-4 whitespace-nowrap text-gray-600">
+                                  {displayValue ? displayValue : "—"}
+                                </td>
+                              );
+                            }
+                          }) : (
+                            // Fallback: show at least name if no fields configured
+                            <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                              {player.name || "—"}
+                            </td>
+                          )}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCheckIn(player)}
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${player.checked_in_at
+                                  ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                }`}
+                            >
+                              {player.checked_in_at ? "已報到" : "未報到"}
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedBlackout(expandedBlackout === player.id ? null : player.id)}
+                              className="text-ntu-green hover:underline text-sm font-medium"
+                            >
+                              {t('admin.registration.setBlackoutShort')} ({(blackoutsByPlayer[player.id] || []).length})
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-2">
+                              {isTeam && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCaptainLink(player)}
+                                  className="text-ntu-green hover:text-ntu-green-dark hover:underline"
+                                >
+                                  {(player.custom_fields as Record<string, unknown>)?.captain_token
+                                    ? t("admin.captainLink.copy")
+                                    : t("admin.captainLink.generate")}
+                                </button>
                               )}
+                              <button
+                                onClick={() => handleDeletePlayer(player.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                {t('admin.delete')}
+                              </button>
                             </div>
                           </td>
                         </tr>
-                      )}
-                      {isTeam && isExpanded && (
-                        <tr>
-                          <td colSpan={enabledFields.length + 4} className="px-6 py-4 bg-gray-50">
-                            <div className="space-y-4">
-                              <div className="flex justify-between items-center">
-                                <h3 className="font-semibold text-gray-700">{t('admin.registration.teamMembers')}</h3>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: !showBulkMemberImport[player.id] })}
-                                    className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90"
-                                  >
-                                    {showBulkMemberImport[player.id] ? t('admin.registration.hide') : `📋 ${t('admin.registration.bulkImportMembers')}`}
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
-                                    className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
-                                  >
-                                    + {t('admin.registration.addMember')}
-                                  </button>
-                                </div>
+                        {expandedBlackout === player.id && (
+                          <tr>
+                            <td colSpan={enabledFields.length + 4} className="px-6 py-4 bg-gray-50">
+                              <div className="space-y-3">
+                                <h4 className="font-semibold text-gray-800 text-sm">{t('admin.registration.weeklyBlackouts')}</h4>
+                                <ul className="space-y-2">
+                                  {(blackoutsByPlayer[player.id] || []).map((bt) => (
+                                    <li key={bt.id} className="flex items-center justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
+                                      <span className="text-sm text-gray-700">
+                                        {WEEKDAY_LABELS[bt.day_of_week]} {bt.start_time.slice(0, 5)}–{bt.end_time.slice(0, 5)}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteBlackoutTemplate(bt.id)}
+                                        className="text-red-600 hover:text-red-800 text-sm"
+                                      >
+                                        {t('admin.delete')}
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                                {initialSlotTemplates.length > 0 ? (
+                                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                                    <select
+                                      id={`blackout-slot-${player.id}`}
+                                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                    >
+                                      <option value="">{t('admin.registration.selectSlot')}</option>
+                                      {uniqueSlotTemplatesForBlackout.map((st) => (
+                                        <option key={st.id} value={st.id}>
+                                          {WEEKDAY_LABELS[st.day_of_week]} {st.start_time.slice(0, 5)}–{st.end_time.slice(0, 5)}
+                                          {st.code ? ` (${st.code})` : ""}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <span className="text-xs text-gray-500">同一時段選一次即涵蓋所有場地</span>
+                                    <button
+                                      type="button"
+                                      disabled={addingBlackoutForPlayer === player.id}
+                                      onClick={() => {
+                                        const sel = document.getElementById(`blackout-slot-${player.id}`) as HTMLSelectElement;
+                                        const v = sel?.value;
+                                        if (v) {
+                                          handleAddBlackoutTemplate(player.id, v);
+                                          sel.value = "";
+                                        } else {
+                                          toast.error("請選擇時段");
+                                        }
+                                      }}
+                                      className="bg-ntu-green text-white px-3 py-1.5 rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                                    >
+                                      {addingBlackoutForPlayer === player.id ? t('admin.registration.addButtonLoading') : t('admin.add')}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-gray-500 space-y-1">
+                                    <p>{t('admin.registration.createTemplatesFirst')}</p>
+                                    <a href={`/admin/${eventId}/scheduling#slot-templates`} className="text-ntu-green hover:underline block mt-1">前往排程頁建立時段模板 →</a>
+                                  </div>
+                                )}
                               </div>
-                              
-                              {showBulkMemberImport[player.id] && (
-                                <BulkTeamMemberImport
-                                  teamId={player.id}
-                                  onImportComplete={() => {
-                                    loadTeamMembers();
-                                    setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: false });
-                                  }}
-                                />
-                              )}
-                              
-                              {editingMember && editingMember.teamId === player.id && (
-                                <div className="bg-white p-4 rounded border border-gray-200">
-                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                    <input
-                                      type="text"
-                                      placeholder="球員名稱"
-                                      value={editingMember.name}
-                                      onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
-                                      className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                                    />
-                                    <input
-                                      type="number"
-                                      placeholder={`${t('admin.registration.jerseyNumber')} (optional)`}
-                                      min="0"
-                                      value={editingMember.jerseyNumber}
-                                      onChange={(e) => setEditingMember({ ...editingMember, jerseyNumber: e.target.value })}
-                                      className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => handleAddTeamMember(player.id)}
-                                        className="flex-1 bg-ntu-green text-white px-3 py-2 rounded hover:opacity-90 text-sm"
-                                      >
-                                        {editingMember.memberId ? t('admin.edit') : t('admin.registration.addButton')}
-                                      </button>
-                                      <button
-                                        onClick={() => setEditingMember(null)}
-                                        className="flex-1 bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-gray-300 text-sm"
-                                      >
-                                        {t('admin.cancel')}
-                                      </button>
-                                    </div>
+                            </td>
+                          </tr>
+                        )}
+                        {isTeam && isExpanded && (
+                          <tr>
+                            <td colSpan={enabledFields.length + 4} className="px-6 py-4 bg-gray-50">
+                              <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                  <h3 className="font-semibold text-gray-700">{t('admin.registration.teamMembers')}</h3>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: !showBulkMemberImport[player.id] })}
+                                      className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90"
+                                    >
+                                      {showBulkMemberImport[player.id] ? t('admin.registration.hide') : `📋 ${t('admin.registration.bulkImportMembers')}`}
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
+                                      className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
+                                    >
+                                      + {t('admin.registration.addMember')}
+                                    </button>
                                   </div>
                                 </div>
-                              )}
 
-                              {members.length === 0 ? (
-                                <p className="text-gray-500 text-sm">{t('admin.registration.noMembersYet')}</p>
-                              ) : (
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-sm">
-                                    <thead className="bg-gray-100">
-                                      <tr>
-                                        <th className="px-3 py-2 text-left">{t('admin.registration.jerseyNumber')}</th>
-                                        <th className="px-3 py-2 text-left">{t('admin.scheduling.name')}</th>
-                                        <th className="px-3 py-2 text-right">{t('admin.scheduling.actions')}</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {members.map((member) => (
-                                        <tr key={member.id} className="border-b border-gray-200">
-                                          <td className="px-3 py-2">{member.jersey_number !== null && member.jersey_number !== undefined ? member.jersey_number : '—'}</td>
-                                          <td className="px-3 py-2">{member.name}</td>
-                                          <td className="px-3 py-2 text-right">
-                                            <button
-                                              onClick={() => setEditingMember({
-                                                teamId: player.id,
-                                                memberId: member.id,
-                                                name: member.name,
-                                                jerseyNumber: member.jersey_number?.toString() || ""
-                                              })}
-                                              className="text-blue-600 hover:text-blue-800 mr-3"
-                                            >
-                                              {t('admin.registration.edit')}
-                                            </button>
-                                            <button
-                                              onClick={() => handleDeleteTeamMember(member.id)}
-                                              className="text-red-600 hover:text-red-800"
-                                            >
-                                              {t('admin.delete')}
-                                            </button>
-                                          </td>
+                                {showBulkMemberImport[player.id] && (
+                                  <BulkTeamMemberImport
+                                    teamId={player.id}
+                                    onImportComplete={() => {
+                                      loadTeamMembers();
+                                      setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: false });
+                                    }}
+                                  />
+                                )}
+
+                                {editingMember && editingMember.teamId === player.id && (
+                                  <div className="bg-white p-4 rounded border border-gray-200">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                      <input
+                                        type="text"
+                                        placeholder="球員名稱"
+                                        value={editingMember.name}
+                                        onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
+                                        className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                      />
+                                      <input
+                                        type="number"
+                                        placeholder={`${t('admin.registration.jerseyNumber')} (optional)`}
+                                        min="0"
+                                        value={editingMember.jerseyNumber}
+                                        onChange={(e) => setEditingMember({ ...editingMember, jerseyNumber: e.target.value })}
+                                        className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                      />
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => handleAddTeamMember(player.id)}
+                                          className="flex-1 bg-ntu-green text-white px-3 py-2 rounded hover:opacity-90 text-sm"
+                                        >
+                                          {editingMember.memberId ? t('admin.edit') : t('admin.registration.addButton')}
+                                        </button>
+                                        <button
+                                          onClick={() => setEditingMember(null)}
+                                          className="flex-1 bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-gray-300 text-sm"
+                                        >
+                                          {t('admin.cancel')}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {members.length === 0 ? (
+                                  <p className="text-gray-500 text-sm">{t('admin.registration.noMembersYet')}</p>
+                                ) : (
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                      <thead className="bg-gray-100">
+                                        <tr>
+                                          <th className="px-3 py-2 text-left">{t('admin.registration.jerseyNumber')}</th>
+                                          <th className="px-3 py-2 text-left">{t('admin.scheduling.name')}</th>
+                                          <th className="px-3 py-2 text-right">{t('admin.scheduling.actions')}</th>
                                         </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                                      </thead>
+                                      <tbody>
+                                        {members.map((member) => (
+                                          <tr key={member.id} className="border-b border-gray-200">
+                                            <td className="px-3 py-2">{member.jersey_number !== null && member.jersey_number !== undefined ? member.jersey_number : '—'}</td>
+                                            <td className="px-3 py-2">{member.name}</td>
+                                            <td className="px-3 py-2 text-right">
+                                              <button
+                                                onClick={() => setEditingMember({
+                                                  teamId: player.id,
+                                                  memberId: member.id,
+                                                  name: member.name,
+                                                  jerseyNumber: member.jersey_number?.toString() || ""
+                                                })}
+                                                className="text-blue-600 hover:text-blue-800 mr-3"
+                                              >
+                                                {t('admin.registration.edit')}
+                                              </button>
+                                              <button
+                                                onClick={() => handleDeleteTeamMember(member.id)}
+                                                className="text-red-600 hover:text-red-800"
+                                              >
+                                                {t('admin.delete')}
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Mobile Sticky Quick-Search & Filter Bar (< md) */}
+        {!showEmptyRosterCta && (
+          <div className="sticky top-[var(--admin-nav-height,3.5rem)] z-30 bg-white/95 backdrop-blur-md px-4 py-2.5 border-b border-gray-200 shadow-xs md:hidden mb-3">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="search"
+                  placeholder={registrationType === 'team' ? t('admin.registration.searchTeam') : t('admin.registration.searchPlayer')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-11 pl-9 pr-8 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-ntu-green focus:outline-none"
+                />
+                <span className="absolute left-3 top-3 text-gray-400 text-sm">🔍</span>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-2.5 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <select
+                value={filterSeed}
+                onChange={(e) => setFilterSeed(e.target.value)}
+                className="h-11 px-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold text-gray-700 focus:bg-white focus:ring-2 focus:ring-ntu-green"
+              >
+                <option value="all">{registrationType === 'team' ? t('admin.registration.allTeams') : t('admin.registration.allPlayers')}</option>
+                <option value="seeded">{t('admin.registration.seeded')}</option>
+                <option value="unseeded">{t('admin.registration.unseeded')}</option>
+              </select>
+            </div>
+            {(searchQuery || filterSeed !== "all") && (
+              <div className="flex items-center justify-between mt-2 pt-1 text-xs text-gray-500">
+                <span>{t('admin.registration.showingCount')} {sortedFilteredPlayers.length} / {players.length}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setFilterSeed("all");
+                  }}
+                  className="text-ntu-green font-semibold hover:underline"
+                >
+                  ✕ {t('admin.registration.clearFilters')}
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Mobile Card View */}
         {!showEmptyRosterCta && (
-        <div className="md:hidden space-y-3">
-          {sortedFilteredPlayers.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              {players.length === 0 
-                ? t('admin.registration.noPlayersYet')
-                : t('admin.registration.noMatchSearch')}
-            </div>
-          ) : (
-            sortedFilteredPlayers.map((player) => {
-              const isTeam = player.type === 'team';
-              const members = teamMembers[player.id] || [];
-              const isExpanded =
-                isTeam &&
-                teamMembersReady &&
-                (expandedTeams[player.id] ?? members.length === 0);
-              
-              return (
-                <div key={player.id}>
-                  <div
-                    className={`rounded-lg p-4 border transition-colors ${
-                      player.checked_in_at
-                        ? "bg-emerald-100 border-emerald-300 shadow-sm"
-                        : "bg-white border-gray-200"
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                            #{drawNumberByPlayerId[player.id] ?? "—"}
-                          </span>
-                          {isTeam && (
-                            <button
-                              type="button"
-                              onClick={() => toggleTeamExpanded(player.id)}
-                              className="text-ntu-green hover:text-ntu-green-dark"
-                            >
-                              {isExpanded ? '▼' : '▶'}
-                            </button>
-                          )}
-                          {enabledFields.find(f => f.key === 'seed' && f.enabled) && player.seed && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
-                              Seed {player.seed}
+          <div className="md:hidden space-y-3">
+            {sortedFilteredPlayers.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                {players.length === 0
+                  ? t('admin.registration.noPlayersYet')
+                  : t('admin.registration.noMatchSearch')}
+              </div>
+            ) : (
+              sortedFilteredPlayers.map((player) => {
+                const isTeam = player.type === 'team';
+                const members = teamMembers[player.id] || [];
+                const isExpanded =
+                  isTeam &&
+                  teamMembersReady &&
+                  (expandedTeams[player.id] ?? members.length === 0);
+
+                return (
+                  <div key={player.id}>
+                    <div
+                      className={`rounded-xl p-4 border transition-colors ${player.checked_in_at
+                          ? "bg-emerald-50 border-emerald-300 shadow-xs"
+                          : "bg-white border-gray-200"
+                        }`}
+                    >
+                      {/* Top Header Row: Draw No, Name, Seed, Status */}
+                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
+                              #{drawNumberByPlayerId[player.id] ?? "—"}
                             </span>
+                            {isTeam && (
+                              <button
+                                type="button"
+                                onClick={() => toggleTeamExpanded(player.id)}
+                                className="text-ntu-green hover:text-ntu-green-dark p-1"
+                                aria-label={isExpanded ? "收合球員名單" : "展開球員名單"}
+                              >
+                                {isExpanded ? '▼' : '▶'}
+                              </button>
+                            )}
+                            {enabledFields.find(f => f.key === 'seed' && f.enabled) && player.seed && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ntu-green text-white">
+                                Seed {player.seed}
+                              </span>
+                            )}
+                            <span className="font-bold text-gray-900 text-base">{player.name}</span>
+                            {isTeam && (
+                              <span className="text-xs text-gray-500">
+                                ({members.length} 位球員)
+                              </span>
+                            )}
+                          </div>
+                          {enabledFields.find(f => f.key === 'department' && f.enabled) && player.department && (
+                            <div className="text-xs text-gray-600">{player.department}</div>
                           )}
-                          <span className="font-semibold text-gray-900">{player.name}</span>
-                          {isTeam && (
-                            <span className="text-xs text-gray-500">
-                              ({members.length} 位球員)
+                          {enabledFields.find(f => f.key === 'email' && f.enabled) && player.email && (
+                            <div className="text-xs text-gray-500 mt-0.5 truncate">{player.email}</div>
+                          )}
+                        </div>
+                        <div className="shrink-0">
+                          {player.eliminated_round ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                              Eliminated (R{player.eliminated_round})
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                              {t('admin.registration.active')}
                             </span>
                           )}
                         </div>
-                        {enabledFields.find(f => f.key === 'department' && f.enabled) && player.department && (
-                          <div className="text-sm text-gray-600">{player.department}</div>
-                        )}
-                        {enabledFields.find(f => f.key === 'email' && f.enabled) && player.email && (
-                          <div className="text-xs text-gray-500 mt-1">{player.email}</div>
-                        )}
                       </div>
-                      <div className="flex flex-col items-end gap-2">
-                        {player.eliminated_round ? (
-                          <span className="text-red-600 text-xs">Eliminated (R{player.eliminated_round})</span>
-                        ) : (
-                          <span className="text-green-600 text-xs">{t('admin.registration.active')}</span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleCheckIn(player)}
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
-                            player.checked_in_at
-                              ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
-                        >
-                          {player.checked_in_at ? "已報到" : "未報到"}
-                        </button>
-                        <div className="flex gap-2">
+
+                      {/* Bottom Action Row: Check-in button (44px+) & Safely Spaced Secondary Actions */}
+                      <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-2 flex-wrap gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {isTeam && (
                             <button
                               type="button"
                               onClick={() => handleCaptainLink(player)}
-                              className="text-ntu-green hover:underline text-sm font-medium"
+                              className="min-h-[44px] px-3 py-2 text-xs font-semibold text-ntu-green bg-emerald-50/80 hover:bg-emerald-100 rounded-xl transition-colors flex items-center gap-1 active:scale-95"
                             >
-                              {(player.custom_fields as Record<string, unknown>)?.captain_token
-                                ? t("admin.captainLink.copy")
-                                : t("admin.captainLink.generate")}
+                              <span>🔗</span>
+                              <span>
+                                {(player.custom_fields as Record<string, unknown>)?.captain_token
+                                  ? t("admin.captainLink.copy")
+                                  : t("admin.captainLink.generate")}
+                              </span>
                             </button>
                           )}
                           <button
-                            onClick={() => handleDeletePlayer(player.id)}
-                            className="text-red-600 hover:text-red-900 text-sm font-medium"
+                            type="button"
+                            onClick={() => setExpandedBlackout(expandedBlackout === player.id ? null : player.id)}
+                            className="min-h-[44px] px-2.5 py-2 text-xs text-gray-600 hover:text-gray-900 rounded-xl hover:bg-gray-100 transition-colors flex items-center gap-1"
                           >
-                            {t('admin.delete')}
+                            <span>⏰</span>
+                            <span>{t('admin.registration.setBlackoutShort')} ({(blackoutsByPlayer[player.id] || []).length})</span>
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 ml-auto">
+                          {/* 44px+ Check-in Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (typeof window !== "undefined" && "vibrate" in navigator) {
+                                navigator.vibrate([30, 30]);
+                              }
+                              handleToggleCheckIn(player);
+                            }}
+                            className={`min-h-[44px] min-w-[104px] px-4 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-xs ${
+                              player.checked_in_at
+                                ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-300"
+                                : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
+                            }`}
+                            aria-label={`${player.name} ${player.checked_in_at ? "已報到，點擊取消" : "未報到，點擊報到"}`}
+                          >
+                            <span className="text-base font-bold">{player.checked_in_at ? "✓" : "○"}</span>
+                            <span>{player.checked_in_at ? "已報到" : "未報到"}</span>
+                          </button>
+
+                          {/* Isolated Delete Player Button with explicit confirmation */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`確定要刪除「${player.name}」嗎？此操作無法復原。`)) {
+                                handleDeletePlayer(player.id);
+                              }
+                            }}
+                            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl active:scale-95 transition-colors"
+                            title={t('admin.delete')}
+                            aria-label={`${t('admin.delete')} ${player.name}`}
+                          >
+                            🗑️
                           </button>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  {isTeam && isExpanded && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-2">
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h3 className="font-semibold text-gray-700">{t('admin.registration.teamMembers')}</h3>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: !showBulkMemberImport[player.id] })}
-                              className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90"
-                            >
-                              {showBulkMemberImport[player.id] ? t('admin.registration.hide') : `📋 ${t('admin.registration.bulkImportMembers')}`}
-                            </button>
-                            <button
-                              onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
-                              className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
-                            >
-                              + {t('admin.registration.addMember')}
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {showBulkMemberImport[player.id] && (
-                          <BulkTeamMemberImport
-                            teamId={player.id}
-                            onImportComplete={() => {
-                              loadTeamMembers();
-                              setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: false });
-                            }}
-                          />
-                        )}
-                        
-                        {editingMember && editingMember.teamId === player.id && (
-                          <div className="bg-white p-3 rounded border border-gray-200">
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                placeholder={t('admin.registration.playerNamePlaceholder')}
-                                value={editingMember.name}
-                                onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                              />
-                              <input
-                                type="number"
-                                placeholder={`${t('admin.registration.jerseyNumber')} (optional)`}
-                                min="0"
-                                value={editingMember.jerseyNumber}
-                                onChange={(e) => setEditingMember({ ...editingMember, jerseyNumber: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleAddTeamMember(player.id)}
-                                  className="flex-1 bg-ntu-green text-white px-3 py-2 rounded hover:opacity-90 text-sm"
-                                >
-                                  {editingMember.memberId ? '更新' : '添加'}
-                                </button>
-                                <button
-                                  onClick={() => setEditingMember(null)}
-                                  className="flex-1 bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-gray-300 text-sm"
-                                >
-                                  取消
-                                </button>
-                              </div>
+
+                    {isTeam && isExpanded && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-2">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h3 className="font-semibold text-gray-700">{t('admin.registration.teamMembers')}</h3>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: !showBulkMemberImport[player.id] })}
+                                className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90"
+                              >
+                                {showBulkMemberImport[player.id] ? t('admin.registration.hide') : `📋 ${t('admin.registration.bulkImportMembers')}`}
+                              </button>
+                              <button
+                                onClick={() => setEditingMember({ teamId: player.id, name: "", jerseyNumber: "" })}
+                                className="text-sm bg-ntu-green text-white px-3 py-1 rounded hover:opacity-90"
+                              >
+                                + {t('admin.registration.addMember')}
+                              </button>
                             </div>
                           </div>
-                        )}
 
-                        {members.length === 0 ? (
-                          <p className="text-gray-500 text-sm">尚無球員，點擊「添加球員」開始添加</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {members.map((member) => (
-                              <div key={member.id} className="bg-white p-3 rounded border border-gray-200 flex justify-between items-center">
-                                <div>
-                                  <span className="font-medium">{member.name}</span>
-                                  {member.jersey_number !== null && member.jersey_number !== undefined && (
-                                    <span className="text-gray-500 ml-2">#{member.jersey_number}</span>
-                                  )}
-                                </div>
+                          {showBulkMemberImport[player.id] && (
+                            <BulkTeamMemberImport
+                              teamId={player.id}
+                              onImportComplete={() => {
+                                loadTeamMembers();
+                                setShowBulkMemberImport({ ...showBulkMemberImport, [player.id]: false });
+                              }}
+                            />
+                          )}
+
+                          {editingMember && editingMember.teamId === player.id && (
+                            <div className="bg-white p-3 rounded border border-gray-200">
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  placeholder={t('admin.registration.playerNamePlaceholder')}
+                                  value={editingMember.name}
+                                  onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                />
+                                <input
+                                  type="number"
+                                  placeholder={`${t('admin.registration.jerseyNumber')} (optional)`}
+                                  min="0"
+                                  value={editingMember.jerseyNumber}
+                                  onChange={(e) => setEditingMember({ ...editingMember, jerseyNumber: e.target.value })}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                                />
                                 <div className="flex gap-2">
                                   <button
-                                    onClick={() => setEditingMember({
-                                      teamId: player.id,
-                                      memberId: member.id,
-                                      name: member.name,
-                                      jerseyNumber: member.jersey_number?.toString() || ""
-                                    })}
-                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                    onClick={() => handleAddTeamMember(player.id)}
+                                    className="flex-1 bg-ntu-green text-white px-3 py-2 rounded hover:opacity-90 text-sm"
                                   >
-                                    編輯
+                                    {editingMember.memberId ? '更新' : '添加'}
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteTeamMember(member.id)}
-                                    className="text-red-600 hover:text-red-800 text-sm"
+                                    onClick={() => setEditingMember(null)}
+                                    className="flex-1 bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-gray-300 text-sm"
                                   >
-                                    刪除
+                                    取消
                                   </button>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        )}
+                            </div>
+                          )}
+
+                          {members.length === 0 ? (
+                            <p className="text-gray-500 text-sm">尚無球員，點擊「添加球員」開始添加</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {members.map((member) => (
+                                <div key={member.id} className="bg-white p-3 rounded border border-gray-200 flex justify-between items-center">
+                                  <div>
+                                    <span className="font-medium">{member.name}</span>
+                                    {member.jersey_number !== null && member.jersey_number !== undefined && (
+                                      <span className="text-gray-500 ml-2">#{member.jersey_number}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => setEditingMember({
+                                        teamId: player.id,
+                                        memberId: member.id,
+                                        name: member.name,
+                                        jerseyNumber: member.jersey_number?.toString() || ""
+                                      })}
+                                      className="text-blue-600 hover:text-blue-800 text-sm"
+                                    >
+                                      編輯
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteTeamMember(member.id)}
+                                      className="text-red-600 hover:text-red-800 text-sm"
+                                    >
+                                      刪除
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         )}
       </div>
     </>

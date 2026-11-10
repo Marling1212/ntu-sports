@@ -165,6 +165,7 @@ export default function MatchesTable({
   const [courtFilter, setCourtFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [roundFilter, setRoundFilter] = useState<string>("all");
+  const [showMobileExtraFilters, setShowMobileExtraFilters] = useState(false);
   
   // Batch operation states
   const [selectedMatches, setSelectedMatches] = useState<Set<string>>(new Set());
@@ -1003,7 +1004,123 @@ export default function MatchesTable({
     <>
       <Toaster position="top-right" />
 
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-visible md:overflow-hidden">
+        {/* Mobile Sticky Quick-Filter Bar (< md) */}
+        <div className="sticky top-[var(--admin-nav-height,3.5rem)] z-30 bg-white/95 backdrop-blur-md px-4 py-3 border-b border-gray-200 shadow-xs md:hidden">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="search"
+                placeholder={registrationType === 'team' ? "搜尋隊伍名稱..." : "搜尋選手名稱..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-11 pl-9 pr-8 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-ntu-green focus:outline-none"
+              />
+              <span className="absolute left-3 top-3 text-gray-400 text-sm">🔍</span>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-2.5 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-11 px-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold text-gray-700 focus:bg-white focus:ring-2 focus:ring-ntu-green"
+            >
+              <option value="all">{t("admin.matchStatus.all")}</option>
+              <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+              <option value="live">🎾 {t("admin.matchStatus.live")}</option>
+              <option value="completed">✓ {t("admin.matchStatus.completed")}</option>
+              <option value="delayed">⏳ {t("admin.matchStatus.delayed")}</option>
+              <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+              <option value="walkover">{t("admin.matchStatus.walkover")}</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={() => setShowMobileExtraFilters(!showMobileExtraFilters)}
+              className={`h-11 px-3 border rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors ${
+                showMobileExtraFilters || courtFilter !== "all" || dateFilter || roundFilter !== "all"
+                  ? "bg-ntu-green/10 border-ntu-green text-ntu-green"
+                  : "bg-gray-50 border-gray-300 text-gray-700"
+              }`}
+              title="更多篩選"
+            >
+              <span>篩選</span>
+              <span>{showMobileExtraFilters ? "▲" : "▼"}</span>
+            </button>
+          </div>
+
+          {/* Expandable extra filters on mobile */}
+          {showMobileExtraFilters && (
+            <div className="grid grid-cols-1 gap-2.5 mt-3 pt-3 border-t border-gray-100">
+              <select
+                value={courtFilter}
+                onChange={(e) => setCourtFilter(e.target.value)}
+                className="w-full h-10 px-3 border border-gray-300 rounded-lg text-xs bg-white"
+              >
+                <option value="all">所有場地</option>
+                <option value="none">未分配</option>
+                {courts.map((court) => (
+                  <option key={court.id} value={court.name}>{court.name}</option>
+                ))}
+                {Array.from(new Set(matches.map(m => m.court).filter(Boolean))).filter(c => !courts.some(ec => ec.name === c)).map((court) => (
+                  <option key={court} value={court}>{court}</option>
+                ))}
+              </select>
+
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full h-10 px-3 border border-gray-300 rounded-lg text-xs bg-white"
+              />
+
+              {tournamentType === "season_play" && (
+                <select
+                  value={roundFilter}
+                  onChange={(e) => setRoundFilter(e.target.value)}
+                  className="w-full h-10 px-3 border border-gray-300 rounded-lg text-xs bg-white"
+                >
+                  <option value="all">所有輪次</option>
+                  <option value="regular">常規賽</option>
+                  <option value="playoffs">季後賽</option>
+                  {Array.from(new Set(matches.filter(m => m.round > 0).map(m => m.round))).sort((a, b) => a - b).map((round) => (
+                    <option key={round} value={round.toString()}>
+                      {describeEliminationRound(round, maxPlayoffRound)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
+          {(searchQuery || statusFilter !== "all" || courtFilter !== "all" || dateFilter || roundFilter !== "all") && (
+            <div className="flex items-center justify-between mt-2 pt-1 text-xs text-gray-500">
+              <span>顯示 {filteredMatches.length} / {matches.length} 場比賽</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                  setCourtFilter("all");
+                  setDateFilter("");
+                  setRoundFilter("all");
+                }}
+                className="text-ntu-green font-semibold hover:underline"
+              >
+                ✕ 清除所有篩選
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -1025,8 +1142,8 @@ export default function MatchesTable({
             </div>
           </div>
 
-          {/* Search and Filter Controls */}
-          <div id="search-filters" className="scroll-mt-24">
+          {/* Search and Filter Controls (Desktop) */}
+          <div id="search-filters" className="hidden md:block scroll-mt-24">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
             {/* Search */}
             <div className="lg:col-span-2">
@@ -1681,14 +1798,15 @@ export default function MatchesTable({
                 }`}
               >
                 {batchMode && (
-                  <div className="mb-3">
+                  <label className="flex items-center gap-2 mb-3 cursor-pointer select-none p-1">
                     <input
                       type="checkbox"
                       checked={selectedMatches.has(match.id)}
                       onChange={() => toggleMatchSelection(match.id)}
-                      className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green"
+                      className="w-5 h-5 rounded border-gray-300 text-ntu-green focus:ring-ntu-green cursor-pointer"
                     />
-                  </div>
+                    <span className="text-xs text-gray-600 font-medium">選取此比賽</span>
+                  </label>
                 )}
                 
                 <div className="space-y-2">
@@ -1805,15 +1923,15 @@ export default function MatchesTable({
                     <div className="mt-3 flex gap-2">
                       <Link
                         href={`/admin/${eventId}/matches/${match.id}`}
-                        className={`flex-1 ${
+                        className={`flex-1 min-h-[44px] flex items-center justify-center ${
                           hasStats ? 'bg-green-500' : 'bg-blue-500'
-                        } text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity text-center`}
+                        } text-white px-4 py-2.5 rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all text-center text-sm`}
                       >
                         📊 詳情
                       </Link>
                       <button
                         onClick={() => handleEdit(match)}
-                        className="flex-1 bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                        className="flex-1 min-h-[44px] flex items-center justify-center bg-ntu-green text-white px-4 py-2.5 rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all text-sm"
                       >
                         ✏️ Edit
                       </button>
@@ -1821,85 +1939,246 @@ export default function MatchesTable({
                   )}
 
                   {editingMatch === match.id && (
-                    <div className="mt-3 space-y-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="number"
-                          min={0}
-                          value={editForm.score1}
-                          onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                            if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                          placeholder="0"
-                        />
-                        <input
-                          type="number"
-                          min={0}
-                          value={editForm.score2}
-                          onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                            if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                          placeholder="0"
-                        />
-                      </div>
+                    <div className="mt-3 space-y-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                      {/* 1. Score Steppers */}
                       <div>
-                        <span className="block text-xs text-gray-500 mb-1">{t("admin.winnerRequired") || "Winner (required)"}</span>
-                        <select
-                        value={editForm.winner_id || ""}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                          if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                        }}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setEditForm((prev: typeof editForm) => ({
-                            ...prev,
-                            winner_id: val,
-                            ...(val && val !== DRAW_WINNER_ID ? { status: "completed" as const } : {}),
-                          }));
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                      >
-                        <option value="">No winner</option>
-                        <option value={DRAW_WINNER_ID}>Draw</option>
-                        {match.player1_id && <option value={match.player1_id}>{match.player1?.name}</option>}
-                        {match.player2_id &&                         <option value={match.player2_id}>{match.player2?.name}</option>}
-                      </select>
+                        <span className="block text-xs font-semibold text-gray-700 mb-2">比分輸入 (Scores)</span>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Player 1 Stepper */}
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200 text-center shadow-xs">
+                            <div className="text-xs font-semibold text-gray-700 truncate mb-1.5" title={match.player1?.name || "Player 1"}>
+                              {match.player1?.name || "Player 1"}
+                            </div>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                  setEditForm((f: any) => ({
+                                    ...f,
+                                    score1: String(Math.max(0, (parseInt(String(f.score1 ?? "0"), 10) || 0) - 1)),
+                                  }));
+                                }}
+                                className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
+                                aria-label="Decrease score 1"
+                              >
+                                -
+                              </button>
+                              <input
+                                type="number"
+                                min={0}
+                                value={editForm.score1 ?? ""}
+                                onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
+                                className="w-14 h-11 text-center font-bold text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                                placeholder="0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                  setEditForm((f: any) => ({
+                                    ...f,
+                                    score1: String((parseInt(String(f.score1 ?? "0"), 10) || 0) + 1),
+                                  }));
+                                }}
+                                className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
+                                aria-label="Increase score 1"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Player 2 Stepper */}
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-200 text-center shadow-xs">
+                            <div className="text-xs font-semibold text-gray-700 truncate mb-1.5" title={match.player2?.name || "Player 2"}>
+                              {match.player2?.name || "Player 2"}
+                            </div>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                  setEditForm((f: any) => ({
+                                    ...f,
+                                    score2: String(Math.max(0, (parseInt(String(f.score2 ?? "0"), 10) || 0) - 1)),
+                                  }));
+                                }}
+                                className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
+                                aria-label="Decrease score 2"
+                              >
+                                -
+                              </button>
+                              <input
+                                type="number"
+                                min={0}
+                                value={editForm.score2 ?? ""}
+                                onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
+                                className="w-14 h-11 text-center font-bold text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                                placeholder="0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                  setEditForm((f: any) => ({
+                                    ...f,
+                                    score2: String((parseInt(String(f.score2 ?? "0"), 10) || 0) + 1),
+                                  }));
+                                }}
+                                className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
+                                aria-label="Increase score 2"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <select
-                        value={editForm.status}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                          if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                        }}
-                        onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                      >
-                        <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
-                        <option value="live">{t("admin.matchStatus.live")}</option>
-                        <option value="delayed">{t("admin.matchStatus.delayed")}</option>
-                        <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
-                        <option value="walkover">{t("admin.matchStatus.walkover")}</option>
-                        <option value="completed">{t("admin.matchStatus.completed")}</option>
-                      </select>
-                      <div className="grid grid-cols-2 gap-2">
+
+                      {/* 2. One-Tap Winner Selection Chips */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-xs font-semibold text-gray-700">{t("admin.winnerRequired") || "獲勝者 (Winner)"}</span>
+                          {editForm.winner_id && (
+                            <button
+                              type="button"
+                              onClick={() => setEditForm((f: any) => ({ ...f, winner_id: "" }))}
+                              className="text-xs text-gray-500 hover:text-gray-700 underline"
+                            >
+                              清除獲勝者
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(25);
+                              setEditForm((f: any) => ({
+                                ...f,
+                                winner_id: f.winner_id === match.player1_id ? "" : (match.player1_id || ""),
+                                status: f.winner_id === match.player1_id ? f.status : "completed",
+                              }));
+                            }}
+                            className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate border transition-all active:scale-95 ${
+                              editForm.winner_id === match.player1_id
+                                ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                            }`}
+                          >
+                            {match.player1?.name || "Player 1"} 勝
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(25);
+                              setEditForm((f: any) => ({
+                                ...f,
+                                winner_id: f.winner_id === DRAW_WINNER_ID ? "" : DRAW_WINNER_ID,
+                                status: f.winner_id === DRAW_WINNER_ID ? f.status : "completed",
+                              }));
+                            }}
+                            className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+                              editForm.winner_id === DRAW_WINNER_ID
+                                ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                            }`}
+                          >
+                            平局 (Draw)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(25);
+                              setEditForm((f: any) => ({
+                                ...f,
+                                winner_id: f.winner_id === match.player2_id ? "" : (match.player2_id || ""),
+                                status: f.winner_id === match.player2_id ? f.status : "completed",
+                              }));
+                            }}
+                            className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate border transition-all active:scale-95 ${
+                              editForm.winner_id === match.player2_id
+                                ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                            }`}
+                          >
+                            {match.player2?.name || "Player 2"} 勝
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 3. Restored Court Assignment & Status Dropdowns */}
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">場地 (Court)</label>
+                          <select
+                            value={
+                              editForm.court && courts.find((c: any) => c.name === editForm.court)
+                                ? courts.find((c: any) => c.name === editForm.court)!.id
+                                : editForm.court === "" ? "" : "OTHER"
+                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "") {
+                                setEditForm({ ...editForm, court: "" });
+                              } else if (val === "OTHER") {
+                                if (!editForm.court) setEditForm({ ...editForm, court: "" });
+                              } else {
+                                const selected = courts.find((c: any) => c.id === val);
+                                setEditForm({ ...editForm, court: selected?.name || "" });
+                              }
+                            }}
+                            className="w-full min-h-[44px] px-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green"
+                          >
+                            <option value="">未指定場地</option>
+                            {courts.map((court) => (
+                              <option key={court.id} value={court.id}>{court.name}</option>
+                            ))}
+                            {Array.from(new Set(matches.map(m => m.court).filter(Boolean))).filter(c => !courts.some(ec => ec.name === c)).map((court) => (
+                              <option key={court} value={court}>{court}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">狀態 (Status)</label>
+                          <select
+                            value={editForm.status}
+                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                            className="w-full min-h-[44px] px-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green"
+                          >
+                            <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+                            <option value="live">🎾 {t("admin.matchStatus.live")}</option>
+                            <option value="completed">✓ {t("admin.matchStatus.completed")}</option>
+                            <option value="delayed">⏳ {t("admin.matchStatus.delayed")}</option>
+                            <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+                            <option value="walkover">{t("admin.matchStatus.walkover")}</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* 4. Large Save and Cancel Action Buttons with Haptic Feedback */}
+                      <div className="grid grid-cols-2 gap-2.5 pt-1">
                         <button
-                          onClick={() => handleSave(match.id)}
-                          className="bg-ntu-green text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90"
+                          type="button"
+                          onClick={() => {
+                            if (typeof window !== "undefined" && "vibrate" in navigator) {
+                              navigator.vibrate(40);
+                            }
+                            handleSave(match.id);
+                          }}
+                          className="min-h-[48px] bg-ntu-green text-white rounded-xl font-bold flex items-center justify-center gap-1.5 active:scale-95 shadow-xs text-base hover:opacity-90 transition-all"
                         >
-                          ✓ Save
+                          <span>✓</span>
+                          <span>{t("admin.save") || "儲存"}</span>
                         </button>
                         <button
+                          type="button"
                           onClick={handleCancel}
-                          className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300"
+                          className="min-h-[48px] bg-gray-200 text-gray-700 rounded-xl font-semibold flex items-center justify-center active:scale-95 hover:bg-gray-300 text-base transition-all"
                         >
-                          ✕ Cancel
+                          {t("admin.cancel") || "取消"}
                         </button>
                       </div>
                     </div>

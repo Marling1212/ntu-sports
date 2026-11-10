@@ -21,7 +21,7 @@ export default function AdminPageSideNav({ title, links }: AdminPageSideNavProps
   const hoverLabel = t("admin.sideNav.hoverToExpand");
   return (
     <div
-      className="group peer flex w-12 shrink-0 transition-[width] duration-300 ease-out hover:w-56"
+      className="hidden md:flex group peer w-12 shrink-0 transition-[width] duration-300 ease-out hover:w-56"
       aria-label={`${title} (${hoverLabel})`}
     >
       <nav
