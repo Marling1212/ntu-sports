@@ -143,7 +143,7 @@ export default function MatchesTable({
   divisions = [],
   defaultDivisionId = null,
 }: MatchesTableProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const router = useRouter();
   useEffect(() => {
@@ -151,14 +151,73 @@ export default function MatchesTable({
   }, [initialMatches]);
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
+  const [initialEditForm, setInitialEditForm] = useState<any>(null);
   const supabase = createClient();
+
+  // Determine if the current match edit form has unsaved modifications
+  const isDirty = useMemo(() => {
+    if (!editingMatch || !initialEditForm) return false;
+    return (
+      String(editForm.score1 ?? "") !== String(initialEditForm.score1 ?? "") ||
+      String(editForm.score2 ?? "") !== String(initialEditForm.score2 ?? "") ||
+      String(editForm.winner_id ?? "") !== String(initialEditForm.winner_id ?? "") ||
+      String(editForm.court ?? "") !== String(initialEditForm.court ?? "") ||
+      String(editForm.status ?? "") !== String(initialEditForm.status ?? "") ||
+      String(editForm.scheduled_time ?? "") !== String(initialEditForm.scheduled_time ?? "") ||
+      String(editForm.slot_id ?? "") !== String(initialEditForm.slot_id ?? "")
+    );
+  }, [editingMatch, editForm, initialEditForm]);
+
+  // Unsaved changes protection: browser close / reload and client-side link navigation
+  useEffect(() => {
+    if (!isDirty) return;
+
+    // 1. Native browser close / reload / URL navigation
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    // 2. Client-side link clicks (Next.js Link or standard <a>)
+    const handleAnchorClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest("a");
+      if (!target || !target.href) return;
+
+      // Ignore pure hash anchors within the current page (e.g. #players-table)
+      const currentUrlWithoutHash = window.location.href.split("#")[0];
+      if (target.href.startsWith(`${currentUrlWithoutHash}#`)) return;
+
+      // Ignore links opened in a new tab
+      if (target.target === "_blank" || e.ctrlKey || e.metaKey || e.shiftKey) return;
+
+      const confirmLeave = window.confirm(
+        locale === "zh"
+          ? "⚠️ 您有尚未儲存的賽程或比分變更！\n\n如果直接離開，剛才輸入的內容將會遺失。\n確定要放棄並離開此頁嗎？"
+          : "⚠️ You have unsaved match changes!\n\nIf you leave now, your changes will be lost.\nAre you sure you want to discard them and leave?"
+      );
+
+      if (!confirmLeave) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleAnchorClick, true);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleAnchorClick, true);
+    };
+  }, [isDirty, locale]);
 
   const getStatusLabel = (status: string) => {
     const key = `admin.matchStatus.${status}` as const;
     const known = ["upcoming", "live", "completed", "delayed", "bye", "forfeit", "walkover"];
     return known.includes(status) ? t(key) : status;
   };
-  
+
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -166,7 +225,7 @@ export default function MatchesTable({
   const [dateFilter, setDateFilter] = useState<string>("");
   const [roundFilter, setRoundFilter] = useState<string>("all");
   const [showMobileExtraFilters, setShowMobileExtraFilters] = useState(false);
-  
+
   // Batch operation states
   const [selectedMatches, setSelectedMatches] = useState<Set<string>>(new Set());
   const [batchMode, setBatchMode] = useState(false);
@@ -222,24 +281,24 @@ export default function MatchesTable({
   // Changed: Now checks if ANY player-level stat exists with actual values, not just empty records
   const hasIndividualStats = useMemo(() => {
     const statsMap = new Map<string, boolean>();
-    
+
     if (registrationType !== 'team') return statsMap;
-    
+
     matches.forEach(match => {
       // Get any player-level stats for this match (with team_member_id) that have actual values
-      const matchStats = matchPlayerStats.filter(s => 
-        s.match_id === match.id && 
-        s.team_member_id !== null && 
+      const matchStats = matchPlayerStats.filter(s =>
+        s.match_id === match.id &&
+        s.team_member_id !== null &&
         s.team_member_id !== undefined && // Has team_member_id means it's a player-level stat
         s.stat_value !== null &&
         s.stat_value !== undefined &&
         s.stat_value !== "" // Must have an actual value, not just an empty record
       );
-      
+
       // If any player-level stats with values exist, mark as having individual stats
       statsMap.set(match.id, matchStats.length > 0);
     });
-    
+
     return statsMap;
   }, [matches, matchPlayerStats, registrationType]);
 
@@ -306,23 +365,35 @@ export default function MatchesTable({
   }, [matches, searchQuery, statusFilter, courtFilter, dateFilter, roundFilter, players]);
 
   const handleEdit = (match: Match) => {
+    // If user is editing another match with unsaved modifications, confirm before switching
+    if (editingMatch && editingMatch !== match.id && isDirty) {
+      const confirmSwitch = window.confirm(
+        locale === "zh"
+          ? "您正在編輯另一場比賽且尚未儲存，切換將會放棄該場變更，確定要繼續嗎？"
+          : "You have unsaved changes on another match. Switching will discard them. Continue?"
+      );
+      if (!confirmSwitch) return;
+    }
+
     const slotCandidate = match.slot_id ? slotMap.get(match.slot_id) || match.slot || null : match.slot || null;
     const scheduledSource = match.scheduled_time || deriveIsoFromSlot(slotCandidate);
     setEditingMatch(match.id);
-    setEditForm({
+    const formValues = {
       score1: match.score1 || "",
       score2: match.score2 || "",
       winner_id: (() => {
         // Check if match is a draw (completed, no winner, equal scores)
-        const isMatchDraw = match.status === "completed" && !match.winner_id && 
-                           match.score1 && match.score2 && match.score1 === match.score2;
+        const isMatchDraw = match.status === "completed" && !match.winner_id &&
+          match.score1 && match.score2 && match.score1 === match.score2;
         return isMatchDraw ? DRAW_WINNER_ID : (match.winner_id || "");
       })(),
       court: match.court || "",
       status: match.status || "upcoming",
       scheduled_time: utcIsoToDatetimeLocalValue(scheduledSource, scheduleInputTz),
       slot_id: match.slot_id || "",
-    });
+    };
+    setEditForm(formValues);
+    setInitialEditForm(formValues);
   };
 
   const handleSave = async (matchId: string) => {
@@ -438,7 +509,7 @@ export default function MatchesTable({
       const player1Name = data.player1.name || "TBD";
       const player2Name = data.player2.name || "TBD";
       const matchInfo = `Round ${currentMatch.round}, Match ${currentMatch.match_number}: ${player1Name} vs ${player2Name}`;
-      
+
       // Check for status change (including live)
       if (editForm.status !== currentMatch.status) {
         const statusLabels: { [key: string]: string } = {
@@ -452,13 +523,13 @@ export default function MatchesTable({
         };
         const originalStatus = statusLabels[currentMatch.status] || currentMatch.status;
         const newStatus = statusLabels[editForm.status] || editForm.status;
-        
+
         const draftId = `status-${matchId}-${Date.now()}`;
         // Special content for live status
         const defaultContent = editForm.status === "live" && currentMatch.status !== "live"
           ? `🎾 ${matchInfo}\n比賽現在開始！場地：${editForm.court || "TBA"}\n請前往場地觀賽！`
           : `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
-        
+
         setAnnouncementDrafts(prev => [...prev, {
           id: draftId,
           matchId,
@@ -469,15 +540,15 @@ export default function MatchesTable({
           content: defaultContent,
         }]);
       }
-      
+
       // Check for date/time change
       const oldDate = currentMatch.scheduled_time ? formatDateTimeDisplay(currentMatch.scheduled_time) : "未排定";
       const newDate = scheduledIso ? formatDateTimeDisplay(scheduledIso) : "未排定";
-      
+
       if (oldDate !== newDate) {
         const draftId = `date-${matchId}-${Date.now()}`;
         const defaultContent = `📅 ${matchInfo}\n比賽時間更新：${oldDate} → ${newDate}`;
-        
+
         setAnnouncementDrafts(prev => [...prev, {
           id: draftId,
           matchId,
@@ -488,18 +559,18 @@ export default function MatchesTable({
           content: defaultContent,
         }]);
       }
-      
+
       // Check for score change (use normalized score values)
       const oldScore = currentMatch.score1 != null && currentMatch.score2 != null
-        ? `${currentMatch.score1}-${currentMatch.score2}` 
+        ? `${currentMatch.score1}-${currentMatch.score2}`
         : "未記錄";
       const newScore =
         score1Val != null && score2Val != null ? `${score1Val}-${score2Val}` : "未記錄";
-      
+
       if (oldScore !== newScore) {
         const draftId = `score-${matchId}-${Date.now()}`;
         const defaultContent = `⚽ ${matchInfo}\n比數更新：${oldScore} → ${newScore}`;
-        
+
         setAnnouncementDrafts(prev => [...prev, {
           id: draftId,
           matchId,
@@ -510,15 +581,15 @@ export default function MatchesTable({
           content: defaultContent,
         }]);
       }
-      
+
       // Check for court change
       const oldCourt = currentMatch.court || "未分配";
       const newCourt = editForm.court || "未分配";
-      
+
       if (oldCourt !== newCourt) {
         const draftId = `court-${matchId}-${Date.now()}`;
         const defaultContent = `🏟️ ${matchInfo}\n場地更新：${oldCourt} → ${newCourt}`;
-        
+
         setAnnouncementDrafts(prev => [...prev, {
           id: draftId,
           matchId,
@@ -578,8 +649,8 @@ export default function MatchesTable({
         const updateData = winnerIdValue
           ? { [slotKey]: winnerIdValue, updated_at: new Date().toISOString() }
           : shouldClearSlot
-          ? { [slotKey]: null, updated_at: new Date().toISOString() }
-          : null;
+            ? { [slotKey]: null, updated_at: new Date().toISOString() }
+            : null;
 
         if (updateData) {
           const { data: nextMatchData, error: nextMatchError } = await supabase
@@ -655,6 +726,8 @@ export default function MatchesTable({
             }
 
             setEditingMatch(null);
+            setEditForm({});
+            setInitialEditForm(null);
 
             checkAndAnnounceRoundCompletion(eventId, currentMatch.round).then((announced) => {
               if (announced) {
@@ -673,6 +746,8 @@ export default function MatchesTable({
     // If no next round update needed, just update current match
     setMatches(matches.map(m => m.id === matchId ? data : m));
     setEditingMatch(null);
+    setEditForm({});
+    setInitialEditForm(null);
 
     // Check if this round is now completed and create announcement (use finalStatus so inferred "completed" counts)
     if (finalStatus === "completed" && winnerIdValue) {
@@ -682,13 +757,22 @@ export default function MatchesTable({
         }
       });
     }
-    
+
     toast.success("Match updated successfully!");
   };
 
   const handleCancel = () => {
+    if (isDirty) {
+      const confirmDiscard = window.confirm(
+        locale === "zh"
+          ? "確定要取消編輯嗎？剛才輸入的變更將會放棄。"
+          : "Discard unsaved changes?"
+      );
+      if (!confirmDiscard) return;
+    }
     setEditingMatch(null);
     setEditForm({});
+    setInitialEditForm(null);
   };
 
   // Batch operations
@@ -736,11 +820,11 @@ export default function MatchesTable({
     const updates: any[] = [];
     for (const matchId of selectedMatches) {
       const updateData: any = { updated_at: new Date().toISOString() };
-      
+
       if (batchOperation === "court") {
         updateData.court = batchForm.court === "OTHER" ? batchForm.customCourt : batchForm.court;
       }
-      
+
       if (batchOperation === "status") {
         updateData.status = batchForm.status;
       }
@@ -755,7 +839,7 @@ export default function MatchesTable({
 
     try {
       await Promise.all(updates);
-      
+
       // Refresh matches
       const { data: updatedMatches } = await supabase
         .from("matches")
@@ -772,19 +856,19 @@ export default function MatchesTable({
 
       if (updatedMatches) {
         setMatches(updatedMatches);
-        
+
         // Generate announcement drafts for batch updates (including live status changes)
         if (batchOperation) {
           const newDrafts: AnnouncementDraft[] = [];
-          
+
           for (const originalMatch of originalMatches) {
             const updatedMatch = updatedMatches.find(m => m.id === originalMatch.id);
             if (!updatedMatch || !updatedMatch.player1 || !updatedMatch.player2) continue;
-            
+
             const player1Name = updatedMatch.player1.name || "TBD";
             const player2Name = updatedMatch.player2.name || "TBD";
             const matchInfo = `Round ${updatedMatch.round}, Match ${updatedMatch.match_number}: ${player1Name} vs ${player2Name}`;
-            
+
             if (batchOperation === "status") {
               const statusLabels: { [key: string]: string } = {
                 upcoming: "即將開始",
@@ -797,7 +881,7 @@ export default function MatchesTable({
               };
               const originalStatus = statusLabels[originalMatch.status] || originalMatch.status;
               const newStatus = statusLabels[batchForm.status] || batchForm.status;
-              
+
               if (originalStatus !== newStatus) {
                 const draftId = `batch-status-${originalMatch.id}-${Date.now()}`;
                 // Special content for live status
@@ -805,7 +889,7 @@ export default function MatchesTable({
                 const defaultContent = batchForm.status === "live" && originalMatch.status !== "live"
                   ? `🎾 ${matchInfo}\n比賽現在開始！場地：${court}\n請前往場地觀賽！`
                   : `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
-                
+
                 newDrafts.push({
                   id: draftId,
                   matchId: originalMatch.id,
@@ -820,11 +904,11 @@ export default function MatchesTable({
               const courtValue = batchForm.court === "OTHER" ? batchForm.customCourt : batchForm.court;
               const originalCourt = originalMatch.court || "未分配";
               const newCourt = courtValue || "未分配";
-              
+
               if (originalCourt !== newCourt) {
                 const draftId = `batch-court-${originalMatch.id}-${Date.now()}`;
                 const defaultContent = `🏟️ ${matchInfo}\n場地更新：${originalCourt} → ${newCourt}`;
-                
+
                 newDrafts.push({
                   id: draftId,
                   matchId: originalMatch.id,
@@ -837,15 +921,15 @@ export default function MatchesTable({
               }
             }
           }
-          
+
           if (newDrafts.length > 0) {
             setAnnouncementDrafts(prev => [...prev, ...newDrafts]);
           }
         }
       }
-      
+
       toast.success(`成功更新 ${selectedMatches.size} 場比賽`);
-      
+
       setSelectedMatches(new Set());
       setBatchMode(false);
       setBatchOperation(null);
@@ -857,7 +941,7 @@ export default function MatchesTable({
 
   // Announcement draft handlers
   const handleUpdateDraft = (id: string, content: string) => {
-    setAnnouncementDrafts(prev => 
+    setAnnouncementDrafts(prev =>
       prev.map(draft => draft.id === id ? { ...draft, content } : draft)
     );
   };
@@ -873,7 +957,7 @@ export default function MatchesTable({
       toast.error("請輸入公告內容");
       return;
     }
-    
+
     // Create a single announcement with all changes
     const { error } = await supabase
       .from("announcements")
@@ -902,17 +986,17 @@ export default function MatchesTable({
 
     try {
       const selectedMatchesData = filteredMatches.filter(m => selectedMatches.has(m.id));
-      
+
       // Create workbook
       const wb = XLSX.utils.book_new();
-      
+
       // Prepare data
       const data: any[][] = [];
       data.push(["比賽匯出資料"]);
       data.push([`匯出時間: ${new Date().toLocaleString('zh-TW')}`]);
       data.push([`共 ${selectedMatchesData.length} 場比賽`]);
       data.push([]);
-      
+
       // Headers
       data.push([
         "Round",
@@ -925,7 +1009,7 @@ export default function MatchesTable({
         "Scheduled Time",
         "Status"
       ]);
-      
+
       // Match rows
       selectedMatchesData.forEach(match => {
         const matchData = match as any;
@@ -941,7 +1025,7 @@ export default function MatchesTable({
           match.status
         ]);
       });
-      
+
       // Create worksheet
       const ws = XLSX.utils.aoa_to_sheet(data);
       ws['!cols'] = [
@@ -955,13 +1039,13 @@ export default function MatchesTable({
         { wch: 25 }, // Scheduled Time
         { wch: 12 }  // Status
       ];
-      
+
       XLSX.utils.book_append_sheet(wb, ws, "Matches");
-      
+
       // Generate filename
       const timestamp = new Date().toISOString().slice(0, 10);
       const filename = `Matches_Export_${timestamp}.xlsx`;
-      
+
       // Download
       XLSX.writeFile(wb, filename);
       toast.success(`📥 已匯出 ${selectedMatchesData.length} 場比賽`);
@@ -995,7 +1079,7 @@ export default function MatchesTable({
     }
     return describeEliminationRound(round, maxRound);
   };
-  
+
   // Check if a match is the 3rd place match
   const isThirdPlaceMatch = (match: Match): boolean => {
     if (tournamentType === "season_play") {
@@ -1003,7 +1087,7 @@ export default function MatchesTable({
     }
     return match.round === maxRound && match.match_number === 2;
   };
-  
+
   // Format match number with round prefix
   const formatMatchNumber = (match: Match): string => {
     if (isThirdPlaceMatch(match)) {
@@ -1060,11 +1144,10 @@ export default function MatchesTable({
             <button
               type="button"
               onClick={() => setShowMobileExtraFilters(!showMobileExtraFilters)}
-              className={`h-11 px-3 border rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors ${
-                showMobileExtraFilters || courtFilter !== "all" || dateFilter || roundFilter !== "all"
+              className={`h-11 px-3 border rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors ${showMobileExtraFilters || courtFilter !== "all" || dateFilter || roundFilter !== "all"
                   ? "bg-ntu-green/10 border-ntu-green text-ntu-green"
                   : "bg-gray-50 border-gray-300 text-gray-700"
-              }`}
+                }`}
               title="更多篩選"
             >
               <span>篩選</span>
@@ -1157,61 +1240,61 @@ export default function MatchesTable({
           {/* Search and Filter Controls (Desktop) */}
           <div id="search-filters" className="hidden md:block scroll-mt-24">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
-            {/* Search */}
-            <div className="lg:col-span-2">
-              <input
-                type="text"
-                placeholder={registrationType === 'team' ? "搜尋隊伍名稱..." : "搜尋選手名稱..."}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
-              />
-            </div>
+              {/* Search */}
+              <div className="lg:col-span-2">
+                <input
+                  type="text"
+                  placeholder={registrationType === 'team' ? "搜尋隊伍名稱..." : "搜尋選手名稱..."}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+                />
+              </div>
 
-            {/* Status Filter */}
-            <div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
-              >
-                <option value="all">{t("admin.matchStatus.all")}</option>
-                <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
-                <option value="live">{t("admin.matchStatus.live")}</option>
-                <option value="completed">{t("admin.matchStatus.completed")}</option>
-                <option value="delayed">{t("admin.matchStatus.delayed")}</option>
-                <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
-                <option value="walkover">{t("admin.matchStatus.walkover")}</option>
-              </select>
-            </div>
+              {/* Status Filter */}
+              <div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+                >
+                  <option value="all">{t("admin.matchStatus.all")}</option>
+                  <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+                  <option value="live">{t("admin.matchStatus.live")}</option>
+                  <option value="completed">{t("admin.matchStatus.completed")}</option>
+                  <option value="delayed">{t("admin.matchStatus.delayed")}</option>
+                  <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+                  <option value="walkover">{t("admin.matchStatus.walkover")}</option>
+                </select>
+              </div>
 
-            {/* Court Filter */}
-            <div>
-              <select
-                value={courtFilter}
-                onChange={(e) => setCourtFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
-              >
-                <option value="all">所有場地</option>
-                <option value="none">未分配</option>
-                {availableCourts.map((court) => (
-                  <option key={court} value={court}>
-                    {court}
-                  </option>
-                ))}
-              </select>
-            </div>
+              {/* Court Filter */}
+              <div>
+                <select
+                  value={courtFilter}
+                  onChange={(e) => setCourtFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+                >
+                  <option value="all">所有場地</option>
+                  <option value="none">未分配</option>
+                  {availableCourts.map((court) => (
+                    <option key={court} value={court}>
+                      {court}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Date Filter */}
-            <div>
-              <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
-              />
+              {/* Date Filter */}
+              <div>
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green text-sm"
+                />
+              </div>
             </div>
-          </div>
           </div>
 
           {/* Round Filter (for season play) */}
@@ -1275,15 +1358,14 @@ export default function MatchesTable({
                   setBatchForm({ court: "", status: "", customCourt: "" });
                 }
               }}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                batchMode
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${batchMode
                   ? "bg-red-100 text-red-700 hover:bg-red-200"
                   : "bg-blue-100 text-blue-700 hover:bg-blue-200"
-              }`}
+                }`}
             >
               {batchMode ? "✕ 取消批量操作" : "📋 批量操作"}
             </button>
-            
+
             {batchMode && selectedMatches.size > 0 && (
               <span className="text-sm text-gray-600">
                 已選擇 {selectedMatches.size} 場比賽
@@ -1381,312 +1463,331 @@ export default function MatchesTable({
         <div id="matches-table" className="hidden md:block scroll-mt-24">
           <div>
             <table className="w-full table-fixed" style={{ tableLayout: 'fixed', width: '100%' }}>
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {batchMode && (
-                  <th className="px-2 py-3 text-center" style={{ width: '4%', minWidth: '50px' }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedMatches.size === filteredMatches.length && filteredMatches.length > 0}
-                      onChange={toggleSelectAll}
-                      className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green cursor-pointer"
-                    />
-                  </th>
-                )}
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: batchMode ? '11%' : '12%' }}>Round</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Match #</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Player 1</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Score</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Player 2</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '9%' }}>Winner</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '15%', minWidth: '120px' }}>Schedule</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Court</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Status</th>
-                <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredMatches.length === 0 ? (
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <td colSpan={batchMode ? 11 : 10} className="px-3 py-12 text-center text-gray-500">
-                    {matches.length === 0 
-                      ? "No matches created yet."
-                      : "No matches match your filters. Try adjusting your search criteria."}
-                  </td>
+                  {batchMode && (
+                    <th className="px-2 py-3 text-center" style={{ width: '4%', minWidth: '50px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedMatches.size === filteredMatches.length && filteredMatches.length > 0}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green cursor-pointer"
+                      />
+                    </th>
+                  )}
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: batchMode ? '11%' : '12%' }}>Round</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Match #</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Player 1</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Score</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Player 2</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '9%' }}>Winner</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '15%', minWidth: '120px' }}>Schedule</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Court</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>Status</th>
+                  <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>Actions</th>
                 </tr>
-              ) : (
-                filteredMatches.map((match) => {
-                  const hasStats = hasIndividualStats.get(match.id) || false;
-                  return (
-                  <tr 
-                    key={match.id} 
-                    className={`hover:bg-gray-50 ${selectedMatches.has(match.id) ? 'bg-blue-50' : ''} ${
-                      hasStats ? 'bg-green-50 border-l-4 border-green-500' : ''
-                    }`}
-                  >
-                    {batchMode && (
-                      <td className="px-2 py-4 text-center" style={{ width: '4%', minWidth: '50px' }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedMatches.has(match.id)}
-                          onChange={() => toggleMatchSelection(match.id)}
-                          className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green cursor-pointer"
-                        />
-                      </td>
-                    )}
-                    {editingMatch === match.id ? (
-                      // Edit mode
-                      <>
-                        <td className="px-3 py-4 text-sm" style={{ minWidth: '100px' }}>
-                          {isThirdPlaceMatch(match) ? (
-                            <span className="text-amber-600 font-semibold">🥉 3rd Place</span>
-                          ) : (
-                            <span className="whitespace-nowrap">{getRoundName(match.round)}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-mono">
-                          {formatMatchNumber(match)}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player1?.name || "TBD"}</td>
-                        <td className="px-3 py-4 whitespace-nowrap overflow-hidden">
-                          <div className="flex gap-0.5 items-center min-w-0 w-full">
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredMatches.length === 0 ? (
+                  <tr>
+                    <td colSpan={batchMode ? 11 : 10} className="px-3 py-12 text-center text-gray-500">
+                      {matches.length === 0
+                        ? "No matches created yet."
+                        : "No matches match your filters. Try adjusting your search criteria."}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredMatches.map((match) => {
+                    const hasStats = hasIndividualStats.get(match.id) || false;
+                    return (
+                      <tr
+                        key={match.id}
+                        className={`hover:bg-gray-50 ${selectedMatches.has(match.id) ? 'bg-blue-50' : ''} ${hasStats ? 'bg-green-50 border-l-4 border-green-500' : ''
+                          }`}
+                      >
+                        {batchMode && (
+                          <td className="px-2 py-4 text-center" style={{ width: '4%', minWidth: '50px' }}>
                             <input
-                              type="number"
-                              min={0}
-                              value={editForm.score1}
-                              onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                              }}
-                              className="w-[3.25rem] px-1 py-1 border border-gray-300 rounded text-sm"
-                              placeholder="0"
+                              type="checkbox"
+                              checked={selectedMatches.has(match.id)}
+                              onChange={() => toggleMatchSelection(match.id)}
+                              className="rounded border-gray-300 text-ntu-green focus:ring-ntu-green cursor-pointer"
                             />
-                            <span className="py-1">-</span>
-                            <input
-                              type="number"
-                              min={0}
-                              value={editForm.score2}
-                              onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                              }}
-                              className="w-[3.25rem] px-1 py-1 border border-gray-300 rounded text-sm"
-                              placeholder="0"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player2?.name || "TBD"}</td>
-                        <td className="px-3 py-4">
-                          <span className="block text-xs text-gray-500 mb-1">{t("admin.winnerRequired") || "Winner (required)"}</span>
-                          <select
-                            value={editForm.winner_id || ""}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                              if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                            }}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setEditForm((prev: typeof editForm) => ({
-                                ...prev,
-                                winner_id: val,
-                                // Auto-set status to completed when picking a winner so user doesn't have to
-                                ...(val && val !== DRAW_WINNER_ID ? { status: "completed" as const } : {}),
-                              }));
-                            }}
-                            className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
-                          >
-                            <option value="">No winner</option>
-                            <option value={DRAW_WINNER_ID}>Draw</option>
-                            {match.player1_id && <option value={match.player1_id}>{match.player1?.name}</option>}
-                            {match.player2_id && <option value={match.player2_id}>{match.player2?.name}</option>}
-                          </select>
-                        </td>
-                        <td className="px-3 py-4">
-                          <div className="flex flex-col gap-2 min-w-0">
-                            <input
-                              type="datetime-local"
-                              value={editForm.scheduled_time || ""}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                              }}
-                              onChange={(e) =>
-                                setEditForm({
-                                  ...editForm,
-                                  scheduled_time: e.target.value,
-                                  slot_id: "",
-                                })
-                              }
-                              className="w-full max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm"
-                            />
-                            {slots.length > 0 && (
+                          </td>
+                        )}
+                        {editingMatch === match.id ? (
+                          // Edit mode
+                          <>
+                            <td className="px-3 py-4 text-sm" style={{ minWidth: '100px' }}>
+                              {isThirdPlaceMatch(match) ? (
+                                <span className="text-amber-600 font-semibold">🥉 3rd Place</span>
+                              ) : (
+                                <span className="whitespace-nowrap">{getRoundName(match.round)}</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm font-mono">
+                              {formatMatchNumber(match)}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player1?.name || "TBD"}</td>
+                            <td className="px-3 py-4 whitespace-nowrap overflow-hidden">
+                              <div className="flex gap-0.5 items-center min-w-0 w-full">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={editForm.score1}
+                                  onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                    if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                                  }}
+                                  className="w-[3.25rem] px-1 py-1 border border-gray-300 rounded text-sm"
+                                  placeholder="0"
+                                />
+                                <span className="py-1">-</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={editForm.score2}
+                                  onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                    if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                                  }}
+                                  className="w-[3.25rem] px-1 py-1 border border-gray-300 rounded text-sm"
+                                  placeholder="0"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm">{match.player2?.name || "TBD"}</td>
+                            <td className="px-3 py-4">
+                              <span className="block text-xs text-gray-500 mb-1">{t("admin.winnerRequired") || "Winner (required)"}</span>
                               <select
-                                value={editForm.slot_id || ""}
+                                value={editForm.winner_id || ""}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
                                   if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
                                 }}
                                 onChange={(e) => {
-                                  const newSlotId = e.target.value;
-                                  if (!newSlotId) {
+                                  const val = e.target.value;
+                                  setEditForm((prev: typeof editForm) => ({
+                                    ...prev,
+                                    winner_id: val,
+                                    // Auto-set status to completed when picking a winner so user doesn't have to
+                                    ...(val && val !== DRAW_WINNER_ID ? { status: "completed" as const } : {}),
+                                  }));
+                                }}
+                                className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
+                              >
+                                <option value="">No winner</option>
+                                <option value={DRAW_WINNER_ID}>Draw</option>
+                                {match.player1_id && <option value={match.player1_id}>{match.player1?.name}</option>}
+                                {match.player2_id && <option value={match.player2_id}>{match.player2?.name}</option>}
+                              </select>
+                            </td>
+                            <td className="px-3 py-4">
+                              <div className="flex flex-col gap-2 min-w-0">
+                                <input
+                                  type="datetime-local"
+                                  value={editForm.scheduled_time || ""}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                    if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                                  }}
+                                  onChange={(e) =>
                                     setEditForm({
                                       ...editForm,
+                                      scheduled_time: e.target.value,
                                       slot_id: "",
-                                    });
-                                    return;
+                                    })
                                   }
-                                  const slot = slotMap.get(newSlotId) || null;
-                                  setEditForm({
-                                    ...editForm,
-                                    slot_id: newSlotId,
-                                    scheduled_time: utcIsoToDatetimeLocalValue(deriveIsoFromSlot(slot), scheduleInputTz),
-                                  });
+                                  className="w-full max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm"
+                                />
+                                {slots.length > 0 && (
+                                  <select
+                                    value={editForm.slot_id || ""}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                      if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                                    }}
+                                    onChange={(e) => {
+                                      const newSlotId = e.target.value;
+                                      if (!newSlotId) {
+                                        setEditForm({
+                                          ...editForm,
+                                          slot_id: "",
+                                        });
+                                        return;
+                                      }
+                                      const slot = slotMap.get(newSlotId) || null;
+                                      setEditForm({
+                                        ...editForm,
+                                        slot_id: newSlotId,
+                                        scheduled_time: utcIsoToDatetimeLocalValue(deriveIsoFromSlot(slot), scheduleInputTz),
+                                      });
+                                    }}
+                                    className="w-full max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm"
+                                  >
+                                    <option value="">選擇時段代號</option>
+                                    {slots.map((slot) => (
+                                      <option key={slot.id} value={slot.id}>
+                                        {formatSlotLabel(slot)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 py-4">
+                              <div className="flex flex-col gap-2 min-w-0">
+                                <select
+                                  value={
+                                    editForm.court && courts.find((c: any) => c.name === editForm.court)
+                                      ? courts.find((c: any) => c.name === editForm.court)!.id
+                                      : editForm.court === "" ? "" : "OTHER"
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                    if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                                  }}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "") {
+                                      setEditForm({ ...editForm, court: "" });
+                                    } else if (val === "OTHER") {
+                                      // leave court as-is for manual input
+                                      if (!editForm.court) setEditForm({ ...editForm, court: "" });
+                                    } else {
+                                      const selected = courts.find((c: any) => c.id === val);
+                                      setEditForm({ ...editForm, court: selected?.name || "" });
+                                    }
+                                  }}
+                                  className="w-full max-w-[150px] px-2 py-1 border border-gray-300 rounded text-sm"
+                                >
+                                  <option value="">選擇場地</option>
+                                  {courts.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                  ))}
+                                  <option value="OTHER">其他（手動輸入）</option>
+                                </select>
+                                <input
+                                  type="text"
+                                  value={editForm.court}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                    if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
+                                  }}
+                                  onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
+                                  className="w-full max-w-[150px] px-2 py-1 border border-gray-300 rounded text-sm"
+                                  placeholder="Court"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-4">
+                              <select
+                                value={editForm.status}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
+                                  if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
                                 }}
-                                className="w-full max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm"
+                                onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                                className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
                               >
-                                <option value="">選擇時段代號</option>
-                                {slots.map((slot) => (
-                                  <option key={slot.id} value={slot.id}>
-                                    {formatSlotLabel(slot)}
-                                  </option>
-                                ))}
+                                <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+                                <option value="live">{t("admin.matchStatus.live")}</option>
+                                <option value="delayed">{t("admin.matchStatus.delayed")}</option>
+                                <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+                                <option value="walkover">{t("admin.matchStatus.walkover")}</option>
+                                <option value="completed">{t("admin.matchStatus.completed")}</option>
+                                <option value="bye" disabled>
+                                  {t("admin.matchStatus.bye")} (auto)
+                                </option>
                               </select>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-4">
-                          <div className="flex flex-col gap-2 min-w-0">
-                            <select
-                              value={
-                                editForm.court && courts.find((c: any) => c.name === editForm.court)
-                                  ? courts.find((c: any) => c.name === editForm.court)!.id
-                                  : editForm.court === "" ? "" : "OTHER"
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                              }}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === "") {
-                                  setEditForm({ ...editForm, court: "" });
-                                } else if (val === "OTHER") {
-                                  // leave court as-is for manual input
-                                  if (!editForm.court) setEditForm({ ...editForm, court: "" });
-                                } else {
-                                  const selected = courts.find((c: any) => c.id === val);
-                                  setEditForm({ ...editForm, court: selected?.name || "" });
-                                }
-                              }}
-                              className="w-full max-w-[150px] px-2 py-1 border border-gray-300 rounded text-sm"
-                            >
-                              <option value="">選擇場地</option>
-                              {courts.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                              <option value="OTHER">其他（手動輸入）</option>
-                            </select>
-                            <input
-                              type="text"
-                              value={editForm.court}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                                if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                              }}
-                              onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
-                              className="w-full max-w-[150px] px-2 py-1 border border-gray-300 rounded text-sm"
-                              placeholder="Court"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-3 py-4">
-                          <select
-                            value={editForm.status}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") { e.preventDefault(); handleSave(match.id); }
-                              if (e.key === "Escape") { e.preventDefault(); handleCancel(); }
-                            }}
-                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                            className="w-full max-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
-                          >
-                            <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
-                            <option value="live">{t("admin.matchStatus.live")}</option>
-                            <option value="delayed">{t("admin.matchStatus.delayed")}</option>
-                            <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
-                            <option value="walkover">{t("admin.matchStatus.walkover")}</option>
-                            <option value="completed">{t("admin.matchStatus.completed")}</option>
-                            <option value="bye" disabled>
-                              {t("admin.matchStatus.bye")} (auto)
-                            </option>
-                          </select>
-                        </td>
-                        <td className="px-3 py-4 text-right text-sm font-medium">
-                          <div className="flex flex-col gap-2 items-end">
-                            <button 
-                              onClick={() => handleSave(match.id)} 
-                              className="bg-ntu-green text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs whitespace-nowrap"
-                            >
-                              ✓ Save
-                            </button>
-                            <button 
-                              onClick={handleCancel} 
-                              className="bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-xs whitespace-nowrap"
-                            >
-                              ✕ Cancel
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      // View mode
-                      <>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
-                          {isThirdPlaceMatch(match) ? (
-                            <span className="text-amber-600 font-semibold">🥉 3rd Place</span>
-                          ) : (
-                            getRoundName(match.round)
-                          )}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-mono">
-                          {formatMatchNumber(match)}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          {match.player1?.seed && (
-                            <span className="text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded mr-2">
-                              {match.player1.seed}
-                            </span>
-                          )}
-                          <span className="text-sm">{match.player1?.name || "TBD"}</span>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
-                          {match.score1 && match.score2 ? `${match.score1} - ${match.score2}` : "—"}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          {match.player2?.seed && (
-                            <span className="text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded mr-2">
-                              {match.player2.seed}
-                            </span>
-                          )}
-                          <span className="text-sm">{match.player2?.name || "TBD"}</span>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm">
-                          {isDrawMatch(match.winner_id, match.status, match.score1, match.score2) ? (
-                            <span className="text-gray-600 font-semibold">Draw</span>
-                          ) : (match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "—"}
-                        </td>
-                        <td className="px-3 py-4 text-sm min-w-[120px]">
-                          {match.slot ? (
-                            (() => {
-                              // 如果有 slot，但 formatSlotScheduleRange 返回 undefined，則使用 scheduled_time
-                              const slotRange = formatSlotScheduleRange(match.slot);
-                              
-                              // 如果 slotRange 是 undefined 或包含 "undefined"，使用 scheduled_time 來顯示
-                              if ((!slotRange || slotRange.includes('undefined')) && match.scheduled_time) {
-                                const formatted = formatScheduledTimeAsStored(match.scheduled_time);
-                                if (formatted !== "—") {
-                                  const parts = formatted.split(" ");
+                            </td>
+                            <td className="px-3 py-4 text-right text-sm font-medium">
+                              <div className="flex flex-col gap-1.5 items-end">
+                                {isDirty && (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md animate-pulse">
+                                    <span>⚠️</span>
+                                    <span>{locale === "zh" ? "未儲存" : "Unsaved"}</span>
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => handleSave(match.id)}
+                                  className="bg-ntu-green text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs whitespace-nowrap"
+                                >
+                                  ✓ Save
+                                </button>
+                                <button
+                                  onClick={handleCancel}
+                                  className="bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-xs whitespace-nowrap"
+                                >
+                                  ✕ Cancel
+                                </button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          // View mode
+                          <>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
+                              {isThirdPlaceMatch(match) ? (
+                                <span className="text-amber-600 font-semibold">🥉 3rd Place</span>
+                              ) : (
+                                getRoundName(match.round)
+                              )}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm font-mono">
+                              {formatMatchNumber(match)}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap">
+                              {match.player1?.seed && (
+                                <span className="text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded mr-2">
+                                  {match.player1.seed}
+                                </span>
+                              )}
+                              <span className="text-sm">{match.player1?.name || "TBD"}</span>
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
+                              {match.score1 && match.score2 ? `${match.score1} - ${match.score2}` : "—"}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap">
+                              {match.player2?.seed && (
+                                <span className="text-xs font-bold text-white bg-ntu-green px-1.5 py-0.5 rounded mr-2">
+                                  {match.player2.seed}
+                                </span>
+                              )}
+                              <span className="text-sm">{match.player2?.name || "TBD"}</span>
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm">
+                              {isDrawMatch(match.winner_id, match.status, match.score1, match.score2) ? (
+                                <span className="text-gray-600 font-semibold">Draw</span>
+                              ) : (match.winner_id ? players.find(p => p.id === match.winner_id)?.name : null) || "—"}
+                            </td>
+                            <td className="px-3 py-4 text-sm min-w-[120px]">
+                              {match.slot ? (
+                                (() => {
+                                  // 如果有 slot，但 formatSlotScheduleRange 返回 undefined，則使用 scheduled_time
+                                  const slotRange = formatSlotScheduleRange(match.slot);
+
+                                  // 如果 slotRange 是 undefined 或包含 "undefined"，使用 scheduled_time 來顯示
+                                  if ((!slotRange || slotRange.includes('undefined')) && match.scheduled_time) {
+                                    const formatted = formatScheduledTimeAsStored(match.scheduled_time);
+                                    if (formatted !== "—") {
+                                      const parts = formatted.split(" ");
+                                      return (
+                                        <div className="flex flex-col">
+                                          {match.slot.code && (
+                                            <span className="text-sm font-semibold text-ntu-green">
+                                              {match.slot.code}
+                                            </span>
+                                          )}
+                                          <span className="text-sm text-gray-700 whitespace-nowrap">{parts[0] ?? formatted}</span>
+                                          {parts[1] && <span className="text-xs text-gray-500 whitespace-nowrap">{parts[1]}</span>}
+                                        </div>
+                                      );
+                                    }
+                                  }
+
                                   return (
                                     <div className="flex flex-col">
                                       {match.slot.code && (
@@ -1694,93 +1795,77 @@ export default function MatchesTable({
                                           {match.slot.code}
                                         </span>
                                       )}
-                                      <span className="text-sm text-gray-700 whitespace-nowrap">{parts[0] ?? formatted}</span>
-                                      {parts[1] && <span className="text-xs text-gray-500 whitespace-nowrap">{parts[1]}</span>}
+                                      <span className="text-xs text-gray-500">
+                                        {slotRange || '—'}
+                                      </span>
                                     </div>
                                   );
-                                }
-                              }
-                              
-                              return (
-                                <div className="flex flex-col">
-                                  {match.slot.code && (
-                                    <span className="text-sm font-semibold text-ntu-green">
-                                      {match.slot.code}
-                                    </span>
-                                  )}
-                                  <span className="text-xs text-gray-500">
-                                    {slotRange || '—'}
-                                  </span>
-                                </div>
-                              );
-                            })()
-                          ) : match.scheduled_time ? (
-                            (() => {
-                              const formatted = formatScheduledTimeAsStored(match.scheduled_time);
-                              if (formatted === "—") return <span className="text-sm text-gray-400">未排定</span>;
-                              const parts = formatted.split(" ");
-                              const dateStr = parts[0] ?? formatted;
-                              const timeStr = parts[1] ?? "";
-                              return (
-                                <div className="flex flex-col">
-                                  <span className="text-sm text-gray-700 whitespace-nowrap">{dateStr}</span>
-                                  {timeStr && <span className="text-xs text-gray-500 whitespace-nowrap">{timeStr}</span>}
-                                </div>
-                              );
-                            })()
-                          ) : (
-                            <span className="text-sm text-gray-400">未排定</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm">
-                          {getCourtDisplay(match)}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              match.status === 'completed'
-                                ? 'bg-green-100 text-green-800'
-                                : match.status === 'live'
-                                ? 'bg-red-100 text-red-800'
-                                : match.status === 'delayed'
-                                ? 'bg-amber-100 text-amber-800'
-                                : match.status === 'forfeit'
-                                ? 'bg-orange-100 text-orange-800'
-                                : match.status === 'walkover'
-                                ? 'bg-purple-100 text-purple-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {getStatusLabel(match.status)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex gap-1 justify-end">
-                            <a
-                              href={`/admin/${eventId}/matches/${match.id}`}
-                              className={`${
-                                hasStats ? 'bg-green-500' : 'bg-blue-500'
-                              } text-white px-2 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs`}
-                              title={hasStats ? "已輸入個別資料" : "查看詳情"}
-                            >
-                              📊
-                            </a>
-                            <button 
-                              onClick={() => handleEdit(match)} 
-                              className="bg-ntu-green text-white px-2 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs"
-                            >
-                              ✏️
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                                })()
+                              ) : match.scheduled_time ? (
+                                (() => {
+                                  const formatted = formatScheduledTimeAsStored(match.scheduled_time);
+                                  if (formatted === "—") return <span className="text-sm text-gray-400">未排定</span>;
+                                  const parts = formatted.split(" ");
+                                  const dateStr = parts[0] ?? formatted;
+                                  const timeStr = parts[1] ?? "";
+                                  return (
+                                    <div className="flex flex-col">
+                                      <span className="text-sm text-gray-700 whitespace-nowrap">{dateStr}</span>
+                                      {timeStr && <span className="text-xs text-gray-500 whitespace-nowrap">{timeStr}</span>}
+                                    </div>
+                                  );
+                                })()
+                              ) : (
+                                <span className="text-sm text-gray-400">未排定</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm">
+                              {getCourtDisplay(match)}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${match.status === 'completed'
+                                    ? 'bg-green-100 text-green-800'
+                                    : match.status === 'live'
+                                      ? 'bg-red-100 text-red-800'
+                                      : match.status === 'delayed'
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : match.status === 'forfeit'
+                                          ? 'bg-orange-100 text-orange-800'
+                                          : match.status === 'walkover'
+                                            ? 'bg-purple-100 text-purple-800'
+                                            : 'bg-gray-100 text-gray-800'
+                                  }`}
+                              >
+                                {getStatusLabel(match.status)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex gap-1 justify-end">
+                                <a
+                                  href={`/admin/${eventId}/matches/${match.id}`}
+                                  className={`${hasStats ? 'bg-green-500' : 'bg-blue-500'
+                                    } text-white px-2 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs`}
+                                  title={hasStats ? "已輸入個別資料" : "查看詳情"}
+                                >
+                                  📊
+                                </a>
+                                <button
+                                  onClick={() => handleEdit(match)}
+                                  className="bg-ntu-green text-white px-2 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-semibold text-xs"
+                                >
+                                  ✏️
+                                </button>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -1788,7 +1873,7 @@ export default function MatchesTable({
         <div className="md:hidden space-y-4">
           {filteredMatches.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              {matches.length === 0 
+              {matches.length === 0
                 ? "No matches created yet."
                 : "No matches match your filters. Try adjusting your search criteria."}
             </div>
@@ -1796,428 +1881,431 @@ export default function MatchesTable({
             filteredMatches.map((match) => {
               const hasStats = hasIndividualStats.get(match.id) || false;
               return (
-              <div
-                key={match.id}
-                className={`bg-white border rounded-lg p-4 ${
-                  selectedMatches.has(match.id) ? 'border-blue-500 bg-blue-50' : 
-                  hasStats ? 'border-green-500 bg-green-50 border-l-4' : 
-                  'border-gray-200'
-                }`}
-              >
-                {batchMode && (
-                  <label className="flex items-center gap-2 mb-3 cursor-pointer select-none p-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedMatches.has(match.id)}
-                      onChange={() => toggleMatchSelection(match.id)}
-                      className="w-5 h-5 rounded border-gray-300 text-ntu-green focus:ring-ntu-green cursor-pointer"
-                    />
-                    <span className="text-xs text-gray-600 font-medium">選取此比賽</span>
-                  </label>
-                )}
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900">
-                        {isThirdPlaceMatch(match) ? (
-                          <span className="text-amber-600">🥉 3rd Place</span>
-                        ) : (
-                          getRoundName(match.round)
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 font-mono">{formatMatchNumber(match)}</div>
-                    </div>
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        match.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : match.status === 'live'
-                          ? 'bg-red-100 text-red-800'
-                          : match.status === 'delayed'
-                          ? 'bg-amber-100 text-amber-800'
-                          : match.status === 'forfeit'
-                          ? 'bg-orange-100 text-orange-800'
-                          : match.status === 'walkover'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {getStatusLabel(match.status)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-2 border-y border-gray-100">
-                    <div className="flex-1 text-center">
-                      <div className="text-sm font-semibold">{match.player1?.name || "TBD"}</div>
-                      {match.player1?.seed && (
-                        <div className="text-xs text-ntu-green">Seed {match.player1.seed}</div>
-                      )}
-                    </div>
-                    <div className="px-3 text-gray-400">vs</div>
-                    <div className="flex-1 text-center">
-                      <div className="text-sm font-semibold">{match.player2?.name || "TBD"}</div>
-                      {match.player2?.seed && (
-                        <div className="text-xs text-ntu-green">Seed {match.player2.seed}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {match.score1 && match.score2 && (
-                    <div className="text-center text-lg font-bold text-ntu-green">
-                      {match.score1} - {match.score2}
-                    </div>
+                <div
+                  key={match.id}
+                  className={`bg-white border rounded-lg p-4 ${selectedMatches.has(match.id) ? 'border-blue-500 bg-blue-50' :
+                      hasStats ? 'border-green-500 bg-green-50 border-l-4' :
+                        'border-gray-200'
+                    }`}
+                >
+                  {batchMode && (
+                    <label className="flex items-center gap-2 mb-3 cursor-pointer select-none p-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedMatches.has(match.id)}
+                        onChange={() => toggleMatchSelection(match.id)}
+                        className="w-5 h-5 rounded border-gray-300 text-ntu-green focus:ring-ntu-green cursor-pointer"
+                      />
+                      <span className="text-xs text-gray-600 font-medium">選取此比賽</span>
+                    </label>
                   )}
 
-                  {(match.winner_id || isDrawMatch(match.winner_id, match.status, match.score1, match.score2)) && (() => {
-                    if (isDrawMatch(match.winner_id, match.status, match.score1, match.score2)) {
-                      return (
-                        <div className="text-center text-sm">
-                          <span className="text-gray-600 font-semibold">Draw</span>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {isThirdPlaceMatch(match) ? (
+                            <span className="text-amber-600">🥉 3rd Place</span>
+                          ) : (
+                            getRoundName(match.round)
+                          )}
                         </div>
-                      );
-                    }
-                    const winner = players.find(p => p.id === match.winner_id);
-                    return winner ? (
-                      <div className="text-center text-sm">
-                        <span className="text-gray-600">Winner: </span>
-                        <span className="font-semibold text-ntu-green">{winner.name}</span>
+                        <div className="text-xs text-gray-500 font-mono">{formatMatchNumber(match)}</div>
                       </div>
-                    ) : null;
-                  })()}
-
-                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-2 border-t border-gray-100">
-                    <div>
-                      <span className="font-medium">Court:</span> {getCourtDisplay(match)}
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${match.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : match.status === 'live'
+                              ? 'bg-red-100 text-red-800'
+                              : match.status === 'delayed'
+                                ? 'bg-amber-100 text-amber-800'
+                                : match.status === 'forfeit'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : match.status === 'walkover'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : 'bg-gray-100 text-gray-800'
+                          }`}
+                      >
+                        {getStatusLabel(match.status)}
+                      </span>
                     </div>
-                    <div>
-                      <span className="font-medium">Time:</span>{" "}
-                      {(() => {
-                        const slotCandidate = match.slot || (match.slot_id ? slotMap.get(match.slot_id) : null);
-                        if (slotCandidate) {
-                          return (
-                            <span className="text-gray-700">
-                              {formatSlotScheduleRange(slotCandidate)}
-                            </span>
-                          );
-                        }
-                        const scheduledTime = match.scheduled_time;
-                        if (scheduledTime === null || 
-                            scheduledTime === undefined || 
+
+                    <div className="flex items-center justify-between py-2 border-y border-gray-100">
+                      <div className="flex-1 text-center">
+                        <div className="text-sm font-semibold">{match.player1?.name || "TBD"}</div>
+                        {match.player1?.seed && (
+                          <div className="text-xs text-ntu-green">Seed {match.player1.seed}</div>
+                        )}
+                      </div>
+                      <div className="px-3 text-gray-400">vs</div>
+                      <div className="flex-1 text-center">
+                        <div className="text-sm font-semibold">{match.player2?.name || "TBD"}</div>
+                        {match.player2?.seed && (
+                          <div className="text-xs text-ntu-green">Seed {match.player2.seed}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {match.score1 && match.score2 && (
+                      <div className="text-center text-lg font-bold text-ntu-green">
+                        {match.score1} - {match.score2}
+                      </div>
+                    )}
+
+                    {(match.winner_id || isDrawMatch(match.winner_id, match.status, match.score1, match.score2)) && (() => {
+                      if (isDrawMatch(match.winner_id, match.status, match.score1, match.score2)) {
+                        return (
+                          <div className="text-center text-sm">
+                            <span className="text-gray-600 font-semibold">Draw</span>
+                          </div>
+                        );
+                      }
+                      const winner = players.find(p => p.id === match.winner_id);
+                      return winner ? (
+                        <div className="text-center text-sm">
+                          <span className="text-gray-600">Winner: </span>
+                          <span className="font-semibold text-ntu-green">{winner.name}</span>
+                        </div>
+                      ) : null;
+                    })()}
+
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-2 border-t border-gray-100">
+                      <div>
+                        <span className="font-medium">Court:</span> {getCourtDisplay(match)}
+                      </div>
+                      <div>
+                        <span className="font-medium">Time:</span>{" "}
+                        {(() => {
+                          const slotCandidate = match.slot || (match.slot_id ? slotMap.get(match.slot_id) : null);
+                          if (slotCandidate) {
+                            return (
+                              <span className="text-gray-700">
+                                {formatSlotScheduleRange(slotCandidate)}
+                              </span>
+                            );
+                          }
+                          const scheduledTime = match.scheduled_time;
+                          if (scheduledTime === null ||
+                            scheduledTime === undefined ||
                             scheduledTime === '' ||
                             (typeof scheduledTime === 'string' && (
-                              scheduledTime.toLowerCase() === 'undefined' || 
+                              scheduledTime.toLowerCase() === 'undefined' ||
                               scheduledTime.toLowerCase() === 'null' ||
                               scheduledTime.trim() === ''
                             ))) {
-                          return "—";
-                        }
-                        try {
-                          return (
-                            <span className="text-gray-700">
-                              {formatDateTimeDisplay(scheduledTime)}
-                            </span>
-                          );
-                        } catch (e) {
-                          console.error('[Date Error] Match', match.id, 'Date formatting error:', e, 'scheduled_time:', scheduledTime);
-                          return "—";
-                        }
-                      })()}
-                    </div>
-                  </div>
-
-                  {editingMatch !== match.id && (
-                    <div className="mt-3 flex gap-2">
-                      <Link
-                        href={`/admin/${eventId}/matches/${match.id}`}
-                        className={`flex-1 min-h-[44px] flex items-center justify-center ${
-                          hasStats ? 'bg-green-500' : 'bg-blue-500'
-                        } text-white px-4 py-2.5 rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all text-center text-sm`}
-                      >
-                        📊 詳情
-                      </Link>
-                      <button
-                        onClick={() => handleEdit(match)}
-                        className="flex-1 min-h-[44px] flex items-center justify-center bg-ntu-green text-white px-4 py-2.5 rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all text-sm"
-                      >
-                        ✏️ Edit
-                      </button>
-                    </div>
-                  )}
-
-                  {editingMatch === match.id && (
-                    <div className="mt-3 space-y-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                      {/* 1. Score Steppers */}
-                      <div>
-                        <span className="block text-xs font-semibold text-gray-700 mb-2">比分輸入 (Scores)</span>
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* Player 1 Stepper */}
-                          <div className="bg-white p-2.5 rounded-xl border border-gray-200 text-center shadow-xs">
-                            <div className="text-xs font-semibold text-gray-700 truncate mb-1.5" title={match.player1?.name || "Player 1"}>
-                              {match.player1?.name || "Player 1"}
-                            </div>
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
-                                  setEditForm((f: any) => ({
-                                    ...f,
-                                    score1: String(Math.max(0, (parseInt(String(f.score1 ?? "0"), 10) || 0) - 1)),
-                                  }));
-                                }}
-                                className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
-                                aria-label="Decrease score 1"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                min={0}
-                                value={editForm.score1 ?? ""}
-                                onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
-                                className="w-14 h-11 text-center font-bold text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
-                                placeholder="0"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
-                                  setEditForm((f: any) => ({
-                                    ...f,
-                                    score1: String((parseInt(String(f.score1 ?? "0"), 10) || 0) + 1),
-                                  }));
-                                }}
-                                className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
-                                aria-label="Increase score 1"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Player 2 Stepper */}
-                          <div className="bg-white p-2.5 rounded-xl border border-gray-200 text-center shadow-xs">
-                            <div className="text-xs font-semibold text-gray-700 truncate mb-1.5" title={match.player2?.name || "Player 2"}>
-                              {match.player2?.name || "Player 2"}
-                            </div>
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
-                                  setEditForm((f: any) => ({
-                                    ...f,
-                                    score2: String(Math.max(0, (parseInt(String(f.score2 ?? "0"), 10) || 0) - 1)),
-                                  }));
-                                }}
-                                className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
-                                aria-label="Decrease score 2"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                min={0}
-                                value={editForm.score2 ?? ""}
-                                onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
-                                className="w-14 h-11 text-center font-bold text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
-                                placeholder="0"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
-                                  setEditForm((f: any) => ({
-                                    ...f,
-                                    score2: String((parseInt(String(f.score2 ?? "0"), 10) || 0) + 1),
-                                  }));
-                                }}
-                                className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
-                                aria-label="Increase score 2"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                            return "—";
+                          }
+                          try {
+                            return (
+                              <span className="text-gray-700">
+                                {formatDateTimeDisplay(scheduledTime)}
+                              </span>
+                            );
+                          } catch (e) {
+                            console.error('[Date Error] Match', match.id, 'Date formatting error:', e, 'scheduled_time:', scheduledTime);
+                            return "—";
+                          }
+                        })()}
                       </div>
+                    </div>
 
-                      {/* 2. One-Tap Winner Selection Chips */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-xs font-semibold text-gray-700">{t("admin.winnerRequired") || "獲勝者 (Winner)"}</span>
-                          {editForm.winner_id && (
-                            <button
-                              type="button"
-                              onClick={() => setEditForm((f: any) => ({ ...f, winner_id: "" }))}
-                              className="text-xs text-gray-500 hover:text-gray-700 underline"
-                            >
-                              清除獲勝者
-                            </button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(25);
-                              setEditForm((f: any) => ({
-                                ...f,
-                                winner_id: f.winner_id === match.player1_id ? "" : (match.player1_id || ""),
-                                status: f.winner_id === match.player1_id ? f.status : "completed",
-                              }));
-                            }}
-                            className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate border transition-all active:scale-95 ${
-                              editForm.winner_id === match.player1_id
-                                ? "bg-ntu-green text-white border-ntu-green shadow-xs"
-                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                            }`}
-                          >
-                            {match.player1?.name || "Player 1"} 勝
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(25);
-                              setEditForm((f: any) => ({
-                                ...f,
-                                winner_id: f.winner_id === DRAW_WINNER_ID ? "" : DRAW_WINNER_ID,
-                                status: f.winner_id === DRAW_WINNER_ID ? f.status : "completed",
-                              }));
-                            }}
-                            className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
-                              editForm.winner_id === DRAW_WINNER_ID
-                                ? "bg-amber-600 text-white border-amber-600 shadow-xs"
-                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                            }`}
-                          >
-                            平局 (Draw)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(25);
-                              setEditForm((f: any) => ({
-                                ...f,
-                                winner_id: f.winner_id === match.player2_id ? "" : (match.player2_id || ""),
-                                status: f.winner_id === match.player2_id ? f.status : "completed",
-                              }));
-                            }}
-                            className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate border transition-all active:scale-95 ${
-                              editForm.winner_id === match.player2_id
-                                ? "bg-ntu-green text-white border-ntu-green shadow-xs"
-                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                            }`}
-                          >
-                            {match.player2?.name || "Player 2"} 勝
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* 3. Status Dropdown */}
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1.5">賽事狀態 (Status)</label>
-                        <select
-                          value={editForm.status}
-                          onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                          className="w-full min-h-[44px] px-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green font-medium"
+                    {editingMatch !== match.id && (
+                      <div className="mt-3 flex gap-2">
+                        <Link
+                          href={`/admin/${eventId}/matches/${match.id}`}
+                          className={`flex-1 min-h-[44px] flex items-center justify-center ${hasStats ? 'bg-green-500' : 'bg-blue-500'
+                            } text-white px-4 py-2.5 rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all text-center text-sm`}
                         >
-                          <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
-                          <option value="live">🎾 {t("admin.matchStatus.live")}</option>
-                          <option value="completed">✓ {t("admin.matchStatus.completed")}</option>
-                          <option value="delayed">⏳ {t("admin.matchStatus.delayed")}</option>
-                          <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
-                          <option value="walkover">{t("admin.matchStatus.walkover")}</option>
-                        </select>
+                          📊 詳情
+                        </Link>
+                        <button
+                          onClick={() => handleEdit(match)}
+                          className="flex-1 min-h-[44px] flex items-center justify-center bg-ntu-green text-white px-4 py-2.5 rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all text-sm"
+                        >
+                          ✏️ Edit
+                        </button>
                       </div>
+                    )}
 
-                      {/* 4. Smart Court Assignment with Text Input & Quick Chips (Match Day Friendly) */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1.5">
-                          <label className="text-xs font-semibold text-gray-700">{t('admin.matchesTable.court')}</label>
-                          {editForm.court && (
-                            <button
-                              type="button"
-                              onClick={() => setEditForm((f: any) => ({ ...f, court: "" }))}
-                              className="text-xs text-gray-500 hover:text-gray-700 underline"
-                            >
-                              {t('admin.matchesTable.clearCourt')}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Direct Court Text Input */}
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={editForm.court || ""}
-                            onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
-                            placeholder={t('admin.matchesTable.courtPlaceholder')}
-                            className="w-full min-h-[44px] pl-3 pr-8 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green focus:outline-none"
-                          />
-                          {editForm.court && (
-                            <button
-                              type="button"
-                              onClick={() => setEditForm((f: any) => ({ ...f, court: "" }))}
-                              className="absolute right-2.5 top-2.5 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full text-xs"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-
-                        {/* 1-Tap Quick Court Chips (dynamically learned from event courts and assigned matches) */}
-                        {quickCourtChips.length > 0 && (
-                          <div className="flex items-center gap-1.5 overflow-x-auto mt-2 pb-1 scrollbar-hide">
-                            {quickCourtChips.map((c) => (
-                              <button
-                                key={c}
-                                type="button"
-                                onClick={() => {
-                                  if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
-                                  setEditForm((f: any) => ({ ...f, court: f.court === c ? "" : c }));
-                                }}
-                                className={`min-h-[36px] px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all active:scale-95 ${
-                                  editForm.court === c
-                                    ? "bg-ntu-green text-white border-ntu-green shadow-xs"
-                                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                                }`}
-                              >
-                                {c}
-                              </button>
-                            ))}
+                    {editingMatch === match.id && (
+                      <div className="mt-3 space-y-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                        {isDirty && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 animate-pulse">
+                            <span>⚠️</span>
+                            <span>
+                              {locale === "zh"
+                                ? "有未儲存的變更，離開前請記得點擊下方「儲存」"
+                                : "Unsaved changes! Please remember to save before leaving."}
+                            </span>
                           </div>
                         )}
-                      </div>
+                        {/* 1. Score Steppers */}
+                        <div>
+                          <span className="block text-xs font-semibold text-gray-700 mb-2">比分輸入 (Scores)</span>
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Player 1 Stepper */}
+                            <div className="bg-white p-2.5 rounded-xl border border-gray-200 text-center shadow-xs">
+                              <div className="text-xs font-semibold text-gray-700 truncate mb-1.5" title={match.player1?.name || "Player 1"}>
+                                {match.player1?.name || "Player 1"}
+                              </div>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                    setEditForm((f: any) => ({
+                                      ...f,
+                                      score1: String(Math.max(0, (parseInt(String(f.score1 ?? "0"), 10) || 0) - 1)),
+                                    }));
+                                  }}
+                                  className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
+                                  aria-label="Decrease score 1"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={editForm.score1 ?? ""}
+                                  onChange={(e) => setEditForm({ ...editForm, score1: e.target.value })}
+                                  className="w-14 h-11 text-center font-bold text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                                  placeholder="0"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                    setEditForm((f: any) => ({
+                                      ...f,
+                                      score1: String((parseInt(String(f.score1 ?? "0"), 10) || 0) + 1),
+                                    }));
+                                  }}
+                                  className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
+                                  aria-label="Increase score 1"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
 
-                      {/* 4. Large Save and Cancel Action Buttons with Haptic Feedback */}
-                      <div className="grid grid-cols-2 gap-2.5 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (typeof window !== "undefined" && "vibrate" in navigator) {
-                              navigator.vibrate(40);
-                            }
-                            handleSave(match.id);
-                          }}
-                          className="min-h-[48px] bg-ntu-green text-white rounded-xl font-bold flex items-center justify-center gap-1.5 active:scale-95 shadow-xs text-base hover:opacity-90 transition-all"
-                        >
-                          <span>✓</span>
-                          <span>{t("admin.save") || "儲存"}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancel}
-                          className="min-h-[48px] bg-gray-200 text-gray-700 rounded-xl font-semibold flex items-center justify-center active:scale-95 hover:bg-gray-300 text-base transition-all"
-                        >
-                          {t("admin.cancel") || "取消"}
-                        </button>
+                            {/* Player 2 Stepper */}
+                            <div className="bg-white p-2.5 rounded-xl border border-gray-200 text-center shadow-xs">
+                              <div className="text-xs font-semibold text-gray-700 truncate mb-1.5" title={match.player2?.name || "Player 2"}>
+                                {match.player2?.name || "Player 2"}
+                              </div>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                    setEditForm((f: any) => ({
+                                      ...f,
+                                      score2: String(Math.max(0, (parseInt(String(f.score2 ?? "0"), 10) || 0) - 1)),
+                                    }));
+                                  }}
+                                  className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
+                                  aria-label="Decrease score 2"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={editForm.score2 ?? ""}
+                                  onChange={(e) => setEditForm({ ...editForm, score2: e.target.value })}
+                                  className="w-14 h-11 text-center font-bold text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-ntu-green"
+                                  placeholder="0"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                    setEditForm((f: any) => ({
+                                      ...f,
+                                      score2: String((parseInt(String(f.score2 ?? "0"), 10) || 0) + 1),
+                                    }));
+                                  }}
+                                  className="w-11 h-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-95 rounded-lg text-xl font-bold text-gray-700 select-none"
+                                  aria-label="Increase score 2"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. One-Tap Winner Selection Chips */}
+                        <div>
+                          <div className="flex justify-between items-center mb-1.5">
+                            <span className="text-xs font-semibold text-gray-700">{t("admin.winnerRequired") || "獲勝者 (Winner)"}</span>
+                            {editForm.winner_id && (
+                              <button
+                                type="button"
+                                onClick={() => setEditForm((f: any) => ({ ...f, winner_id: "" }))}
+                                className="text-xs text-gray-500 hover:text-gray-700 underline"
+                              >
+                                清除獲勝者
+                              </button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(25);
+                                setEditForm((f: any) => ({
+                                  ...f,
+                                  winner_id: f.winner_id === match.player1_id ? "" : (match.player1_id || ""),
+                                  status: f.winner_id === match.player1_id ? f.status : "completed",
+                                }));
+                              }}
+                              className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate border transition-all active:scale-95 ${editForm.winner_id === match.player1_id
+                                  ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                                }`}
+                            >
+                              {match.player1?.name || "Player 1"} 勝
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(25);
+                                setEditForm((f: any) => ({
+                                  ...f,
+                                  winner_id: f.winner_id === DRAW_WINNER_ID ? "" : DRAW_WINNER_ID,
+                                  status: f.winner_id === DRAW_WINNER_ID ? f.status : "completed",
+                                }));
+                              }}
+                              className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${editForm.winner_id === DRAW_WINNER_ID
+                                  ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                                }`}
+                            >
+                              平局 (Draw)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(25);
+                                setEditForm((f: any) => ({
+                                  ...f,
+                                  winner_id: f.winner_id === match.player2_id ? "" : (match.player2_id || ""),
+                                  status: f.winner_id === match.player2_id ? f.status : "completed",
+                                }));
+                              }}
+                              className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold truncate border transition-all active:scale-95 ${editForm.winner_id === match.player2_id
+                                  ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                                }`}
+                            >
+                              {match.player2?.name || "Player 2"} 勝
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 3. Status Dropdown */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">賽事狀態 (Status)</label>
+                          <select
+                            value={editForm.status}
+                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                            className="w-full min-h-[44px] px-3 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green font-medium"
+                          >
+                            <option value="upcoming">{t("admin.matchStatus.upcoming")}</option>
+                            <option value="live">🎾 {t("admin.matchStatus.live")}</option>
+                            <option value="completed">✓ {t("admin.matchStatus.completed")}</option>
+                            <option value="delayed">⏳ {t("admin.matchStatus.delayed")}</option>
+                            <option value="forfeit">{t("admin.matchStatus.forfeit")}</option>
+                            <option value="walkover">{t("admin.matchStatus.walkover")}</option>
+                          </select>
+                        </div>
+
+                        {/* 4. Smart Court Assignment with Text Input & Quick Chips (Match Day Friendly) */}
+                        <div>
+                          <div className="flex justify-between items-center mb-1.5">
+                            <label className="text-xs font-semibold text-gray-700">{t('admin.matchesTable.court')}</label>
+                            {editForm.court && (
+                              <button
+                                type="button"
+                                onClick={() => setEditForm((f: any) => ({ ...f, court: "" }))}
+                                className="text-xs text-gray-500 hover:text-gray-700 underline"
+                              >
+                                {t('admin.matchesTable.clearCourt')}
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Direct Court Text Input */}
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={editForm.court || ""}
+                              onChange={(e) => setEditForm({ ...editForm, court: e.target.value })}
+                              placeholder={t('admin.matchesTable.courtPlaceholder')}
+                              className="w-full min-h-[44px] pl-3 pr-8 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-ntu-green focus:outline-none"
+                            />
+                            {editForm.court && (
+                              <button
+                                type="button"
+                                onClick={() => setEditForm((f: any) => ({ ...f, court: "" }))}
+                                className="absolute right-2.5 top-2.5 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full text-xs"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+
+                          {/* 1-Tap Quick Court Chips (dynamically learned from event courts and assigned matches) */}
+                          {quickCourtChips.length > 0 && (
+                            <div className="flex items-center gap-1.5 overflow-x-auto mt-2 pb-1 scrollbar-hide">
+                              {quickCourtChips.map((c) => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => {
+                                    if (typeof window !== "undefined" && "vibrate" in navigator) navigator.vibrate(20);
+                                    setEditForm((f: any) => ({ ...f, court: f.court === c ? "" : c }));
+                                  }}
+                                  className={`min-h-[36px] px-3 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all active:scale-95 ${editForm.court === c
+                                      ? "bg-ntu-green text-white border-ntu-green shadow-xs"
+                                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                                    }`}
+                                >
+                                  {c}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 4. Large Save and Cancel Action Buttons with Haptic Feedback */}
+                        <div className="grid grid-cols-2 gap-2.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (typeof window !== "undefined" && "vibrate" in navigator) {
+                                navigator.vibrate(40);
+                              }
+                              handleSave(match.id);
+                            }}
+                            className="min-h-[48px] bg-ntu-green text-white rounded-xl font-bold flex items-center justify-center gap-1.5 active:scale-95 shadow-xs text-base hover:opacity-90 transition-all"
+                          >
+                            <span>✓</span>
+                            <span>{t("admin.save") || "儲存"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancel}
+                            className="min-h-[48px] bg-gray-200 text-gray-700 rounded-xl font-semibold flex items-center justify-center active:scale-95 hover:bg-gray-300 text-base transition-all"
+                          >
+                            {t("admin.cancel") || "取消"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
               );
             })
           )}
