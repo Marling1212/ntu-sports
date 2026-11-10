@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Player, Match } from "@/types/database";
 import { isDrawMatch } from "@/lib/constants/matchConstants";
 
@@ -55,6 +55,7 @@ const parseScore = (score?: string): { score1: number; score2: number } | null =
 };
 
 export default function PlayerStats({ players, matches, tournamentType, registrationType = 'player', sport, matchPlayerStats = [], teamMembers = [] }: PlayerStatsProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const showTopScorers = SOCCER_LIKE_SPORTS.includes((sport || "").toLowerCase());
   const playerStats = useMemo(() => {
     const statsMap = new Map<string, PlayerStat>();
@@ -495,23 +496,56 @@ export default function PlayerStats({ players, matches, tournamentType, registra
 
   if (!hasStats) {
     return (
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-2xl font-semibold text-ntu-green mb-4">{registrationType === 'team' ? '隊伍統計' : '選手統計'}</h2>
-        <p className="text-gray-500">尚無比賽數據</p>
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4 sm:p-6">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">📊</span>
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold text-ntu-green">{registrationType === 'team' ? '隊伍統計' : '選手統計'}</h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">尚無比賽數據</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-semibold text-ntu-green">{registrationType === 'team' ? '隊伍統計' : '選手統計'}</h2>
-          <p className="text-sm text-gray-600 mt-1">基於已完成比賽的統計數據</p>
-        </div>
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-all">
+        {/* Collapsible Header Toggle */}
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full p-4 sm:p-6 flex items-center justify-between text-left hover:bg-gray-50/80 transition-colors focus:outline-none select-none"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-2xl sm:text-3xl shrink-0">📊</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-semibold text-ntu-green">
+                  {registrationType === 'team' ? '隊伍統計' : '選手統計'}
+                </h2>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
+                  {playerStats.length} {registrationType === 'team' ? '隊' : '人'}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5 truncate">
+                {isExpanded ? "點擊收合統計數據與排行榜" : "點擊展開查看勝率、進球榜與完整數據"}
+              </p>
+            </div>
+          </div>
 
-      {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-ntu-green font-semibold text-xs sm:text-sm transition-colors ml-2">
+            <span>{isExpanded ? '收合' : '展開查看'}</span>
+            <span className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </div>
+        </button>
+
+        {isExpanded && (
+          <div className="border-t border-gray-200">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -668,10 +702,12 @@ export default function PlayerStats({ players, matches, tournamentType, registra
           </div>
         ))}
       </div>
-      </div>
+    </div>
+  )}
+</div>
 
-      {/* Simple Charts — goals & cards only for soccer/football; win rate for all */}
-      {((showTopScorers && (topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0)) || topWinRate.length > 0) && (
+      {/* Simple Charts — only when expanded */}
+      {isExpanded && ((showTopScorers && (topScorers.length > 0 || topYellowCards.length > 0 || topRedCards.length > 0)) || topWinRate.length > 0) && (
         <div className="space-y-6">
           {/* Top Performers: Goals, Yellow Cards, Red Cards (soccer only); Win rate (all) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
