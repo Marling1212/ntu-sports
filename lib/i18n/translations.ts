@@ -911,6 +911,8 @@ export const translations = {
         bracketSplitModeDescription: '適用於 33～64 人的中型單淘汰賽。若第二天的賽程是從八強賽開始打，推薦選擇「4 區制」，前台第一天選手只看 16 人分區，第二天進入八強者直接在決賽頁觀看全部決賽賽程；若第一天已打完八強、第二天只打四強，可選擇「2 區制」。（註：32 籤以下固定為完整籤表；128 籤固定為 4 區制）',
         bracketSplitModeToast: '已更新 64 籤分區模式',
         bracketSplitModeSaveError: '儲存分區模式失敗',
+        cannotDeleteAfterSchedule: '賽程或籤表已排定，選手／隊伍已分配對戰位置，不可刪除！若選手無法出賽請於賽程登記落敗或棄權。',
+        cannotDeleteAfterScheduleShort: '賽程已排定，鎖定刪除',
       },
       captainLink: {
         copy: '複製隊長連結',
@@ -2068,6 +2070,8 @@ export const translations = {
         bracketSplitModeDescription: 'Applies to 33–64 participant single elimination draws. If Day 2 matches start from the Quarterfinals, "4 Sections" is recommended: players view their 16-player quarter on Day 1, and Day 2 matches are consolidated on the Finals stage. If Day 1 completes Quarterfinals, choose "2 Halves". (Draws ≤32 always show full bracket; draws ≥128 always use 4 sections).',
         bracketSplitModeToast: 'Updated 64-draw bracket split mode',
         bracketSplitModeSaveError: 'Failed to update bracket split mode',
+        cannotDeleteAfterSchedule: 'The bracket or match schedule has been generated and participants are assigned to matches. Participants cannot be deleted! If a participant cannot compete, please record them as defeated or forfeited in the match schedule.',
+        cannotDeleteAfterScheduleShort: 'Scheduled: Deletion locked',
       },
       captainLink: {
         copy: 'Copy captain link',

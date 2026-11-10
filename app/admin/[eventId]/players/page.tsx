@@ -82,6 +82,17 @@ export default async function PlayersPage({
     playoffNumGroups = groups.size || 1;
   }
 
+  // Check if matches have been generated/scheduled for this event (and division if selected)
+  let matchesCountQuery = supabase
+    .from("matches")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId);
+  if (effectiveDefaultDivisionId) {
+    matchesCountQuery = matchesCountQuery.eq("division_id", effectiveDefaultDivisionId);
+  }
+  const { count: matchesCount } = await matchesCountQuery;
+  const hasMatches = (matchesCount ?? 0) > 0;
+
   // For 不可出賽: slot templates (weekly) and blackout templates per player
   const { data: slotTemplates } = await supabase
     .from("event_slot_templates")
@@ -203,6 +214,7 @@ export default async function PlayersPage({
           initialPlayers={players || []} 
           tournamentType={effectiveTournamentType}
           initialRoundOneMatches={roundOneMatches}
+          hasMatches={hasMatches}
           registrationType={event?.registration_type as 'player' | 'team' | undefined}
           initialBlackoutLimit={event?.blackout_limit ?? null}
           initialCaptainBlackoutsOpen={(event as { captain_blackouts_open?: boolean } | null)?.captain_blackouts_open ?? false}

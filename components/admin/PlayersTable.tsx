@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast, { Toaster } from "react-hot-toast";
@@ -24,6 +24,7 @@ interface PlayersTableProps {
   initialPlayers: Player[];
   tournamentType?: 'single_elimination' | 'season_play';
   initialRoundOneMatches?: Array<{ player1_id: string | null; player2_id: string | null; match_number: number }>;
+  hasMatches?: boolean;
   registrationType?: 'player' | 'team';
   initialBlackoutLimit?: number | null;
   initialCaptainBlackoutsOpen?: boolean;
@@ -40,6 +41,7 @@ export default function PlayersTable({
   initialPlayers,
   tournamentType = 'single_elimination',
   initialRoundOneMatches = [],
+  hasMatches = false,
   registrationType = 'player',
   initialBlackoutLimit = null,
   initialCaptainBlackoutsOpen = false,
@@ -420,6 +422,16 @@ export default function PlayersTable({
     return generatedBracketSize > 32 && generatedBracketSize <= 64;
   }, [tournamentType, initialRoundOneMatches]);
 
+  const isScheduleLocked = useMemo(() => {
+    return Boolean(hasMatches || (initialRoundOneMatches && initialRoundOneMatches.length > 0));
+  }, [hasMatches, initialRoundOneMatches]);
+
+  const showScheduleLockedMessage = useCallback(() => {
+    const message = t('admin.registration.cannotDeleteAfterSchedule');
+    alert(message);
+    toast.error(message);
+  }, [t]);
+
   const handleSortColumn = (key: PlayersSortKey) => {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -675,8 +687,24 @@ export default function PlayersTable({
   };
 
   const handleDeletePlayer = async (playerId: string) => {
-    const entityName = registrationType === 'team' ? 'team' : 'player';
-    if (!confirm(`確定要刪除此${registrationType === 'team' ? '隊伍' : '選手'}嗎？`)) return;
+    if (isScheduleLocked) {
+      showScheduleLockedMessage();
+      return;
+    }
+
+    // Safety check against matches table in case matches were generated or assigned
+    const { count: matchCount } = await supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .or(`player1_id.eq.${playerId},player2_id.eq.${playerId}`);
+
+    if ((matchCount ?? 0) > 0) {
+      showScheduleLockedMessage();
+      return;
+    }
+
+    const entityName = registrationType === 'team' ? '隊伍' : '選手';
+    if (!confirm(`確定要刪除此${entityName}嗎？`)) return;
 
     const { error } = await supabase
       .from("players")
@@ -687,7 +715,7 @@ export default function PlayersTable({
       toast.error(`Error: ${error.message}`);
     } else {
       setPlayers(players.filter(p => p.id !== playerId));
-      toast.success(`${registrationType === 'team' ? '隊伍' : '選手'}刪除成功！`);
+      toast.success(`${entityName}刪除成功！`);
     }
   };
 
@@ -815,6 +843,12 @@ export default function PlayersTable({
   };
 
   const handleDeleteAll = async () => {
+    if (isScheduleLocked) {
+      showScheduleLockedMessage();
+      setShowDeleteAllModal(false);
+      return;
+    }
+
     const entityName = registrationType === 'team' ? '隊伍' : '選手';
     if (deleteAllConfirmationText !== "DELETE") {
       setDeleteAllError("請輸入 DELETE 以確認刪除。");
@@ -1149,11 +1183,24 @@ export default function PlayersTable({
           <div className="flex justify-end items-center gap-3">
             {players.length > 0 && (
               <button
-                onClick={() => setShowDeleteAllModal(true)}
+                type="button"
+                onClick={() => {
+                  if (isScheduleLocked) {
+                    showScheduleLockedMessage();
+                    return;
+                  }
+                  setShowDeleteAllModal(true);
+                }}
                 disabled={deletingAll}
-                className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-medium border-2 border-red-200 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
+                className={
+                  isScheduleLocked
+                    ? "bg-gray-100 text-gray-400 px-4 py-2 rounded-lg font-medium border-2 border-gray-200 cursor-not-allowed transition-colors"
+                    : "bg-red-50 text-red-600 px-4 py-2 rounded-lg font-medium border-2 border-red-200 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
+                }
+                title={isScheduleLocked ? t('admin.registration.cannotDeleteAfterSchedule') : undefined}
+                aria-label={isScheduleLocked ? t('admin.registration.cannotDeleteAfterSchedule') : t('admin.registration.deleteAll')}
               >
-                🗑️ {t('admin.registration.deleteAll')}
+                {isScheduleLocked ? "🔒" : "🗑️"} {t('admin.registration.deleteAll')}
               </button>
             )}
             <button
@@ -1482,12 +1529,26 @@ export default function PlayersTable({
                                     : t("admin.captainLink.generate")}
                                 </button>
                               )}
-                              <button
-                                onClick={() => handleDeletePlayer(player.id)}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                {t('admin.delete')}
-                              </button>
+                              {isScheduleLocked ? (
+                                <button
+                                  type="button"
+                                  onClick={showScheduleLockedMessage}
+                                  className="inline-flex items-center gap-1 text-gray-400 hover:text-gray-500 cursor-not-allowed text-xs font-medium px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 transition-colors"
+                                  title={t('admin.registration.cannotDeleteAfterSchedule')}
+                                  aria-label={t('admin.registration.cannotDeleteAfterSchedule')}
+                                >
+                                  <span>🔒</span>
+                                  <span>{t('admin.delete')}</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePlayer(player.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  {t('admin.delete')}
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1832,7 +1893,7 @@ export default function PlayersTable({
                           </button>
                         </div>
 
-                        <div className="flex items-center gap-2 ml-auto">
+                        <div className="flex items-center gap-2.5 ml-auto">
                           {/* 44px+ Check-in Button */}
                           <button
                             type="button"
@@ -1853,20 +1914,35 @@ export default function PlayersTable({
                             <span>{player.checked_in_at ? "已報到" : "未報到"}</span>
                           </button>
 
-                          {/* Isolated Delete Player Button with explicit confirmation */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (window.confirm(`確定要刪除「${player.name}」嗎？此操作無法復原。`)) {
-                                handleDeletePlayer(player.id);
-                              }
-                            }}
-                            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl active:scale-95 transition-colors"
-                            title={t('admin.delete')}
-                            aria-label={`${t('admin.delete')} ${player.name}`}
-                          >
-                            🗑️
-                          </button>
+                          {/* Physical Divider to clearly separate Check-in and Delete buttons */}
+                          <div className="h-6 w-px bg-gray-200 mx-0.5" aria-hidden="true" />
+
+                          {/* Isolated Delete Player Button / Locked Indicator */}
+                          {isScheduleLocked ? (
+                            <button
+                              type="button"
+                              onClick={showScheduleLockedMessage}
+                              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl cursor-not-allowed border border-dashed border-gray-300 active:scale-95 transition-all"
+                              title={t('admin.registration.cannotDeleteAfterSchedule')}
+                              aria-label={`${t('admin.registration.cannotDeleteAfterSchedule')} (${player.name})`}
+                            >
+                              <span className="text-sm">🔒</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`確定要刪除「${player.name}」嗎？此操作無法復原。`)) {
+                                  handleDeletePlayer(player.id);
+                                }
+                              }}
+                              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl active:scale-95 transition-colors"
+                              title={t('admin.delete')}
+                              aria-label={`${t('admin.delete')} ${player.name}`}
+                            >
+                              🗑️
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
