@@ -14,6 +14,7 @@ export const translations = {
       soccer: '足球',
       tennis: '網球',
       admin: '後台管理',
+      logout: '登出',
     },
     // Homepage
     home: {
@@ -1111,6 +1112,7 @@ export const translations = {
       soccer: 'Soccer',
       tennis: 'Tennis',
       admin: 'Admin',
+      logout: 'Logout',
     },
     // Homepage
     home: {

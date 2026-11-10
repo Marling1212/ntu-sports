@@ -1,13 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import { createClient } from "@/lib/supabase/client";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { t, locale } = useI18n();
+  const supabase = useMemo(() => createClient(), []);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAdminUser(!!session?.user);
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdminUser(!!session?.user);
+    });
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
+    router.push("/admin/login");
+    router.refresh();
+  };
 
   const isSoccerActive = pathname.startsWith("/sports/soccer") || pathname === "/soccer";
   const isTennisActive = pathname.startsWith("/sports/tennis") || pathname === "/tennis";
@@ -15,6 +42,10 @@ export default function Navbar() {
   const soccerLabel = locale === "zh" ? "⚽ 足球" : "⚽ Soccer";
   const tennisLabel = locale === "zh" ? "🎾 網球" : "🎾 Tennis";
   const adminLabel = t("nav.admin") || (locale === "zh" ? "後台管理" : "Admin");
+  const logoutLabel = t("nav.logout") || (locale === "zh" ? "登出" : "Logout");
+
+  // Show Logout instead of redundant "後台管理" when inside admin routes (except login) or authenticated in admin
+  const isInAdmin = pathname.startsWith("/admin") && pathname !== "/admin/login";
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-colors">
@@ -70,13 +101,37 @@ export default function Navbar() {
           {/* Language Selector */}
           <LanguageSwitcher />
 
-          {/* Admin CTA */}
-          <Link
-            href="/admin"
-            className="inline-flex items-center justify-center bg-blue-50/70 hover:bg-blue-100/90 text-blue-700 border border-blue-200/70 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-colors"
-          >
-            {adminLabel}
-          </Link>
+          {/* Admin / Logout CTA */}
+          {isInAdmin ? (
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center justify-center text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition"
+            >
+              {logoutLabel}
+            </button>
+          ) : isAdminUser ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/admin/dashboard"
+                className="inline-flex items-center justify-center bg-blue-50/70 hover:bg-blue-100/90 text-blue-700 border border-blue-200/70 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-colors"
+              >
+                {adminLabel}
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center justify-center text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition"
+              >
+                {logoutLabel}
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/admin"
+              className="inline-flex items-center justify-center bg-blue-50/70 hover:bg-blue-100/90 text-blue-700 border border-blue-200/70 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-colors"
+            >
+              {adminLabel}
+            </Link>
+          )}
         </div>
       </div>
     </header>

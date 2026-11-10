@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useLayoutEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
-import LogoutButton from "./LogoutButton";
-import AdminFontSizeControl from "@/components/admin/AdminFontSizeControl";
+import { usePathname, useSearchParams } from "next/navigation";
 import DivisionSwitcher from "./DivisionSwitcher";
 import EventVisibilityToggle from "./EventVisibilityToggle";
 import { useI18n } from "@/lib/i18n/context";
@@ -37,6 +35,7 @@ export default function AdminNavbar({
   isVisible,
 }: AdminNavbarProps) {
   const navRef = useRef<HTMLElement>(null);
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const divisionIdFromUrl = searchParams?.get("divisionId");
   const effectiveDivisionId = currentDivisionId ?? divisionIdFromUrl ?? null;
@@ -64,65 +63,128 @@ export default function AdminNavbar({
   }, []);
 
   return (
-    <nav ref={navRef} className="sticky top-0 z-50 bg-ntu-green text-white shadow-lg">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-6 flex-wrap">
-            <Link href="/admin/dashboard" className="text-xl font-bold hover:opacity-80 transition-opacity whitespace-nowrap">
+    <nav ref={navRef} className="sticky top-0 z-50 bg-ntu-green text-white shadow-md">
+      <div className="container mx-auto px-4 py-2 sm:py-2.5">
+        {/* Row 1: Title & Status */}
+        <div className="flex items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
+            <Link
+              href="/admin/dashboard"
+              className="text-base sm:text-lg font-bold hover:opacity-85 transition-opacity whitespace-nowrap text-white"
+            >
               {t("admin.dashboard")}
             </Link>
             {eventId && eventName && (
-              <div className="flex items-center gap-3">
-                <span className="text-white opacity-50">|</span>
-                <span className="text-lg">{eventName}</span>
+              <>
+                <span className="text-white/40 select-none">|</span>
+                <span
+                  className="text-sm sm:text-base font-semibold truncate max-w-[180px] sm:max-w-md text-white/95"
+                  title={eventName}
+                >
+                  {eventName}
+                </span>
                 {isVisible !== undefined && (
                   <EventVisibilityToggle eventId={eventId} initialVisibility={isVisible} />
                 )}
-              </div>
+              </>
             )}
-            {eventId && divisions.length > 1 && (
+          </div>
+          {eventId && divisions.length > 1 && (
+            <div className="shrink-0">
               <Suspense fallback={null}>
                 <DivisionSwitcher divisions={divisions} currentDivisionId={effectiveDivisionId} />
               </Suspense>
-            )}
-          </div>
-          {eventId && (
-            <div className="flex gap-4 md:gap-5 text-sm font-medium items-center overflow-x-auto pb-1 min-h-[40px] whitespace-nowrap scrollbar-hide w-full lg:w-auto mt-2 lg:mt-0">
-              {viewerUrl && (
-                <Link href={viewerUrl} className="hover:opacity-80 transition-opacity" title={isVisible === false ? (t("admin.previewPublicHint") || "Preview what the public will see when you make the event visible") : "看前台 View on site"}>
-                  {isVisible === false ? (t("admin.previewPublicPage") || "Preview public page") : t("admin.viewEvent")}
-                </Link>
-              )}
-              {isVisible === false && (
-                <span className="text-white/80 text-xs hidden sm:inline" title={t("admin.eventHiddenNote") || "Event is hidden — only you can preview it."}>
-                  ({t("admin.hidden") || "Hidden"})
-                </span>
-              )}
-              <Link href={`/admin/${eventId}/players${q}`} className="hover:opacity-80 transition-opacity">
-                {t("admin.players")}
-              </Link>
-              <Link href={`/admin/${eventId}/matches${q}`} className="hover:opacity-80 transition-opacity">
-                {t("admin.matches")}
-              </Link>
-              <Link href={`/admin/${eventId}/scheduling${q}`} className="hover:opacity-80 transition-opacity">
-                {t("admin.schedule")}
-              </Link>
-              <Link href={`/admin/${eventId}/dispatch${q}`} className="hover:opacity-80 transition-opacity">
-                Referees
-              </Link>
-              <Link href={`/admin/${eventId}/announcements${q}`} className="hover:opacity-80 transition-opacity">
-                {t("admin.announcements")}
-              </Link>
-              <Link href={`/admin/${eventId}/settings${q}`} className="hover:opacity-80 transition-opacity">
-                {t("admin.navSettings")}
-              </Link>
             </div>
           )}
-          <div className="flex items-center gap-3 flex-wrap justify-end">
-            <AdminFontSizeControl variant="navbar" />
-            <LogoutButton />
-          </div>
         </div>
+
+        {/* Row 2: Sub-tabs */}
+        {eventId && (
+          <div className="flex items-center gap-4 sm:gap-5 overflow-x-auto whitespace-nowrap py-2 text-sm text-emerald-100 no-scrollbar mt-1 border-t border-emerald-700/40">
+            {viewerUrl && (
+              <Link
+                href={viewerUrl}
+                className="hover:text-white transition-colors flex items-center gap-1.5 shrink-0"
+                title={
+                  isVisible === false
+                    ? t("admin.previewPublicHint") || "Preview what the public will see when you make the event visible"
+                    : "看前台 View on site"
+                }
+              >
+                <span>👁️</span>
+                <span>{isVisible === false ? t("admin.previewPublicPage") || "預覽公開頁" : t("admin.viewEvent")}</span>
+              </Link>
+            )}
+            {isVisible === false && (
+              <span
+                className="text-emerald-300/80 text-xs hidden sm:inline shrink-0"
+                title={t("admin.eventHiddenNote") || "Event is hidden — only you can preview it."}
+              >
+                ({t("admin.hidden") || "已隱藏"})
+              </span>
+            )}
+            <Link
+              href={`/admin/${eventId}/players${q}`}
+              className={`shrink-0 transition-colors ${
+                pathname.startsWith(`/admin/${eventId}/players`)
+                  ? "text-white font-bold underline underline-offset-4 decoration-2 decoration-emerald-300"
+                  : "hover:text-white"
+              }`}
+            >
+              {t("admin.players")}
+            </Link>
+            <Link
+              href={`/admin/${eventId}/matches${q}`}
+              className={`shrink-0 transition-colors ${
+                pathname.startsWith(`/admin/${eventId}/matches`)
+                  ? "text-white font-bold underline underline-offset-4 decoration-2 decoration-emerald-300"
+                  : "hover:text-white"
+              }`}
+            >
+              {t("admin.matches")}
+            </Link>
+            <Link
+              href={`/admin/${eventId}/scheduling${q}`}
+              className={`shrink-0 transition-colors ${
+                pathname.startsWith(`/admin/${eventId}/scheduling`)
+                  ? "text-white font-bold underline underline-offset-4 decoration-2 decoration-emerald-300"
+                  : "hover:text-white"
+              }`}
+            >
+              {t("admin.schedule")}
+            </Link>
+            <Link
+              href={`/admin/${eventId}/dispatch${q}`}
+              className={`shrink-0 transition-colors ${
+                pathname.startsWith(`/admin/${eventId}/dispatch`)
+                  ? "text-white font-bold underline underline-offset-4 decoration-2 decoration-emerald-300"
+                  : "hover:text-white"
+              }`}
+            >
+              Referees
+            </Link>
+            <Link
+              href={`/admin/${eventId}/announcements${q}`}
+              className={`shrink-0 transition-colors ${
+                pathname.startsWith(`/admin/${eventId}/announcements`)
+                  ? "text-white font-bold underline underline-offset-4 decoration-2 decoration-emerald-300"
+                  : "hover:text-white"
+              }`}
+            >
+              {t("admin.announcements")}
+            </Link>
+            <Link
+              href={`/admin/${eventId}/settings${q}`}
+              className={`shrink-0 transition-colors ${
+                pathname.startsWith(`/admin/${eventId}/settings`)
+                  ? "text-white font-bold underline underline-offset-4 decoration-2 decoration-emerald-300"
+                  : "hover:text-white"
+              }`}
+            >
+              {t("admin.navSettings")}
+            </Link>
+          </div>
+        )}
       </div>
     </nav>
   );
