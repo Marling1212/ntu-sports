@@ -429,7 +429,6 @@ export default function PlayersTable({
   const showScheduleLockedMessage = useCallback(() => {
     const message = t('admin.registration.cannotDeleteAfterSchedule');
     alert(message);
-    toast.error(message);
   }, [t]);
 
   const handleSortColumn = (key: PlayersSortKey) => {
