@@ -10,12 +10,14 @@ interface SingleEliminationBracketManagerProps {
   eventId: string;
   players: Player[];
   defaultDivisionId?: string | null;
+  eventName?: string;
 }
 
 export default function SingleEliminationBracketManager({
   eventId,
   players,
   defaultDivisionId,
+  eventName,
 }: SingleEliminationBracketManagerProps) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<"auto" | "manual">("auto");
@@ -54,6 +56,7 @@ export default function SingleEliminationBracketManager({
             eventId={eventId}
             players={players || []}
             defaultDivisionId={defaultDivisionId}
+            eventName={eventName}
           />
         </div>
       ) : (

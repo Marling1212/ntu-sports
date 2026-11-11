@@ -267,6 +267,7 @@ export default async function PlayersPage({
               eventId={eventId}
               players={players || []}
               defaultDivisionId={effectiveDefaultDivisionId}
+              eventName={event?.name || "Event"}
             />
           )
         ) : (

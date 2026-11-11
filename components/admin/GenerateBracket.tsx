@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { Player } from "@/types/database";
 import { useI18n } from "@/lib/i18n/context";
 import { buildSeedTemplate } from "@/lib/utils/seedTemplate";
+import { downloadEventFullBackup } from "@/lib/utils/adminEventFullBackup";
 
 export type SeedingMode = "strict" | "grand_slam";
 
@@ -14,9 +15,10 @@ interface GenerateBracketProps {
   eventId: string;
   players: Player[];
   defaultDivisionId?: string | null;
+  eventName?: string;
 }
 
-export default function GenerateBracket({ eventId, players, defaultDivisionId }: GenerateBracketProps) {
+export default function GenerateBracket({ eventId, players, defaultDivisionId, eventName }: GenerateBracketProps) {
   const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(false);
@@ -772,12 +774,21 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId }:
         : matches.length;
       
       toast.success(`成功生成 ${totalMatchesCreated} 場比賽！${hasThirdPlaceMatch ? '（含季軍賽）' : ''}（${numRounds} 輪）前往 Matches 頁面查看。`);
+
+      // 籤表生成完成，自動下載第一份初始完整備份 Excel
+      try {
+        await downloadEventFullBackup(supabase, eventId, eventName);
+        toast.success("📥 已自動下載初始完整備份 Excel！");
+      } catch (backupErr) {
+        console.error("自動備份下載失敗:", backupErr);
+      }
+
       router.refresh();
       setTimeout(() => {
         if (typeof window !== "undefined") {
           window.location.reload();
         }
-      }, 1000);
+      }, 2000);
     } catch (err) {
       console.error(err);
       toast.error("生成籤表時發生錯誤");

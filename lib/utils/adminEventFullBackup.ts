@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const ADMIN_BACKUP_SCHEMA_VERSION = 1;
 
@@ -55,4 +56,89 @@ export function buildMetaAoA(params: {
     ["exported_at", ts],
     ["notes", "Admin 完整備份：還原時請勿改動 _Meta 的 event_id；Players / Matches 的 id 欄位須與資料庫一致。"],
   ];
+}
+
+/**
+ * 完整匯出賽事備份 Excel（包含 _Meta, Players, Matches, MatchPlayerStats, TeamMembers）
+ * 可供還原（Restore）使用。
+ */
+export async function downloadEventFullBackup(
+  supabase: SupabaseClient<any, any, any>,
+  eventId: string,
+  eventName?: string
+): Promise<string> {
+  let resolvedName: string = eventName?.trim() || "";
+  if (!resolvedName) {
+    const { data: ev } = await supabase
+      .from("events")
+      .select("name")
+      .eq("id", eventId)
+      .maybeSingle();
+    resolvedName = (ev as { name?: string } | null)?.name || "Event";
+  }
+
+  const [{ data: players, error: e1 }, { data: matches, error: e2 }] = await Promise.all([
+    supabase.from("players").select("*").eq("event_id", eventId).order("name", { ascending: true }),
+    supabase
+      .from("matches")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("round", { ascending: true })
+      .order("match_number", { ascending: true }),
+  ]);
+  if (e1) throw e1;
+  if (e2) throw e2;
+
+  const plist = players ?? [];
+  const mlist = matches ?? [];
+  const matchIds = mlist.map((m: { id: string }) => m.id);
+
+  let stats: Record<string, unknown>[] = [];
+  if (matchIds.length) {
+    const { data: st, error: e3 } = await supabase.from("match_player_stats").select("*").in("match_id", matchIds);
+    if (e3) throw e3;
+    stats = (st ?? []) as Record<string, unknown>[];
+  }
+
+  const teamIds = plist.filter((p: { type?: string }) => p.type === "team").map((p: { id: string }) => p.id);
+  let members: Record<string, unknown>[] = [];
+  if (teamIds.length) {
+    const { data: tm, error: e4 } = await supabase.from("team_members").select("*").in("player_id", teamIds);
+    if (e4) throw e4;
+    members = (tm ?? []) as Record<string, unknown>[];
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet(
+      buildMetaAoA({
+        eventId,
+        eventName: resolvedName,
+        schemaVersion: ADMIN_BACKUP_SCHEMA_VERSION,
+      })
+    ),
+    "_Meta"
+  );
+
+  const playerRows = plist.map((p: Record<string, unknown>) => {
+    const { custom_fields, ...rest } = p;
+    return {
+      ...rest,
+      custom_fields_json: custom_fields ? JSON.stringify(custom_fields) : null,
+    };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(playerRows), "Players");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mlist), "Matches");
+  if (stats.length) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stats), "MatchPlayerStats");
+  }
+  if (members.length) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(members), "TeamMembers");
+  }
+
+  const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const filename = `${resolvedName.replace(/\s+/g, "_")}_完整備份_${ts}.xlsx`;
+  XLSX.writeFile(wb, filename);
+  return filename;
 }
