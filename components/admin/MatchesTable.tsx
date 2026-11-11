@@ -10,7 +10,6 @@ import { syncLockedPlayoffSeeds } from "@/lib/actions/syncLockedPlayoffSeeds";
 import * as XLSX from 'xlsx';
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
-import AnnouncementDraftWindow, { AnnouncementDraft } from "@/components/admin/AnnouncementDraftWindow";
 import { getCourtDisplay } from "@/lib/utils/getCourtDisplay";
 import { formatScheduledTimeAsStored } from "@/lib/utils/formatScheduledTime";
 import {
@@ -232,9 +231,6 @@ export default function MatchesTable({
   const [batchOperation, setBatchOperation] = useState<"score" | "court" | "status" | null>(null);
   const [batchForm, setBatchForm] = useState({ court: "", status: "", customCourt: "" });
 
-  // Announcement draft states
-  const [announcementDrafts, setAnnouncementDrafts] = useState<AnnouncementDraft[]>([]);
-
   // Create match modal state
   const [showCreateMatch, setShowCreateMatch] = useState(false);
 
@@ -246,6 +242,7 @@ export default function MatchesTable({
     round: number;
     matchNumber: number;
     score?: string | null;
+    announcementId?: string | null;
   } | null>(null);
   const recentTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -257,19 +254,39 @@ export default function MatchesTable({
     };
   }, []);
 
-  const handleReEditRecent = () => {
+  const handleReEditRecent = async () => {
     if (!recentlySavedMatch) return;
     const targetId = recentlySavedMatch.id;
+    const annId = recentlySavedMatch.announcementId;
+
+    if (recentTimerRef.current) {
+      clearTimeout(recentTimerRef.current);
+    }
+    setRecentlySavedMatch(null);
+
+    // Retract auto-published announcement if one was created
+    if (annId) {
+      try {
+        const { error: delError } = await supabase
+          .from("announcements")
+          .delete()
+          .eq("id", annId);
+        if (!delError) {
+          toast.success(t("admin.matchesTable.retractSuccess") || "已收回剛才發布的公告");
+        } else {
+          console.error("Failed to delete retracted announcement:", delError);
+        }
+      } catch (err) {
+        console.error("Error retracting announcement:", err);
+      }
+    }
+
     const targetMatch = matches.find(m => m.id === targetId);
     if (targetMatch) {
       if (statusFilter !== "all" && statusFilter !== targetMatch.status) {
         setStatusFilter("all");
       }
       handleEdit(targetMatch);
-      if (recentTimerRef.current) {
-        clearTimeout(recentTimerRef.current);
-      }
-      setRecentlySavedMatch(null);
       setTimeout(() => {
         const el = document.getElementById(`match-card-${targetId}`) || document.getElementById(`match-row-${targetId}`);
         if (el) {
@@ -567,101 +584,102 @@ export default function MatchesTable({
       syncLockedPlayoffSeeds(eventId).catch((err) => console.warn("syncLockedPlayoffSeeds:", err));
     }
 
-    // Generate announcement drafts for all changes (status, date, score)
+    // Auto-publish announcement for match changes (status, date, score, court)
+    let createdAnnouncementId: string | null = null;
     if (data.player1 && data.player2) {
       const player1Name = data.player1.name || "TBD";
       const player2Name = data.player2.name || "TBD";
-      const matchInfo = `Round ${currentMatch.round}, Match ${currentMatch.match_number}: ${player1Name} vs ${player2Name}`;
+      const roundLabel = getRoundName(currentMatch.round);
+      const matchLabel = `${roundLabel} M${currentMatch.match_number}: ${player1Name} vs ${player2Name}`;
+      const changeItems: string[] = [];
 
-      // Check for status change (including live)
-      if (editForm.status !== currentMatch.status) {
-        const statusLabels: { [key: string]: string } = {
-          upcoming: "即將開始",
-          live: "進行中",
-          completed: "已完成",
-          delayed: "延遲",
-          bye: "輪空",
-          forfeit: "棄權",
-          walkover: "不戰而勝",
-        };
-        const originalStatus = statusLabels[currentMatch.status] || currentMatch.status;
-        const newStatus = statusLabels[editForm.status] || editForm.status;
+      const statusLabels: { [key: string]: string } = {
+        upcoming: "即將開始",
+        live: "進行中",
+        completed: "已完成",
+        delayed: "延遲",
+        bye: "輪空",
+        forfeit: "棄權",
+        walkover: "不戰而勝",
+      };
 
-        const draftId = `status-${matchId}-${Date.now()}`;
-        // Special content for live status
-        const defaultContent = editForm.status === "live" && currentMatch.status !== "live"
-          ? `🎾 ${matchInfo}\n比賽現在開始！場地：${editForm.court || "TBA"}\n請前往場地觀賽！`
-          : `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
+      // Check status change
+      const isStatusChanged = editForm.status !== currentMatch.status;
+      const originalStatus = statusLabels[currentMatch.status] || currentMatch.status;
+      const newStatus = statusLabels[editForm.status || ""] || editForm.status || "";
 
-        setAnnouncementDrafts(prev => [...prev, {
-          id: draftId,
-          matchId,
-          matchInfo,
-          changeType: "status",
-          originalValue: originalStatus,
-          newValue: newStatus,
-          content: defaultContent,
-        }]);
-      }
-
-      // Check for date/time change
+      // Check date/time change
       const oldDate = currentMatch.scheduled_time ? formatDateTimeDisplay(currentMatch.scheduled_time) : "未排定";
       const newDate = scheduledIso ? formatDateTimeDisplay(scheduledIso) : "未排定";
+      const isDateChanged = oldDate !== newDate;
 
-      if (oldDate !== newDate) {
-        const draftId = `date-${matchId}-${Date.now()}`;
-        const defaultContent = `📅 ${matchInfo}\n比賽時間更新：${oldDate} → ${newDate}`;
-
-        setAnnouncementDrafts(prev => [...prev, {
-          id: draftId,
-          matchId,
-          matchInfo,
-          changeType: "date",
-          originalValue: oldDate,
-          newValue: newDate,
-          content: defaultContent,
-        }]);
-      }
-
-      // Check for score change (use normalized score values)
+      // Check score change
       const oldScore = currentMatch.score1 != null && currentMatch.score2 != null
         ? `${currentMatch.score1}-${currentMatch.score2}`
         : "未記錄";
       const newScore =
         score1Val != null && score2Val != null ? `${score1Val}-${score2Val}` : "未記錄";
+      const isScoreChanged = oldScore !== newScore && newScore !== "未記錄";
 
-      if (oldScore !== newScore) {
-        const draftId = `score-${matchId}-${Date.now()}`;
-        const defaultContent = `⚽ ${matchInfo}\n比數更新：${oldScore} → ${newScore}`;
-
-        setAnnouncementDrafts(prev => [...prev, {
-          id: draftId,
-          matchId,
-          matchInfo,
-          changeType: "score",
-          originalValue: oldScore,
-          newValue: newScore,
-          content: defaultContent,
-        }]);
-      }
-
-      // Check for court change
+      // Check court change
       const oldCourt = currentMatch.court || "未分配";
       const newCourt = editForm.court || "未分配";
+      const isCourtChanged = oldCourt !== newCourt;
 
-      if (oldCourt !== newCourt) {
-        const draftId = `court-${matchId}-${Date.now()}`;
-        const defaultContent = `🏟️ ${matchInfo}\n場地更新：${oldCourt} → ${newCourt}`;
+      let announcementTitle = "";
+      let announcementContent = "";
 
-        setAnnouncementDrafts(prev => [...prev, {
-          id: draftId,
-          matchId,
-          matchInfo,
-          changeType: "court",
-          originalValue: oldCourt,
-          newValue: newCourt,
-          content: defaultContent,
-        }]);
+      if (editForm.status === "live" && currentMatch.status !== "live") {
+        announcementTitle = `🎾 ${matchLabel} 比賽開始！`;
+        announcementContent = `🎾 ${matchLabel}\n比賽現在開始！\n場地：${editForm.court || oldCourt || "現場公布"}\n請選手迅速就位，歡迎前往觀賽！`;
+      } else if (finalStatus === "completed" && (isStatusChanged || isScoreChanged)) {
+        const winnerObj = winnerIdValue
+          ? (winnerIdValue === data.player1.id ? data.player1 : winnerIdValue === data.player2.id ? data.player2 : null)
+          : null;
+        const winnerName = winnerObj?.name;
+        announcementTitle = `🏆 ${matchLabel} 比賽結束`;
+        announcementContent = `🏆 ${matchLabel}\n結果：${winnerName ? `${winnerName} 勝出` : "已完成"}${newScore !== "未記錄" ? `\n比數：${newScore}` : ""}${newCourt !== "未分配" ? `\n場地：${newCourt}` : ""}`;
+      } else {
+        if (isStatusChanged) {
+          changeItems.push(`狀態：${originalStatus} → ${newStatus}`);
+        }
+        if (isCourtChanged) {
+          changeItems.push(`場地：${oldCourt} → ${newCourt}`);
+        }
+        if (isScoreChanged) {
+          changeItems.push(`比數：${oldScore} → ${newScore}`);
+        }
+        if (isDateChanged) {
+          changeItems.push(`時間：${oldDate} → ${newDate}`);
+        }
+
+        if (changeItems.length > 0) {
+          announcementTitle = `📢 ${matchLabel} 更新`;
+          announcementContent = `📢 ${matchLabel}\n\n更新項目：\n` + changeItems.map(item => `• ${item}`).join("\n");
+        }
+      }
+
+      if (announcementTitle && announcementContent) {
+        try {
+          const { data: annData, error: annError } = await supabase
+            .from("announcements")
+            .insert({
+              event_id: eventId,
+              title: announcementTitle,
+              content: announcementContent,
+              created_at: new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+
+          if (!annError && annData) {
+            createdAnnouncementId = annData.id;
+          } else if (annError) {
+            console.error("Error auto-publishing announcement:", annError);
+          }
+        } catch (annErr) {
+          console.error("Auto-publishing announcement failed:", annErr);
+        }
       }
     }
 
@@ -791,12 +809,16 @@ export default function MatchesTable({
                 return m;
               }));
             }
+
+            setEditingMatch(null);
+            setEditForm({});
+            setInitialEditForm(null);
           }
         }
       }
     }
 
-    // If no next round update needed, just update current match
+    // If bracket sync was not performed, update current match in state
     if (!bracketMatchesSynced) {
       setMatches(matches.map(m => m.id === matchId ? data : m));
     }
@@ -829,6 +851,7 @@ export default function MatchesTable({
       round: currentMatch.round,
       matchNumber: currentMatch.match_number,
       score: scoreStr,
+      announcementId: createdAnnouncementId,
     });
     recentTimerRef.current = setTimeout(() => {
       setRecentlySavedMatch(null);
@@ -931,9 +954,9 @@ export default function MatchesTable({
       if (updatedMatches) {
         setMatches(updatedMatches);
 
-        // Generate announcement drafts for batch updates (including live status changes)
+        // Auto-publish announcement for batch updates (status or court)
         if (batchOperation) {
-          const newDrafts: AnnouncementDraft[] = [];
+          const changedMatchSummaries: string[] = [];
 
           for (const originalMatch of originalMatches) {
             const updatedMatch = updatedMatches.find(m => m.id === originalMatch.id);
@@ -941,7 +964,8 @@ export default function MatchesTable({
 
             const player1Name = updatedMatch.player1.name || "TBD";
             const player2Name = updatedMatch.player2.name || "TBD";
-            const matchInfo = `Round ${updatedMatch.round}, Match ${updatedMatch.match_number}: ${player1Name} vs ${player2Name}`;
+            const roundLabel = getRoundName(updatedMatch.round);
+            const matchInfo = `${roundLabel} M${updatedMatch.match_number}: ${player1Name} vs ${player2Name}`;
 
             if (batchOperation === "status") {
               const statusLabels: { [key: string]: string } = {
@@ -957,22 +981,12 @@ export default function MatchesTable({
               const newStatus = statusLabels[batchForm.status] || batchForm.status;
 
               if (originalStatus !== newStatus) {
-                const draftId = `batch-status-${originalMatch.id}-${Date.now()}`;
-                // Special content for live status
-                const court = updatedMatch.court || "TBA";
-                const defaultContent = batchForm.status === "live" && originalMatch.status !== "live"
-                  ? `🎾 ${matchInfo}\n比賽現在開始！場地：${court}\n請前往場地觀賽！`
-                  : `📢 ${matchInfo}\n狀態更新：${originalStatus} → ${newStatus}`;
-
-                newDrafts.push({
-                  id: draftId,
-                  matchId: originalMatch.id,
-                  matchInfo,
-                  changeType: "status",
-                  originalValue: originalStatus,
-                  newValue: newStatus,
-                  content: defaultContent,
-                });
+                const court = updatedMatch.court || "未分配";
+                if (batchForm.status === "live" && originalMatch.status !== "live") {
+                  changedMatchSummaries.push(`🎾 ${matchInfo}\n比賽現在開始！場地：${court}\n請前往場地觀賽！`);
+                } else {
+                  changedMatchSummaries.push(`• ${matchInfo}：狀態更新 ${originalStatus} → ${newStatus}`);
+                }
               }
             } else if (batchOperation === "court") {
               const courtValue = batchForm.court === "OTHER" ? batchForm.customCourt : batchForm.court;
@@ -980,29 +994,36 @@ export default function MatchesTable({
               const newCourt = courtValue || "未分配";
 
               if (originalCourt !== newCourt) {
-                const draftId = `batch-court-${originalMatch.id}-${Date.now()}`;
-                const defaultContent = `🏟️ ${matchInfo}\n場地更新：${originalCourt} → ${newCourt}`;
-
-                newDrafts.push({
-                  id: draftId,
-                  matchId: originalMatch.id,
-                  matchInfo,
-                  changeType: "court",
-                  originalValue: originalCourt,
-                  newValue: newCourt,
-                  content: defaultContent,
-                });
+                changedMatchSummaries.push(`• ${matchInfo}：場地更新 ${originalCourt} → ${newCourt}`);
               }
             }
           }
 
-          if (newDrafts.length > 0) {
-            setAnnouncementDrafts(prev => [...prev, ...newDrafts]);
+          if (changedMatchSummaries.length > 0) {
+            const batchTitle = batchOperation === "status"
+              ? `📢 批次狀態更新 (${changedMatchSummaries.length} 場比賽)`
+              : `🏟️ 批次場地更新 (${changedMatchSummaries.length} 場比賽)`;
+            const batchContent = changedMatchSummaries.join("\n\n");
+
+            try {
+              await supabase.from("announcements").insert({
+                event_id: eventId,
+                title: batchTitle,
+                content: batchContent,
+                created_at: new Date().toISOString(),
+              });
+            } catch (err) {
+              console.error("Error publishing batch announcement:", err);
+            }
           }
         }
       }
 
-      toast.success(`成功更新 ${selectedMatches.size} 場比賽`);
+      toast.success(
+        locale === "zh"
+          ? `成功更新 ${selectedMatches.size} 場比賽並已自動發布公告`
+          : `Updated ${selectedMatches.size} matches and published announcement`
+      );
 
       setSelectedMatches(new Set());
       setBatchMode(false);
@@ -1011,44 +1032,6 @@ export default function MatchesTable({
     } catch (error: any) {
       toast.error(`更新失敗: ${error.message}`);
     }
-  };
-
-  // Announcement draft handlers
-  const handleUpdateDraft = (id: string, content: string) => {
-    setAnnouncementDrafts(prev =>
-      prev.map(draft => draft.id === id ? { ...draft, content } : draft)
-    );
-  };
-
-  const handleRemoveDraft = (id: string) => {
-    setAnnouncementDrafts(prev => prev.filter(draft => draft.id !== id));
-  };
-
-  const handlePublishAnnouncements = async (drafts: AnnouncementDraft[], combinedContent: string) => {
-    if (drafts.length === 0) return;
-
-    if (!combinedContent.trim()) {
-      toast.error("請輸入公告內容");
-      return;
-    }
-
-    // Create a single announcement with all changes
-    const { error } = await supabase
-      .from("announcements")
-      .insert({
-        event_id: eventId,
-        title: `📢 比賽更新公告 (${drafts.length} 項變更)`,
-        content: combinedContent,
-        created_at: new Date().toISOString(),
-      });
-
-    if (error) {
-      console.error("Error publishing announcement:", error);
-      throw error;
-    }
-
-    // Clear all drafts after successful publish
-    setAnnouncementDrafts([]);
   };
 
   // Batch export function
@@ -2372,15 +2355,6 @@ export default function MatchesTable({
         </div>
       </div>
 
-      {/* Announcement Draft Window */}
-      <AnnouncementDraftWindow
-        drafts={announcementDrafts}
-        onUpdateDraft={handleUpdateDraft}
-        onRemoveDraft={handleRemoveDraft}
-        onPublish={handlePublishAnnouncements}
-        eventId={eventId}
-      />
-
       {/* Create Match Modal */}
       {showCreateMatch && (
         <CreateMatchModal
@@ -2400,16 +2374,20 @@ export default function MatchesTable({
       {/* 10-Second Quick Re-Edit Floating Bar */}
       {recentlySavedMatch && (
         <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-auto z-50 animate-bounce-once">
-          <div className="bg-gray-900/95 text-white backdrop-blur-md px-4 py-3 rounded-2xl shadow-2xl border border-gray-700/60 flex items-center justify-between gap-3 min-w-[300px] max-w-md mx-auto">
+          <div className="bg-gray-900/95 text-white backdrop-blur-md px-4 py-3 rounded-2xl shadow-2xl border border-gray-700/60 flex items-center justify-between gap-3 min-w-[320px] max-w-lg mx-auto">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="text-emerald-400 text-lg shrink-0">✓</span>
+              <span className="text-emerald-400 text-base shrink-0">
+                {recentlySavedMatch.announcementId ? "📢" : "✓"}
+              </span>
               <div className="min-w-0 text-xs">
                 <div className="font-semibold text-white truncate">
-                  已儲存: {recentlySavedMatch.p1} vs {recentlySavedMatch.p2}
+                  {recentlySavedMatch.announcementId
+                    ? (t("admin.matchesTable.savedAndAnnounced") || "已儲存並發布公告")
+                    : (t("admin.matchesTable.savedOnly") || "已儲存")}: {recentlySavedMatch.p1} vs {recentlySavedMatch.p2}
                   {recentlySavedMatch.score ? ` (${recentlySavedMatch.score})` : ""}
                 </div>
                 <div className="text-gray-400 text-[10px]">
-                  {getRoundName(recentlySavedMatch.round)} M{recentlySavedMatch.matchNumber} · 10秒後自動關閉
+                  {getRoundName(recentlySavedMatch.round)} M{recentlySavedMatch.matchNumber} · {t("admin.matchesTable.tenSecondsHint") || "10秒內可收回公告並重新編輯"}
                 </div>
               </div>
             </div>
@@ -2418,16 +2396,20 @@ export default function MatchesTable({
               <button
                 type="button"
                 onClick={handleReEditRecent}
-                className="bg-ntu-green hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-1"
+                className="bg-ntu-green hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"
               >
                 <span>✏️</span>
-                <span>再次修改</span>
+                <span>
+                  {recentlySavedMatch.announcementId
+                    ? (t("admin.matchesTable.reEditWithRetract") || "再次修改（含收回公告）")
+                    : (t("admin.matchesTable.reEdit") || "再次修改")}
+                </span>
               </button>
               <button
                 type="button"
                 onClick={handleDismissRecent}
                 className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white rounded-full text-xs"
-                title="關閉"
+                title={t("admin.matchesTable.closeBar") || "關閉"}
               >
                 ✕
               </button>
