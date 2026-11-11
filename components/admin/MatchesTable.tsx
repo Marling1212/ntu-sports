@@ -2406,7 +2406,7 @@ export default function MatchesTable({
           <button
             type="button"
             onClick={handleReEditRecent}
-            className="w-full py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-1.5 active:scale-98 active:scale-[0.98] transition-all shadow-sm"
+            className="w-full py-2.5 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm flex items-center justify-center gap-1.5 active:scale-98 active:scale-[0.98] transition-all shadow-sm"
           >
             <span>✏️</span>
             <span>
