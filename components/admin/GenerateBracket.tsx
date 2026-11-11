@@ -209,268 +209,97 @@ export default function GenerateBracket({ eventId, players, defaultDivisionId, e
         [shuffledUnseeded[i], shuffledUnseeded[j]] = [shuffledUnseeded[j], shuffledUnseeded[i]];
       }
       
-      // FINAL CORRECT Strategy:
-      // 1. 計算可以安排多少場"非種子互打"
-      // 2. 優先給前面的種子（讓他們第二輪對手先打過）
-      // 3. 其餘非種子和BYE隨機分配
-      // 4. 絕對不能出現 BYE vs BYE!
-      
-      /** Fill / consume slots in quarter-interleaved order so play-ins and byes are not all clustered in bracket "section 1". */
-      const spreadSlotOrder = (size: number): number[] => {
-        if (size <= 0) return [];
-        if (size < 4) return Array.from({ length: size }, (_, i) => i);
-        const qSize = size / 4;
-        const out: number[] = [];
-        for (let offset = 0; offset < qSize; offset++) {
-          for (let q = 0; q < 4; q++) {
-            out.push(q * qSize + offset);
-          }
-        }
-        return out;
-      };
+      // 分配非種子選手與輪空（BYE）
+      // 策略：
+      // 1. 種子依順位優先獲得輪空（BYE）並直接晉級第二輪
+      // 2. 第一輪多出來的非種子對決（兩人對打），隨機分配到所有非種子對戰組合中，不強制綁定在特定種子線
+      // 3. 絕對避免 BYE vs BYE，確保每場比賽合法且所有人皆被妥善分配
 
-      const r1MatchCount = bracketSize / 2;
-      const matchQuarter = (matchIdx0: number) => {
-        if (r1MatchCount < 4) return 0;
-        const per = r1MatchCount / 4;
-        return Math.min(3, Math.floor(matchIdx0 / per));
-      };
-
-      /** Round-robin seed slots across R1 quarters (keeps relative order within each quarter). */
-      const reorderSeedPositionsForQuarterSpread = (positionsArr: number[]): number[] => {
-        const buckets: number[][] = [[], [], [], []];
-        for (const sp of positionsArr) {
-          buckets[matchQuarter(Math.floor(sp / 2))].push(sp);
-        }
-        const out: number[] = [];
-        let progressed = true;
-        while (progressed) {
-          progressed = false;
-          for (let q = 0; q < 4; q++) {
-            if (buckets[q].length > 0) {
-              out.push(buckets[q].shift()!);
-              progressed = true;
-            }
-          }
-        }
-        return out;
-      };
-
-      console.log(`\n=== 開始分配選手 ===`);
-      console.log(`種子數: ${seeded.length}, 非種子數: ${shuffledUnseeded.length}`);
-      console.log(`籤表大小: ${bracketSize}, 總 BYE 數: ${numByes}`);
-      
-      // 計算可以產生多少場非種子互打
-      // 總位置 = bracketSize
-      // 種子占用 = seeded.length
-      // 種子對手位置（預留BYE）= seeded.length
-      // 剩餘位置 = bracketSize - seeded.length * 2
-      const remainingSlots = bracketSize - (seeded.length * 2);
-      const unseededAvailable = shuffledUnseeded.length;
-      
-      // 可以產生的非種子互打場數
-      const unseededMatchesPossible = Math.floor(Math.min(remainingSlots, unseededAvailable) / 2);
-      
-      console.log(`剩餘位置: ${remainingSlots}, 非種子可用: ${unseededAvailable}`);
-      console.log(`可產生非種子互打: ${unseededMatchesPossible} 場 (需要 ${unseededMatchesPossible * 2} 個非種子)`);
-      
-      // 決定給哪些種子這個優勢
-      // 大量 BYE（例如 70 人進 128 格）時，若先消耗非種子去做「互打優勢」，
-      // 反而會觸發後續「非種子不足」誤判；此情況改為不先做優勢配對。
-      const useSeedAdvantageMatches = numByes <= seeded.length;
-      const seedsWithAdvantage = useSeedAdvantageMatches
-        ? Math.min(seeded.length, unseededMatchesPossible)
-        : 0;
-      console.log(`可給予優勢的種子數: ${seedsWithAdvantage}`);
-      
       let unseededIndex = 0;
-      
-      // Step 1: 為前N個種子安排"對手要先打過"的優勢
+
+      // 找出所有種子位置，按種子順位排序
       const seedPositions: number[] = [];
       positions.forEach((player, index) => {
         if (player && player.seed) {
           seedPositions.push(index);
         }
       });
-      
-      // 按種子號碼排序
       seedPositions.sort((a, b) => {
         const seedA = positions[a]?.seed || 999;
         const seedB = positions[b]?.seed || 999;
         return seedA - seedB;
       });
 
-      const sortedSeedSlotsByRank = [...seedPositions].sort(
-        (a, b) => (positions[a]?.seed || 999) - (positions[b]?.seed || 999)
-      );
-      const advantageSeedSlots = sortedSeedSlotsByRank.slice(0, seedsWithAdvantage);
-      const advantageOrder = reorderSeedPositionsForQuarterSpread(advantageSeedSlots);
-      
-      console.log(`\n為前 ${seedsWithAdvantage} 個種子安排對手互打（種子號最小者優先，分配順序依 1/4 區輪流）：`);
-      
-      for (let i = 0; i < advantageOrder.length && unseededIndex + 1 < shuffledUnseeded.length; i++) {
-        const seedPos = advantageOrder[i];
-        const round1MatchNum = Math.floor(seedPos / 2);
-        const isEvenMatch = round1MatchNum % 2 === 0;
-        const opponentMatchNum = isEvenMatch ? round1MatchNum + 1 : round1MatchNum - 1;
-        
-        const opponentPos1 = opponentMatchNum * 2;
-        const opponentPos2 = opponentMatchNum * 2 + 1;
-        
-        // 確保兩個位置都空
-        if (!positions[opponentPos1] && !positions[opponentPos2]) {
-          positions[opponentPos1] = shuffledUnseeded[unseededIndex++];
-          positions[opponentPos2] = shuffledUnseeded[unseededIndex++];
-          console.log(`  Seed ${positions[seedPos]?.seed} (pos ${seedPos}) → 對手比賽 ${opponentMatchNum} (pos ${opponentPos1}-${opponentPos2})`);
-        }
-      }
-      
-      console.log(`已使用 ${unseededIndex} 個非種子選手`);
-      
-      // Step 2: 將剩餘非種子選手分配到空位
-      // 關鍵策略：確保每個完全空的配對至少有一個人！
-      const emptyPairs: [number, number][] = [];
-      for (let i = 0; i < bracketSize; i += 2) {
-        const pos1 = i;
-        const pos2 = i + 1;
-        
-        // 跳過種子位置
-        if ((positions[pos1] && positions[pos1].seed) || (positions[pos2] && positions[pos2].seed)) {
+      // 決定哪些種子享有 BYE（優先給高順位種子）
+      const seedByesNeeded = Math.min(seedPositions.length, numByes);
+      const seedOpponentPositionsForBye = new Set<number>();
+      const seedOpponentPositionsNeedingPlayer: number[] = [];
+      const processedSeedMatches = new Set<number>();
+
+      for (let i = 0; i < seedPositions.length; i++) {
+        const seedPos = seedPositions[i];
+        const matchPos = Math.floor(seedPos / 2) * 2;
+        if (processedSeedMatches.has(matchPos)) continue;
+        processedSeedMatches.add(matchPos);
+
+        const opponentPos = seedPos % 2 === 0 ? matchPos + 1 : matchPos;
+        if (positions[opponentPos]) {
+          // 對手位已被另一位種子佔據（例如 2 人籤表時，兩位種子首輪直接對決）
           continue;
         }
-        
-        const pos1Empty = !positions[pos1];
-        const pos2Empty = !positions[pos2];
-        
-        if (pos1Empty || pos2Empty) {
-          emptyPairs.push([pos1, pos2]);
+
+        if (seedOpponentPositionsForBye.size < seedByesNeeded) {
+          seedOpponentPositionsForBye.add(opponentPos);
+          console.log(`  為種子 ${positions[seedPos]?.seed} (位置 ${seedPos}) 保留對手位置 ${opponentPos} 為 BYE`);
+        } else {
+          seedOpponentPositionsNeedingPlayer.push(opponentPos);
         }
       }
-      
-      const remainingUnseeded = shuffledUnseeded.length - unseededIndex;
-      console.log(`\n剩餘 ${emptyPairs.length} 個配對需要處理`);
-      console.log(`剩餘 ${remainingUnseeded} 個非種子選手`);
-      
-      // 分類配對
-      let fullyEmptyPairs = emptyPairs.filter(([p1, p2]) => !positions[p1] && !positions[p2]);
-      const partiallyEmptyPairs = emptyPairs.filter(([p1, p2]) => positions[p1] || positions[p2]);
-      const slotPri = new Map<number, number>();
-      spreadSlotOrder(bracketSize).forEach((pos, pri) => slotPri.set(pos, pri));
-      fullyEmptyPairs.sort(
-        (a, b) =>
-          Math.min(slotPri.get(a[0]) ?? 999, slotPri.get(a[1]) ?? 999) -
-          Math.min(slotPri.get(b[0]) ?? 999, slotPri.get(b[1]) ?? 999)
-      );
-      
-      console.log(`完全空配對: ${fullyEmptyPairs.length}, 部分空配對: ${partiallyEmptyPairs.length}`);
-      
-      // 策略：先確保每個完全空的配對至少有一個人
-      // 計算需要多少人才能填滿所有完全空配對（每場至少1人）
-      const minPlayersNeeded = fullyEmptyPairs.length;
-      
-      if (remainingUnseeded < minPlayersNeeded) {
-        console.error(`❌ 非種子選手不足！需要至少 ${minPlayersNeeded} 人，只有 ${remainingUnseeded} 人`);
-        toast.error(`非種子選手數量不足以避免 BYE vs BYE！需要至少 ${seeded.length * 2 + minPlayersNeeded} 個選手。`);
-        setLoading(false);
-        return;
+
+      // 找出所有完全沒有種子的純空對戰組合
+      const emptyMatchPairs: [number, number][] = [];
+      for (let i = 0; i < bracketSize; i += 2) {
+        if ((positions[i] && positions[i]?.seed) || (positions[i + 1] && positions[i + 1]?.seed)) {
+          continue;
+        }
+        emptyMatchPairs.push([i, i + 1]);
       }
-      
-      // Phase 1: 先給每個完全空配對至少一個人（隨機哪一邊）
-      console.log(`\nPhase 1: 確保每個完全空配對至少有一人`);
-      fullyEmptyPairs.forEach(([pos1, pos2]) => {
-        if (unseededIndex < shuffledUnseeded.length) {
-          const fillPos = Math.random() < 0.5 ? pos1 : pos2;
-          positions[fillPos] = shuffledUnseeded[unseededIndex++];
-        }
-      });
-      
-      console.log(`Phase 1 完成: 使用 ${minPlayersNeeded} 個非種子，剩餘 ${shuffledUnseeded.length - unseededIndex} 個`);
-      
-      // Phase 2: 用剩餘的非種子填充空位
-      console.log(`\nPhase 2: 填充剩餘空位`);
-      
-      // 關鍵修正：當 numByes = 0 時，所有位置都必須填滿，包括種子對手位置
-      // 當 numByes > 0 時，種子優先獲得 BYE（跳過種子對手位置）
-      if (numByes === 0) {
-        // 沒有 BYE：填充所有空位，確保所有選手都參賽
-        console.log(`無 BYE 情況：填充所有空位（包括種子對手位置）`);
-        for (const i of spreadSlotOrder(bracketSize)) {
-          if (!positions[i] && unseededIndex < shuffledUnseeded.length) {
-            positions[i] = shuffledUnseeded[unseededIndex++];
-          }
-        }
-      } else {
-        // 有 BYE：種子優先獲得 BYE，但需要確保所有非種子選手都被分配
-        console.log(`有 BYE 情況：種子優先獲得 BYE，剩餘非種子填充其他空位`);
-        
-        // 計算需要多少個 BYE 給種子（優先給前幾個種子）
-        const seedByesNeeded = Math.min(seeded.length, numByes);
-        const remainingByes = numByes - seedByesNeeded;
-        
-        // 找出所有種子位置，按種子號碼排序
-        const seedPositions: number[] = [];
-        for (let i = 0; i < bracketSize; i++) {
-          const player = positions[i];
-          if (player && player.seed) {
-            seedPositions.push(i);
-          }
-        }
-        seedPositions.sort((a, b) => {
-          const seedA = positions[a]?.seed || 999;
-          const seedB = positions[b]?.seed || 999;
-          return seedA - seedB;
-        });
-        
-        // 只為前 seedByesNeeded 個種子保留對手位置為 BYE
-        const seedOpponentPositionsForBye = new Set<number>();
-        for (let i = 0; i < seedByesNeeded && i < seedPositions.length; i++) {
-          const seedPos = seedPositions[i];
-          const matchPos = Math.floor(seedPos / 2) * 2;
-          const opponentPos = seedPos % 2 === 0 ? matchPos + 1 : matchPos;
-          if (!positions[opponentPos]) {
-            seedOpponentPositionsForBye.add(opponentPos);
-            console.log(`  為種子 ${positions[seedPos]?.seed} (位置 ${seedPos}) 保留對手位置 ${opponentPos} 為 BYE`);
-          }
-        }
-        
-        console.log(`  總共為 ${seedOpponentPositionsForBye.size} 個種子保留 BYE，剩餘 ${remainingByes} 個 BYE 給非種子`);
-        
-        // 填充所有空位，但跳過為種子保留的 BYE 位置（依四區輪流順位填，避免擠在同一區）
-        for (const i of spreadSlotOrder(bracketSize)) {
-          if (!positions[i] && unseededIndex < shuffledUnseeded.length) {
-            // 如果這個位置是為種子保留的 BYE 位置，則跳過
-            if (seedOpponentPositionsForBye.has(i)) {
-              continue;
-            }
-            
-            // 否則填充這個位置
-            positions[i] = shuffledUnseeded[unseededIndex++];
-          }
-        }
-        
-        // 驗證：確保所有非種子選手都被分配（除了保留的 BYE 位置）
-        const totalByePositions = seedOpponentPositionsForBye.size + remainingByes;
-        const expectedFilledPositions = bracketSize - totalByePositions;
-        const actualFilledPositions = positions.filter(p => p !== null).length;
-        
-        if (unseededIndex < shuffledUnseeded.length) {
-          console.log(`警告：還有 ${shuffledUnseeded.length - unseededIndex} 個非種子選手未分配`);
-          console.log(`  已填充位置: ${actualFilledPositions} / ${bracketSize}, BYE 位置: ${totalByePositions}`);
-        }
+
+      // 將空的對戰組合隨機洗牌（Fisher-Yates Shuffle），使第一輪比賽隨機分布
+      for (let i = emptyMatchPairs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [emptyMatchPairs[i], emptyMatchPairs[j]] = [emptyMatchPairs[j], emptyMatchPairs[i]];
       }
-      
+
+      // 計算需要多少組「兩人互打」的第一輪比賽
+      const unseededForEmptyPairs = shuffledUnseeded.length - seedOpponentPositionsNeedingPlayer.length;
+      const pairsWithTwoPlayers = Math.max(0, unseededForEmptyPairs - emptyMatchPairs.length);
+
+      console.log(`空對戰組數: ${emptyMatchPairs.length}, 安排兩人互打場數: ${pairsWithTwoPlayers}, 安排一人輪空場數: ${emptyMatchPairs.length - pairsWithTwoPlayers}`);
+
+      // 1. 填入兩人互打的第一輪比賽
+      for (let i = 0; i < pairsWithTwoPlayers; i++) {
+        const [p1, p2] = emptyMatchPairs[i];
+        positions[p1] = shuffledUnseeded[unseededIndex++];
+        positions[p2] = shuffledUnseeded[unseededIndex++];
+      }
+
+      // 2. 填入一人 + 一 BYE 的對戰組合（隨機選上方或下方籤位）
+      for (let i = pairsWithTwoPlayers; i < emptyMatchPairs.length; i++) {
+        const [p1, p2] = emptyMatchPairs[i];
+        const fillPos = Math.random() < 0.5 ? p1 : p2;
+        positions[fillPos] = shuffledUnseeded[unseededIndex++];
+      }
+
+      // 3. 為未分到 BYE 的種子填入非種子對手
+      for (const opPos of seedOpponentPositionsNeedingPlayer) {
+        positions[opPos] = shuffledUnseeded[unseededIndex++];
+      }
+
       console.log(`總共使用 ${unseededIndex} / ${shuffledUnseeded.length} 非種子選手`);
-      
-      // 驗證：確保所有非種子選手都被分配
-      // 當 numByes = 0 時，所有非種子都必須被分配
-      // 當 numByes > 0 時，所有非種子也應該被分配（BYE 位置不應該占用非種子名額）
-      const expectedUnseededUsed = numByes === 0 
-        ? shuffledUnseeded.length 
-        : shuffledUnseeded.length; // 無論如何，所有非種子都應該被分配
-      
+
       if (unseededIndex < shuffledUnseeded.length) {
         console.error(`❌ 錯誤：還有 ${shuffledUnseeded.length - unseededIndex} 個非種子選手未分配！`);
-        console.error(`  預期使用: ${expectedUnseededUsed}, 實際使用: ${unseededIndex}`);
         toast.error(`籤表生成錯誤：無法分配所有非種子選手（${unseededIndex}/${shuffledUnseeded.length}）。`);
         setLoading(false);
         return;

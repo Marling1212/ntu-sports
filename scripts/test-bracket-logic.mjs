@@ -49,10 +49,6 @@ function runBracketLogic(players) {
     if (pos58[index] !== undefined) positions[pos58[index]] = player;
   });
 
-  const remainingSlots = bracketSize - seeded.length * 2;
-  const unseededMatchesPossible = Math.floor(Math.min(remainingSlots, shuffledUnseeded.length) / 2);
-  const seedsWithAdvantage = Math.min(seeded.length, unseededMatchesPossible);
-
   let unseededIndex = 0;
   const seedPositions = [];
   positions.forEach((p, i) => {
@@ -60,52 +56,65 @@ function runBracketLogic(players) {
   });
   seedPositions.sort((a, b) => (positions[a]?.seed || 999) - (positions[b]?.seed || 999));
 
-  for (let i = 0; i < seedsWithAdvantage && unseededIndex + 1 < shuffledUnseeded.length; i++) {
+  // Determine which seeds get BYEs (priority to top seeds)
+  const seedByesNeeded = Math.min(seedPositions.length, numByes);
+  const seedOpponentPositionsForBye = new Set();
+  const seedOpponentPositionsNeedingPlayer = [];
+  const processedSeedMatches = new Set();
+
+  for (let i = 0; i < seedPositions.length; i++) {
     const seedPos = seedPositions[i];
-    const round1MatchNum = Math.floor(seedPos / 2);
-    const opponentMatchNum = round1MatchNum % 2 === 0 ? round1MatchNum + 1 : round1MatchNum - 1;
-    const op1 = opponentMatchNum * 2;
-    const op2 = op1 + 1;
-    if (!positions[op1] && !positions[op2]) {
-      positions[op1] = shuffledUnseeded[unseededIndex++];
-      positions[op2] = shuffledUnseeded[unseededIndex++];
+    const matchPos = Math.floor(seedPos / 2) * 2;
+    if (processedSeedMatches.has(matchPos)) continue;
+    processedSeedMatches.add(matchPos);
+
+    const opponentPos = seedPos % 2 === 0 ? matchPos + 1 : matchPos;
+    if (positions[opponentPos]) {
+      // Opponent is already occupied by another seed (e.g. bracketSize = 2)
+      continue;
+    }
+
+    if (seedOpponentPositionsForBye.size < seedByesNeeded) {
+      seedOpponentPositionsForBye.add(opponentPos);
+    } else {
+      seedOpponentPositionsNeedingPlayer.push(opponentPos);
     }
   }
 
-  const emptyPairs = [];
+  // Find all completely empty match pairs (matches with no seeds)
+  const emptyMatchPairs = [];
   for (let i = 0; i < bracketSize; i += 2) {
-    if ((positions[i]?.seed || positions[i + 1]?.seed)) continue;
-    if (!positions[i] || !positions[i + 1]) emptyPairs.push([i, i + 1]);
+    if (positions[i]?.seed || positions[i + 1]?.seed) continue;
+    emptyMatchPairs.push([i, i + 1]);
   }
-  const fullyEmptyPairs = emptyPairs.filter(([p1, p2]) => !positions[p1] && !positions[p2]);
 
-  fullyEmptyPairs.forEach(([pos1, pos2]) => {
-    if (unseededIndex < shuffledUnseeded.length) {
-      const fillPos = Math.random() < 0.5 ? pos1 : pos2;
-      positions[fillPos] = shuffledUnseeded[unseededIndex++];
-    }
-  });
+  // Randomly shuffle emptyMatchPairs so Round 1 matches are randomly placed across the bracket
+  for (let i = emptyMatchPairs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [emptyMatchPairs[i], emptyMatchPairs[j]] = [emptyMatchPairs[j], emptyMatchPairs[i]];
+  }
 
-  if (numByes === 0) {
-    for (let i = 0; i < bracketSize; i++) {
-      if (!positions[i] && unseededIndex < shuffledUnseeded.length) {
-        positions[i] = shuffledUnseeded[unseededIndex++];
-      }
-    }
-  } else {
-    const seedByesNeeded = Math.min(seeded.length, numByes);
-    const seedOpponentPositionsForBye = new Set();
-    for (let i = 0; i < seedByesNeeded && i < seedPositions.length; i++) {
-      const seedPos = seedPositions[i];
-      const matchPos = Math.floor(seedPos / 2) * 2;
-      const opponentPos = seedPos % 2 === 0 ? matchPos + 1 : matchPos;
-      if (!positions[opponentPos]) seedOpponentPositionsForBye.add(opponentPos);
-    }
-    for (let i = 0; i < bracketSize; i++) {
-      if (!positions[i] && unseededIndex < shuffledUnseeded.length && !seedOpponentPositionsForBye.has(i)) {
-        positions[i] = shuffledUnseeded[unseededIndex++];
-      }
-    }
+  // Calculate how many 2-player matches we need in emptyMatchPairs
+  const unseededForEmptyPairs = shuffledUnseeded.length - seedOpponentPositionsNeedingPlayer.length;
+  const pairsWithTwoPlayers = Math.max(0, unseededForEmptyPairs - emptyMatchPairs.length);
+
+  // 1. Fill pairs that get 2 players (Round 1 matches between unseeded players)
+  for (let i = 0; i < pairsWithTwoPlayers; i++) {
+    const [p1, p2] = emptyMatchPairs[i];
+    positions[p1] = shuffledUnseeded[unseededIndex++];
+    positions[p2] = shuffledUnseeded[unseededIndex++];
+  }
+
+  // 2. Fill pairs that get 1 player + 1 BYE
+  for (let i = pairsWithTwoPlayers; i < emptyMatchPairs.length; i++) {
+    const [p1, p2] = emptyMatchPairs[i];
+    const fillPos = Math.random() < 0.5 ? p1 : p2;
+    positions[fillPos] = shuffledUnseeded[unseededIndex++];
+  }
+
+  // 3. Fill seeds that did not get a BYE with opponents
+  for (const opPos of seedOpponentPositionsNeedingPlayer) {
+    positions[opPos] = shuffledUnseeded[unseededIndex++];
   }
 
   let seedByeCount = 0;
@@ -335,6 +344,20 @@ assert(manualResult16.positions[0].player.seed === 1, "Manual AutoFill 16-draw: 
 assert(manualResult16.positions[7].player.seed === 4, "Manual AutoFill 16-draw: Slot 7 has Seed 4");
 assert(manualResult16.positions[8].player.seed === 3, "Manual AutoFill 16-draw: Slot 8 has Seed 3");
 assert(manualResult16.positions[15].player.seed === 2, "Manual AutoFill 16-draw: Slot 15 has Seed 2");
+
+// Test 8: Randomization of Round 1 matches (slots 2 & 3 are not strictly deterministic across runs)
+console.log("\nTest 8: Verify Round 1 match placement randomness (10 players in 16-draw)");
+const slot2And3BothFilledRuns = [];
+for (let run = 0; run < 50; run++) {
+  const players = makePlayers(10);
+  const result = runBracketLogic(players);
+  const slot2Filled = !!result.positions[2];
+  const slot3Filled = !!result.positions[3];
+  slot2And3BothFilledRuns.push(slot2Filled && slot3Filled);
+}
+const bothFilledCount = slot2And3BothFilledRuns.filter(Boolean).length;
+assert(bothFilledCount < 50, `Round 1 match is randomized (slots 2 & 3 both filled in ${bothFilledCount}/50 runs, not 50/50)`);
+assert(bothFilledCount > 0, `Slots 2 & 3 can still sometimes be the Round 1 match (occurred ${bothFilledCount}/50 runs)`);
 console.log("");
 
 // Summary
