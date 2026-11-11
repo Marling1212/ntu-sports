@@ -2373,48 +2373,48 @@ export default function MatchesTable({
 
       {/* 10-Second Quick Re-Edit Floating Bar */}
       {recentlySavedMatch && (
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-auto z-50 animate-bounce-once">
-          <div className="bg-gray-900/95 text-white backdrop-blur-md px-4 py-3 rounded-2xl shadow-2xl border border-gray-700/60 flex items-center justify-between gap-3 min-w-[320px] max-w-lg mx-auto">
-            <div className="flex items-center gap-2.5 min-w-0">
+        <div className="fixed bottom-4 inset-x-3 max-w-md mx-auto z-50 bg-slate-900/95 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-slate-700/60 p-3.5 flex flex-col gap-2 animate-bounce-once">
+          {/* Top row: announcement message & close button */}
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className="text-emerald-400 text-base shrink-0">
                 {recentlySavedMatch.announcementId ? "📢" : "✓"}
               </span>
-              <div className="min-w-0 text-xs">
-                <div className="font-semibold text-white truncate">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-white truncate">
                   {recentlySavedMatch.announcementId
-                    ? (t("admin.matchesTable.savedAndAnnounced") || "已儲存並發布公告")
-                    : (t("admin.matchesTable.savedOnly") || "已儲存")}: {recentlySavedMatch.p1} vs {recentlySavedMatch.p2}
+                    ? (t("admin.matchesTable.savedAndAnnounced") || (locale === "zh" ? "已儲存並發布公告" : "Saved & announced"))
+                    : (t("admin.matchesTable.savedOnly") || (locale === "zh" ? "已儲存" : "Saved"))}: {recentlySavedMatch.p1} vs {recentlySavedMatch.p2}
                   {recentlySavedMatch.score ? ` (${recentlySavedMatch.score})` : ""}
                 </div>
-                <div className="text-gray-400 text-[10px]">
-                  {getRoundName(recentlySavedMatch.round)} M{recentlySavedMatch.matchNumber} · {t("admin.matchesTable.tenSecondsHint") || "10秒內可收回公告並重新編輯"}
+                <div className="text-slate-400 text-xs truncate">
+                  {getRoundName(recentlySavedMatch.round)} M{recentlySavedMatch.matchNumber} · {t("admin.matchesTable.tenSecondsHint") || (locale === "zh" ? "10秒內可收回公告並重新編輯" : "10s to retract & re-edit")}
                 </div>
               </div>
             </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={handleReEditRecent}
-                className="bg-ntu-green hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"
-              >
-                <span>✏️</span>
-                <span>
-                  {recentlySavedMatch.announcementId
-                    ? (t("admin.matchesTable.reEditWithRetract") || "再次修改（含收回公告）")
-                    : (t("admin.matchesTable.reEdit") || "再次修改")}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={handleDismissRecent}
-                className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white rounded-full text-xs"
-                title={t("admin.matchesTable.closeBar") || "關閉"}
-              >
-                ✕
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleDismissRecent}
+              className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white rounded-full text-xs shrink-0 transition-colors"
+              title={t("admin.matchesTable.closeBar") || (locale === "zh" ? "關閉" : "Close")}
+            >
+              ✕
+            </button>
           </div>
+
+          {/* Bottom row: full-width prominent action button */}
+          <button
+            type="button"
+            onClick={handleReEditRecent}
+            className="w-full py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-1.5 active:scale-98 active:scale-[0.98] transition-all shadow-sm"
+          >
+            <span>✏️</span>
+            <span>
+              {recentlySavedMatch.announcementId
+                ? (t("admin.matchesTable.reEditWithRetract") || (locale === "zh" ? "再次修改（含收回公告）" : "Re-edit & Retract (10s)"))
+                : (t("admin.matchesTable.reEdit") || (locale === "zh" ? "再次修改" : "Re-edit"))}
+            </span>
+          </button>
         </div>
       )}
     </>

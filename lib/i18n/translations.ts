@@ -1920,7 +1920,7 @@ export const translations = {
         clearCourt: 'Clear court',
         savedAndAnnounced: 'Saved & announced',
         savedOnly: 'Saved',
-        reEditWithRetract: 'Re-edit (Retract Announcement)',
+        reEditWithRetract: 'Re-edit & Retract (10s)',
         reEdit: 'Re-edit',
         retractSuccess: 'Announcement retracted',
         closeBar: 'Close',
