@@ -396,6 +396,18 @@ export default function MatchesTable({
 
       return true;
     }).sort((a, b) => {
+      // In tournament / single elimination brackets, preserve bracket round & match number order
+      // so completed matches stay firmly in place and NEVER jump to the bottom!
+      if (tournamentType === "single_elimination" || (!tournamentType && a.round && b.round)) {
+        if (a.round !== b.round) return a.round - b.round;
+        if (a.match_number !== b.match_number) return a.match_number - b.match_number;
+        if (a.scheduled_time && b.scheduled_time) {
+          return new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime();
+        }
+        return 0;
+      }
+
+      // Default sorting for non-bracket / league formats (e.g. season play):
       // Upcoming/live/delayed first (so 接下來的比賽 on top), then completed
       const aUpcoming = a.status === "upcoming" || a.status === "live" || a.status === "delayed";
       const bUpcoming = b.status === "upcoming" || b.status === "live" || b.status === "delayed";
@@ -653,6 +665,8 @@ export default function MatchesTable({
       }
     }
 
+    let bracketMatchesSynced = false;
+
     // Sync next-round slot when winner is set/changed/cleared.
     if (currentMatch.round) {
       const nextRound = currentMatch.round + 1;
@@ -758,6 +772,7 @@ export default function MatchesTable({
                     .single();
 
                   if (!thirdPlaceError) {
+                    bracketMatchesSynced = true;
                     setMatches(matches.map(m => {
                       if (m.id === matchId) return data;
                       if (m.id === nextMatch.id) return nextMatchData;
@@ -769,33 +784,22 @@ export default function MatchesTable({
               }
             } else {
               // Update local state with both matches
+              bracketMatchesSynced = true;
               setMatches(matches.map(m => {
                 if (m.id === matchId) return data;
                 if (m.id === nextMatch.id) return nextMatchData;
                 return m;
               }));
             }
-
-            setEditingMatch(null);
-            setEditForm({});
-            setInitialEditForm(null);
-
-            checkAndAnnounceRoundCompletion(eventId, currentMatch.round).then((announced) => {
-              if (announced) {
-                toast.success("🎉 Round completed! Announcement posted. Refreshing...");
-              } else {
-                toast.success("Match updated! Bracket synced. Refreshing...");
-              }
-              setTimeout(() => router.refresh(), 500);
-            });
-            return;
           }
         }
       }
     }
 
     // If no next round update needed, just update current match
-    setMatches(matches.map(m => m.id === matchId ? data : m));
+    if (!bracketMatchesSynced) {
+      setMatches(matches.map(m => m.id === matchId ? data : m));
+    }
     setEditingMatch(null);
     setEditForm({});
     setInitialEditForm(null);
