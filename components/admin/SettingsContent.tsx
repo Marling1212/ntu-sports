@@ -95,6 +95,29 @@ interface SettingsContentProps {
   tournamentType?: string;
 }
 
+function getIsoDatePart(str: string): string {
+  if (!str) return "";
+  const normalized = str.includes(" ") ? str.replace(" ", "T") : str;
+  return normalized.split("T")[0] || "";
+}
+
+function getIsoTimePart(str: string, defaultTime = "08:00"): string {
+  if (!str) return defaultTime;
+  const normalized = str.includes(" ") ? str.replace(" ", "T") : str;
+  if (!normalized.includes("T")) return defaultTime;
+  const timePart = normalized.split("T")[1] || "";
+  const match = timePart.match(/^(\d{2}:\d{2})/);
+  return match ? match[1] : defaultTime;
+}
+
+function formatDateTimeForSave(str: string, defaultTime: string): string {
+  if (!str) return "";
+  const date = getIsoDatePart(str);
+  if (!date) return "";
+  const time = getIsoTimePart(str, defaultTime);
+  return `${date}T${time}:00`;
+}
+
 export default function SettingsContent({
   eventId,
   eventName,
@@ -560,12 +583,18 @@ export default function SettingsContent({
       }
 
       // Format dates properly
-      const startDate = eventData.startDate.includes('T')
-        ? eventData.startDate
-        : `${eventData.startDate}T08:00:00`;
-      const endDate = eventData.endDate.includes('T')
-        ? eventData.endDate
-        : `${eventData.endDate}T18:00:00`;
+      const startDate = formatDateTimeForSave(eventData.startDate, '08:00');
+      const endDate = formatDateTimeForSave(eventData.endDate, '18:00');
+
+      if (!startDate || !endDate) {
+        toast.error(t('admin.scheduling.fillDateAndTime'));
+        return;
+      }
+
+      if (new Date(endDate) <= new Date(startDate)) {
+        toast.error(t('admin.scheduling.endAfterStart'));
+        return;
+      }
 
       const { error } = await supabase
         .from("events")
@@ -708,17 +737,17 @@ export default function SettingsContent({
       if (error) throw error;
       setDivisions(divisions.map((d) =>
         d.id === editingDivisionId
-          ? { 
-              ...d, 
-              name: divisionForm.name || null, 
-              tournament_type: divisionForm.tournamentType, 
-              registration_type: divisionForm.registrationType,
-              scoring_config: {
-                scoreName: divisionForm.scoreName,
-                hideLeaguePoints: divisionForm.hideLeaguePoints,
-                hideDraws: divisionForm.hideDraws
-              }
+          ? {
+            ...d,
+            name: divisionForm.name || null,
+            tournament_type: divisionForm.tournamentType,
+            registration_type: divisionForm.registrationType,
+            scoring_config: {
+              scoreName: divisionForm.scoreName,
+              hideLeaguePoints: divisionForm.hideLeaguePoints,
+              hideDraws: divisionForm.hideDraws
             }
+          }
           : d
       ));
       setEditingDivisionId(null);
@@ -897,7 +926,7 @@ export default function SettingsContent({
               <p className="text-xs text-gray-500 mt-1">{t("admin.settings.refereeLinkTtlHelp")}</p>
             </div>
 
-            {/* Dates */}
+            {/* Dates & Times */}
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -905,24 +934,68 @@ export default function SettingsContent({
                 </label>
                 <input
                   type="date"
-                  value={eventData.startDate.split('T')[0] || ''}
+                  value={getIsoDatePart(eventData.startDate)}
                   onChange={(e) => {
-                    const time = eventData.startDate.includes('T') ? eventData.startDate.split('T')[1] : '08:00';
-                    setEventData({ ...eventData, startDate: `${e.target.value}T${time}` });
+                    const time = getIsoTimePart(eventData.startDate, '08:00');
+                    setEventData({
+                      ...eventData,
+                      startDate: e.target.value ? `${e.target.value}T${time}` : '',
+                    });
                   }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('admin.settings.timeStart')} *
+                </label>
+                <input
+                  type="time"
+                  value={getIsoTimePart(eventData.startDate, '08:00')}
+                  onChange={(e) => {
+                    const date = getIsoDatePart(eventData.startDate) || new Date().toISOString().split('T')[0];
+                    setEventData({
+                      ...eventData,
+                      startDate: `${date}T${e.target.value}`,
+                    });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('admin.settings.datesEnd')} *
                 </label>
                 <input
                   type="date"
-                  value={eventData.endDate.split('T')[0] || ''}
+                  value={getIsoDatePart(eventData.endDate)}
+                  min={getIsoDatePart(eventData.startDate) || undefined}
                   onChange={(e) => {
-                    const time = eventData.endDate.includes('T') ? eventData.endDate.split('T')[1] : '18:00';
-                    setEventData({ ...eventData, endDate: `${e.target.value}T${time}` });
+                    const time = getIsoTimePart(eventData.endDate, '18:00');
+                    setEventData({
+                      ...eventData,
+                      endDate: e.target.value ? `${e.target.value}T${time}` : '',
+                    });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('admin.settings.timeEnd')} *
+                </label>
+                <input
+                  type="time"
+                  value={getIsoTimePart(eventData.endDate, '18:00')}
+                  onChange={(e) => {
+                    const date = getIsoDatePart(eventData.endDate) || getIsoDatePart(eventData.startDate) || new Date().toISOString().split('T')[0];
+                    setEventData({
+                      ...eventData,
+                      endDate: `${date}T${e.target.value}`,
+                    });
                   }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ntu-green"
                 />

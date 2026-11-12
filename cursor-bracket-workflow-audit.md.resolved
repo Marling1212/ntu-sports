@@ -1,0 +1,62 @@
+# UX Flow and Signposting Audit Report
+**Target**: `https://ntu-sports.vercel.app/admin/dashboard`
+**Flow Tested**: Hosting a Single-Elimination Bracket Tournament
+
+## 1. Creation & Empty State Check
+
+### Current Flow
+After creating the event, the user is redirected to the **Settings > Basic Information** tab. Navigating to the **Registration** tab reveals a standard table with "Showing 0/0 players" and small "+ Add Player" / "Bulk Import" buttons at the bottom right. The bracket tool on the same page shows "waiting for participants" and doesn't update reactively without a refresh.
+
+### Ideal Idiot-Proof Flow
+Redirect the user straight to **Registration/Players** after creation. If the roster is empty, hide the blank table and show a massive, centralized call-to-action (CTA).
+
+### Fix Instructions for Coding Agent
+- **File to Edit**: Event Creation API/Action (`app/api/events/route.ts` or server action) and Registration page (`app/[locale]/admin/[id]/players/page.tsx`).
+- **Implementation**:
+  - Change the post-creation redirect from `/admin/[id]/settings` to `/admin/[id]/players`.
+  - In the Registration component, if `players.length === 0`, render a Tailwind empty state component (e.g., a massive dashed box with an icon, `text-2xl` bold text, and a primary brand-colored "Add Your First Player" button).
+  - Use React Query, SWR, or a Next.js Server Action with `revalidatePath` to ensure the bracket generation tool updates reactively when the first player is added.
+
+## 2. The Seeding & Generation Flow
+
+### Current Flow
+There are two "generate" logic paths on the Registration page. A blue "Generate Tournament Bracket" button at the top (which doesn't create match rows) and a "Save Bracket" button within the manual seeding tool that *actually* generates the matches. Highly counter-intuitive.
+
+### Ideal Idiot-Proof Flow
+One unified "Publish Bracket & Create Matches" button that is only enabled when seeding is completed or randomized.
+
+### Fix Instructions for Coding Agent
+- **File to Edit**: Seeding and Bracket Generation components.
+- **Implementation**:
+  - Merge the logic. Remove the redundant blue "Generate Tournament Bracket" button if it doesn't seed matches.
+  - Rename the action button in the manual seeding tool to "Finalize Bracket & Create Matches".
+  - Add a confirmation modal step specifying exactly how many matches are about to be created.
+
+## 3. Match Management (The 'Oops' Test)
+
+### Current Flow
+Typing a score (e.g., 6-0) and marking a match as "Completed" allows saving. Editing a score later to fix a typo is simple (click edit, fix, save). BUT, the winner does **not** automatically advance to the next round. R2 matches remain "TBD vs TBD". This forces manual backend-like logic on the admin.
+
+### Ideal Idiot-Proof Flow
+When a match is saved as "Completed" with a designated winner, the system automatically patches the next round's match to include the winner's player ID. If a score is edited (undo), it should cascade or warn the user.
+
+### Fix Instructions for Coding Agent
+- **File to Edit**: Match score update server action or API route.
+- **Implementation**:
+  - **Auto-Advancement**: In the Supabase transaction for updating a match to "Completed", determine the `next_match_id`. Update that next match by setting `player1_id` or `player2_id` to the winner's ID.
+  - **Edit Fallback ("Undo")**: If a match is reverted from "Completed" to "Scheduled", write logic to clear the advanced player from the `next_match_id`. Show a toast warning: "Match reverted. Player removed from next round."
+
+## 4. Global Signposting
+
+### Current Flow
+It takes 3 clicks to get from the Admin Homepage to managing a specific bracket. Breadcrumbs exist (`Dashboard | Audit Bracket Test`) but are small. Mixed English and Chinese hardcoded strings confuse the UI.
+
+### Ideal Idiot-Proof Flow
+One click from the dashboard directly to the event's active phase (Bracket). Clear, highly visible breadcrumbs. Full bilingual support using the existing [lib/i18n/translations.ts](file:///c:/Users/maste/OneDrive/Desktop/%E5%A4%A7%E5%AD%B8/%E4%B8%89%E4%B8%8A/%E7%B6%B2%E8%B7%AF%E6%9C%8D%E5%8B%99/Final/lib/i18n/translations.ts).
+
+### Fix Instructions for Coding Agent
+- **File to Edit**: Admin Dashboard Event Cards and Navigation Header.
+- **Implementation**:
+  - Add quick-action links (e.g., "Manage Bracket", "Registrations") directly on the event cards in the main dashboard.
+  - Increase the text size and contrast of the top breadcrumbs (`text-lg font-semibold`).
+  - Replace all hardcoded Chinese strings in the registration/bracket components with `t('key')` from the i18n setup.

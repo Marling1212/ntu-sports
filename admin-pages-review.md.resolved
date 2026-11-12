@@ -1,0 +1,57 @@
+# Admin Panel Architecture & UX Review
+
+## 1. Global Admin Pages
+
+### `app/admin/dashboard`
+- **Function**: The main entry point. Displays tournaments the user organizes. Platform Admins see an extra "Global Sponsors" button.
+- **UX & Placement**: Excellent. The empty state ("No Events Yet") has a clear call-to-action to create a new event. The redirection after creation effectively pushes users to `/[id]/players`, a great UX flow.
+- **Completeness**: Looks complete and correctly implemented.
+
+### `app/admin/login` & `app/admin/signup`
+- **Function**: Authentication using Supabase (Password or Magic Link).
+- **UX & Defect**: Clean UI. However, there is a **bug in the Magic Link flow** in `login/page.tsx`. Line 39 hardcodes the redirect URL to `/alumni/dashboard` instead of `/admin/dashboard`. This will confuse admins logging in via email!
+
+### `app/admin/debug` & `app/admin/feedback`
+- **Function**: `debug` dumps all system records (users, events, organizers). `feedback` shows all site feedback submitted by public users.
+- **UX & Defect**: **Critical Security/Privacy Issue**. Both of these pages currently only check if the user is *an* organizer (`organizers?.length > 0`). This means any student who creates a test event can access the `debug` page to see everyone's JSON data and the `feedback` page to see all system-wide feedback. These pages MUST be restricted to `platform_admins` only.
+
+### `app/admin/sponsors`
+- **Function**: Manages Global Sponsors (where `event_id` is null).
+- **UX & Placement**: Correctly restricted to `platform_admins`. Works exactly as intended.
+
+---
+
+## 2. Event-Level Admin Pages
+
+**Overall UX Note**: Event pages utilize a side-navigation layout. Navigation is logical, but there's a heavy mix of hardcoded Chinese (e.g., "比賽", "要排定比賽時間...") and English throughout the views. Consider replacing hardcoded strings with `t('key')` from the existing `i18n` setup so it matches the seamless bilingual nature of the public site.
+
+### `app/admin/[eventId]/settings`
+- **Function**: Core event settings, rules, scheduling notes, sponsors, and tiebreaker configurations.
+- **UX & Placement**: The logic is sound. It is well-placed as the default/fallback page, though the new flow pushes users strictly to `players` right after creation.
+- **Completeness**: Very robust.
+
+### `app/admin/[eventId]/players`
+- **Function**: Manages player/team registration (`PlayersTable`) AND handles initial generation of Brackets and Season Play groups.
+- **UX & Defect**: 
+  - Having "Step 1: Add Players" and "Step 2: Generate Bracket" on the same page makes it very vertically dense. 
+  - As noted in previous audits, the two separate generation buttons here are confusing.
+- **Recommendation**: Consider moving bracket generation logic into the `brackets` page to separate "Registration" from "Draw/Generation".
+
+### `app/admin/[eventId]/brackets`
+- **Function**: Currently just a redirect router! It redirects the user straight back to `/admin/[eventId]/players#generate-bracket`.
+- **UX & Placement**: This proves that "Brackets" doesn't actually have its own dedicated page. When a user clicks "Bracket Editor" in the nav, they are unexpectedly thrown back to the Players page and auto-scrolled. This feels jarring and confirms the `players` page is overloaded. 
+
+### `app/admin/[eventId]/scheduling`
+- **Function**: Defines time slots, courts, and provides a drag-and-drop `ScheduleGridEditor`.
+- **UX & Placement**: Excellent feature. The visual feedback (warning if a match is dragged into a team's blackout time) is a massive quality-of-life win for tournament admins and highly intuitive. 
+
+### `app/admin/[eventId]/matches`
+- **Function**: Displays the `MatchesTable`, `PlayerStats`, and `MatchHistory`. Allows setting match scores.
+- **UX & Placement**: 
+  - Has a great empty state: *"No players or teams found. Step 1: Go to Players..."* which guides clueless admins well.
+  - An amber banner correctly signposts admins to the `scheduling` page if they want to assign times/courts. 
+  - UX is solid, but "Matches" feels like where the actual Bracket visual should live, rather than just a raw list of matches.
+
+### `app/admin/[eventId]/announcements`
+- **Function**: Pin and post announcements. Automatically shows tomorrow's schedule.
+- **UX & Placement**: Clean and does exactly what it says. Good explanation texts explaining that they do not need to manually post tomorrow's schedule.
