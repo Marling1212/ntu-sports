@@ -110,7 +110,11 @@ export function TournamentBracketCore({
 
   /** PDF: wider cells + multi-line names. Do not use CSS transform scale — html2canvas clips glyph descenders. */
   const pdfCellClass = "w-[188px]";
-  const screenCellClass = adminCheckIn ? "w-[185px] md:w-[220px]" : "w-[150px] md:w-[200px]";
+  const screenCellClass = adminCheckIn
+    ? "w-[185px] md:w-[220px]"
+    : effectiveShowCheckIn
+      ? "w-[160px] md:w-[205px]"
+      : "w-[150px] md:w-[200px]";
   const cellWClass = pdfCapture ? pdfCellClass : screenCellClass;
   const headerColGapPx = 48;
 
@@ -199,6 +203,15 @@ export function TournamentBracketCore({
                   : isThirdPlace ? "border-amber-400 bg-amber-50" : "border-gray-300 bg-white"
           }`}
       >
+        {/* Top-right corner tag for unchecked status - does not squeeze player name horizontally */}
+        {isUnchecked && !adminCheckInSlot && (
+          <span
+            className="absolute top-0 right-0 rounded-bl-md rounded-tr-[6px] bg-red-200/90 border-b border-l border-red-300/80 text-red-800 text-[8px] md:text-[9px] font-bold px-1.5 py-0.5 leading-none tracking-tight uppercase pointer-events-none select-none z-10 shadow-2xs"
+            title={t("bracket.notCheckedIn")}
+          >
+            {t("bracket.notCheckedIn")}
+          </span>
+        )}
         <div
           className={`flex gap-1.5 md:gap-2 w-full min-w-0 ${pdfCapture ? "items-start" : "items-center h-full"}`}
         >
@@ -213,6 +226,7 @@ export function TournamentBracketCore({
                 ? "text-xs md:text-sm break-words leading-[1.45] pb-0.5"
                 : "text-base md:text-lg truncate leading-tight"
                 } ${isBye ? "text-gray-400 italic" : ""}`}
+              title={displayText}
             >
               {displayText}
             </div>
@@ -235,11 +249,6 @@ export function TournamentBracketCore({
               </div>
             )}
           </div>
-          {isUnchecked && !adminCheckInSlot && (
-            <span className="shrink-0 text-[10px] md:text-xs font-semibold px-1.5 py-0.5 rounded border border-red-300 bg-red-200/80 text-red-800 whitespace-nowrap">
-              {t("bracket.notCheckedIn")}
-            </span>
-          )}
           {adminCheckInSlot && player?.id && !isBye && (
             <button
               type="button"
